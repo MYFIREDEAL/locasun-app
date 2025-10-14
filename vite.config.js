@@ -223,6 +223,7 @@ export default defineConfig({
 	},
 	build: {
 		rollupOptions: {
+			input: '/index.html',
 			external: [
 				'@babel/parser',
 				'@babel/traverse',
