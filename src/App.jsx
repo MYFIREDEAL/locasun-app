@@ -649,6 +649,9 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/:slugUser" element={<HomePage />} />
+        <Route path="/espace-pro" element={<AdminLayout />}>
+          <Route index element={<Pipeline />} />
+        </Route>
         <Route path="/inscription" element={<RegistrationPage />} />
         <Route path="/inscription/:slugUser" element={<RegistrationPage />} />
         <Route path="/producteurs" element={<ProducerLandingPage />} />
