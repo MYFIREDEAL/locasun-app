@@ -261,7 +261,7 @@ const SafeContacts = () => {
             <DropdownMenuContent>
               <DropdownMenuCheckboxItem
                 checked={!selectedTag}
-                onCheckedChange={() => setSelectedTag(null)}
+                onCheckedChange={(checked) => { console.log('SafeContacts: Tous clicked, checked=', checked); if (checked) setSelectedTag(null); }}
               >
                 Tous les tags
               </DropdownMenuCheckboxItem>
@@ -270,7 +270,7 @@ const SafeContacts = () => {
                 <DropdownMenuCheckboxItem
                   key={tag}
                   checked={selectedTag === tag}
-                  onCheckedChange={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                  onCheckedChange={(checked) => { console.log('SafeContacts: tag=', tag, 'checked=', checked); if (checked) setSelectedTag(tag); else setSelectedTag(null); }}
                 >
                   {tag}
                 </DropdownMenuCheckboxItem>

@@ -500,10 +500,10 @@ const CompleteOriginalContacts = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuCheckboxItem checked={!selectedTag} onSelect={() => setSelectedTag(null)}>Tous</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={!selectedTag} onCheckedChange={(checked) => { console.log('CompleteOriginalContacts: Tous clicked, checked=', checked); if (checked) setSelectedTag(null); }} >Tous</DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
               {allTags.map(tag => (
-                <DropdownMenuCheckboxItem key={tag} checked={selectedTag === tag} onSelect={() => setSelectedTag(tag)}>{tag}</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem key={tag} checked={selectedTag === tag} onCheckedChange={(checked) => { console.log('CompleteOriginalContacts: tag=', tag, 'checked=', checked); if (checked) setSelectedTag(tag); else setSelectedTag(null); }}>{tag}</DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
