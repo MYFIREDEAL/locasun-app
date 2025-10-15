@@ -5,6 +5,27 @@ import { Toaster } from '@/components/ui/toaster';
 import AdminLayout from '@/layouts/AdminLayout';
 import ClientLayout from '@/layouts/ClientLayout';
 import Pipeline from '@/pages/admin/Pipeline';
+import FixedPipeline from '@/pages/admin/FixedPipeline';
+import SafeTestPipeline from './pages/admin/SafeTestPipeline';
+import ProgressivePipeline from './pages/admin/ProgressivePipeline';
+import CleanPipeline from './pages/admin/CleanPipeline';
+import OriginalPipeline from './pages/admin/OriginalPipeline';
+import FinalPipeline from './pages/admin/FinalPipeline';
+import FinalPipelineRestored from './pages/admin/FinalPipelineRestored';
+import PipelineSwitcher from './pages/admin/PipelineSwitcher';
+import UltraSimple from './pages/admin/UltraSimple';
+import FixedPipelineOriginal from './pages/admin/FixedPipelineOriginal';
+import TestPipeline from './pages/admin/TestPipeline';
+import SafeContacts from './pages/admin/SafeContacts';
+import UltraSimpleContacts from './pages/admin/UltraSimpleContacts';
+import WorkingContacts from './pages/admin/WorkingContacts';
+import EnhancedContacts from './pages/admin/EnhancedContacts';
+import FixedOriginalContacts from './pages/admin/FixedOriginalContacts';
+import CompleteOriginalContacts from './pages/admin/CompleteOriginalContacts';
+import SimplePipeline from '@/pages/admin/SimplePipeline';
+import SafePipeline from '@/pages/admin/SafePipeline';
+import WorkingPipeline from '@/pages/admin/WorkingPipeline';
+import DiagnosticAdmin from '@/pages/admin/DiagnosticAdmin';
 import Agenda from '@/pages/admin/Agenda';
 import Contacts from '@/pages/admin/Contacts';
 import CharlyPage from '@/pages/admin/CharlyPage';
@@ -69,7 +90,23 @@ function App() {
 
     const storedProspects = localStorage.getItem('evatime_prospects');
     if (storedProspects) {
-      setProspects(JSON.parse(storedProspects));
+      const parsedProspects = JSON.parse(storedProspects);
+      const normalizedProspects = parsedProspects.map((prospect) => {
+        const normalizedTags = Array.isArray(prospect.tags)
+          ? prospect.tags
+          : typeof prospect.tags === 'string' && prospect.tags.trim()
+            ? [prospect.tags.trim()]
+            : prospect.projectType
+              ? [prospect.projectType]
+              : [];
+
+        return {
+          ...prospect,
+          tags: normalizedTags,
+        };
+      });
+      setProspects(normalizedProspects);
+      localStorage.setItem('evatime_prospects', JSON.stringify(normalizedProspects));
     } else {
       // Prospects par défaut pour les activités de test
       const defaultProspects = [
@@ -81,7 +118,8 @@ function App() {
           company: 'Dupont SA',
           address: '123 Rue de la Paix, 75001 Paris',
           ownerId: 'user-1',
-          status: 'lead'
+          status: 'lead',
+          tags: ['ACC'],
         },
         {
           id: 'prospect-2',
@@ -91,7 +129,8 @@ function App() {
           company: 'Martin & Co',
           address: '456 Avenue des Champs, 69000 Lyon',
           ownerId: 'user-1',
-          status: 'qualified'
+          status: 'qualified',
+          tags: ['Centrale'],
         },
         {
           id: 'prospect-3',
@@ -101,7 +140,8 @@ function App() {
           company: 'Durand Industries',
           address: '789 Boulevard du Commerce, 13000 Marseille',
           ownerId: 'user-1',
-          status: 'opportunity'
+          status: 'opportunity',
+          tags: ['Investissement'],
         }
       ];
       setProspects(defaultProspects);
@@ -659,13 +699,28 @@ function App() {
           <Route path="offres" element={<OffersPage />} />
         </Route>
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Pipeline />} />
-          <Route path="pipeline" element={<Pipeline />} />
+          <Route index element={<FinalPipeline />} />
+          <Route path="pipeline" element={<FinalPipeline />} />
+          <Route path="pipeline-switcher" element={<PipelineSwitcher />} />
           <Route path="agenda" element={<Agenda />} />
-          <Route path="contacts" element={<Contacts />} />
+          <Route path="contacts" element={<CompleteOriginalContacts />} />
           <Route path="charly" element={<CharlyPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
+          <Route path="test" element={<SafeTestPipeline />} />
+          <Route path="progressive" element={<ProgressivePipeline />} />
+          <Route path="clean" element={<CleanPipeline />} />
+          <Route path="original" element={<Pipeline />} />
+          <Route path="contacts-original" element={<Contacts />} />
+          <Route path="contacts-safe" element={<SafeContacts />} />
+          <Route path="contacts-ultra" element={<UltraSimpleContacts />} />
+          <Route path="final" element={<FinalPipeline />} />
+          <Route path="ultra" element={<UltraSimple />} />
+          <Route path="simple" element={<SimplePipeline />} />
+          <Route path="fixed-pipeline" element={<FixedPipeline />} />
+          <Route path="working-pipeline" element={<WorkingPipeline />} />
+          <Route path="safe-pipeline" element={<SafePipeline />} />
+          <Route path="diagnostic" element={<DiagnosticAdmin />} />
         </Route>
       </Routes>
       

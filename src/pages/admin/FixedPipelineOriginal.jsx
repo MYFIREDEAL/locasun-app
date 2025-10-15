@@ -3,15 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import ProspectCardFixed from '@/components/admin/ProspectCardFixed';
-import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
-import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
+import ProspectCard from '@/components/admin/ProspectCard';
+import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
+import AddProspectModal from '@/components/admin/AddProspectModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useAppContext } from '@/App';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { slugify } from '@/lib/utils';
-
 
 const Column = ({ column, onProspectClick }) => {
   return (
@@ -25,7 +24,7 @@ const Column = ({ column, onProspectClick }) => {
       <div className="space-y-4 overflow-y-auto flex-1 no-scrollbar">
         <SortableContext items={column.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
           {column.items.map((item) => (
-            <ProspectCardFixed
+            <ProspectCard
               key={item.id}
               prospect={item}
               onClick={() => onProspectClick(item)}
@@ -37,8 +36,39 @@ const Column = ({ column, onProspectClick }) => {
   );
 };
 
-const Pipeline = () => {
-  const { prospects, addProspect, updateProspect, users, projectsData, getProjectSteps, activeAdminUser } = useAppContext();
+const FixedPipelineOriginal = () => {
+  // Gestion d'erreur pour le contexte
+  let contextData;
+  try {
+    contextData = useAppContext();
+  } catch (error) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Pipeline - Erreur</h1>
+        <p className="text-red-600">Erreur contexte: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (!contextData) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Pipeline - Chargement</h1>
+        <p>Chargement...</p>
+      </div>
+    );
+  }
+
+  const { 
+    prospects = [], 
+    addProspect, 
+    updateProspect, 
+    users = {}, 
+    projectsData = {}, 
+    getProjectSteps, 
+    activeAdminUser 
+  } = contextData;
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -85,48 +115,62 @@ const Pipeline = () => {
       return;
     }
 
-    const projectSteps = projectsData[selectedProjectType].steps;
-    const newColumns = projectSteps.reduce((acc, step) => {
-      acc[slugify(step.name)] = { name: step.name, items: [] };
-      return acc;
-    }, {});
-    
-    const visibleProspects = prospects.filter(prospect => {
-        if (!activeAdminUser) return false;
-        if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
-        const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-        return allowedIds.includes(prospect.ownerId);
-    });
-
-    const filteredProspects = visibleProspects.filter(prospect => {
-      const tags = Array.isArray(prospect.tags) ? prospect.tags : [];
-      const matchesOwner = selectedOwnerId === 'all' || prospect.ownerId === selectedOwnerId;
-      return matchesOwner && tags.includes(selectedProjectType);
-    });
-
-    filteredProspects.forEach(prospect => {
-      const prospectSteps = getProjectSteps(prospect.id, selectedProjectType);
-      const currentStep = prospectSteps.find(step => step.status === 'in_progress' || step.status === 'current');
+    try {
+      const projectSteps = projectsData[selectedProjectType]?.steps || [];
+      const newColumns = projectSteps.reduce((acc, step) => {
+        acc[slugify(step.name)] = { name: step.name, items: [] };
+        return acc;
+      }, {});
       
-      if (currentStep) {
-        const columnKey = slugify(currentStep.name);
-        if (newColumns[columnKey]) {
-          newColumns[columnKey].items.push(prospect);
-        }
-      }
-    });
+      const visibleProspects = prospects.filter(prospect => {
+          if (!activeAdminUser) return false;
+          if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
+          const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+          return allowedIds.includes(prospect.ownerId);
+      });
 
-    setColumns(newColumns);
+      const filteredProspects = visibleProspects.filter(prospect => 
+        (selectedOwnerId === 'all' || prospect.ownerId === selectedOwnerId) && 
+        (prospect.tags || []).includes(selectedProjectType)
+      );
+
+      filteredProspects.forEach(prospect => {
+        try {
+          if (getProjectSteps) {
+            const prospectSteps = getProjectSteps(prospect.id, selectedProjectType);
+            const currentStep = prospectSteps?.find(step => step.status === 'in_progress' || step.status === 'current');
+            
+            if (currentStep) {
+              const columnKey = slugify(currentStep.name);
+              if (newColumns[columnKey]) {
+                newColumns[columnKey].items.push(prospect);
+              }
+            }
+          }
+        } catch (stepError) {
+          console.error('Erreur étapes prospect:', stepError);
+        }
+      });
+
+      setColumns(newColumns);
+    } catch (error) {
+      console.error('Erreur colonnes:', error);
+      setColumns({});
+    }
   }, [prospects, selectedOwnerId, selectedProjectType, projectsData, getProjectSteps, activeAdminUser]);
 
   const updateQueryParam = (key, value) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
+    try {
+      const newParams = new URLSearchParams(searchParams);
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+      setSearchParams(newParams);
+    } catch (error) {
+      console.error('Erreur URL:', error);
     }
-    setSearchParams(newParams);
   };
 
   const handleProspectClick = (prospect) => {
@@ -138,35 +182,56 @@ const Pipeline = () => {
   };
 
   const handleAddProspect = (newProspect) => {
-    addProspect({ ...newProspect, ownerId: activeAdminUser?.id || 'user-1' });
+    try {
+      if (addProspect) {
+        addProspect({ ...newProspect, ownerId: activeAdminUser?.id || 'user-1' });
+      }
+    } catch (error) {
+      console.error('Erreur ajout prospect:', error);
+    }
   };
 
   const handleUpdateProspect = (updatedProspect) => {
-    updateProspect(updatedProspect);
-    setSelectedProspect(updatedProspect);
+    try {
+      if (updateProspect) {
+        updateProspect(updatedProspect);
+        setSelectedProspect(updatedProspect);
+      }
+    } catch (error) {
+      console.error('Erreur update prospect:', error);
+    }
   };
 
   useEffect(() => {
     if(activeAdminUser && !searchParams.get('owner')){
         updateQueryParam('owner', activeAdminUser.id);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAdminUser]);
+
+  useEffect(() => {
+    if(projectOptions.length > 0 && !searchParams.get('project')){
+        updateQueryParam('project', projectOptions[0].value);
+    }
+  }, [projectOptions]);
 
   return (
     <AnimatePresence mode="wait">
       {selectedProspect ? (
         <motion.div
           key="prospect-details"
-          initial={{ opacity: 0, x: 50 }}
+          initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
+          exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <SafeProspectDetailsAdmin prospect={selectedProspect} onBack={handleBack} onUpdate={handleUpdateProspect} />
+          <ProspectDetailsAdmin 
+            prospect={selectedProspect} 
+            onBack={handleBack}
+            onUpdate={handleUpdateProspect}
+          />
         </motion.div>
       ) : (
-        <motion.div
+        <motion.div 
           key="pipeline-view"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -177,7 +242,7 @@ const Pipeline = () => {
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="flex items-center gap-4">
               <h1 className="text-3xl font-bold text-gray-900">Pipeline</h1>
-               <div className="w-56">
+              <div className="w-56">
                 <SearchableSelect
                   options={projectOptions}
                   value={selectedProjectType}
@@ -215,7 +280,7 @@ const Pipeline = () => {
               </motion.div>
             ))}
           </div>
-          <SafeAddProspectModal 
+          <AddProspectModal 
             open={isAddModalOpen} 
             onOpenChange={setAddModalOpen}
             onAddProspect={handleAddProspect}
@@ -226,4 +291,4 @@ const Pipeline = () => {
   );
 };
 
-export default Pipeline;
+export default FixedPipelineOriginal;

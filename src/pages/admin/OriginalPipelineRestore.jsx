@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import ProspectCardFixed from '@/components/admin/ProspectCardFixed';
-import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
-import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
+import ProspectCard from '@/components/admin/ProspectCard';
+import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
+import AddProspectModal from '@/components/admin/AddProspectModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useAppContext } from '@/App';
@@ -25,7 +25,7 @@ const Column = ({ column, onProspectClick }) => {
       <div className="space-y-4 overflow-y-auto flex-1 no-scrollbar">
         <SortableContext items={column.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
           {column.items.map((item) => (
-            <ProspectCardFixed
+            <ProspectCard
               key={item.id}
               prospect={item}
               onClick={() => onProspectClick(item)}
@@ -37,7 +37,7 @@ const Column = ({ column, onProspectClick }) => {
   );
 };
 
-const Pipeline = () => {
+const OriginalPipelineRestore = () => {
   const { prospects, addProspect, updateProspect, users, projectsData, getProjectSteps, activeAdminUser } = useAppContext();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -98,11 +98,9 @@ const Pipeline = () => {
         return allowedIds.includes(prospect.ownerId);
     });
 
-    const filteredProspects = visibleProspects.filter(prospect => {
-      const tags = Array.isArray(prospect.tags) ? prospect.tags : [];
-      const matchesOwner = selectedOwnerId === 'all' || prospect.ownerId === selectedOwnerId;
-      return matchesOwner && tags.includes(selectedProjectType);
-    });
+    const filteredProspects = visibleProspects.filter(prospect => 
+      (selectedOwnerId === 'all' || prospect.ownerId === selectedOwnerId) && prospect.tags.includes(selectedProjectType)
+    );
 
     filteredProspects.forEach(prospect => {
       const prospectSteps = getProjectSteps(prospect.id, selectedProjectType);
@@ -163,7 +161,7 @@ const Pipeline = () => {
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
         >
-          <SafeProspectDetailsAdmin prospect={selectedProspect} onBack={handleBack} onUpdate={handleUpdateProspect} />
+          <ProspectDetailsAdmin prospect={selectedProspect} onBack={handleBack} onUpdate={handleUpdateProspect} />
         </motion.div>
       ) : (
         <motion.div
@@ -177,7 +175,7 @@ const Pipeline = () => {
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="flex items-center gap-4">
               <h1 className="text-3xl font-bold text-gray-900">Pipeline</h1>
-               <div className="w-56">
+              <div className="w-56">
                 <SearchableSelect
                   options={projectOptions}
                   value={selectedProjectType}
@@ -215,7 +213,7 @@ const Pipeline = () => {
               </motion.div>
             ))}
           </div>
-          <SafeAddProspectModal 
+          <AddProspectModal 
             open={isAddModalOpen} 
             onOpenChange={setAddModalOpen}
             onAddProspect={handleAddProspect}
@@ -226,4 +224,4 @@ const Pipeline = () => {
   );
 };
 
-export default Pipeline;
+export default OriginalPipelineRestore;

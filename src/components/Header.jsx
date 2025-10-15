@@ -8,6 +8,7 @@ import { Link, useLocation } from 'react-router-dom';
 const Header = () => {
   const location = useLocation();
   const isDashboard = location.pathname.startsWith('/dashboard');
+  const isHomePage = location.pathname === '/';
 
   const handleProfileClick = () => {
     toast({
@@ -45,7 +46,7 @@ const Header = () => {
           </div>
 
           <div className="flex items-center space-x-3">
-            {isDashboard && (
+            {(isDashboard || isHomePage) && (
                 <Link to="/admin">
                     <Button variant="outline" className="rounded-full text-blue-600 border-blue-200 hover:bg-blue-50 flex items-center space-x-2">
                         <BarChart3 className="h-4 w-4" />

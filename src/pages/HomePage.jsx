@@ -44,7 +44,8 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
         });
         const proUser = { id: 'user-1', name: 'Jack Luc', email: 'jack.luc@icloud.com', role: 'Admin' };
         setCurrentUser(proUser);
-        setTimeout(() => navigate('/admin'), 1000);
+        onOpenChange(false); // Fermer la modal
+        setTimeout(() => navigate('/admin'), 500); // Réduire le délai
       } else {
         toast({
           title: "Erreur de connexion",
@@ -61,7 +62,8 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
           className: "bg-blue-500 text-white",
         });
         setCurrentUser(clientUser);
-        setTimeout(() => navigate('/dashboard'), 1000);
+        onOpenChange(false); // Fermer la modal
+        setTimeout(() => navigate('/dashboard'), 500); // Réduire le délai
       } else {
          toast({
           title: "Erreur de connexion",
