@@ -174,10 +174,14 @@ const Contacts = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuCheckboxItem checked={!selectedTag} onSelect={() => setSelectedTag(null)}>Tous</DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem checked={!selectedTag} onSelect={() => setSelectedTag(null)}>
+              Tous
+            </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             {allTags.map(tag => (
-              <DropdownMenuCheckboxItem key={tag} checked={selectedTag === tag} onSelect={() => setSelectedTag(tag)}>{tag}</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem key={tag} checked={selectedTag === tag} onSelect={() => setSelectedTag(tag)}>
+                {tag}
+              </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>

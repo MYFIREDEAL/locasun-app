@@ -1,69 +1,22 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageSquare, Mail, Bot, Plus, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
+import { Search, MessageSquare, Mail, Bot, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
-import { cn } from '@/lib/utils';
 import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
 
 // Import des composants originaux avec gestion d'erreur
 let ProspectDetailsAdmin;
 let AddProspectModal;
-let DropdownMenu;
-let DropdownMenuTrigger;
-let DropdownMenuContent;
-let DropdownMenuCheckboxItem;
-let DropdownMenuSeparator;
-let Popover;
-let PopoverTrigger;
-let PopoverContent;
-let Command;
-let CommandInput;
-let CommandEmpty;
-let CommandGroup;
-let CommandItem;
-let CommandList;
 
 // Utiliser directement les composants sécurisés
 ProspectDetailsAdmin = SafeProspectDetailsAdmin;
 AddProspectModal = SafeAddProspectModal;
-
-try {
-  const dropdown = require('@/components/ui/dropdown-menu');
-  DropdownMenu = dropdown.DropdownMenu;
-  DropdownMenuTrigger = dropdown.DropdownMenuTrigger;
-  DropdownMenuContent = dropdown.DropdownMenuContent;
-  DropdownMenuCheckboxItem = dropdown.DropdownMenuCheckboxItem;
-  DropdownMenuSeparator = dropdown.DropdownMenuSeparator;
-} catch (e) {
-  console.warn('DropdownMenu components not available');
-}
-
-try {
-  const popover = require('@/components/ui/popover');
-  Popover = popover.Popover;
-  PopoverTrigger = popover.PopoverTrigger;
-  PopoverContent = popover.PopoverContent;
-} catch (e) {
-  console.warn('Popover components not available');
-}
-
-try {
-  const command = require('@/components/ui/command');
-  Command = command.Command;
-  CommandInput = command.CommandInput;
-  CommandEmpty = command.CommandEmpty;
-  CommandGroup = command.CommandGroup;
-  CommandItem = command.CommandItem;
-  CommandList = command.CommandList;
-} catch (e) {
-  console.warn('Command components not available');
-}
 
 const tagColors = {
   'ACC': 'bg-blue-100 text-blue-800',
@@ -74,79 +27,6 @@ const tagColors = {
 };
 
 const allTags = ['ACC', 'Autonomie', 'Centrale', 'Investissement', 'ProducteurPro'];
-
-// Composants de fallback si les originaux ne sont pas disponibles
-const FallbackDropdownMenu = ({ children, trigger, onSelect }) => {
-  const [open, setOpen] = useState(false);
-  
-  return (
-    <div className="relative">
-      <div onClick={() => setOpen(!open)}>
-        {trigger}
-      </div>
-      {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg min-w-[120px]">
-          <div className="py-1">
-            {React.Children.map(children, (child, index) => (
-              <div
-                key={index}
-                className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (child.props.onSelect) child.props.onSelect();
-                  setOpen(false);
-                }}
-              >
-                {child.props.children}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const FallbackPopover = ({ children, trigger, open, onOpenChange }) => {
-  return (
-    <div className="relative">
-      <div onClick={() => onOpenChange(!open)}>
-        {trigger}
-      </div>
-      {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg min-w-[200px]">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const FallbackCommand = ({ children }) => {
-  return <div className="p-2">{children}</div>;
-};
-
-const FallbackCommandInput = ({ placeholder, value, onChange }) => {
-  return (
-    <Input
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className="mb-2"
-    />
-  );
-};
-
-const FallbackCommandItem = ({ children, onSelect, selected }) => {
-  return (
-    <div
-      className={`px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center ${selected ? 'bg-blue-50' : ''}`}
-      onClick={onSelect}
-    >
-      {children}
-    </div>
-  );
-};
 
 const FallbackProspectDetails = ({ prospect, onBack, onUpdate }) => {
   const { users = {} } = useAppContext();
@@ -252,7 +132,7 @@ const FallbackAddModal = ({ open, onOpenChange, onAddProspect }) => {
     const newProspect = {
       id: `prospect-${Date.now()}`,
       ...formData,
-      tags: tags,
+      tags,
       hasAppointment: false,
       ownerId: activeAdminUser?.id || 'user-1',
     };
@@ -333,11 +213,10 @@ const CompleteOriginalContacts = () => {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOwnerId, setSelectedOwnerId] = useState(activeAdminUser?.id || 'user-1');
   const [selectedTag, setSelectedTag] = useState(null);
-  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
-  const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [isTagMenuOpen, setTagMenuOpen] = useState(false);
+  const tagMenuRef = useRef(null);
+  const tagFilterLabel = selectedTag || 'Tous les tags';
   const navigate = useNavigate();
 
   const allowedUsers = useMemo(() => {
@@ -349,25 +228,14 @@ const CompleteOriginalContacts = () => {
     return Object.values(users).filter(u => allowedIds.includes(u.id));
   }, [activeAdminUser, users]);
 
-  const userOptions = useMemo(() => [
-    { value: 'all', label: 'Tous les utilisateurs' },
-    ...allowedUsers.map(user => ({ value: user.id, label: user.name }))
-  ], [allowedUsers]);
-
-  const filteredUserOptions = useMemo(() => {
-    if (!userSearchQuery) return userOptions;
-    return userOptions.filter(user => 
-      user.label.toLowerCase().includes(userSearchQuery.toLowerCase())
-    );
-  }, [userOptions, userSearchQuery]);
-
-  useEffect(() => {
-    if (activeAdminUser) {
-      if (!allowedUsers.some(u => u.id === selectedOwnerId) && selectedOwnerId !== 'all') {
-        setSelectedOwnerId(activeAdminUser.id);
-      }
-    }
-  }, [activeAdminUser, selectedOwnerId, allowedUsers]);
+  const tagOptions = useMemo(() => {
+    const prospectTags = new Set();
+    prospects.forEach(prospect => {
+      (prospect.tags || []).forEach(tag => prospectTags.add(tag));
+    });
+    const derivedTags = Array.from(prospectTags);
+    return derivedTags.length > 0 ? derivedTags : allTags;
+  }, [prospects]);
 
   const filteredProspects = useMemo(() => {
     const visibleProspects = prospects.filter(prospect => {
@@ -380,11 +248,23 @@ const CompleteOriginalContacts = () => {
     return visibleProspects.filter(prospect => {
       const searchMatch = prospect.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           prospect.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      const ownerMatch = selectedOwnerId === 'all' || prospect.ownerId === selectedOwnerId;
       const tagMatch = !selectedTag || (prospect.tags && prospect.tags.includes(selectedTag));
-      return searchMatch && ownerMatch && tagMatch;
+      return searchMatch && tagMatch;
     });
-  }, [prospects, searchQuery, selectedOwnerId, selectedTag, activeAdminUser]);
+  }, [prospects, searchQuery, selectedTag, activeAdminUser]);
+
+  useEffect(() => {
+    if (!isTagMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (tagMenuRef.current && !tagMenuRef.current.contains(event.target)) {
+        setTagMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTagMenuOpen]);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -407,6 +287,11 @@ const CompleteOriginalContacts = () => {
       title: `🚧 L'action "${action}" n'est pas encore implémentée.`,
       description: "Ceci est une maquette cliquable. La fonctionnalité peut être demandée. 🚀",
     });
+  };
+  
+  const handleTagSelect = (tag) => {
+    setSelectedTag(tag);
+    setTagMenuOpen(false);
   };
   
   const handleRowClick = (contact) => {
@@ -442,24 +327,6 @@ const CompleteOriginalContacts = () => {
   // Utiliser le composant original si disponible, sinon le fallback
   const AddModal = AddProspectModal || FallbackAddModal;
 
-  // Composants UI avec fallback
-  const MenuDropdown = DropdownMenu || FallbackDropdownMenu;
-  const MenuTrigger = DropdownMenuTrigger || React.Fragment;
-  const MenuContent = DropdownMenuContent || React.Fragment;
-  const MenuCheckboxItem = DropdownMenuCheckboxItem || React.Fragment;
-  const MenuSeparator = DropdownMenuSeparator || React.Fragment;
-  
-  const PopoverComponent = Popover || FallbackPopover;
-  const PopoverTriggerComponent = PopoverTrigger || React.Fragment;
-  const PopoverContentComponent = PopoverContent || React.Fragment;
-  
-  const CommandComponent = Command || FallbackCommand;
-  const CommandInputComponent = CommandInput || FallbackCommandInput;
-  const CommandEmptyComponent = CommandEmpty || React.Fragment;
-  const CommandGroupComponent = CommandGroup || React.Fragment;
-  const CommandItemComponent = CommandItem || FallbackCommandItem;
-  const CommandListComponent = CommandList || React.Fragment;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -485,119 +352,46 @@ const CompleteOriginalContacts = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-        <Button variant="outline" className="flex items-center space-x-2 bg-white">
-          <SlidersHorizontal className="h-4 w-4" />
-          <span>Filtres</span>
-        </Button>
-        
-        {DropdownMenu ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2 bg-white">
-                <span>{selectedTag || 'Tags'}</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuCheckboxItem checked={!selectedTag} onSelect={() => setSelectedTag(null)}>Tous</DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              {allTags.map(tag => (
-                <DropdownMenuCheckboxItem key={tag} checked={selectedTag === tag} onSelect={() => setSelectedTag(tag)}>{tag}</DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <FallbackDropdownMenu
-            trigger={
-              <Button variant="outline" className="flex items-center space-x-2 bg-white">
-                <span>{selectedTag || 'Tags'}</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            }
+      <div className="flex flex-wrap items-center gap-2">
+        <div ref={tagMenuRef} className="relative inline-block text-left">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex items-center space-x-2 bg-white"
+            onClick={() => setTagMenuOpen(prev => !prev)}
           >
-            <div onSelect={() => setSelectedTag(null)}>Tous</div>
-            {allTags.map(tag => (
-              <div key={tag} onSelect={() => setSelectedTag(tag)}>{tag}</div>
-            ))}
-          </FallbackDropdownMenu>
-        )}
-
-        {Popover ? (
-          <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2 bg-white w-[150px] justify-between">
-                <span className="truncate">{selectedOwnerId === 'all' ? 'Tous' : users[selectedOwnerId]?.name || 'Utilisateur'}</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0">
-              <Command>
-                <CommandInput placeholder="Rechercher un utilisateur..." />
-                <CommandList>
-                  <CommandEmpty>Aucun utilisateur trouvé.</CommandEmpty>
-                  <CommandGroup>
-                    {userOptions.map((user) => (
-                      <CommandItem
-                        key={user.value || 'all-users'}
-                        value={user.label}
-                        onSelect={() => {
-                          setSelectedOwnerId(user.value);
-                          setUserPopoverOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedOwnerId === user.value ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {user.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        ) : (
-          <FallbackPopover 
-            open={userPopoverOpen} 
-            onOpenChange={setUserPopoverOpen}
-            trigger={
-              <Button variant="outline" className="flex items-center space-x-2 bg-white w-[150px] justify-between">
-                <span className="truncate">{selectedOwnerId === 'all' ? 'Tous' : users[selectedOwnerId]?.name || 'Utilisateur'}</span>
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            }
-          >
-            <FallbackCommand>
-              <FallbackCommandInput 
-                placeholder="Rechercher un utilisateur..." 
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-              />
-              {filteredUserOptions.map((user) => (
-                <FallbackCommandItem
-                  key={user.value || 'all-users'}
-                  selected={selectedOwnerId === user.value}
-                  onSelect={() => {
-                    setSelectedOwnerId(user.value);
-                    setUserPopoverOpen(false);
-                    setUserSearchQuery('');
-                  }}
+            <span>{tagFilterLabel}</span>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          {isTagMenuOpen && (
+            <div className="absolute z-50 mt-1 w-44 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
+              <div className="py-1">
+                <button
+                  type="button"
+                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedTag ? 'bg-gray-50 font-medium' : ''}`}
+                  onClick={() => handleTagSelect(null)}
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedOwnerId === user.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {user.label}
-                </FallbackCommandItem>
-              ))}
-            </FallbackCommand>
-          </FallbackPopover>
+                  Tous les tags
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                {tagOptions.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedTag === tag ? 'bg-gray-50 font-medium' : ''}`}
+                    onClick={() => handleTagSelect(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {selectedTag && (
+          <Button variant="ghost" size="sm" onClick={() => handleTagSelect(null)}>
+            Réinitialiser
+          </Button>
         )}
       </div>
 
