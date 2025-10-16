@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
@@ -64,6 +64,7 @@ function App() {
   const [prompts, setPrompts] = useState({});
   const [formContactConfig, setFormContactConfig] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
+  const [clientFormPanels, setClientFormPanels] = useState([]);
 
   useEffect(() => {
     const storedProjectsData = localStorage.getItem('evatime_projects_data');
@@ -327,6 +328,35 @@ function App() {
       if (!newMessages[chatKey]) {
         newMessages[chatKey] = [];
       }
+      const existingMessages = newMessages[chatKey];
+
+      if (
+        newMessage.completedFormId &&
+        newMessage.sender === 'client'
+      ) {
+        const alreadyCompleted = existingMessages.some(msg =>
+          msg.sender === 'client' &&
+          msg.completedFormId === newMessage.completedFormId &&
+          (msg.relatedMessageTimestamp || '') === (newMessage.relatedMessageTimestamp || '')
+        );
+        if (alreadyCompleted) {
+          return prev;
+        }
+      }
+
+      if (newMessage.promptId) {
+        const alreadySentFromPrompt = existingMessages.some(msg =>
+          msg.sender === newMessage.sender &&
+          msg.promptId === newMessage.promptId &&
+          (msg.stepIndex || 0) === (newMessage.stepIndex || 0) &&
+          (msg.text || '') === (newMessage.text || '') &&
+          (msg.formId || null) === (newMessage.formId || null)
+        );
+        if (alreadySentFromPrompt) {
+          return prev;
+        }
+      }
+
       newMessages[chatKey].push(newMessage);
       localStorage.setItem('evatime_chat_messages', JSON.stringify(newMessages));
       return newMessages;
@@ -385,6 +415,46 @@ function App() {
       appointment.step === stepName
     );
   };
+
+  const registerClientForm = useCallback((formPayload) => {
+    setClientFormPanels(prev => {
+      const panelId = formPayload.messageTimestamp || `${formPayload.prospectId}_${formPayload.projectType}_${formPayload.formId}`;
+      const normalized = {
+        status: formPayload.status || 'pending',
+        createdAt: formPayload.messageTimestamp ? new Date(formPayload.messageTimestamp).getTime() : Date.now(),
+        ...formPayload,
+        panelId,
+        userOverride: typeof formPayload.userOverride !== 'undefined' ? formPayload.userOverride : null,
+      };
+      const existingIndex = prev.findIndex(item => item.panelId === panelId);
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        const existingItem = updated[existingIndex];
+        const merged = {
+          ...existingItem,
+          ...normalized,
+        };
+        if (typeof formPayload.userOverride === 'undefined') {
+          merged.userOverride = existingItem.userOverride || null;
+        }
+        const nextStatus = merged.userOverride
+          ? merged.userOverride
+          : (normalized.status || existingItem.status);
+        merged.status = nextStatus;
+        updated[existingIndex] = merged;
+        return updated;
+      }
+      return [normalized, ...prev];
+    });
+  }, []);
+
+  const updateClientFormPanel = useCallback((panelId, updates) => {
+    setClientFormPanels(prev => prev.map(item => item.panelId === panelId ? { ...item, ...updates } : item));
+  }, []);
+
+  const clearClientFormsFor = useCallback((prospectId, projectType) => {
+    setClientFormPanels(prev => prev.filter(item => !(item.prospectId === prospectId && item.projectType === projectType)));
+  }, []);
 
   const updateUsers = (newUsersObject) => {
     setUsers(newUsersObject);
@@ -648,6 +718,7 @@ function App() {
     prompts, setPrompts: handleSetPrompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     activeAdminUser, switchActiveAdminUser,
+    clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
   };
 
   const getPageTitle = () => {

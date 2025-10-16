@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ArrowLeft, UploadCloud, Lock, Send, Paperclip, Download, FileText, Calendar, Clock, MapPin, Video, X, Phone, Mail, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 
@@ -51,44 +49,8 @@ const AppointmentCard = ({ appointment, onClick }) => {
   );
 };
 
-const ChatForm = ({ form, prospectId, onFormSubmit }) => {
-    const [formData, setFormData] = useState({});
-
-    const handleInputChange = (fieldId, value) => {
-        setFormData(prev => ({ ...prev, [fieldId]: value }));
-    };
-
-    const handleSubmit = () => {
-        onFormSubmit(prospectId, form.id, formData);
-        toast({
-            title: "Réponses enregistrées",
-            description: `Les réponses au formulaire "${form.name}" ont été sauvegardées.`,
-            className: "bg-green-500 text-white"
-        });
-    };
-
-    return (
-        <div className="space-y-4">
-            <h4 className="font-semibold text-gray-800">{form.name}</h4>
-            {(form.fields || []).map(field => (
-                <div key={field.id}>
-                    <Label htmlFor={`${form.id}-${field.id}`}>{field.label}</Label>
-                    <Input
-                        id={`${form.id}-${field.id}`}
-                        type={field.type}
-                        value={formData[field.id] || ''}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        placeholder={field.placeholder || ''}
-                    />
-                </div>
-            ))}
-            <Button onClick={handleSubmit} className="w-full">Soumettre</Button>
-        </div>
-    );
-};
-
 const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
-  const { getChatMessages, addChatMessage, currentUser, forms, updateProspect, prospects, prompts, completeStepAndProceed } = useAppContext();
+  const { getChatMessages, addChatMessage, currentUser, forms } = useAppContext();
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const messages = getChatMessages(prospectId, projectType);
@@ -96,7 +58,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
   }, [messages]);
 
   const handleSendMessage = () => {
@@ -111,6 +75,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     addChatMessage(prospectId, projectType, message);
     setNewMessage('');
     setAttachedFile(null);
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
   };
 
   const handleFileChange = (e) => {
@@ -126,60 +93,33 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     });
   };
 
-  const handleFormSubmit = (pId, formId, formData) => {
-    const prospect = prospects.find(p => p.id === pId);
-    if (!prospect) return;
-
-    const updatedFormData = { ...(prospect.formData || {}), ...formData };
-    updateProspect({ ...prospect, formData: updatedFormData });
-    
-    const message = {
-        sender: 'client',
-        text: `A complété le formulaire : ${forms[formId]?.name || 'Formulaire'}.`,
-    };
-    addChatMessage(pId, projectType, message);
-
-    const usedPrompt = Object.values(prompts).find(pr => {
-        if (pr.projectId !== projectType) return false;
-        const stepConfig = pr.stepsConfig?.[currentStepIndex];
-        if (stepConfig?.autoCompleteStep) {
-            return stepConfig.actions?.some(action => action.type === 'show_form' && action.formId === formId);
-        }
-        return false;
-    });
-
-    if (usedPrompt) {
-        completeStepAndProceed(prospectId, projectType, currentStepIndex);
-        toast({
-            title: "Étape terminée !",
-            description: "L'étape a été automatiquement marquée comme terminée et la suivante est activée.",
-            className: "bg-green-500 text-white"
-        });
-    }
-  };
-
   return (
     <div className="mt-6">
-      <div className="space-y-4 h-64 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
-        {messages.map((msg, index) => (
+      <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
+        {messages.map((msg, index) => {
+          if (msg.formId && !msg.text) {
+            return null;
+          }
+          return (
           <div key={index} className={`flex items-end gap-2 ${msg.sender === 'client' ? 'justify-end' : 'justify-start'}`}>
             {msg.sender === 'pro' && <img alt="Charly" className="w-8 h-8 rounded-full" src="https://horizons-cdn.hostinger.com/43725989-d002-4543-b65c-278701925e7e/4e3f809791e357819f31c585852d3a99.png" />}
-            <div className={`max-w-xs lg:max-w-md p-3 rounded-2xl ${msg.sender === 'client' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}>
-              {msg.text && <p className="text-sm">{msg.text}</p>}
+            <div className={`max-w-xs lg:max-w-md rounded-2xl ${msg.sender === 'client' ? 'bg-blue-500 text-white rounded-br-none p-2.5' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
+              {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
               {msg.file && (
-                <button onClick={handleFileClick} className="mt-2 flex items-center gap-2 text-sm bg-white/20 p-2 rounded-lg w-full text-left">
-                  <FileText className="w-5 h-5 flex-shrink-0" />
+                <button onClick={handleFileClick} className="mt-2 flex items-center gap-2 text-xs bg-white/20 p-2 rounded-lg w-full text-left">
+                  <FileText className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{msg.file.name}</span>
-                  <Download className="w-4 h-4 ml-auto flex-shrink-0" />
+                  <Download className="w-3 h-3 ml-auto flex-shrink-0" />
                 </button>
               )}
               {msg.formId && forms[msg.formId] && (
-                  <div className="mt-2 bg-white text-gray-800 p-3 rounded-lg">
-                      <ChatForm 
-                          form={forms[msg.formId]} 
-                          prospectId={prospectId} 
-                          onFormSubmit={handleFormSubmit} 
-                      />
+                  <div className="mt-3 text-xs text-gray-600 bg-white rounded-xl p-3">
+                    <p className="font-semibold text-gray-700 text-sm">
+                      {forms[msg.formId].name}
+                    </p>
+                    <p className="mt-1">
+                      Ce formulaire est disponible dans le panneau de droite pour être complété.
+                    </p>
                   </div>
               )}
               <p className={`text-xs mt-1 ${msg.sender === 'client' ? 'text-blue-200' : 'text-gray-500'}`}>
@@ -188,7 +128,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             </div>
             {msg.sender === 'client' && <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold text-white">{currentUser?.name.charAt(0) || '?'}</div>}
           </div>
-        ))}
+        );})}
         <div ref={chatEndRef} />
       </div>
       {attachedFile && (
@@ -200,7 +140,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
       )}
       <div className="relative">
         <Input
-          placeholder="Écrire à Charly..."
+          placeholder="Écrire à votre conseiller..."
           className="pr-24 h-12"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
@@ -360,17 +300,79 @@ const AppointmentModal = ({ appointment, onClose }) => {
 };
 
 const ProjectDetails = ({ project, onBack }) => {
-  const { currentUser, getProjectSteps, updateProjectSteps, getSharedAppointments } = useAppContext();
+  const {
+    currentUser,
+    getProjectSteps,
+    updateProjectSteps,
+    getSharedAppointments,
+    getChatMessages,
+    registerClientForm,
+    clearClientFormsFor,
+  } = useAppContext();
   const [progress, setProgress] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   
   const steps = currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps;
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
+  const effectiveStepIndex = currentStepIndex !== -1 ? currentStepIndex : 0;
   
   // Récupérer les RDV partagés pour l'étape en cours
   const sharedAppointments = currentUser && currentStep ? 
     getSharedAppointments(currentUser.id, project.type, currentStep.name) : [];
+
+  const messages = currentUser ? getChatMessages(currentUser.id, project.type) : [];
+
+  const formMessages = useMemo(() => {
+    if (!messages.length) return [];
+
+    const completionMap = new Map();
+    messages.forEach(msg => {
+      if (msg.completedFormId) {
+        const key = `${msg.completedFormId}_${msg.relatedMessageTimestamp || ''}`;
+        completionMap.set(key, msg);
+      }
+    });
+
+    return messages
+      .filter(msg => msg.sender === 'pro' && msg.formId)
+      .map(msg => {
+        const key = `${msg.formId}_${msg.timestamp || ''}`;
+        const completion = completionMap.get(key);
+        return {
+          formId: msg.formId,
+          messageTimestamp: msg.timestamp || '',
+          promptId: msg.promptId || null,
+          currentStepIndex: typeof msg.stepIndex === 'number' ? msg.stepIndex : effectiveStepIndex,
+          status: completion ? 'submitted' : 'pending',
+        };
+      });
+  }, [messages, effectiveStepIndex]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    formMessages.forEach(formMsg => {
+      registerClientForm({
+        ...formMsg,
+        prospectId: currentUser.id,
+        projectType: project.type,
+      });
+    });
+  }, [
+    formMessages,
+    currentUser,
+    project.type,
+    registerClientForm,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (currentUser) {
+        clearClientFormsFor(currentUser.id, project.type);
+      }
+    };
+  }, [clearClientFormsFor, currentUser, project.type]);
 
   useEffect(() => {
     const completedSteps = steps.filter(step => step.status === STATUS_COMPLETED).length;
@@ -501,7 +503,7 @@ const ProjectDetails = ({ project, onBack }) => {
               <ChatInterface 
                 prospectId={currentUser.id} 
                 projectType={project.type}
-                currentStepIndex={currentStepIndex}
+                currentStepIndex={effectiveStepIndex}
               />
               
             </motion.div>

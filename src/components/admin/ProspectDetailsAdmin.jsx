@@ -98,7 +98,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   }, [prompts, projectType, currentStepIndex]);
   
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
   }, [messages]);
 
   const handleSendMessage = () => {
@@ -113,6 +115,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     addChatMessage(prospectId, projectType, message);
     setNewMessage('');
     setAttachedFile(null);
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
   };
 
   const handleFileChange = (e) => {
@@ -163,18 +168,41 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const handleSelectPrompt = (prompt) => {
     const stepConfig = prompt.stepsConfig?.[currentStepIndex];
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
+      const existingMessages = getChatMessages(prospectId, projectType);
       stepConfig.actions.forEach(action => {
         if (action.message) {
+          const alreadySent = existingMessages.some(msg =>
+            msg.sender === 'pro' &&
+            msg.promptId === prompt.id &&
+            msg.stepIndex === currentStepIndex &&
+            msg.text === action.message
+          );
+          if (alreadySent) {
+            return;
+          }
           const message = {
             sender: 'pro',
             text: action.message,
+            promptId: prompt.id,
+            stepIndex: currentStepIndex,
           };
           addChatMessage(prospectId, projectType, message);
         }
         if (action.type === 'show_form' && action.formId) {
+          const alreadyQueued = existingMessages.some(msg =>
+            msg.sender === 'pro' &&
+            msg.promptId === prompt.id &&
+            msg.stepIndex === currentStepIndex &&
+            msg.formId === action.formId
+          );
+          if (alreadyQueued) {
+            return;
+          }
           const formMessage = {
             sender: 'pro',
             formId: action.formId,
+            promptId: prompt.id,
+            stepIndex: currentStepIndex,
           };
           addChatMessage(prospectId, projectType, formMessage);
         }
@@ -186,17 +214,17 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
 
   return (
     <div className="mt-6">
-      <div className="space-y-4 h-64 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
+      <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
         {messages.map((msg, index) => (
           <div key={index} className={`flex items-end gap-2 ${msg.sender === 'pro' ? 'justify-end' : 'justify-start'}`}>
             {msg.sender === 'client' && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{users[prospectId]?.name.charAt(0) || '?'}</div>}
-            <div className={`max-w-xs lg:max-w-md p-3 rounded-2xl ${msg.sender === 'pro' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}>
-              {msg.text && <p className="text-sm">{msg.text}</p>}
+            <div className={`max-w-xs lg:max-w-md rounded-2xl ${msg.sender === 'pro' ? 'bg-blue-500 text-white rounded-br-none p-2.5' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
+              {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
               {msg.file && (
-                <button onClick={handleFileClick} className="mt-2 flex items-center gap-2 text-sm bg-white/20 p-2 rounded-lg w-full text-left">
-                  <FileText className="w-5 h-5 flex-shrink-0" />
+                <button onClick={handleFileClick} className="mt-2 flex items-center gap-2 text-xs bg-white/20 p-2 rounded-lg w-full text-left">
+                  <FileText className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{msg.file.name}</span>
-                  <Download className="w-4 h-4 ml-auto flex-shrink-0" />
+                  <Download className="w-3 h-3 ml-auto flex-shrink-0" />
                 </button>
               )}
               {msg.formId && forms[msg.formId] && (
@@ -304,14 +332,63 @@ const ProjectTimeline = ({
                       <h3 className={`font-medium ${config.text}`}>
                         {step.name}
                       </h3>
-                      <span className={`text-xs px-2.5 py-1 rounded-full mt-1 sm:mt-0 ${config.badge}`}>
-                        {config.label}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-center space-x-2">
-                      <Button variant="link" size="sm" className="text-xs px-1 h-auto py-0 text-blue-600" onClick={() => onUpdateStatus(index, STATUS_CURRENT)}>Mettre en cours</Button>
-                      <Button variant="link" size="sm" className="text-xs px-1 h-auto py-0 text-green-600" onClick={() => onUpdateStatus(index, STATUS_COMPLETED)}>Terminer</Button>
-                      <Button variant="link" size="sm" className="text-xs px-1 h-auto py-0 text-gray-500" onClick={() => onUpdateStatus(index, STATUS_PENDING)}>Marquer à venir</Button>
+                      <div className="relative" data-step-status-container>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`text-xs px-2.5 py-1 rounded-full mt-1 sm:mt-0 ${config.badge} hover:opacity-90`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const target = e.currentTarget;
+                            const menu = target.nextElementSibling;
+                            const root = target.closest('[data-step-status-container]');
+                            if (!menu || !root) return;
+                            root.parentElement?.querySelectorAll('[data-dropdown="step-status"]').forEach(el => {
+                              if (el !== menu) {
+                                el.classList.add('hidden');
+                              }
+                            });
+                            menu.classList.toggle('hidden');
+                          }}
+                        >
+                          {config.label}
+                        </Button>
+                        <div className="hidden absolute right-0 mt-2 w-40 rounded-lg bg-white shadow-lg border border-gray-100 z-20 overflow-hidden" data-dropdown="step-status">
+                          <button
+                            className="w-full text-left text-xs px-3 py-2 hover:bg-blue-50 text-blue-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              onUpdateStatus(index, STATUS_CURRENT);
+                              e.currentTarget.parentElement?.classList.add('hidden');
+                            }}
+                          >
+                            Mettre en cours
+                          </button>
+                          <button
+                            className="w-full text-left text-xs px-3 py-2 hover:bg-green-50 text-green-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              onUpdateStatus(index, STATUS_COMPLETED);
+                              e.currentTarget.parentElement?.classList.add('hidden');
+                            }}
+                          >
+                            Terminer
+                          </button>
+                          <button
+                            className="w-full text-left text-xs px-3 py-2 hover:bg-gray-100 text-gray-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              onUpdateStatus(index, STATUS_PENDING);
+                              e.currentTarget.parentElement?.classList.add('hidden');
+                            }}
+                          >
+                            Marquer à venir
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>;
@@ -369,7 +446,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>
                 )}
             </div>
-            <div className="space-y-6">
+            <div className="space-y-6 flex flex-col">
                 {relevantForms.map(form => (
                     <div key={form.id}>
                         <h3 className="font-medium text-gray-800 mb-3 border-b pb-2">{form.name}</h3>
@@ -592,8 +669,8 @@ const ProspectDetailsAdmin = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)_420px] gap-6 xl:gap-6 items-stretch">
+            <div className="space-y-6">
                <div className="bg-white rounded-2xl shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">Projets associés</h2>
@@ -701,14 +778,8 @@ const ProspectDetailsAdmin = ({
               </div>
             </div>
 
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl shadow-card p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                  Suivi détaillé du projet : <span className="text-blue-600">{activeProjectData?.title || 'Aucun projet sélectionné'}</span>
-                </h2>
-                <ProjectTimeline steps={projectSteps} onUpdateStatus={handleUpdateStatus} />
-              </div>
-              <div className="bg-white rounded-2xl shadow-card p-6">
+            <div className="space-y-6 xl:max-w-[520px] w-full flex flex-col xl:ml-[5%]">
+              <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
                 {currentStep && (
                   <motion.div
                     key={currentStep.name}
@@ -742,6 +813,15 @@ const ProspectDetailsAdmin = ({
                     <p className="text-gray-500">Sélectionnez un projet dans la liste ci-dessus pour voir le suivi détaillé.</p>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="space-y-6 xl:max-w-[520px] w-full flex flex-col">
+              <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  Suivi détaillé du projet : <span className="text-blue-600">{activeProjectData?.title || 'Aucun projet sélectionné'}</span>
+                </h2>
+                <ProjectTimeline steps={projectSteps} onUpdateStatus={handleUpdateStatus} />
               </div>
             </div>
           </div>
