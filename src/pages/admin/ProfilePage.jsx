@@ -935,6 +935,12 @@ const ProfilePage = () => {
       description: "Cette fonctionnalité n'est pas encore implémentée. Demandez-la dans votre prochain prompt ! 🚀"
     });
   };
+  const scrollToSection = (sectionId) => {
+    const sectionElement = document.getElementById(sectionId);
+    if (sectionElement) {
+      sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
   const openChangeRoleDialog = user => {
     setEditingUser(user);
     setSelectedRole(user.role.toLowerCase());
@@ -1036,12 +1042,27 @@ const ProfilePage = () => {
     });
   };
   const handleCopyLink = user => {
-    const slug = slugify(user.name);
-    const link = `https://locasun.io/${slug}`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "Lien copié !",
-      className: "bg-green-500 text-white"
+    if (!user?.id) return;
+    
+    const { origin, pathname } = window.location;
+    const cleanedPath = pathname
+      .replace(/\/index\.html$/, '')
+      .replace(/\/+$/, '');
+    const baseUrl = `${origin}${cleanedPath}`;
+    const link = `${baseUrl}/#/${user.id}`;
+
+    navigator.clipboard.writeText(link).then(() => {
+      toast({
+        title: "Lien copié !",
+        description: "Envoyez-le à votre client pour qu'il s'inscrive avec votre affiliation.",
+        className: "bg-green-500 text-white"
+      });
+    }).catch(() => {
+      toast({
+        title: "Impossible de copier le lien",
+        description: "Copiez-le manuellement : " + link,
+        variant: "destructive"
+      });
     });
   };
   const handleSaveProject = projectToSave => {
@@ -1270,33 +1291,33 @@ const ProfilePage = () => {
       <div className="hidden md:block w-60 bg-white shadow-lg rounded-2xl mr-6 p-6 h-fit sticky top-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">Navigation</h3>
         <nav className="space-y-2">
-          <a href="#info-perso" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          <button type="button" onClick={() => scrollToSection('info-perso')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Info perso
-          </a>
-          <a href="#gestion-entreprises" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-entreprises')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des Entreprises
-          </a>
-          <a href="#gestion-formulaire-contact" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-formulaire-contact')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion du Formulaire Contact
-          </a>
-          <a href="#gestion-projets" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-projets')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des Projets
-          </a>
-          <a href="#gestion-formulaires" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-formulaires')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des Formulaires
-          </a>
-          <a href="#gestion-affichage-projets" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-affichage-projets')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion de l'Affichage des Projets
-          </a>
-          <a href="#creation-prompt" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('creation-prompt')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Création de Prompt
-          </a>
-          <a href="#gestion-utilisateurs" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-utilisateurs')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des utilisateurs
-          </a>
-          <a href="#gestion-clients" className="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          </button>
+          <button type="button" onClick={() => scrollToSection('gestion-clients')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des clients
-          </a>
+          </button>
         </nav>
       </div>
 
