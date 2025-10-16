@@ -214,8 +214,11 @@ const CompleteOriginalContacts = () => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [isTagMenuOpen, setTagMenuOpen] = useState(false);
+  const [isUserMenuOpen, setUserMenuOpen] = useState(false);
   const tagMenuRef = useRef(null);
+  const userMenuRef = useRef(null);
   const tagFilterLabel = selectedTag || 'Tous les tags';
   const navigate = useNavigate();
 
@@ -227,6 +230,11 @@ const CompleteOriginalContacts = () => {
     const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
     return Object.values(users).filter(u => allowedIds.includes(u.id));
   }, [activeAdminUser, users]);
+
+  const userFilterLabel = useMemo(() => {
+    if (!selectedUserId) return 'Tous les utilisateurs';
+    return users[selectedUserId]?.name || allowedUsers.find(u => u.id === selectedUserId)?.name || 'Utilisateur inconnu';
+  }, [selectedUserId, users, allowedUsers]);
 
   const tagOptions = useMemo(() => {
     const prospectTags = new Set();
@@ -249,22 +257,30 @@ const CompleteOriginalContacts = () => {
       const searchMatch = prospect.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           prospect.email?.toLowerCase().includes(searchQuery.toLowerCase());
       const tagMatch = !selectedTag || (prospect.tags && prospect.tags.includes(selectedTag));
-      return searchMatch && tagMatch;
+      const userMatch = !selectedUserId || prospect.ownerId === selectedUserId;
+      return searchMatch && tagMatch && userMatch;
     });
-  }, [prospects, searchQuery, selectedTag, activeAdminUser]);
+  }, [prospects, searchQuery, selectedTag, selectedUserId, activeAdminUser]);
 
   useEffect(() => {
-    if (!isTagMenuOpen) return;
+    if (!isTagMenuOpen && !isUserMenuOpen) return;
 
     const handleClickOutside = (event) => {
-      if (tagMenuRef.current && !tagMenuRef.current.contains(event.target)) {
+      const clickedInsideTagMenu = tagMenuRef.current?.contains(event.target);
+      const clickedInsideUserMenu = userMenuRef.current?.contains(event.target);
+
+      if (!clickedInsideTagMenu) {
         setTagMenuOpen(false);
+      }
+
+      if (!clickedInsideUserMenu) {
+        setUserMenuOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isTagMenuOpen]);
+  }, [isTagMenuOpen, isUserMenuOpen]);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -292,6 +308,16 @@ const CompleteOriginalContacts = () => {
   const handleTagSelect = (tag) => {
     setSelectedTag(tag);
     setTagMenuOpen(false);
+  };
+
+  const handleUserSelect = (userId) => {
+    setSelectedUserId(userId);
+    setUserMenuOpen(false);
+  };
+
+  const resetFilters = () => {
+    setSelectedTag(null);
+    setSelectedUserId(null);
   };
   
   const handleRowClick = (contact) => {
@@ -388,8 +414,44 @@ const CompleteOriginalContacts = () => {
             </div>
           )}
         </div>
-        {selectedTag && (
-          <Button variant="ghost" size="sm" onClick={() => handleTagSelect(null)}>
+        <div ref={userMenuRef} className="relative inline-block text-left">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex items-center space-x-2 bg-white"
+            onClick={() => setUserMenuOpen(prev => !prev)}
+            disabled={!allowedUsers.length}
+          >
+            <span>{userFilterLabel}</span>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          {isUserMenuOpen && (
+            <div className="absolute z-50 mt-1 w-52 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
+              <div className="py-1">
+                <button
+                  type="button"
+                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedUserId ? 'bg-gray-50 font-medium' : ''}`}
+                  onClick={() => handleUserSelect(null)}
+                >
+                  Tous les utilisateurs
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                {allowedUsers.map(user => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedUserId === user.id ? 'bg-gray-50 font-medium' : ''}`}
+                    onClick={() => handleUserSelect(user.id)}
+                  >
+                    {user.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {(selectedTag || selectedUserId) && (
+          <Button variant="ghost" size="sm" onClick={resetFilters}>
             Réinitialiser
           </Button>
         )}
