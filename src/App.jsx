@@ -4,30 +4,9 @@ import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
 import AdminLayout from '@/layouts/AdminLayout';
 import ClientLayout from '@/layouts/ClientLayout';
-import Pipeline from '@/pages/admin/Pipeline';
-import FixedPipeline from '@/pages/admin/FixedPipeline';
-import SafeTestPipeline from './pages/admin/SafeTestPipeline';
-import ProgressivePipeline from './pages/admin/ProgressivePipeline';
-import CleanPipeline from './pages/admin/CleanPipeline';
-import OriginalPipeline from './pages/admin/OriginalPipeline';
-import FinalPipeline from './pages/admin/FinalPipeline';
-import FinalPipelineRestored from './pages/admin/FinalPipelineRestored';
-import PipelineSwitcher from './pages/admin/PipelineSwitcher';
-import UltraSimple from './pages/admin/UltraSimple';
-import FixedPipelineOriginal from './pages/admin/FixedPipelineOriginal';
-import TestPipeline from './pages/admin/TestPipeline';
-import SafeContacts from './pages/admin/SafeContacts';
-import UltraSimpleContacts from './pages/admin/UltraSimpleContacts';
-import WorkingContacts from './pages/admin/WorkingContacts';
-import EnhancedContacts from './pages/admin/EnhancedContacts';
-import FixedOriginalContacts from './pages/admin/FixedOriginalContacts';
-import CompleteOriginalContacts from './pages/admin/CompleteOriginalContacts';
-import SimplePipeline from '@/pages/admin/SimplePipeline';
-import SafePipeline from '@/pages/admin/SafePipeline';
-import WorkingPipeline from '@/pages/admin/WorkingPipeline';
-import DiagnosticAdmin from '@/pages/admin/DiagnosticAdmin';
+import FinalPipeline from '@/pages/admin/FinalPipeline';
+import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
 import Agenda from '@/pages/admin/Agenda';
-import Contacts from '@/pages/admin/Contacts';
 import CharlyPage from '@/pages/admin/CharlyPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
@@ -772,26 +751,11 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<FinalPipeline />} />
           <Route path="pipeline" element={<FinalPipeline />} />
-          <Route path="pipeline-switcher" element={<PipelineSwitcher />} />
           <Route path="agenda" element={<Agenda />} />
           <Route path="contacts" element={<CompleteOriginalContacts />} />
           <Route path="charly" element={<CharlyPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
-          <Route path="test" element={<SafeTestPipeline />} />
-          <Route path="progressive" element={<ProgressivePipeline />} />
-          <Route path="clean" element={<CleanPipeline />} />
-          <Route path="original" element={<Pipeline />} />
-          <Route path="contacts-original" element={<Contacts />} />
-          <Route path="contacts-safe" element={<SafeContacts />} />
-          <Route path="contacts-ultra" element={<UltraSimpleContacts />} />
-          <Route path="final" element={<FinalPipeline />} />
-          <Route path="ultra" element={<UltraSimple />} />
-          <Route path="simple" element={<SimplePipeline />} />
-          <Route path="fixed-pipeline" element={<FixedPipeline />} />
-          <Route path="working-pipeline" element={<WorkingPipeline />} />
-          <Route path="safe-pipeline" element={<SafePipeline />} />
-          <Route path="diagnostic" element={<DiagnosticAdmin />} />
         </Route>
       </Routes>
       
