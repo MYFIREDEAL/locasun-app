@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
     import { NavLink, Link, useNavigate, useSearchParams } from 'react-router-dom';
     import { motion, AnimatePresence } from 'framer-motion';
-    import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2 } from 'lucide-react';
+    import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2, FlaskConical } from 'lucide-react';
     import { Button } from '@/components/ui/button';
     import {
       DropdownMenu,
@@ -24,6 +24,7 @@ import React, { useState } from 'react';
       { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
       { name: 'Contacts', path: '/admin/contacts', icon: Users },
       { name: 'Charly', path: '/admin/charly', icon: Bot },
+      { name: 'Playground', path: '/admin/playground', icon: FlaskConical },
     ];
 
     const AdminHeader = () => {
