@@ -9,7 +9,6 @@ import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
 import Agenda from '@/pages/admin/Agenda';
 import CharlyPage from '@/pages/admin/CharlyPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
-import PipelineSwitcher from '@/pages/admin/playground/PipelineSwitcher';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import DocumentsPage from '@/pages/client/DocumentsPage';
 import SettingsPage from '@/pages/client/SettingsPage';
@@ -105,7 +104,7 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
-  const [formContactConfig, setFormContactConfig] = useState([]);
+  const [formContactConfig, setFormContactConfig] = useState(defaultFormContactConfig);
   const [projectInfos, setProjectInfos] = useState({});
   const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
@@ -941,7 +940,6 @@ function App() {
           <Route path="contacts" element={<CompleteOriginalContacts />} />
           <Route path="charly" element={<CharlyPage />} />
           <Route path="profil" element={<ProfilePage />} />
-          <Route path="playground" element={<PipelineSwitcher />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>
       </Routes>
