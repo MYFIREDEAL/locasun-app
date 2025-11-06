@@ -21,6 +21,69 @@ import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
 
+const GLOBAL_PIPELINE_STORAGE_KEY = 'global_pipeline_steps';
+const DEFAULT_GLOBAL_PIPELINE_STEPS = ['MARKET', 'ETUDE', 'OFFRE'];
+const GLOBAL_PIPELINE_COLOR_PALETTE = [
+  'bg-blue-100',
+  'bg-yellow-100',
+  'bg-green-100',
+  'bg-purple-100',
+  'bg-orange-100',
+  'bg-indigo-100',
+  'bg-teal-100',
+  'bg-pink-100',
+  'bg-rose-100',
+  'bg-gray-100',
+];
+const DEFAULT_GLOBAL_PIPELINE_COLORS = {
+  MARKET: 'bg-blue-100',
+  ETUDE: 'bg-yellow-100',
+  OFFRE: 'bg-green-100',
+  CONTRAT: 'bg-blue-100',
+  'CONTRAT OK': 'bg-blue-100',
+  'CLIENT ACTIF': 'bg-purple-100',
+};
+
+const normalizeGlobalPipelineLabel = (label) => (label || '').toString().trim().toUpperCase();
+const buildGlobalPipelineStep = (label, id, color, index = 0) => {
+  const normalizedLabel = normalizeGlobalPipelineLabel(label);
+  const fallbackColor =
+    DEFAULT_GLOBAL_PIPELINE_COLORS[normalizedLabel] ||
+    GLOBAL_PIPELINE_COLOR_PALETTE[index % GLOBAL_PIPELINE_COLOR_PALETTE.length];
+
+  return {
+    id: id || `global-pipeline-step-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    label: normalizedLabel,
+    color: typeof color === 'string' && color.trim() ? color : fallbackColor,
+  };
+};
+
+const buildDefaultGlobalPipelineSteps = () =>
+  DEFAULT_GLOBAL_PIPELINE_STEPS.map((label, index) =>
+    buildGlobalPipelineStep(label, `default-global-pipeline-step-${index}`, undefined, index)
+  );
+
+const sanitizeGlobalPipelineSteps = (steps) => {
+  if (!Array.isArray(steps)) return [];
+  return steps
+    .map((step, index) => {
+      if (typeof step === 'string') {
+        const label = normalizeGlobalPipelineLabel(step);
+        return label ? buildGlobalPipelineStep(label, `legacy-global-pipeline-${index}`, undefined, index) : null;
+      }
+      if (step && typeof step === 'object' && 'label' in step) {
+        const label = normalizeGlobalPipelineLabel(step.label);
+        if (!label) return null;
+        const color = typeof step.color === 'string' ? step.color : undefined;
+        return buildGlobalPipelineStep(label, step.id || `legacy-global-pipeline-${index}`, color, index);
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
+const PROJECT_INFO_STORAGE_KEY = 'evatime_project_infos';
+
 const AppContext = React.createContext();
 export const useAppContext = () => React.useContext(AppContext);
 
@@ -42,6 +105,8 @@ function App() {
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
   const [formContactConfig, setFormContactConfig] = useState([]);
+  const [projectInfos, setProjectInfos] = useState({});
+  const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [clientFormPanels, setClientFormPanels] = useState([]);
 
@@ -268,12 +333,72 @@ function App() {
     const storedPrompts = localStorage.getItem('evatime_prompts');
     setPrompts(storedPrompts ? JSON.parse(storedPrompts) : {});
 
-    const storedFormContactConfig = localStorage.getItem('evatime_form_contact_config');
-    if (storedFormContactConfig) {
-      setFormContactConfig(JSON.parse(storedFormContactConfig));
+    let initialProjectInfos = {};
+    const storedProjectInfos = localStorage.getItem(PROJECT_INFO_STORAGE_KEY);
+    if (storedProjectInfos) {
+      try {
+        const parsedProjectInfos = JSON.parse(storedProjectInfos);
+        if (parsedProjectInfos && typeof parsedProjectInfos === 'object') {
+          initialProjectInfos = parsedProjectInfos;
+        }
+      } catch {
+        // ignore malformed data
+      }
+    }
+
+    const legacyProjectKeys = Object.keys(localStorage).filter((key) => key.startsWith('prospect_') && key.includes('_project_'));
+    if (legacyProjectKeys.length > 0) {
+      legacyProjectKeys.forEach((legacyKey) => {
+        try {
+          const storedValue = localStorage.getItem(legacyKey);
+          if (!storedValue) return;
+          const parsedValue = JSON.parse(storedValue);
+          const match = legacyKey.match(/^prospect_(.+)_project_(.+)$/);
+          if (match && parsedValue && typeof parsedValue === 'object') {
+            const [, legacyProspectId, legacyProjectType] = match;
+            if (!initialProjectInfos[legacyProspectId]) {
+              initialProjectInfos[legacyProspectId] = {};
+            }
+            initialProjectInfos[legacyProspectId][legacyProjectType] = {
+              ...initialProjectInfos[legacyProspectId][legacyProjectType],
+              ...parsedValue,
+            };
+          }
+        } catch {
+          // ignore malformed legacy data
+        } finally {
+          localStorage.removeItem(legacyKey);
+        }
+      });
+    }
+
+    if (Object.keys(initialProjectInfos).length > 0) {
+      setProjectInfos(initialProjectInfos);
+      localStorage.setItem(PROJECT_INFO_STORAGE_KEY, JSON.stringify(initialProjectInfos));
+    }
+
+    const storedGlobalPipelineSteps = localStorage.getItem(GLOBAL_PIPELINE_STORAGE_KEY);
+
+    if (storedGlobalPipelineSteps) {
+      try {
+        const parsedSteps = JSON.parse(storedGlobalPipelineSteps);
+        const sanitized = sanitizeGlobalPipelineSteps(parsedSteps);
+        if (sanitized.length > 0) {
+          setGlobalPipelineSteps(sanitized);
+        } else {
+          const defaults = buildDefaultGlobalPipelineSteps();
+          setGlobalPipelineSteps(defaults);
+          localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
+        }
+      } catch {
+        const defaults = buildDefaultGlobalPipelineSteps();
+        setGlobalPipelineSteps(defaults);
+        localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
+      }
     } else {
-      setFormContactConfig(defaultFormContactConfig);
-      localStorage.setItem('evatime_form_contact_config', JSON.stringify(defaultFormContactConfig));
+      const defaults = buildDefaultGlobalPipelineSteps();
+      setGlobalPipelineSteps(defaults);
+      localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
     }
 
   }, []);
@@ -296,6 +421,66 @@ function App() {
   const handleSetFormContactConfig = (newConfig) => {
     setFormContactConfig(newConfig);
     localStorage.setItem('evatime_form_contact_config', JSON.stringify(newConfig));
+  };
+
+  const setProjectInfosState = (updater) => {
+    setProjectInfos(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem(PROJECT_INFO_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const getProjectInfo = (prospectId, projectType) => {
+    if (!prospectId || !projectType) return {};
+    return projectInfos?.[prospectId]?.[projectType] || {};
+  };
+
+  const updateProjectInfo = (prospectId, projectType, updater) => {
+    if (!prospectId || !projectType) return;
+    setProjectInfosState(prev => {
+      const prevForProspect = prev[prospectId] || {};
+      const prevInfo = prevForProspect[projectType] || {};
+      const nextInfoRaw = typeof updater === 'function' ? updater(prevInfo) : { ...prevInfo, ...updater };
+      const nextInfo = nextInfoRaw && typeof nextInfoRaw === 'object'
+        ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
+        : {};
+
+      if (Object.keys(nextInfo).length === 0) {
+        const { [projectType]: _, ...restProjects } = prevForProspect;
+        const nextState = { ...prev };
+        if (Object.keys(restProjects).length > 0) {
+          nextState[prospectId] = restProjects;
+        } else {
+          delete nextState[prospectId];
+        }
+        return nextState;
+      }
+
+      if (
+        Object.keys(nextInfo).length === Object.keys(prevInfo).length &&
+        Object.entries(nextInfo).every(([key, value]) => prevInfo[key] === value)
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [prospectId]: {
+          ...prevForProspect,
+          [projectType]: nextInfo,
+        },
+      };
+    });
+  };
+
+  const handleSetGlobalPipelineSteps = (updater) => {
+    setGlobalPipelineSteps(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const sanitized = sanitizeGlobalPipelineSteps(next);
+      localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(sanitized));
+      return sanitized;
+    });
   };
 
   const addChatMessage = (prospectId, projectType, message) => {
@@ -342,14 +527,12 @@ function App() {
     });
 
     if (message.file && message.sender === 'client') {
-        const projectInfoKey = `prospect_${prospectId}_project_${projectType}`;
-        const storedData = localStorage.getItem(projectInfoKey);
-        const projectInfo = storedData ? JSON.parse(storedData) : {};
-        
-        if(projectType === 'ACC' && !projectInfo.ribFile) {
-          projectInfo.ribFile = message.file.name;
-          localStorage.setItem(projectInfoKey, JSON.stringify(projectInfo));
+      updateProjectInfo(prospectId, projectType, (prev) => {
+        if (projectType === 'ACC' && !prev?.ribFile) {
+          return { ...prev, ribFile: message.file.name };
         }
+        return prev || {};
+      });
     }
 
     if (message.sender === 'client') {
@@ -696,6 +879,8 @@ function App() {
     forms, setForms: handleSetForms,
     prompts, setPrompts: handleSetPrompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
+    projectInfos, getProjectInfo, updateProjectInfo,
+    globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     activeAdminUser, switchActiveAdminUser,
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
   };

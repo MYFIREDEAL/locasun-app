@@ -495,7 +495,7 @@ const ProspectDetailsAdmin = ({
   onBack,
   onUpdate
 }) => {
-  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, users, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects } = useAppContext();
+  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, users, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo } = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project');
   const notificationId = searchParams.get('notificationId');
@@ -506,6 +506,15 @@ const ProspectDetailsAdmin = ({
     ...prospect
   });
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
+
+  const projectInfo = useMemo(() => {
+    if (!activeProjectTag) return {};
+    return getProjectInfo(prospect.id, activeProjectTag) || {};
+  }, [activeProjectTag, getProjectInfo, prospect.id]);
+
+  const savedAmount = projectInfo?.amount;
+  const euroFormatter = useMemo(() => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }), []);
+  const [projectAmountInput, setProjectAmountInput] = useState('');
 
   const userOptions = useMemo(() => [
     { value: 'unassigned', label: 'Non assigné' },
@@ -530,6 +539,14 @@ const ProspectDetailsAdmin = ({
       ...prospect
     });
   }, [prospect]);
+
+  useEffect(() => {
+    if (savedAmount === undefined || savedAmount === null || savedAmount === '') {
+      setProjectAmountInput('');
+    } else {
+      setProjectAmountInput(savedAmount.toString());
+    }
+  }, [savedAmount, activeProjectTag]);
   
   const handleProjectClick = (tag) => {
     setActiveProjectTag(tag);
@@ -540,6 +557,53 @@ const ProspectDetailsAdmin = ({
       },
       { replace: true }
     );
+  };
+
+  const handleProjectAmountChange = (value) => {
+    setProjectAmountInput(value);
+  };
+
+  const handleProjectAmountCommit = (rawValue) => {
+    if (!activeProjectTag) return;
+    const normalizedInput = rawValue.replace(',', '.').trim();
+
+    if (normalizedInput === '') {
+      updateProjectInfo(prospect.id, activeProjectTag, (prevInfo = {}) => {
+        if (!prevInfo.amount) {
+          return prevInfo;
+        }
+        const nextInfo = { ...prevInfo };
+        delete nextInfo.amount;
+        return nextInfo;
+      });
+      setProjectAmountInput('');
+      return;
+    }
+
+    const parsedValue = parseFloat(normalizedInput);
+    if (Number.isNaN(parsedValue) || parsedValue < 0) {
+      setProjectAmountInput(savedAmount === undefined || savedAmount === null ? '' : savedAmount.toString());
+      return;
+    }
+
+    const roundedValue = Math.round(parsedValue * 100) / 100;
+    updateProjectInfo(prospect.id, activeProjectTag, (prevInfo = {}) => ({
+      ...prevInfo,
+      amount: roundedValue,
+    }));
+    setProjectAmountInput(roundedValue.toFixed(2));
+  };
+
+  const handleProjectAmountBlur = () => {
+    handleProjectAmountCommit(projectAmountInput);
+  };
+
+  const handleProjectAmountKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleProjectAmountCommit(event.currentTarget.value);
+      event.currentTarget.blur();
+    }
   };
 
   const handleUpdateStatus = (clickedIndex, newStatus) => {
@@ -821,6 +885,36 @@ const ProspectDetailsAdmin = ({
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">
                   Suivi détaillé du projet : <span className="text-blue-600">{activeProjectData?.title || 'Aucun projet sélectionné'}</span>
                 </h2>
+                {activeProjectTag && (
+                  <div className="mb-5">
+                    <Label htmlFor="project-amount" className="text-sm font-medium text-gray-700">
+                      Montant estimé du projet
+                    </Label>
+                    <div className="mt-2 flex items-center gap-3">
+                      <div className="relative max-w-[200px]">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+                        <Input
+                          id="project-amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={projectAmountInput}
+                          onChange={(e) => handleProjectAmountChange(e.target.value)}
+                          onBlur={handleProjectAmountBlur}
+                          onKeyDown={handleProjectAmountKeyDown}
+                          placeholder="0,00"
+                          className="pl-7"
+                        />
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {typeof savedAmount === 'number'
+                          ? euroFormatter.format(savedAmount)
+                          : 'Aucun montant enregistré'}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <ProjectTimeline steps={projectSteps} onUpdateStatus={handleUpdateStatus} />
               </div>
             </div>

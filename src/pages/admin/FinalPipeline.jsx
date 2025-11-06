@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, Users, Settings, Filter } from 'lucide-react';
+import { Plus, Users, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '@/App';
@@ -8,6 +8,49 @@ import ProspectCard from '@/components/admin/ProspectCard';
 import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
 import AddProspectModal from '@/components/admin/AddProspectModal';
 import { toast } from '@/components/ui/use-toast';
+
+const COLUMN_COLORS = [
+  'bg-gray-100',
+  'bg-blue-100',
+  'bg-yellow-100',
+  'bg-orange-100',
+  'bg-purple-100',
+  'bg-green-100',
+  'bg-pink-100',
+  'bg-indigo-100',
+  'bg-teal-100',
+  'bg-rose-100',
+];
+
+const humanizePipelineLabel = (label) => {
+  if (!label) return '';
+  return label
+    .toLowerCase()
+    .split(/[_\\s-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const normalizePipelineLabel = (label) => (label || '').toString().trim().toUpperCase();
+
+const STAGE_COLOR_OVERRIDES = {
+  MARKET: 'bg-blue-100',
+  ETUDE: 'bg-yellow-100',
+  OFFRE: 'bg-green-100',
+  CONTRAT: 'bg-blue-100',
+  'CONTRAT OK': 'bg-blue-100',
+  'CLIENT ACTIF': 'bg-purple-100',
+};
+
+const DEFAULT_PIPELINE_STAGE_DEFINITIONS = [
+  { id: 'lead', label: 'PROSPECTS', name: 'Prospects' },
+  { id: 'contact', label: 'PREMIER CONTACT', name: 'Premier Contact' },
+  { id: 'qualified', label: 'QUALIFIÉ', name: 'Qualifié' },
+  { id: 'proposal', label: 'PROPOSITION', name: 'Proposition' },
+  { id: 'negotiation', label: 'NÉGOCIATION', name: 'Négociation' },
+  { id: 'closed', label: 'FERMÉ', name: 'Fermé' },
+];
 
 const FinalPipeline = () => {
   // Récupération du contexte avec gestion d'erreur
@@ -34,45 +77,198 @@ const FinalPipeline = () => {
     prospects = [], 
     addProspect, 
     updateProspect, 
-    users = {}, 
     projectsData = {}, 
-    activeAdminUser 
+    activeAdminUser,
+    globalPipelineSteps = [],
+    getProjectSteps,
   } = contextData;
 
-  // Colonnes du pipeline (étapes standard CRM)
-  const pipelineStages = [
-    { id: 'lead', name: 'Prospects', color: 'bg-gray-100', count: 0 },
-    { id: 'contact', name: 'Premier Contact', color: 'bg-blue-100', count: 0 },
-    { id: 'qualified', name: 'Qualifié', color: 'bg-yellow-100', count: 0 },
-    { id: 'proposal', name: 'Proposition', color: 'bg-orange-100', count: 0 },
-    { id: 'negotiation', name: 'Négociation', color: 'bg-purple-100', count: 0 },
-    { id: 'closed', name: 'Fermé', color: 'bg-green-100', count: 0 }
-  ];
+  const stageDefinitions = useMemo(() => {
+    if (Array.isArray(globalPipelineSteps) && globalPipelineSteps.length > 0) {
+      return globalPipelineSteps.map((step, index) => {
+        const normalizedLabel = normalizePipelineLabel(step.label);
+        const assignedColor =
+          step.color ||
+          STAGE_COLOR_OVERRIDES[normalizedLabel] ||
+          COLUMN_COLORS[index % COLUMN_COLORS.length];
 
-  // Organiser les prospects par étape
-  const prospectsByStage = useMemo(() => {
-    const stages = {};
-    pipelineStages.forEach(stage => {
-      stages[stage.id] = [];
+        return {
+          id: step.id,
+          label: step.label,
+          name: humanizePipelineLabel(step.label),
+          color: assignedColor,
+        };
+      });
+    }
+
+    return DEFAULT_PIPELINE_STAGE_DEFINITIONS.map((stage, index) => {
+      const normalizedLabel = normalizePipelineLabel(stage.label);
+      const assignedColor =
+        stage.color ||
+        STAGE_COLOR_OVERRIDES[normalizedLabel] ||
+        COLUMN_COLORS[index % COLUMN_COLORS.length];
+
+      return {
+        ...stage,
+        color: assignedColor,
+      };
     });
+  }, [globalPipelineSteps]);
 
-    prospects.forEach(prospect => {
-      const stage = prospect.stage || 'lead';
-      if (stages[stage]) {
-        stages[stage].push(prospect);
-      } else {
-        stages['lead'].push(prospect);
+  const filteredProspects = useMemo(() => {
+    if (filter === 'mine' && activeAdminUser?.id) {
+      return prospects.filter((prospect) => prospect.ownerId === activeAdminUser.id);
+    }
+    return prospects;
+  }, [prospects, filter, activeAdminUser]);
+
+  const { stagesWithCounts, prospectsByStage } = useMemo(() => {
+    const stageBuckets = stageDefinitions.reduce((acc, stage) => {
+      acc[stage.id] = [];
+      return acc;
+    }, {});
+
+    const fallbackStageId = stageDefinitions[0]?.id || 'fallback-stage';
+    const stageIdSet = new Set(stageDefinitions.map((stage) => stage.id));
+    const normalizedStepsByLabel = new Map(
+      stageDefinitions.map((stage) => [normalizePipelineLabel(stage.label), stage.id])
+    );
+
+    const determineProjectTypes = (prospect) => {
+      const types = [];
+      if (prospect.projectType && projectsData[prospect.projectType]) {
+        types.push(prospect.projectType);
       }
+      if (Array.isArray(prospect.tags)) {
+        prospect.tags.forEach((tag) => {
+          if (projectsData[tag] && !types.includes(tag)) {
+            types.push(tag);
+          }
+        });
+      }
+      return types;
+    };
+
+    const resolveStageEntriesForProspect = (prospect) => {
+      const entries = [];
+
+      if (!globalPipelineSteps.length) {
+        const legacyStageId = prospect.stage || fallbackStageId;
+        const stageId = stageIdSet.has(legacyStageId) ? legacyStageId : fallbackStageId;
+        entries.push({ stageId, prospect });
+        return entries;
+      }
+
+      if (typeof getProjectSteps !== 'function') {
+        entries.push({ stageId: fallbackStageId, prospect });
+        return entries;
+      }
+
+      const projectTypes = determineProjectTypes(prospect);
+      if (!projectTypes.length) {
+        entries.push({ stageId: fallbackStageId, prospect });
+        return entries;
+      }
+
+      projectTypes.forEach((projectType) => {
+        const projectSteps = getProjectSteps(prospect.id, projectType) || [];
+        const projectDefaultSteps = projectsData[projectType]?.steps || [];
+
+        if (!projectSteps.length) {
+          entries.push({ stageId: fallbackStageId, prospect, projectType });
+          return;
+        }
+
+        const activeStep =
+          projectSteps.find((step) => step.status === 'in_progress' || step.status === 'current') ||
+          projectSteps.find((step) => step.status === 'pending') ||
+          projectSteps[projectSteps.length - 1];
+
+        if (!activeStep) {
+          entries.push({ stageId: fallbackStageId, prospect, projectType });
+          return;
+        }
+
+        const computeStageId = () => {
+          if (activeStep.globalStepId && stageIdSet.has(activeStep.globalStepId)) {
+            return activeStep.globalStepId;
+          }
+
+          if (activeStep.globalStepId) {
+            const normalizedId = normalizePipelineLabel(activeStep.globalStepId);
+            const mappedFromId = normalizedStepsByLabel.get(normalizedId);
+            if (mappedFromId && stageIdSet.has(mappedFromId)) {
+              return mappedFromId;
+            }
+          }
+
+          const activeStepIndex = projectSteps.indexOf(activeStep);
+          let defaultStepMatch = null;
+          if (activeStepIndex >= 0 && projectDefaultSteps[activeStepIndex]) {
+            defaultStepMatch = projectDefaultSteps[activeStepIndex];
+          }
+          if (!defaultStepMatch) {
+            const normalizedStepName = normalizePipelineLabel(activeStep.name || activeStep.label);
+            defaultStepMatch = projectDefaultSteps.find(
+              (step) => normalizePipelineLabel(step.name || step.label) === normalizedStepName
+            );
+          }
+          if (defaultStepMatch?.globalStepId && stageIdSet.has(defaultStepMatch.globalStepId)) {
+            return defaultStepMatch.globalStepId;
+          }
+          if (defaultStepMatch?.globalStepId) {
+            const normalizedDefaultId = normalizePipelineLabel(defaultStepMatch.globalStepId);
+            const mappedFromDefaultId = normalizedStepsByLabel.get(normalizedDefaultId);
+            if (mappedFromDefaultId && stageIdSet.has(mappedFromDefaultId)) {
+              return mappedFromDefaultId;
+            }
+          }
+          if (defaultStepMatch && (defaultStepMatch.label || defaultStepMatch.name)) {
+            const normalizedDefaultLabel = normalizePipelineLabel(
+              defaultStepMatch.label || defaultStepMatch.name
+            );
+            const mappedFromDefaultLabel = normalizedStepsByLabel.get(normalizedDefaultLabel);
+            if (mappedFromDefaultLabel && stageIdSet.has(mappedFromDefaultLabel)) {
+              return mappedFromDefaultLabel;
+            }
+          }
+
+          const normalizedLabel = normalizePipelineLabel(activeStep.label || activeStep.name);
+          const mappedFromLabel = normalizedStepsByLabel.get(normalizedLabel);
+          if (mappedFromLabel && stageIdSet.has(mappedFromLabel)) {
+            return mappedFromLabel;
+          }
+
+          return fallbackStageId;
+        };
+
+        const stageId = computeStageId();
+        entries.push({ stageId, prospect, projectType, activeStep });
+      });
+
+      return entries;
+    };
+
+    filteredProspects.forEach((prospect) => {
+      const stageEntries = resolveStageEntriesForProspect(prospect);
+      stageEntries.forEach(({ stageId, projectType, activeStep }) => {
+        if (!stageBuckets[stageId]) {
+          stageBuckets[stageId] = [];
+        }
+        stageBuckets[stageId].push({ prospect, projectType, activeStep });
+      });
     });
 
-    return stages;
-  }, [prospects]);
+    const withCounts = stageDefinitions.map((stage) => ({
+      ...stage,
+      count: stageBuckets[stage.id]?.length || 0,
+    }));
 
-  // Mettre à jour les comptes
-  const stagesWithCounts = pipelineStages.map(stage => ({
-    ...stage,
-    count: prospectsByStage[stage.id]?.length || 0
-  }));
+    return {
+      stagesWithCounts: withCounts,
+      prospectsByStage: stageBuckets,
+    };
+  }, [stageDefinitions, filteredProspects, globalPipelineSteps, getProjectSteps, projectsData]);
 
   useEffect(() => {
     const urlProspectId = searchParams.get('prospect');
@@ -90,10 +286,15 @@ const FinalPipeline = () => {
     setSelectedProspect(prospectFromList);
   }, [searchParams, prospects, selectedProspect]);
 
-  const handleProspectClick = (prospect) => {
+  const handleProspectClick = (prospect, projectType) => {
     setSelectedProspect(prospect);
     const newParams = new URLSearchParams(searchParams);
     newParams.set('prospect', prospect.id);
+    if (projectType) {
+      newParams.set('project', projectType);
+    } else {
+      newParams.delete('project');
+    }
     setSearchParams(newParams);
   };
 
@@ -101,6 +302,7 @@ const FinalPipeline = () => {
     setSelectedProspect(null);
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('prospect');
+    newParams.delete('project');
     setSearchParams(newParams);
   };
 
@@ -175,7 +377,7 @@ const FinalPipeline = () => {
             <h1 className="text-2xl font-bold text-gray-900">Pipeline des Prospects</h1>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Users className="w-4 h-4" />
-              <span>{prospects.length} prospect{prospects.length > 1 ? 's' : ''}</span>
+              <span>{filteredProspects.length} prospect{filteredProspects.length > 1 ? 's' : ''}</span>
             </div>
           </div>
           
@@ -198,9 +400,10 @@ const FinalPipeline = () => {
       </div>
 
       {/* Pipeline Columns */}
-      <div className="flex-1 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 h-full">
-          {stagesWithCounts.map((stage) => (
+      <div className="flex-1 p-6 overflow-hidden">
+        <div className="h-full overflow-x-auto pb-4">
+          <div className="grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-4 h-full">
+            {stagesWithCounts.map((stage) => (
             <motion.div
               key={stage.id}
               initial={{ opacity: 0, y: 20 }}
@@ -217,21 +420,37 @@ const FinalPipeline = () => {
 
               {/* Prospects List */}
               <div className="flex-1 space-y-3 overflow-y-auto">
-                {(prospectsByStage[stage.id] || []).map((prospect) => (
-                  <motion.div
-                    key={prospect.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ProspectCard
-                      prospect={prospect}
-                      onClick={() => handleProspectClick(prospect)}
-                      compact={true}
-                    />
-                  </motion.div>
-                ))}
+                {(prospectsByStage[stage.id] || []).map((entry, idx) => {
+                  const { prospect, projectType, activeStep } = entry;
+                  const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
+                  const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
+                  const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
+                  const stepLabel = activeStep?.label || activeStep?.name || stage.name;
+                  const projectColor = stage.color || 'bg-blue-100 text-blue-700';
+                  const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
+
+                  return (
+                    <motion.div
+                      key={key}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ProspectCard
+                        prospect={{ ...prospect, _projectContext: { projectType: projectType || fallbackProjectLabel, projectTitle, stepLabel, projectColor } }}
+                        onClick={() =>
+                          handleProspectClick(
+                            prospect,
+                            projectType || prospect.projectType || (Array.isArray(prospect.tags) ? prospect.tags[0] : fallbackProjectLabel)
+                          )
+                        }
+                        compact={true}
+                        sortableId={sortableId}
+                      />
+                    </motion.div>
+                  );
+                })}
                 
                 {stage.count === 0 && (
                   <div className="text-center py-8 text-gray-500">
@@ -243,7 +462,8 @@ const FinalPipeline = () => {
                 )}
               </div>
             </motion.div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
