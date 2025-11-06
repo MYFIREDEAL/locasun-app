@@ -993,7 +993,9 @@ const ProfilePage = () => {
     setFormContactConfig,
     globalPipelineSteps = [],
     setGlobalPipelineSteps: setGlobalPipelineStepsContext,
-    activeAdminUser
+    activeAdminUser,
+    companyLogo,
+    setCompanyLogo
   } = useAppContext();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isInviteUserOpen, setIsInviteUserOpen] = useState(false);
@@ -1048,6 +1050,7 @@ const ProfilePage = () => {
   const [isPipelineStepEditorOpen, setIsPipelineStepEditorOpen] = useState(false);
   const [editingPipelineStepId, setEditingPipelineStepId] = useState(null);
   const [pipelineStepDraft, setPipelineStepDraft] = useState('');
+  const logoInputRef = useRef(null);
 
   const updateGlobalPipelineSteps = (updater) => {
     if (typeof setGlobalPipelineStepsContext !== 'function') {
@@ -1487,6 +1490,34 @@ const ProfilePage = () => {
       [field]: value
     }));
   };
+  
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCompanyLogo(reader.result);
+        toast({
+          title: "Logo téléchargé",
+          description: `Le logo "${file.name}" a été chargé avec succès.`,
+          className: "bg-green-500 text-white"
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleRemoveLogo = () => {
+    setCompanyLogo('');
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+    }
+    localStorage.removeItem('evatime_company_logo');
+    toast({
+      title: "Logo supprimé",
+      description: "Le logo a été retiré.",
+    });
+  };
   const handleSaveForm = formToSave => {
     const newForms = {
       ...forms,
@@ -1643,6 +1674,11 @@ const ProfilePage = () => {
           <button type="button" onClick={() => scrollToSection('info-perso')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Info perso
           </button>
+          {isGlobalAdmin && (
+            <button type="button" onClick={() => scrollToSection('logo-entreprise')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+              Logo Entreprise
+            </button>
+          )}
           <button type="button" onClick={() => scrollToSection('gestion-entreprises')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des Entreprises
           </button>
@@ -1739,6 +1775,64 @@ const ProfilePage = () => {
           </motion.div>
           
           {(isAdmin || isGlobalAdmin) && <>
+              {isGlobalAdmin && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="logo-entreprise">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">🏢 Logo Entreprise</h2>
+                    <p className="text-sm text-gray-500 mt-1">Ce logo sera affiché dans l'espace client</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {companyLogo ? (
+                    <div className="flex flex-col items-center gap-4 p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                      <img 
+                        src={companyLogo} 
+                        alt="Logo de l'entreprise" 
+                        className="max-w-xs max-h-48 object-contain rounded-lg shadow-md"
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => logoInputRef.current?.click()}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Remplacer
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          onClick={handleRemoveLogo}
+                          className="flex items-center gap-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Supprimer
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => logoInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center gap-3 p-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+                    >
+                      <ImageIcon className="h-12 w-12 text-gray-400" />
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-700">Cliquez pour télécharger un logo</p>
+                        <p className="text-xs text-gray-500 mt-1">PNG, JPG ou SVG (max. 2MB)</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </div>
+              </motion.div>}
+              
               {isGlobalAdmin && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-entreprises">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
                 <h2 className="text-xl font-semibold text-gray-800">Gestion des Entreprises</h2>

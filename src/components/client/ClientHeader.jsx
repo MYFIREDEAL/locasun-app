@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Folder, User, BarChart3, ShoppingBag, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useWindowSize from '@/hooks/useWindowSize';
+import { useAppContext } from '@/App';
 
 const navItems = [
   { name: 'Tableau de bord', path: '/dashboard', icon: LayoutGrid, end: true },
@@ -15,16 +16,8 @@ const ClientHeader = () => {
   const { width } = useWindowSize();
   const isMobile = width < 768;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [clientLogo, setClientLogo] = useState('');
+  const { companyLogo } = useAppContext();
   const navigate = useNavigate();
-
-  // Charger le logo personnalisé depuis localStorage
-  useEffect(() => {
-    const storedLogo = localStorage.getItem('clientLogo');
-    if (storedLogo) {
-      setClientLogo(storedLogo);
-    }
-  }, []);
 
   const handleProfileClick = () => {
     navigate('/dashboard/profil');
@@ -92,9 +85,9 @@ const ClientHeader = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <Link to="/dashboard" className="flex items-center">
-              {clientLogo && clientLogo.startsWith('data:video/mp4') ? (
+              {companyLogo && companyLogo.startsWith('data:video/mp4') ? (
                 <video
-                  src={clientLogo}
+                  src={companyLogo}
                   className="h-14 w-auto object-contain"
                   autoPlay
                   loop
@@ -103,9 +96,9 @@ const ClientHeader = () => {
                   preload="auto"
                   style={{ display: 'block', background: 'transparent' }}
                 />
-              ) : clientLogo ? (
+              ) : companyLogo ? (
                 <img 
-                  src={clientLogo} 
+                  src={companyLogo} 
                   alt="Logo"
                   className="h-14 w-auto object-contain"
                 />

@@ -168,6 +168,7 @@ function App() {
   const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [clientFormPanels, setClientFormPanels] = useState([]);
+  const [companyLogo, setCompanyLogo] = useState('');
   const hasHydratedFormContactConfig = useRef(false);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
@@ -583,6 +584,21 @@ function App() {
     return () => cancel();
   }, [globalPipelineSteps]);
 
+  // Load company logo from localStorage
+  useEffect(() => {
+    const storedLogo = localStorage.getItem('evatime_company_logo');
+    if (storedLogo) {
+      setCompanyLogo(storedLogo);
+    }
+  }, []);
+
+  // Save company logo to localStorage
+  useEffect(() => {
+    if (companyLogo) {
+      localStorage.setItem('evatime_company_logo', companyLogo);
+    }
+  }, [companyLogo]);
+
   const addChatMessage = (prospectId, projectType, message) => {
     const chatKey = `chat_${prospectId}_${projectType}`;
     const newMessage = { ...message, timestamp: new Date().toISOString() };
@@ -983,6 +999,7 @@ function App() {
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     activeAdminUser, switchActiveAdminUser,
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
+    companyLogo, setCompanyLogo,
   };
 
   const getPageTitle = () => {
