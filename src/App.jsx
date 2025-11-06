@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
@@ -84,6 +84,65 @@ const sanitizeGlobalPipelineSteps = (steps) => {
 
 const PROJECT_INFO_STORAGE_KEY = 'evatime_project_infos';
 
+const areFormConfigsEqual = (a = [], b = []) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const fieldA = a[i];
+    const fieldB = b[i];
+    if (!fieldA || !fieldB) return false;
+    if (
+      fieldA.id !== fieldB.id ||
+      fieldA.name !== fieldB.name ||
+      fieldA.type !== fieldB.type ||
+      fieldA.placeholder !== fieldB.placeholder ||
+      Boolean(fieldA.required) !== Boolean(fieldB.required)
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const areGlobalPipelineStepsEqual = (a = [], b = []) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const stepA = a[i];
+    const stepB = b[i];
+    if (!stepA || !stepB) return false;
+    if (
+      stepA.id !== stepB.id ||
+      stepA.label !== stepB.label ||
+      stepA.color !== stepB.color
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const scheduleDeferredWrite = (callback) => {
+  if (typeof window === 'undefined') {
+    callback();
+    return () => {};
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    const idleId = window.requestIdleCallback(() => callback());
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }
+
+  const timeoutId = window.setTimeout(() => callback(), 120);
+  return () => window.clearTimeout(timeoutId);
+};
+
 const AppContext = React.createContext();
 export const useAppContext = () => React.useContext(AppContext);
 
@@ -109,6 +168,8 @@ function App() {
   const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [clientFormPanels, setClientFormPanels] = useState([]);
+  const hasHydratedFormContactConfig = useRef(false);
+  const hasHydratedGlobalPipelineSteps = useRef(false);
 
   useEffect(() => {
     const storedProjectsData = localStorage.getItem('evatime_projects_data');
@@ -401,6 +462,8 @@ function App() {
       localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
     }
 
+    hasHydratedFormContactConfig.current = true;
+    hasHydratedGlobalPipelineSteps.current = true;
   }, []);
   
   const handleSetProjectsData = (newProjectsData) => {
@@ -418,9 +481,14 @@ function App() {
     localStorage.setItem('evatime_prompts', JSON.stringify(newPrompts));
   };
 
-  const handleSetFormContactConfig = (newConfig) => {
-    setFormContactConfig(newConfig);
-    localStorage.setItem('evatime_form_contact_config', JSON.stringify(newConfig));
+  const handleSetFormContactConfig = (updater) => {
+    setFormContactConfig(prevConfig => {
+      const nextConfig = typeof updater === 'function' ? updater(prevConfig) : updater;
+      if (!Array.isArray(nextConfig)) {
+        return prevConfig;
+      }
+      return areFormConfigsEqual(prevConfig, nextConfig) ? prevConfig : nextConfig;
+    });
   };
 
   const setProjectInfosState = (updater) => {
@@ -478,10 +546,42 @@ function App() {
     setGlobalPipelineSteps(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       const sanitized = sanitizeGlobalPipelineSteps(next);
-      localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(sanitized));
+      if (areGlobalPipelineStepsEqual(prev, sanitized)) {
+        return prev;
+      }
       return sanitized;
     });
   };
+
+  useEffect(() => {
+    if (!hasHydratedFormContactConfig.current) {
+      hasHydratedFormContactConfig.current = true;
+      return undefined;
+    }
+    const cancel = scheduleDeferredWrite(() => {
+      try {
+        localStorage.setItem('evatime_form_contact_config', JSON.stringify(formContactConfig));
+      } catch {
+        /* ignore storage errors */
+      }
+    });
+    return () => cancel();
+  }, [formContactConfig]);
+
+  useEffect(() => {
+    if (!hasHydratedGlobalPipelineSteps.current) {
+      hasHydratedGlobalPipelineSteps.current = true;
+      return undefined;
+    }
+    const cancel = scheduleDeferredWrite(() => {
+      try {
+        localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(globalPipelineSteps));
+      } catch {
+        /* ignore storage errors */
+      }
+    });
+    return () => cancel();
+  }, [globalPipelineSteps]);
 
   const addChatMessage = (prospectId, projectType, message) => {
     const chatKey = `chat_${prospectId}_${projectType}`;

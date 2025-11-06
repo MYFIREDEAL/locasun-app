@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,72 @@ const getDefaultColorForLabel = (label, index = 0) => {
     COLOR_OPTIONS[index % COLOR_OPTIONS.length].value
   );
 };
+
+const PipelineStepCard = React.memo(({ step, index, provided, snapshot, onColorChange, onEdit, onRemove }) => (
+  <div
+    ref={provided.innerRef}
+    {...provided.draggableProps}
+    className={`flex items-center gap-4 p-3 bg-white border border-gray-200 rounded-xl shadow-sm transition-all ${
+      snapshot.isDragging ? 'ring-2 ring-purple-200 shadow-lg' : ''
+    }`}
+  >
+    <div
+      {...provided.dragHandleProps}
+      className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing flex-shrink-0"
+    >
+      <GripVertical className="h-5 w-5" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-3">
+        <span className={`w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0 ${step.color || 'bg-gray-200'}`} />
+        <p className="text-sm font-semibold tracking-wide text-gray-800 break-words">{step.label}</p>
+      </div>
+      <p className="text-xs text-gray-500 mt-1">Étape #{index + 1}</p>
+    </div>
+    {!snapshot.isDragging && (
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        <Select
+          value={step.color || getDefaultColorForLabel(step.label, index)}
+          onValueChange={onColorChange}
+        >
+          <SelectTrigger className="w-36 justify-between">
+            <SelectValue placeholder="Couleur" />
+          </SelectTrigger>
+          <SelectContent>
+            {COLOR_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <div className="flex items-center gap-2">
+                  <span className={`w-3 h-3 rounded-full border border-white shadow-sm ${option.value}`} />
+                  {option.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-gray-500 hover:text-blue-600"
+          onClick={onEdit}
+          aria-label={`Renommer ${step.label}`}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-gray-500 hover:text-red-500"
+          onClick={onRemove}
+          aria-label={`Supprimer ${step.label}`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    )}
+  </div>
+));
 
 const FormFieldEditor = ({ field, onSave, onCancel }) => {
   const [editedField, setEditedField] = useState(
@@ -328,18 +394,22 @@ const ProjectEditor = ({
       };
     });
   }, [globalPipelineSteps]);
-  const handleStepChange = (index, field, value) => {
-    const newSteps = [...editedProject.steps];
-    newSteps[index] = {
-      ...newSteps[index],
-      [field]: value
-    };
-    setEditedProject(prev => ({
-      ...prev,
-      steps: newSteps
-    }));
-  };
-  const addStep = () => {
+  
+  const handleStepChange = useCallback((index, field, value) => {
+    setEditedProject(prev => {
+      const newSteps = [...prev.steps];
+      newSteps[index] = {
+        ...newSteps[index],
+        [field]: value
+      };
+      return {
+        ...prev,
+        steps: newSteps
+      };
+    });
+  }, []);
+  
+  const addStep = useCallback(() => {
     if (!newStepName.trim()) return;
     const fallbackId = globalPipelineSteps[0]?.id ?? null;
     const newStep = {
@@ -355,14 +425,14 @@ const ProjectEditor = ({
     }));
     setNewStepName('');
     setNewStepIcon('➡️');
-  };
-  const removeStep = index => {
-    const newSteps = editedProject.steps.filter((_, i) => i !== index);
+  }, [newStepName, newStepIcon, globalPipelineSteps]);
+  
+  const removeStep = useCallback((index) => {
     setEditedProject(prev => ({
       ...prev,
-      steps: newSteps
+      steps: prev.steps.filter((_, i) => i !== index)
     }));
-  };
+  }, []);
   const handleDragEnd = result => {
     if (!result.destination) return;
     const items = Array.from(editedProject.steps);
@@ -1032,7 +1102,7 @@ const ProfilePage = () => {
     });
   };
 
-  const handleRemovePipelineStep = (stepId) => {
+  const handleRemovePipelineStep = useCallback((stepId) => {
     updateGlobalPipelineSteps(prev => {
       const stepToRemove = prev.find(step => step.id === stepId);
       const updatedSteps = prev.filter(step => step.id !== stepId);
@@ -1044,20 +1114,20 @@ const ProfilePage = () => {
       }
       return updatedSteps;
     });
-  };
+  }, [updateGlobalPipelineSteps]);
 
-  const handleChangePipelineStepColor = (stepId, colorValue) => {
+  const handleChangePipelineStepColor = useCallback((stepId, colorValue) => {
     if (!colorValue) return;
     updateGlobalPipelineSteps(prev => prev.map(step =>
       step.id === stepId ? { ...step, color: colorValue } : step
     ));
-  };
+  }, [updateGlobalPipelineSteps]);
 
-  const openPipelineStepEditor = (step) => {
+  const openPipelineStepEditor = useCallback((step) => {
     setEditingPipelineStepId(step.id);
     setPipelineStepDraft(step.label);
     setIsPipelineStepEditorOpen(true);
-  };
+  }, []);
 
   const handlePipelineStepEditorOpenChange = (open) => {
     setIsPipelineStepEditorOpen(open);
@@ -1096,7 +1166,7 @@ const ProfilePage = () => {
     });
   };
 
-  const handlePipelineDragEnd = (result) => {
+  const handlePipelineDragEnd = useCallback((result) => {
     if (!result.destination) return;
     updateGlobalPipelineSteps(prev => {
       const items = Array.from(prev);
@@ -1104,7 +1174,7 @@ const ProfilePage = () => {
       items.splice(result.destination.index, 0, moved);
       return items;
     });
-  };
+  }, [updateGlobalPipelineSteps]);
 
   const projectOptions = useMemo(() => Object.values(projectsData).map(p => ({
     value: p.type,
@@ -1820,67 +1890,15 @@ const ProfilePage = () => {
                               {globalPipelineSteps.map((step, index) => (
                                 <Draggable key={step.id} draggableId={step.id} index={index}>
                                   {(provided, snapshot) => (
-                                    <div
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      className={`flex items-center gap-4 p-3 bg-white border border-gray-200 rounded-xl shadow-sm transition-all ${
-                                        snapshot.isDragging ? 'ring-2 ring-purple-200 shadow-lg' : ''
-                                      }`}
-                                    >
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
-                                      >
-                                        <GripVertical className="h-5 w-5" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3">
-                                          <span className={`w-3 h-3 rounded-full border border-white shadow-sm ${step.color || 'bg-gray-200'}`} />
-                                          <p className="text-sm font-semibold tracking-wide text-gray-800 break-words">{step.label}</p>
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-1">Étape #{index + 1}</p>
-                                      </div>
-                                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                                        <Select
-                                          value={step.color || getDefaultColorForLabel(step.label, index)}
-                                          onValueChange={(value) => handleChangePipelineStepColor(step.id, value)}
-                                        >
-                                          <SelectTrigger className="w-36 justify-between">
-                                            <SelectValue placeholder="Couleur" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {COLOR_OPTIONS.map((option) => (
-                                              <SelectItem key={option.value} value={option.value}>
-                                                <div className="flex items-center gap-2">
-                                                  <span className={`w-3 h-3 rounded-full border border-white shadow-sm ${option.value}`} />
-                                                  {option.label}
-                                                </div>
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 text-gray-500 hover:text-blue-600"
-                                          onClick={() => openPipelineStepEditor(step)}
-                                          aria-label={`Renommer ${step.label}`}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 text-gray-500 hover:text-red-500"
-                                          onClick={() => handleRemovePipelineStep(step.id)}
-                                          aria-label={`Supprimer ${step.label}`}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
+                                    <PipelineStepCard
+                                      step={step}
+                                      index={index}
+                                      provided={provided}
+                                      snapshot={snapshot}
+                                      onColorChange={(value) => handleChangePipelineStepColor(step.id, value)}
+                                      onEdit={() => openPipelineStepEditor(step)}
+                                      onRemove={() => handleRemovePipelineStep(step.id)}
+                                    />
                                   )}
                                 </Draggable>
                               ))}
@@ -2364,7 +2382,11 @@ const ProfilePage = () => {
                       <DialogTitle>Modifier le projet "{editingProject?.title}"</DialogTitle>
                   </DialogHeader>
                   <div className="p-6 max-h-[70vh] overflow-y-auto">
-                      {editingProject && <ProjectEditor project={editingProject} onSave={handleSaveProject} onCancel={() => setEditingProject(null)} globalPipelineSteps={globalPipelineSteps} />}
+                      {editingProject && (
+                        <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>}>
+                          <ProjectEditor project={editingProject} onSave={handleSaveProject} onCancel={() => setEditingProject(null)} globalPipelineSteps={globalPipelineSteps} />
+                        </Suspense>
+                      )}
                   </div>
               </DialogContent>
           </Dialog>
