@@ -287,6 +287,15 @@ const ProjectEditor = ({
   const [newStepName, setNewStepName] = useState('');
   const [newStepIcon, setNewStepIcon] = useState('➡️');
 
+  // Mémoriser les options du Select pour éviter les re-renders inutiles
+  const globalStepOptions = useMemo(() => 
+    globalPipelineSteps.map(globalStep => (
+      <SelectItem key={globalStep.id} value={globalStep.id}>
+        {globalStep.label}
+      </SelectItem>
+    ))
+  , [globalPipelineSteps]);
+
   useEffect(() => {
     setEditedProject(createInitialProject());
     setNewStepName('');
@@ -460,11 +469,7 @@ const ProjectEditor = ({
                                                   </SelectTrigger>
                                                   <SelectContent>
                                                     <SelectItem value="">Non assignée</SelectItem>
-                                                    {globalPipelineSteps.map(globalStep => (
-                                                      <SelectItem key={globalStep.id} value={globalStep.id}>
-                                                        {globalStep.label}
-                                                      </SelectItem>
-                                                    ))}
+                                                    {globalStepOptions}
                                                   </SelectContent>
                                                 </Select>
                                                 <Button variant="ghost" size="icon" onClick={() => removeStep(index)}>
