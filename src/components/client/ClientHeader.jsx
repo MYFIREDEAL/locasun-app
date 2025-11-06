@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, Folder, User, BarChart3, ShoppingBag, Menu, X } from 'lucide-react';
+import { LayoutGrid, Euro, User, BarChart3, ShoppingBag, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useWindowSize from '@/hooks/useWindowSize';
 import { useAppContext } from '@/App';
@@ -9,7 +9,7 @@ import { useAppContext } from '@/App';
 const navItems = [
   { name: 'Tableau de bord', path: '/dashboard', icon: LayoutGrid, end: true },
   { name: 'Offres & Produits', path: '/dashboard/offres', icon: ShoppingBag },
-  { name: 'Documents', path: '/dashboard/documents', icon: Folder },
+  { name: 'Parrainage', path: '/dashboard/parrainage', icon: Euro },
 ];
 
 const ClientHeader = () => {

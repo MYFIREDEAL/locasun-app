@@ -10,7 +10,7 @@ import Agenda from '@/pages/admin/Agenda';
 import CharlyPage from '@/pages/admin/CharlyPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
-import DocumentsPage from '@/pages/client/DocumentsPage';
+import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
 import HomePage from '@/pages/HomePage';
@@ -1046,7 +1046,7 @@ function App() {
         <Route path="/producteurs" element={<ProducerLandingPage />} />
         <Route path="/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />
         </Route>
