@@ -119,3 +119,20 @@ details > summary::-webkit-details-marker {
 details[open] summary .chevron-icon {
   transform: rotate(90deg);
 }
+
+/* Optimisation drag & drop - accélération GPU */
+[data-rbd-draggable-context-id],
+[data-rbd-droppable-id] {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+[data-rbd-drag-handle-context-id] {
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[data-rbd-drag-handle-context-id]:active {
+  cursor: grabbing;
+}
