@@ -1914,26 +1914,6 @@ const ProfilePage = () => {
                     )}
                   </div>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-3">
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Aperçu des scénarios</h3>
-                    <p className="text-sm text-gray-600">
-                      Listez ici les pipelines standards et expérimentaux que vous souhaitez proposer globalement.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Statut de disponibilité</h3>
-                    <p className="text-sm text-gray-600">
-                      Chaque pipeline pourra être activé ou mis en pause pour tous les administrateurs depuis cette zone.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Accès rapide</h3>
-                    <p className="text-sm text-gray-600">
-                      Prévoyez des liens directs vers les vues détaillées et les réglages lorsque la configuration sera connectée.
-                    </p>
-                  </div>
-                </div>
               </div>
             </motion.div>
 
