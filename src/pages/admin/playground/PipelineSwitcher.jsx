@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import Pipeline from '@/pages/admin/playground/Pipeline';
-import FinalPipeline from '@/pages/admin/FinalPipeline';
-import FinalPipelineRestored from '@/pages/admin/playground/FinalPipelineRestored';
-import SafeOriginalPipeline from '@/pages/admin/playground/SafeOriginalPipeline';
+
+// Lazy load des composants pour améliorer les performances
+const Pipeline = lazy(() => import('@/pages/admin/playground/Pipeline'));
+const FinalPipeline = lazy(() => import('@/pages/admin/FinalPipeline'));
+const FinalPipelineRestored = lazy(() => import('@/pages/admin/playground/FinalPipelineRestored'));
+const SafeOriginalPipeline = lazy(() => import('@/pages/admin/playground/SafeOriginalPipeline'));
 
 const PIPELINE_VARIANTS = {
   restored: {
@@ -72,7 +74,16 @@ const PipelineSwitcher = () => {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <SelectedPipeline key={activeVariant} />
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Chargement du pipeline...</p>
+            </div>
+          </div>
+        }>
+          <SelectedPipeline key={activeVariant} />
+        </Suspense>
       </div>
     </div>
   );

@@ -215,6 +215,13 @@ export default defineConfig({
 			'Cross-Origin-Embedder-Policy': 'credentialless',
 		},
 		allowedHosts: true,
+		watch: {
+			ignored: [
+				'**/node_modules/**', 
+				'**/dist/**',
+				'**/src/pages/admin/playground/**', // Ignore playground pour améliorer les performances
+			],
+		},
 	},
 	resolve: {
 		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json', ],
