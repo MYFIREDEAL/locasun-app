@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
     import { motion } from 'framer-motion';
-    import { User, Mail, Phone, MapPin, Bell, Building2 } from 'lucide-react';
+    import { User, Mail, Phone, MapPin, Bell, Building2, Lock, LogOut } from 'lucide-react';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import { Checkbox } from '@/components/ui/checkbox';
     import { toast } from '@/components/ui/use-toast';
-    import { useLocation } from 'react-router-dom';
+    import { useLocation, useNavigate } from 'react-router-dom';
     import { useAppContext } from '@/App';
+    import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+    import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
     const SettingsSection = ({ title, children }) => (
       <motion.div
@@ -22,7 +24,8 @@ import React, { useState, useEffect } from 'react';
 
     const SettingsPage = () => {
       const location = useLocation();
-      const { currentUser, updateProspect } = useAppContext();
+      const navigate = useNavigate();
+      const { currentUser, updateProspect, setCurrentUser } = useAppContext();
       const isProfilePage = location.pathname.includes('/profil');
 
       const [formData, setFormData] = useState({
@@ -31,6 +34,12 @@ import React, { useState, useEffect } from 'react';
         email: '',
         phone: '',
         address: '',
+      });
+
+      const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
       });
 
       useEffect(() => {
@@ -72,6 +81,59 @@ import React, { useState, useEffect } from 'react';
           title: `Sauvegarde des "Préférences de notifications"...`,
           description: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
         });
+      };
+
+      const handleChangePassword = () => {
+        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+          toast({
+            title: "Erreur",
+            description: "Veuillez remplir tous les champs.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          toast({
+            title: "Erreur",
+            description: "Les mots de passe ne correspondent pas.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+          toast({
+            title: "Erreur",
+            description: "Le mot de passe doit contenir au moins 6 caractères.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Ici vous pouvez ajouter la logique de vérification du mot de passe actuel
+        // Pour l'instant, on simule un changement réussi
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+
+        toast({
+          title: "Mot de passe modifié !",
+          description: "Votre mot de passe a été mis à jour avec succès.",
+          className: "bg-green-100 border-green-300 text-green-800",
+        });
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        localStorage.removeItem('evatime_current_user');
+        toast({
+          title: "Déconnexion réussie",
+          description: "À bientôt !",
+        });
+        navigate('/');
       };
 
       const pageTitle = isProfilePage ? "Mon Profil" : "Paramètres";
@@ -122,8 +184,78 @@ import React, { useState, useEffect } from 'react';
                 </div>
               </div>
             </div>
-            <div className="flex justify-end">
-              <Button onClick={handleSaveInfo} className="w-full sm:w-auto">Enregistrer les modifications</Button>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-4 mt-6 pt-6 border-t">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Lock className="mr-2 h-4 w-4" />
+                    Changer le mot de passe
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Changer le mot de passe</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                      <Input 
+                        id="currentPassword" 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                      <Input 
+                        id="newPassword" 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+                      <Input 
+                        id="confirmPassword" 
+                        type="password" 
+                        placeholder="••••••••"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleChangePassword} className="bg-green-600 hover:bg-green-700">Valider</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Se déconnecter
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre espace client.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
+                      Se déconnecter
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button onClick={handleSaveInfo} className="bg-green-600 hover:bg-green-700">Enregistrer les modifications</Button>
             </div>
           </SettingsSection>
 

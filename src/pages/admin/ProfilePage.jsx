@@ -12,7 +12,7 @@ import MultiSelectSearch from '@/components/ui/MultiSelectSearch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/App';
-import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
@@ -1287,6 +1287,17 @@ const ProfilePage = () => {
       description: "Cette fonctionnalité n'est pas encore implémentée. Demandez-la dans votre prochain prompt ! 🚀"
     });
   };
+  
+  const handleAdminLogout = () => {
+    setActiveAdminUser(null);
+    localStorage.removeItem('evatime_active_admin_user');
+    toast({
+      title: "Déconnexion réussie",
+      description: "À bientôt !",
+    });
+    window.location.href = '/admin';
+  };
+  
   const scrollToSection = (sectionId) => {
     const sectionElement = document.getElementById(sectionId);
     if (sectionElement) {
@@ -1742,7 +1753,10 @@ const ProfilePage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4">
               <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">Changer le mot de passe</Button>
+                  <Button variant="outline">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Changer le mot de passe
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -1770,6 +1784,28 @@ const ProfilePage = () => {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Se déconnecter
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir vous déconnecter de l'espace admin ?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleAdminLogout} className="bg-red-600 hover:bg-red-700">
+                      Se déconnecter
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button onClick={handleSaveChanges} className="bg-green-600 hover:bg-green-700">Enregistrer les modifications</Button>
             </div>
           </motion.div>

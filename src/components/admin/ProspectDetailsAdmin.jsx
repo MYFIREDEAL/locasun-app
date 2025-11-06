@@ -547,6 +547,22 @@ const ProspectDetailsAdmin = ({
       setProjectAmountInput(savedAmount.toString());
     }
   }, [savedAmount, activeProjectTag]);
+
+  // Bloquer le scroll automatique pendant le mode édition
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const scrollY = window.scrollY;
+    
+    // Utiliser scrollTo avec behavior: 'instant' une seule fois
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isEditing, editableProspect]);
   
   const handleProjectClick = (tag) => {
     setActiveProjectTag(tag);
@@ -729,7 +745,7 @@ const ProspectDetailsAdmin = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              {isEditing ? <Input name="name" value={editableProspect.name} onChange={(e) => handleInputChange('name', e.target.value)} className="text-2xl font-bold h-auto p-0 border-0 focus-visible:ring-0" /> : <h1 className="text-2xl font-bold text-gray-900">{prospect.name}</h1>}
+              {isEditing ? <Input name="name" value={editableProspect.name} onChange={(e) => handleInputChange('name', e.target.value)} className="text-2xl font-bold h-auto p-0 border-0 focus-visible:ring-0" autoFocus={false} /> : <h1 className="text-2xl font-bold text-gray-900">{prospect.name}</h1>}
             </div>
           </div>
 
@@ -787,9 +803,9 @@ const ProspectDetailsAdmin = ({
                  <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">Informations Prospect</h2>
                     {isEditing ? <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={handleSave}><Save className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => setIsEditing(false)}><X className="h-4 w-4" /></Button>
-                      </div> : <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>}
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={handleSave}><Save className="h-4 w-4" /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => setIsEditing(false)}><X className="h-4 w-4" /></Button>
+                      </div> : <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>}
                  </div>
                 <div className="space-y-3 text-sm">
                   {formContactConfig.map(field => (
@@ -806,6 +822,7 @@ const ProspectDetailsAdmin = ({
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             className="h-8 text-sm"
                             placeholder={field.placeholder}
+                            autoFocus={false}
                           />
                         ) : (
                           <p className="text-gray-700">{prospect[field.id] || <span className="text-gray-400">Non renseigné</span>}</p>
