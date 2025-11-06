@@ -342,6 +342,7 @@ const ProjectEditor = ({
     baseProject.steps = Array.isArray(baseProject.steps)
       ? baseProject.steps.map(step => ({
           ...step,
+          id: step.id || `step-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           globalStepId: step.globalStepId ?? fallbackId
         }))
       : [];
@@ -413,6 +414,7 @@ const ProjectEditor = ({
     if (!newStepName.trim()) return;
     const fallbackId = globalPipelineSteps[0]?.id ?? null;
     const newStep = {
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       name: newStepName,
       status: 'pending',
       icon: newStepIcon,
@@ -442,6 +444,20 @@ const ProjectEditor = ({
       ...prev,
       steps: items
     }));
+  };
+  
+  const handleDragStart = () => {
+    // Désactiver les scroll pour éviter les décalages
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+    }
+  };
+  
+  const handleDragEndWithCleanup = (result) => {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+    handleDragEnd(result);
   };
   const handleSave = () => {
     const finalProject = {
@@ -501,13 +517,24 @@ const ProjectEditor = ({
                 </div>
 
                 <h3 className="text-md font-semibold text-gray-700 pt-4 border-t">Étapes de la Timeline</h3>
-                <DragDropContext onDragEnd={handleDragEnd}>
+                <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEndWithCleanup}>
                     <Droppable droppableId="steps">
                         {provided => <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
-                                {editedProject.steps.map((step, index) => <Draggable key={index} draggableId={String(index)} index={index}>
-                                        {(provided, snapshot) => <div
+                                {editedProject.steps.map((step, index) => <Draggable key={step.id} draggableId={step.id} index={index}>
+                                        {(provided, snapshot) => {
+                                          const style = snapshot.isDragging
+                                            ? {
+                                                ...provided.draggableProps.style,
+                                                position: 'relative',
+                                                left: 'auto',
+                                                top: 'auto',
+                                              }
+                                            : provided.draggableProps.style;
+                                          
+                                          return <div
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
+                                            style={style}
                                             className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all ${snapshot.isDragging ? 'ring-2 ring-purple-200 shadow-lg' : ''}`}
                                           >
                                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -547,7 +574,7 @@ const ProjectEditor = ({
                                                 </Button>
                                               </div>
                                             </div>
-                                          </div>}
+                                          </div>}}
                                     </Draggable>)}
                                 {provided.placeholder}
                             </div>}
