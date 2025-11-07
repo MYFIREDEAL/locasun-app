@@ -70,67 +70,114 @@ const ParrainagePage = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* En-tête avec illustration */}
-      <div className="bg-white rounded-2xl shadow-card p-8 text-center">
-        {/* Illustration */}
-        <div className="mb-6">
-          <img 
-            src="https://ik.imagekit.io/qbfbbu1mo/New%20Folder/ChatGPT%20Image%206%20nov.%202025%20a%CC%80%2017_33_52.png?updatedAt=1762449722267" 
-            alt="Parrainage"
-            className="w-full max-w-sm mx-auto h-auto object-contain"
-          />
+      {/* Hero Section - Accrocheur */}
+      <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl shadow-xl overflow-hidden">
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
+        <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 p-8 lg:p-12 items-center">
+          {/* Texte accrocheur */}
+          <div className="text-white space-y-6">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
+              <Euro className="h-5 w-5" />
+              Programme de parrainage
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+              Gagnez de l'argent en recommandant nos services ! 💰
+            </h1>
+            <p className="text-xl text-blue-100 leading-relaxed">
+              Chaque ami que vous parrainez vous rapporte{' '}
+              <span className="font-bold text-yellow-300 text-2xl">100 €</span> 
+              {' '}et lui offre également{' '}
+              <span className="font-bold text-yellow-300 text-2xl">100 €</span> de réduction.
+              <br />
+              <span className="text-white font-semibold mt-2 block">
+                C'est gagnant-gagnant ! 🤝
+              </span>
+            </p>
+            
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Button
+                onClick={handleInviteClick}
+                size="lg"
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                <UserPlus className="h-5 w-5 mr-2" />
+                Inviter un ami maintenant
+              </Button>
+              <Button
+                onClick={handleCopyLink}
+                size="lg"
+                variant="outline"
+                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 font-semibold"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-5 w-5 mr-2" />
+                    Lien copié !
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-5 w-5 mr-2" />
+                    Copier mon lien
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Illustration */}
+          <div className="hidden lg:block flex-shrink-0">
+            <img 
+              src="https://ik.imagekit.io/qbfbbu1mo/New%20Folder/ChatGPT%20Image%206%20nov.%202025%20a%CC%80%2017_33_52.png?updatedAt=1762449722267" 
+              alt="Parrainage"
+              className="w-80 h-auto object-contain drop-shadow-2xl"
+            />
+          </div>
         </div>
-        
-        {/* Titre */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-2">
-          <Euro className="h-8 w-8 text-blue-600" />
-          Parrainage
-        </h1>
-        
-        {/* Description */}
-        <p className="text-gray-700 text-lg max-w-2xl mx-auto">
-          Pour chaque ami qui souscrit à une offre grâce à vous, c'est{' '}
-          <span className="font-bold text-gray-900">100 € pour lui</span> et{' '}
-          <span className="font-bold text-gray-900">100 € pour vous</span>.
-        </p>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl shadow-card p-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users className="h-6 w-6 text-blue-600" />
+      {/* Vos performances */}
+      <div className="bg-white rounded-2xl shadow-card p-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <TrendingUp className="h-6 w-6 text-green-600" />
+          Vos performances de parrainage
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center border-2 border-blue-200 cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Users className="h-8 w-8 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Filleuls</p>
-              <p className="text-3xl font-bold text-gray-900">{referralStats.filleuls}</p>
-            </div>
-          </div>
-        </div>
+            <p className="text-sm font-medium text-blue-700 mb-2 uppercase tracking-wide">Filleuls inscrits</p>
+            <p className="text-5xl font-extrabold text-blue-900 mb-1">{referralStats.filleuls}</p>
+            <p className="text-xs text-blue-600">personnes invitées</p>
+          </motion.div>
 
-        <div className="bg-white rounded-2xl shadow-card p-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-green-600" />
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center border-2 border-green-200 cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Check className="h-8 w-8 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Confirmés</p>
-              <p className="text-3xl font-bold text-gray-900">{referralStats.confirmes}</p>
-            </div>
-          </div>
-        </div>
+            <p className="text-sm font-medium text-green-700 mb-2 uppercase tracking-wide">Parrainages confirmés</p>
+            <p className="text-5xl font-extrabold text-green-900 mb-1">{referralStats.confirmes}</p>
+            <p className="text-xs text-green-600">souscriptions validées</p>
+          </motion.div>
 
-        <div className="bg-white rounded-2xl shadow-card p-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Euro className="h-6 w-6 text-yellow-600" />
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 text-center border-2 border-yellow-200 cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Euro className="h-8 w-8 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Gains cumulés</p>
-              <p className="text-3xl font-bold text-gray-900">{referralStats.gainsCumules} €</p>
-            </div>
-          </div>
+            <p className="text-sm font-medium text-yellow-700 mb-2 uppercase tracking-wide">Revenus générés</p>
+            <p className="text-5xl font-extrabold text-yellow-900 mb-1">{referralStats.gainsCumules} €</p>
+            <p className="text-xs text-yellow-600">total des gains</p>
+          </motion.div>
         </div>
       </div>
 
