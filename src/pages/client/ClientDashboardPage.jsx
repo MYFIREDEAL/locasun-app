@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Dashboard from '@/components/Dashboard';
 import ProjectDetails from '@/components/ProjectDetails';
-import AddProjectModal from '@/components/AddProjectModal';
 import { useAppContext } from '@/App';
 
 function ClientDashboardPage() {
   const { userProjects, projectsData, currentUser } = useAppContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedProject, setSelectedProject] = useState(null);
-  const [showAddProject, setShowAddProject] = useState(false);
   const [displayedProjects, setDisplayedProjects] = useState([]);
 
   useEffect(() => {
@@ -41,6 +40,16 @@ function ClientDashboardPage() {
     setSelectedProject(project);
   };
 
+  // Ouvrir automatiquement un projet depuis une notification
+  useEffect(() => {
+    if (location.state?.openProjectType && projectsData[location.state.openProjectType]) {
+      const project = projectsData[location.state.openProjectType];
+      setSelectedProject(project);
+      // Nettoyer le state pour éviter de réouvrir à chaque render
+      navigate('/dashboard', { replace: true, state: {} });
+    }
+  }, [location.state, projectsData, navigate]);
+
   if (!currentUser) {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center p-4">
@@ -61,28 +70,22 @@ function ClientDashboardPage() {
   }
 
   return (
-    <>
-      <AnimatePresence mode="wait">
-        {selectedProject ? (
-          <ProjectDetails 
-            key="details"
-            project={selectedProject} 
-            onBack={() => setSelectedProject(null)} 
-          />
-        ) : (
-          <Dashboard 
-            key="dashboard"
-            projects={displayedProjects} 
-            onProjectClick={handleProjectClick}
-            onAddProject={() => setShowAddProject(true)}
-          />
-        )}
-      </AnimatePresence>
-      <AddProjectModal 
-        isOpen={showAddProject}
-        onClose={() => setShowAddProject(false)}
-      />
-    </>
+    <AnimatePresence mode="wait">
+      {selectedProject ? (
+        <ProjectDetails 
+          key="details"
+          project={selectedProject} 
+          onBack={() => setSelectedProject(null)} 
+        />
+      ) : (
+        <Dashboard 
+          key="dashboard"
+          projects={displayedProjects} 
+          onProjectClick={handleProjectClick}
+          onAddProject={() => navigate('/dashboard/offres')}
+        />
+      )}
+    </AnimatePresence>
   );
 }
 

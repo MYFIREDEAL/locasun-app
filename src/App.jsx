@@ -161,6 +161,7 @@ function App() {
   const [users, setUsers] = useState({});
   const [chatMessages, setChatMessages] = useState({});
   const [notifications, setNotifications] = useState([]);
+  const [clientNotifications, setClientNotifications] = useState([]);
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
   const [formContactConfig, setFormContactConfig] = useState(defaultFormContactConfig);
@@ -388,6 +389,9 @@ function App() {
 
     const storedNotifications = localStorage.getItem('evatime_notifications');
     setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
+    
+    const storedClientNotifications = localStorage.getItem('evatime_client_notifications');
+    setClientNotifications(storedClientNotifications ? JSON.parse(storedClientNotifications) : []);
 
     const storedForms = localStorage.getItem('evatime_forms');
     setForms(storedForms ? JSON.parse(storedForms) : {});
@@ -651,6 +655,7 @@ function App() {
       });
     }
 
+    // Notification admin quand le client envoie un message
     if (message.sender === 'client') {
       const prospect = prospects.find(p => p.id === prospectId);
       if (prospect) {
@@ -670,12 +675,37 @@ function App() {
         });
       }
     }
+
+    // Notification client quand l'admin/pro répond
+    if (message.sender === 'admin' || message.sender === 'pro') {
+      const newClientNotification = {
+        id: Date.now(),
+        projectType,
+        projectName: projectsData[projectType]?.title || projectType,
+        message: message.text?.substring(0, 50) || 'Nouveau message',
+        read: false,
+        timestamp: new Date().toISOString(),
+      };
+      setClientNotifications(prev => {
+        const updated = [newClientNotification, ...prev];
+        localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
   const markNotificationAsRead = (notificationId) => {
     setNotifications(prev => {
       const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n);
       localStorage.setItem('evatime_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const markClientNotificationAsRead = (notificationId) => {
+    setClientNotifications(prev => {
+      const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n);
+      localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
       return updated;
     });
   };
@@ -992,6 +1022,7 @@ function App() {
     users, updateUsers, deleteUser, getAdminById,
     chatMessages, addChatMessage, getChatMessages,
     notifications, markNotificationAsRead,
+    clientNotifications, markClientNotificationAsRead,
     forms, setForms: handleSetForms,
     prompts, setPrompts: handleSetPrompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,

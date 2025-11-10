@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, Euro, User, BarChart3, ShoppingBag, Menu, X } from 'lucide-react';
+import { LayoutGrid, Euro, User, BarChart3, ShoppingBag, Menu, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import useWindowSize from '@/hooks/useWindowSize';
 import { useAppContext } from '@/App';
 
@@ -16,8 +24,16 @@ const ClientHeader = () => {
   const { width } = useWindowSize();
   const isMobile = width < 768;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { companyLogo } = useAppContext();
+  const { companyLogo, clientNotifications, markClientNotificationAsRead, projectsData } = useAppContext();
   const navigate = useNavigate();
+
+  const unreadClientNotifications = clientNotifications.filter(n => !n.read);
+
+  const handleClientNotificationClick = (notification) => {
+    markClientNotificationAsRead(notification.id);
+    // Redirige vers le dashboard avec le projectType pour ouvrir automatiquement le projet
+    navigate('/dashboard', { state: { openProjectType: notification.projectType } });
+  };
 
   const handleProfileClick = () => {
     navigate('/dashboard/profil');
@@ -143,6 +159,40 @@ const ClientHeader = () => {
                 </Button>
               </Link>
             )}
+            
+            {/* Notifications Client */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-gray-100">
+                  <Bell className="h-5 w-5 text-gray-600" />
+                  {unreadClientNotifications.length > 0 && (
+                    <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {unreadClientNotifications.length}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {unreadClientNotifications.length > 0 ? (
+                  unreadClientNotifications.map(notif => (
+                    <DropdownMenuItem key={notif.id} onClick={() => handleClientNotificationClick(notif)} className="cursor-pointer flex flex-col items-start py-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-blue-600">{notif.projectName}</span>
+                        <span className="text-xs text-gray-400">{new Date(notif.timestamp).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 line-clamp-2">{notif.message}</p>
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <DropdownMenuItem disabled className="text-center py-4">
+                    Aucune nouvelle notification
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
              <Button
                 variant="ghost"
                 size="icon"

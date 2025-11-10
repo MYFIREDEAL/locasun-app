@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MessageSquare, Mail, Bot, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -221,6 +221,7 @@ const CompleteOriginalContacts = () => {
   const userMenuRef = useRef(null);
   const tagFilterLabel = selectedTag || 'Tous les tags';
   const navigate = useNavigate();
+  const location = useLocation();
 
   const allowedUsers = useMemo(() => {
     if (!activeAdminUser) return [];

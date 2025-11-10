@@ -127,9 +127,9 @@ const ParrainagePage = () => {
 
           {/* Illustration */}
           <div className="hidden lg:block flex-shrink-0">
-            <img 
-              src="https://ik.imagekit.io/qbfbbu1mo/New%20Folder/ChatGPT%20Image%206%20nov.%202025%20a%CC%80%2017_33_52.png?updatedAt=1762449722267" 
-              alt="Parrainage"
+            <img
+              src="https://ik.imagekit.io/bqla7nrgyf/ChatGPT%20Image%206%20nov.%202025%20a%CC%80%2017_33_52.png.webp?updatedAt=1762764615950"
+              alt="Programme de parrainage"
               className="w-80 h-auto object-contain drop-shadow-2xl"
             />
           </div>

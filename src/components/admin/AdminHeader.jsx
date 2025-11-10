@@ -38,7 +38,8 @@ import React, { useState } from 'react';
 
       const handleNotificationClick = (notification) => {
         markNotificationAsRead(notification.id);
-        navigate(`/admin/contacts?prospectId=${notification.prospectId}&project=${notification.projectType}`);
+        // Redirige vers la pipeline avec le prospect et projet pour ouvrir directement la fiche détaillée avec le chat
+        navigate(`/admin/pipeline?project=${notification.projectType}&prospect=${notification.prospectId}`);
       };
 
       const handleUserSwitch = (userId) => {

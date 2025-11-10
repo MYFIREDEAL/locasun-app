@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Dashboard from '@/components/Dashboard';
 import ProjectDetails from '@/components/ProjectDetails';
-import AddProjectModal from '@/components/AddProjectModal';
 import { CheckCircle, RefreshCw, Pencil, Hourglass, HardHat } from 'lucide-react';
 import { useAppContext } from '@/App';
 
@@ -63,7 +62,6 @@ function ClientDashboardPage() {
   const { userProjects } = useAppContext();
   const navigate = useNavigate();
   const [selectedProject, setSelectedProject] = useState(null);
-  const [showAddProject, setShowAddProject] = useState(false);
   const [displayedProjects, setDisplayedProjects] = useState([]);
 
   useEffect(() => {
@@ -86,28 +84,22 @@ function ClientDashboardPage() {
   }
 
   return (
-    <>
-      <AnimatePresence mode="wait">
-        {selectedProject ? (
-          <ProjectDetails 
-            key="details"
-            project={selectedProject} 
-            onBack={() => setSelectedProject(null)} 
-          />
-        ) : (
-          <Dashboard 
-            key="dashboard"
-            projects={displayedProjects} 
-            onProjectClick={setSelectedProject}
-            onAddProject={() => setShowAddProject(true)}
-          />
-        )}
-      </AnimatePresence>
-      <AddProjectModal 
-        isOpen={showAddProject}
-        onClose={() => setShowAddProject(false)}
-      />
-    </>
+    <AnimatePresence mode="wait">
+      {selectedProject ? (
+        <ProjectDetails 
+          key="details"
+          project={selectedProject} 
+          onBack={() => setSelectedProject(null)} 
+        />
+      ) : (
+        <Dashboard 
+          key="dashboard"
+          projects={displayedProjects} 
+          onProjectClick={setSelectedProject}
+          onAddProject={() => navigate('/client/offres')}
+        />
+      )}
+    </AnimatePresence>
   );
 }
 
