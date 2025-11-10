@@ -1365,11 +1365,11 @@ const Agenda = () => {
                 <Calendar mode="single" selected={currentDate} onSelect={(date) => date && setCurrentDate(date)} initialFocus />
               </PopoverContent>
             </Popover>
-            <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="icon" onClick={prevWeek} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={nextWeek} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button>
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="icon" onClick={prevWeek} className="h-10 w-10"><ChevronLeft className="h-5 w-5" /></Button>
+              <Button variant="outline" onClick={goToToday} className="hidden sm:inline-flex">Aujourd'hui</Button>
+              <Button variant="ghost" size="icon" onClick={nextWeek} className="h-10 w-10"><ChevronRight className="h-5 w-5" /></Button>
             </div>
-            <Button variant="outline" onClick={goToToday} className="hidden sm:inline-flex">Aujourd'hui</Button>
           </div>
           
           <div className="flex items-center space-x-4">
