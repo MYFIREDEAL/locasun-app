@@ -515,6 +515,7 @@ const ProspectDetailsAdmin = ({
   const savedAmount = projectInfo?.amount;
   const euroFormatter = useMemo(() => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }), []);
   const [projectAmountInput, setProjectAmountInput] = useState('');
+  const [isEditingAmount, setIsEditingAmount] = useState(false);
 
   const userOptions = useMemo(() => [
     { value: 'unassigned', label: 'Non assigné' },
@@ -612,6 +613,7 @@ const ProspectDetailsAdmin = ({
 
   const handleProjectAmountBlur = () => {
     handleProjectAmountCommit(projectAmountInput);
+    setIsEditingAmount(false);
   };
 
   const handleProjectAmountKeyDown = (event) => {
@@ -619,6 +621,7 @@ const ProspectDetailsAdmin = ({
       event.preventDefault();
       handleProjectAmountCommit(event.currentTarget.value);
       event.currentTarget.blur();
+      setIsEditingAmount(false);
     }
   };
 
@@ -898,40 +901,56 @@ const ProspectDetailsAdmin = ({
             </div>
 
             <div className="space-y-6 xl:max-w-[520px] w-full flex flex-col">
-              <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                  Suivi détaillé du projet : <span className="text-blue-600">{activeProjectData?.title || 'Aucun projet sélectionné'}</span>
-                </h2>
-                {activeProjectTag && (
-                  <div className="mb-5">
-                    <Label htmlFor="project-amount" className="text-sm font-medium text-gray-700">
-                      Montant estimé du projet
-                    </Label>
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="relative max-w-[200px]">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">€</span>
+              {activeProjectTag && (
+                <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-lg p-6 border border-gray-200 relative">
+                  <button
+                    onClick={() => setIsEditingAmount(!isEditingAmount)}
+                    className="absolute top-3 right-3 p-1.5 hover:bg-white/50 rounded-lg transition-colors"
+                    title={isEditingAmount ? "Annuler" : "Modifier le montant"}
+                  >
+                    {isEditingAmount ? (
+                      <X className="h-4 w-4 text-gray-600" />
+                    ) : (
+                      <Edit className="h-4 w-4 text-gray-600" />
+                    )}
+                  </button>
+                  <p className="text-xs font-medium text-gray-500 mb-2 text-center">Montant du deal</p>
+                  {isEditingAmount ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-500">€</span>
                         <Input
-                          id="project-amount"
                           type="number"
                           min="0"
                           step="0.01"
                           inputMode="decimal"
                           value={projectAmountInput}
                           onChange={(e) => handleProjectAmountChange(e.target.value)}
-                          onBlur={handleProjectAmountBlur}
                           onKeyDown={handleProjectAmountKeyDown}
                           placeholder="0,00"
-                          className="pl-7"
+                          className="pl-7 text-xl font-bold text-center w-40 h-11"
+                          autoFocus
                         />
                       </div>
-                      <span className="text-sm text-gray-500">
-                        {typeof savedAmount === 'number'
-                          ? euroFormatter.format(savedAmount)
-                          : 'Aucun montant enregistré'}
-                      </span>
+                      <Button
+                        size="sm"
+                        onClick={handleProjectAmountBlur}
+                        className="h-8"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-4xl font-bold text-gray-900 text-center">
+                      {typeof savedAmount === 'number' ? euroFormatter.format(savedAmount) : '0,00 €'}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  Étapes du projet
+                </h2>
                 <ProjectTimeline steps={projectSteps} onUpdateStatus={handleUpdateStatus} />
               </div>
             </div>
