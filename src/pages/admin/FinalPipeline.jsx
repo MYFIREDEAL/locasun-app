@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Users, Filter } from 'lucide-react';
+import { Plus, Users, Filter, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '@/App';
@@ -8,6 +8,9 @@ import ProspectCard from '@/components/admin/ProspectCard';
 import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
 import AddProspectModal from '@/components/admin/AddProspectModal';
 import { toast } from '@/components/ui/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -61,6 +64,8 @@ const FinalPipeline = () => {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
   
   if (!contextData) {
     return (
@@ -79,6 +84,7 @@ const FinalPipeline = () => {
     updateProspect, 
     projectsData = {}, 
     activeAdminUser,
+    users = {},
     globalPipelineSteps = [],
     getProjectSteps,
   } = contextData;
@@ -115,12 +121,49 @@ const FinalPipeline = () => {
     });
   }, [globalPipelineSteps]);
 
-  const filteredProspects = useMemo(() => {
-    if (filter === 'mine' && activeAdminUser?.id) {
-      return prospects.filter((prospect) => prospect.ownerId === activeAdminUser.id);
+  // Liste des utilisateurs autorisés (même logique que l'Agenda)
+  const allowedUsers = useMemo(() => {
+    if (!activeAdminUser) return [];
+    if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
+      return Object.values(users);
     }
-    return prospects;
-  }, [prospects, filter, activeAdminUser]);
+    const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+    return Object.values(users).filter(u => allowedIds.includes(u.id));
+  }, [activeAdminUser, users]);
+
+  const userOptions = useMemo(() => [
+    { value: 'all', label: 'Tous les utilisateurs' },
+    ...allowedUsers.map(user => ({ value: user.id, label: user.name }))
+  ], [allowedUsers]);
+
+  // Initialiser selectedUserId avec "Tous les utilisateurs"
+  useEffect(() => {
+    if (activeAdminUser && selectedUserId === null) {
+      setSelectedUserId('all');
+    }
+  }, [activeAdminUser, selectedUserId]);
+
+  const filteredProspects = useMemo(() => {
+    // Filtrer d'abord par permissions (comme dans Contacts et Agenda)
+    const visibleProspects = prospects.filter(prospect => {
+      if (!activeAdminUser) return false;
+      if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
+      const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      return allowedIds.includes(prospect.ownerId);
+    });
+
+    // Filtrer par utilisateur sélectionné (sauf si "all")
+    let filtered = visibleProspects;
+    if (selectedUserId && selectedUserId !== 'all') {
+      filtered = filtered.filter(prospect => prospect.ownerId === selectedUserId);
+    }
+
+    // Puis filtrer par "Mes prospects" si nécessaire
+    if (filter === 'mine' && activeAdminUser?.id) {
+      return filtered.filter((prospect) => prospect.ownerId === activeAdminUser.id);
+    }
+    return filtered;
+  }, [prospects, filter, activeAdminUser, selectedUserId]);
 
   const { stagesWithCounts, prospectsByStage } = useMemo(() => {
     const stageBuckets = stageDefinitions.reduce((acc, stage) => {
@@ -382,14 +425,38 @@ const FinalPipeline = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilter(filter === 'all' ? 'mine' : 'all')}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              {filter === 'all' ? 'Tous' : 'Mes prospects'}
-            </Button>
+            <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-[230px] justify-between">
+                  <Users className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{selectedUserId === 'all' ? 'Tous les utilisateurs' : (users[selectedUserId]?.name || "Utilisateur")}</span>
+                  <ChevronDown className="ml-2 h-4 w-4 flex-shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0">
+                <Command>
+                  <CommandInput placeholder="Rechercher..." />
+                  <CommandList>
+                    <CommandEmpty>Aucun utilisateur</CommandEmpty>
+                    <CommandGroup>
+                      {userOptions.map((user) => (
+                        <CommandItem
+                          key={user.value}
+                          value={user.label}
+                          onSelect={() => {
+                            setSelectedUserId(user.value);
+                            setUserSearchOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", selectedUserId === user.value ? "opacity-100" : "opacity-0")} />
+                          {user.label}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             
             <Button onClick={() => setIsAddModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
