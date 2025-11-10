@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageSquare, Mail, Bot, Plus, ChevronDown } from 'lucide-react';
+import { Search, MessageSquare, Mail, Bot, Plus, ChevronDown, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -233,9 +233,25 @@ const CompleteOriginalContacts = () => {
   }, [activeAdminUser, users]);
 
   const userFilterLabel = useMemo(() => {
-    if (!selectedUserId) return 'Tous les utilisateurs';
+    if (!selectedUserId) {
+      // Si un seul utilisateur autorisé, ne pas afficher "Tous les utilisateurs"
+      return allowedUsers.length === 1 ? allowedUsers[0].name : 'Tous les utilisateurs';
+    }
     return users[selectedUserId]?.name || allowedUsers.find(u => u.id === selectedUserId)?.name || 'Utilisateur inconnu';
   }, [selectedUserId, users, allowedUsers]);
+
+  // Initialiser selectedUserId selon le nombre d'utilisateurs autorisés
+  useEffect(() => {
+    if (activeAdminUser && selectedUserId === null) {
+      if (allowedUsers.length === 1) {
+        // Un seul utilisateur : le sélectionner automatiquement
+        setSelectedUserId(allowedUsers[0].id);
+      } else if (allowedUsers.length > 1) {
+        // Plusieurs utilisateurs : ne rien sélectionner (affichera "Tous")
+        setSelectedUserId(null);
+      }
+    }
+  }, [activeAdminUser, selectedUserId, allowedUsers]);
 
   const tagOptions = useMemo(() => {
     const prospectTags = new Set();
@@ -361,101 +377,108 @@ const CompleteOriginalContacts = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-        <h1 className="text-3xl font-bold text-gray-900">Contacts</h1>
-        <div className="flex items-center space-x-2">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Rechercher..." 
-              className="pl-10 bg-white" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <div className="bg-white border-b border-gray-200 px-6 py-4 rounded-lg shadow-soft">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Users className="w-4 h-4" />
+              <span>{filteredProspects.length} contact{filteredProspects.length > 1 ? 's' : ''}</span>
+            </div>
           </div>
-          <Button onClick={() => setAddModalOpen(true)} className="bg-green-600 hover:bg-green-700">
-            <Plus className="mr-2 h-4 w-4" /> Nouveau
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div ref={tagMenuRef} className="relative inline-block text-left">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex items-center space-x-2 bg-white"
-            onClick={() => setTagMenuOpen(prev => !prev)}
-          >
-            <span>{tagFilterLabel}</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-          {isTagMenuOpen && (
-            <div className="absolute z-50 mt-1 w-44 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
-              <div className="py-1">
-                <button
-                  type="button"
-                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedTag ? 'bg-gray-50 font-medium' : ''}`}
-                  onClick={() => handleTagSelect(null)}
-                >
-                  Tous les tags
-                </button>
-                <div className="border-t border-gray-100 my-1" />
-                {tagOptions.map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedTag === tag ? 'bg-gray-50 font-medium' : ''}`}
-                    onClick={() => handleTagSelect(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
+          
+          <div className="flex items-center gap-3">
+            <div ref={tagMenuRef} className="relative inline-block text-left">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center space-x-2 bg-white"
+                onClick={() => setTagMenuOpen(prev => !prev)}
+              >
+                <span>{tagFilterLabel}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+              {isTagMenuOpen && (
+                <div className="absolute z-50 mt-1 w-44 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedTag ? 'bg-gray-50 font-medium' : ''}`}
+                      onClick={() => handleTagSelect(null)}
+                    >
+                      Tous les tags
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    {tagOptions.map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedTag === tag ? 'bg-gray-50 font-medium' : ''}`}
+                        onClick={() => handleTagSelect(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div ref={userMenuRef} className="relative inline-block text-left">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex items-center space-x-2 bg-white"
-            onClick={() => setUserMenuOpen(prev => !prev)}
-            disabled={!allowedUsers.length}
-          >
-            <span>{userFilterLabel}</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-          {isUserMenuOpen && (
-            <div className="absolute z-50 mt-1 w-52 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
-              <div className="py-1">
-                <button
-                  type="button"
-                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedUserId ? 'bg-gray-50 font-medium' : ''}`}
-                  onClick={() => handleUserSelect(null)}
-                >
-                  Tous les utilisateurs
-                </button>
-                <div className="border-t border-gray-100 my-1" />
-                {allowedUsers.map(user => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedUserId === user.id ? 'bg-gray-50 font-medium' : ''}`}
-                    onClick={() => handleUserSelect(user.id)}
-                  >
-                    {user.name}
-                  </button>
-                ))}
-              </div>
+            <div ref={userMenuRef} className="relative inline-block text-left">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center space-x-2 bg-white"
+                onClick={() => setUserMenuOpen(prev => !prev)}
+                disabled={!allowedUsers.length}
+              >
+                <span>{userFilterLabel}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+              {isUserMenuOpen && (
+                <div className="absolute z-50 mt-1 w-52 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
+                  <div className="py-1">
+                    {allowedUsers.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedUserId ? 'bg-gray-50 font-medium' : ''}`}
+                          onClick={() => handleUserSelect(null)}
+                        >
+                          Tous les utilisateurs
+                        </button>
+                        <div className="border-t border-gray-100 my-1" />
+                      </>
+                    )}
+                    {allowedUsers.map(user => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedUserId === user.id ? 'bg-gray-50 font-medium' : ''}`}
+                        onClick={() => handleUserSelect(user.id)}
+                      >
+                        {user.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+            
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Rechercher..." 
+                className="pl-10 bg-white" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <Button onClick={() => setAddModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+              <Plus className="mr-2 h-4 w-4" /> Nouveau
+            </Button>
+          </div>
         </div>
-        {(selectedTag || selectedUserId) && (
-          <Button variant="ghost" size="sm" onClick={resetFilters}>
-            Réinitialiser
-          </Button>
-        )}
       </div>
 
       <AnimatePresence>

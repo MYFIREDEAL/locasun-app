@@ -131,17 +131,26 @@ const FinalPipeline = () => {
     return Object.values(users).filter(u => allowedIds.includes(u.id));
   }, [activeAdminUser, users]);
 
-  const userOptions = useMemo(() => [
-    { value: 'all', label: 'Tous les utilisateurs' },
-    ...allowedUsers.map(user => ({ value: user.id, label: user.name }))
-  ], [allowedUsers]);
+  const userOptions = useMemo(() => {
+    const options = allowedUsers.map(user => ({ value: user.id, label: user.name }));
+    // Ajouter "Tous les utilisateurs" seulement si accès à 2+ utilisateurs
+    if (allowedUsers.length > 1) {
+      return [{ value: 'all', label: 'Tous les utilisateurs' }, ...options];
+    }
+    return options;
+  }, [allowedUsers]);
 
-  // Initialiser selectedUserId avec "Tous les utilisateurs"
+  // Initialiser selectedUserId
   useEffect(() => {
     if (activeAdminUser && selectedUserId === null) {
-      setSelectedUserId('all');
+      // Si accès à plusieurs utilisateurs, mettre "all", sinon mettre l'utilisateur unique
+      if (allowedUsers.length > 1) {
+        setSelectedUserId('all');
+      } else if (allowedUsers.length === 1) {
+        setSelectedUserId(allowedUsers[0].id);
+      }
     }
-  }, [activeAdminUser, selectedUserId]);
+  }, [activeAdminUser, selectedUserId, allowedUsers]);
 
   const filteredProspects = useMemo(() => {
     // Filtrer d'abord par permissions (comme dans Contacts et Agenda)
