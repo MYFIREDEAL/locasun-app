@@ -213,13 +213,17 @@ const CompleteOriginalContacts = () => {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [isTagMenuOpen, setTagMenuOpen] = useState(false);
   const [isUserMenuOpen, setUserMenuOpen] = useState(false);
   const tagMenuRef = useRef(null);
   const userMenuRef = useRef(null);
-  const tagFilterLabel = selectedTag || 'Tous les tags';
+  const tagFilterLabel = selectedTags.length === 0 
+    ? 'Tags' 
+    : selectedTags.length === 1 
+      ? selectedTags[0] 
+      : `${selectedTags.length} tags`;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -273,11 +277,13 @@ const CompleteOriginalContacts = () => {
     return visibleProspects.filter(prospect => {
       const searchMatch = prospect.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           prospect.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      const tagMatch = !selectedTag || (prospect.tags && prospect.tags.includes(selectedTag));
+      // Si au moins un tag sélectionné, le prospect doit avoir au moins un de ces tags
+      const tagMatch = selectedTags.length === 0 || 
+        (prospect.tags && selectedTags.some(tag => prospect.tags.includes(tag)));
       const userMatch = !selectedUserId || prospect.ownerId === selectedUserId;
       return searchMatch && tagMatch && userMatch;
     });
-  }, [prospects, searchQuery, selectedTag, selectedUserId, activeAdminUser]);
+  }, [prospects, searchQuery, selectedTags, selectedUserId, activeAdminUser]);
 
   useEffect(() => {
     if (!isTagMenuOpen && !isUserMenuOpen) return;
@@ -322,9 +328,12 @@ const CompleteOriginalContacts = () => {
     });
   };
   
-  const handleTagSelect = (tag) => {
-    setSelectedTag(tag);
-    setTagMenuOpen(false);
+  const handleTagToggle = (tag) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   const handleUserSelect = (userId) => {
@@ -333,7 +342,7 @@ const CompleteOriginalContacts = () => {
   };
 
   const resetFilters = () => {
-    setSelectedTag(null);
+    setSelectedTags([]);
     setSelectedUserId(null);
   };
   
@@ -401,24 +410,31 @@ const CompleteOriginalContacts = () => {
               {isTagMenuOpen && (
                 <div className="absolute z-50 mt-1 w-44 origin-top-right rounded-md border border-gray-200 bg-white shadow-soft">
                   <div className="py-1">
-                    <button
-                      type="button"
-                      className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!selectedTag ? 'bg-gray-50 font-medium' : ''}`}
-                      onClick={() => handleTagSelect(null)}
-                    >
-                      Tous les tags
-                    </button>
-                    <div className="border-t border-gray-100 my-1" />
                     {tagOptions.map(tag => (
-                      <button
+                      <label
                         key={tag}
-                        type="button"
-                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedTag === tag ? 'bg-gray-50 font-medium' : ''}`}
-                        onClick={() => handleTagSelect(tag)}
+                        className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                       >
-                        {tag}
-                      </button>
+                        <input
+                          type="checkbox"
+                          checked={selectedTags.includes(tag)}
+                          onChange={() => handleTagToggle(tag)}
+                          className="mr-3 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>{tag}</span>
+                      </label>
                     ))}
+                    {selectedTags.length > 0 && (
+                      <>
+                        <div className="border-t border-gray-200 my-1"></div>
+                        <button
+                          onClick={() => setSelectedTags([])}
+                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                        >
+                          Effacer la sélection
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

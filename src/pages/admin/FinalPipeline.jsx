@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Users, Filter, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,9 @@ const FinalPipeline = () => {
   const [filter, setFilter] = useState('all');
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [userSearchOpen, setUserSearchOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [isTagMenuOpen, setTagMenuOpen] = useState(false);
+  const tagMenuRef = useRef(null);
   
   if (!contextData) {
     return (
@@ -152,6 +155,35 @@ const FinalPipeline = () => {
     }
   }, [activeAdminUser, selectedUserId, allowedUsers]);
 
+  // Fermer le menu des tags quand on clique à l'extérieur
+  useEffect(() => {
+    if (!isTagMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (tagMenuRef.current && !tagMenuRef.current.contains(event.target)) {
+        setTagMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTagMenuOpen]);
+
+  // Liste des tags disponibles
+  const tagOptions = useMemo(() => {
+    const prospectTags = new Set();
+    prospects.forEach(prospect => {
+      (prospect.tags || []).forEach(tag => prospectTags.add(tag));
+    });
+    return Array.from(prospectTags);
+  }, [prospects]);
+
+  const tagFilterLabel = selectedTags.length === 0 
+    ? 'Tags' 
+    : selectedTags.length === 1 
+      ? selectedTags[0] 
+      : `${selectedTags.length} tags`;
+
   const filteredProspects = useMemo(() => {
     // Filtrer d'abord par permissions (comme dans Contacts et Agenda)
     const visibleProspects = prospects.filter(prospect => {
@@ -161,8 +193,17 @@ const FinalPipeline = () => {
       return allowedIds.includes(prospect.ownerId);
     });
 
-    // Filtrer par utilisateur sélectionné (sauf si "all")
+    // Filtrer par tags (si au moins un tag sélectionné)
     let filtered = visibleProspects;
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(prospect => {
+        const prospectTags = prospect.tags || [];
+        // Le prospect doit avoir au moins un des tags sélectionnés
+        return selectedTags.some(tag => prospectTags.includes(tag));
+      });
+    }
+
+    // Filtrer par utilisateur sélectionné (sauf si "all")
     if (selectedUserId && selectedUserId !== 'all') {
       filtered = filtered.filter(prospect => prospect.ownerId === selectedUserId);
     }
@@ -172,7 +213,7 @@ const FinalPipeline = () => {
       return filtered.filter((prospect) => prospect.ownerId === activeAdminUser.id);
     }
     return filtered;
-  }, [prospects, filter, activeAdminUser, selectedUserId]);
+  }, [prospects, filter, activeAdminUser, selectedUserId, selectedTags]);
 
   const { stagesWithCounts, prospectsByStage } = useMemo(() => {
     const stageBuckets = stageDefinitions.reduce((acc, stage) => {
@@ -338,6 +379,14 @@ const FinalPipeline = () => {
     setSelectedProspect(prospectFromList);
   }, [searchParams, prospects, selectedProspect]);
 
+  const handleTagToggle = (tag) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
   const handleProspectClick = (prospect, projectType) => {
     setSelectedProspect(prospect);
     const newParams = new URLSearchParams(searchParams);
@@ -434,6 +483,48 @@ const FinalPipeline = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            <div ref={tagMenuRef} className="relative inline-block text-left">
+              <Button
+                variant="outline"
+                className="flex items-center space-x-2"
+                onClick={() => setTagMenuOpen(prev => !prev)}
+              >
+                <span>{tagFilterLabel}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+              {isTagMenuOpen && (
+                <div className="absolute z-50 mt-1 w-44 origin-top-right rounded-md border border-gray-200 bg-white shadow-lg">
+                  <div className="py-1">
+                    {tagOptions.map(tag => (
+                      <label
+                        key={tag}
+                        className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTags.includes(tag)}
+                          onChange={() => handleTagToggle(tag)}
+                          className="mr-3 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>{tag}</span>
+                      </label>
+                    ))}
+                    {selectedTags.length > 0 && (
+                      <>
+                        <div className="border-t border-gray-200 my-1"></div>
+                        <button
+                          onClick={() => setSelectedTags([])}
+                          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                        >
+                          Effacer la sélection
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-[230px] justify-between">
