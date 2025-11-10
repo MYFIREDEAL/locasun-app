@@ -197,13 +197,21 @@ import React, { useState } from 'react';
                       {unreadNotifications.length > 0 ? (
                         unreadNotifications.map(notif => (
                           <DropdownMenuItem key={notif.id} onClick={() => handleNotificationClick(notif)} className="cursor-pointer">
-                            <div className="flex items-start space-x-3 py-2">
-                              <div className="bg-blue-100 rounded-full p-2">
+                            <div className="flex items-start space-x-3 py-2 w-full">
+                              <div className="bg-blue-100 rounded-full p-2 relative">
                                 <MessageSquare className="h-4 w-4 text-blue-600" />
+                                {notif.count > 1 && (
+                                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                    {notif.count}
+                                  </span>
+                                )}
                               </div>
-                              <div>
+                              <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-800">
-                                  Nouveau message de {notif.prospectName}
+                                  {notif.count > 1 
+                                    ? `${notif.count} nouveaux messages de ${notif.prospectName}`
+                                    : `Nouveau message de ${notif.prospectName}`
+                                  }
                                 </p>
                                 <p className="text-xs text-gray-500">
                                   Projet: {notif.projectName}

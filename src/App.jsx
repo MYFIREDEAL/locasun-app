@@ -655,39 +655,78 @@ function App() {
       });
     }
 
-    // Notification admin quand le client envoie un message
+    // Notification admin quand un client envoie un message (groupée par projet)
     if (message.sender === 'client') {
       const prospect = prospects.find(p => p.id === prospectId);
       if (prospect) {
-        const newNotification = {
-          id: Date.now(),
-          prospectId,
-          projectType,
-          prospectName: prospect.name,
-          projectName: projectsData[projectType]?.title || projectType,
-          read: false,
-          timestamp: new Date().toISOString(),
-        };
         setNotifications(prev => {
-          const updated = [newNotification, ...prev];
+          // Chercher si une notification existe déjà pour ce prospect + projet
+          const existingIndex = prev.findIndex(
+            n => n.prospectId === prospectId && n.projectType === projectType && !n.read
+          );
+
+          let updated;
+          if (existingIndex !== -1) {
+            // Notification existe déjà : incrémenter le compteur
+            updated = [...prev];
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              count: (updated[existingIndex].count || 1) + 1,
+              timestamp: new Date().toISOString(), // Mettre à jour le timestamp
+            };
+          } else {
+            // Créer une nouvelle notification avec count = 1
+            const newNotification = {
+              id: Date.now(),
+              prospectId,
+              projectType,
+              prospectName: prospect.name,
+              projectName: projectsData[projectType]?.title || projectType,
+              count: 1,
+              read: false,
+              timestamp: new Date().toISOString(),
+            };
+            updated = [newNotification, ...prev];
+          }
+          
           localStorage.setItem('evatime_notifications', JSON.stringify(updated));
           return updated;
         });
       }
     }
 
-    // Notification client quand l'admin/pro répond
+    // Notification client quand l'admin/pro répond (groupée par projet)
     if (message.sender === 'admin' || message.sender === 'pro') {
-      const newClientNotification = {
-        id: Date.now(),
-        projectType,
-        projectName: projectsData[projectType]?.title || projectType,
-        message: message.text?.substring(0, 50) || 'Nouveau message',
-        read: false,
-        timestamp: new Date().toISOString(),
-      };
       setClientNotifications(prev => {
-        const updated = [newClientNotification, ...prev];
+        // Chercher si une notification existe déjà pour ce projet
+        const existingIndex = prev.findIndex(
+          n => n.projectType === projectType && !n.read
+        );
+
+        let updated;
+        if (existingIndex !== -1) {
+          // Notification existe déjà : incrémenter le compteur
+          updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            count: (updated[existingIndex].count || 1) + 1,
+            message: message.text?.substring(0, 50) || 'Nouveau message',
+            timestamp: new Date().toISOString(), // Mettre à jour le timestamp
+          };
+        } else {
+          // Créer une nouvelle notification avec count = 1
+          const newClientNotification = {
+            id: Date.now(),
+            projectType,
+            projectName: projectsData[projectType]?.title || projectType,
+            message: message.text?.substring(0, 50) || 'Nouveau message',
+            count: 1,
+            read: false,
+            timestamp: new Date().toISOString(),
+          };
+          updated = [newClientNotification, ...prev];
+        }
+        
         localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
         return updated;
       });

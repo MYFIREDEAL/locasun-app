@@ -178,11 +178,23 @@ const ClientHeader = () => {
                 {unreadClientNotifications.length > 0 ? (
                   unreadClientNotifications.map(notif => (
                     <DropdownMenuItem key={notif.id} onClick={() => handleClientNotificationClick(notif)} className="cursor-pointer flex flex-col items-start py-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-blue-600">{notif.projectName}</span>
+                      <div className="flex items-center justify-between w-full gap-2 mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-blue-600">{notif.projectName}</span>
+                          {notif.count > 1 && (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                              {notif.count}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-gray-400">{new Date(notif.timestamp).toLocaleDateString('fr-FR')}</span>
                       </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{notif.message}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {notif.count > 1 
+                          ? `${notif.count} nouveaux messages`
+                          : notif.message
+                        }
+                      </p>
                     </DropdownMenuItem>
                   ))
                 ) : (
