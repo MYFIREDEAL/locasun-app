@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
+import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 
 // Import des composants originaux avec gestion d'erreur
 let ProspectDetailsAdmin;
@@ -207,7 +208,16 @@ const FallbackAddModal = ({ open, onOpenChange, onAddProspect }) => {
 
 const CompleteOriginalContacts = () => {
   const context = useAppContext();
-  const { prospects = [], addProspect, updateProspect, users = {}, activeAdminUser } = context || {};
+  const { users = {}, activeAdminUser } = context || {};
+  
+  // Utiliser le hook Supabase pour les prospects
+  const {
+    prospects: supabaseProspects,
+    loading: prospectsLoading,
+    addProspect: addSupabaseProspect,
+    updateProspect: updateSupabaseProspect,
+    deleteProspect: deleteSupabaseProspect,
+  } = useSupabaseProspects(activeAdminUser);
   
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [selectedProspect, setSelectedProspect] = useState(null);
@@ -259,15 +269,15 @@ const CompleteOriginalContacts = () => {
 
   const tagOptions = useMemo(() => {
     const prospectTags = new Set();
-    prospects.forEach(prospect => {
+    supabaseProspects.forEach(prospect => {
       (prospect.tags || []).forEach(tag => prospectTags.add(tag));
     });
     const derivedTags = Array.from(prospectTags);
     return derivedTags.length > 0 ? derivedTags : allTags;
-  }, [prospects]);
+  }, [supabaseProspects]);
 
   const filteredProspects = useMemo(() => {
-    const visibleProspects = prospects.filter(prospect => {
+    const visibleProspects = supabaseProspects.filter(prospect => {
       if (!activeAdminUser) return false;
       if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
       const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
@@ -283,7 +293,7 @@ const CompleteOriginalContacts = () => {
       const userMatch = !selectedUserId || prospect.ownerId === selectedUserId;
       return searchMatch && tagMatch && userMatch;
     });
-  }, [prospects, searchQuery, selectedTags, selectedUserId, activeAdminUser]);
+  }, [supabaseProspects, searchQuery, selectedTags, selectedUserId, activeAdminUser]);
 
   useEffect(() => {
     if (!isTagMenuOpen && !isUserMenuOpen) return;
@@ -354,19 +364,36 @@ const CompleteOriginalContacts = () => {
     navigate(`/admin/pipeline?project=${projectTag}&prospect=${contact.id}`);
   };
 
-  const handleUpdateProspect = (updatedData) => {
-    if (updateProspect) {
-      updateProspect(updatedData);
+  const handleUpdateProspect = async (updatedData) => {
+    try {
+      await updateSupabaseProspect(updatedData);
       setSelectedProspect(updatedData);
+      toast({
+        title: "✅ Contact mis à jour !",
+        description: "Les modifications ont été sauvegardées.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le contact.",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleAddProspect = (newProspectData) => {
-    if (addProspect) {
-      addProspect({ 
+  const handleAddProspect = async (newProspectData) => {
+    try {
+      await addSupabaseProspect({ 
         ...newProspectData, 
         status: 'Intéressé', 
-        ownerId: activeAdminUser?.id || 'user-1'
+        ownerId: activeAdminUser?.id
+      });
+      setAddModalOpen(false);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter le contact.",
+        variant: "destructive"
       });
     }
   };
@@ -378,6 +405,15 @@ const CompleteOriginalContacts = () => {
 
   // Utiliser le composant original si disponible, sinon le fallback
   const AddModal = AddProspectModal || FallbackAddModal;
+
+  // Afficher un loader pendant le chargement
+  if (prospectsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

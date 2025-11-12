@@ -19,6 +19,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAppContext } from '@/App';
 import { allProjectsData } from '@/data/projects';
 import { cn } from '@/lib/utils';
+import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
+import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+import { useSupabaseUser } from '@/hooks/useSupabaseUser';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -808,8 +812,31 @@ const AgendaSidebar = ({ onAddActivity, currentDate, selectedUserId, onSelectAct
   </aside>
 )};
 
-const AddActivityModal = ({ open, onOpenChange, initialData, defaultAssignedUserId }) => {
-    const { prospects, users, addAppointment, addCall, addTask, updateAppointment, updateCall, updateTask, getProjectSteps } = useAppContext();
+const AddActivityModal = ({ 
+  open, 
+  onOpenChange, 
+  initialData, 
+  defaultAssignedUserId,
+  addAppointment: addAppointmentProp,
+  addCall: addCallProp,
+  addTask: addTaskProp,
+  updateAppointment: updateAppointmentProp,
+  updateCall: updateCallProp,
+  updateTask: updateTaskProp,
+  prospects: prospectsProp, // 🔥 Recevoir les prospects en props
+}) => {
+    const { users, getProjectSteps } = useAppContext();
+    
+    // Utiliser les prospects Supabase passés en props
+    const prospects = prospectsProp || [];
+    
+    // Utiliser les fonctions passées en props (Supabase) ou fallback contexte
+    const addAppointment = addAppointmentProp;
+    const addCall = addCallProp;
+    const addTask = addTaskProp;
+    const updateAppointment = updateAppointmentProp;
+    const updateCall = updateCallProp;
+    const updateTask = updateTaskProp;
     const [selectedContact, setSelectedContact] = useState(null);
     const [selectedProject, setSelectedProject] = useState('');
     const [selectedStep, setSelectedStep] = useState('');
@@ -1144,7 +1171,45 @@ const AddActivityModal = ({ open, onOpenChange, initialData, defaultAssignedUser
 }
 
 const Agenda = () => {
-  const { appointments, users, calls, tasks, activeAdminUser, updateAppointment, addAppointment } = useAppContext();
+  const { users, activeAdminUser } = useAppContext();
+  
+  // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
+  const { supabaseUserId, loading: userIdLoading } = useSupabaseUser();
+  
+  // 🔥 Charger TOUS les utilisateurs Supabase pour le dropdown
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  
+  // 🚀 MIGRATION SUPABASE : Charger les données depuis Supabase
+  const {
+    appointments: supabaseAppointments,
+    calls: supabaseCalls,
+    tasks: supabaseTasks,
+    loading: agendaLoading,
+    addAppointment: addSupabaseAppointment,
+    updateAppointment: updateSupabaseAppointment,
+    deleteAppointment: deleteSupabaseAppointment,
+    addCall: addSupabaseCall,
+    updateCall: updateSupabaseCall,
+    deleteCall: deleteSupabaseCall,
+    addTask: addSupabaseTask,
+    updateTask: updateSupabaseTask,
+    deleteTask: deleteSupabaseTask,
+  } = useSupabaseAgenda(activeAdminUser);
+
+  // 🔥 Charger les prospects depuis Supabase pour l'autocomplétion
+  const {
+    prospects: supabaseProspects,
+    loading: prospectsLoading,
+  } = useSupabaseProspects(activeAdminUser);
+
+  // Utiliser les données Supabase
+  const appointments = supabaseAppointments;
+  const calls = supabaseCalls;
+  const tasks = supabaseTasks;
+  const prospects = supabaseProspects; // 🔥 Utiliser les prospects Supabase
+  const addAppointment = addSupabaseAppointment;
+  const updateAppointment = updateSupabaseAppointment;
+  
   const today = useMemo(() => new Date(), []);
   const [currentDate, setCurrentDate] = useState(today);
   const [isGoogleCalendarConnected, setIsGoogleCalendarConnected] = useState(false);
@@ -1152,9 +1217,17 @@ const Agenda = () => {
   const [selectedOtherActivity, setSelectedOtherActivity] = useState({ type: null, data: null });
   const [isAddActivityModalOpen, setAddActivityModalOpen] = useState(false);
   const [activityModalData, setActivityModalData] = useState(null);
-  const [selectedUserId, setSelectedUserId] = useState(activeAdminUser?.id || 'user-1');
+  // 🔧 Utiliser supabaseUserId au lieu de activeAdminUser.id (qui est "user-1")
+  const [selectedUserId, setSelectedUserId] = useState(supabaseUserId || activeAdminUser?.id || 'user-1');
   const [userSearchOpen, setUserSearchOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // UI state: highlight hovered/selected hour row across the grid
+  const [hoveredHourIndex, setHoveredHourIndex] = useState(null); // 0 -> 08:00, 1 -> 09:00, ...
+  const [selectedHourIndex, setSelectedHourIndex] = useState(null);
+  
+  // Drag and drop state
+  const [dragOverSlot, setDragOverSlot] = useState(null); // {day, hour} pour highlighter la zone de drop
 
   const normalizedAppointments = useMemo(() => {
     return appointments
@@ -1172,24 +1245,30 @@ const Agenda = () => {
       .filter(Boolean);
   }, [appointments]);
 
+  // 🔥 Utiliser les utilisateurs Supabase pour le dropdown
   const allowedUsers = useMemo(() => {
-    if (!activeAdminUser) return [];
-    if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
-      return Object.values(users);
-    }
-    const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-    return Object.values(users).filter(u => allowedIds.includes(u.id));
-  }, [activeAdminUser, users]);
+    if (!activeAdminUser || supabaseUsers.length === 0) return [];
+    // Pour l'instant, on affiche tous les utilisateurs Supabase
+    // TODO: Implémenter les droits d'accès plus tard
+    return supabaseUsers;
+  }, [activeAdminUser, supabaseUsers]);
 
-  const userOptions = useMemo(() => allowedUsers.map(user => ({ value: user.id, label: user.name })), [allowedUsers]);
+  const userOptions = useMemo(() => {
+    console.log('👥 userOptions générés:', allowedUsers.length, 'utilisateurs');
+    return allowedUsers.map(user => ({ value: user.id, label: user.name }));
+  }, [allowedUsers]);
 
+  // 🔧 Mettre à jour selectedUserId quand supabaseUserId est chargé
   useEffect(() => {
-    if (activeAdminUser) {
+    if (supabaseUserId) {
+      console.log('🔧 Mise à jour selectedUserId avec supabaseUserId:', supabaseUserId);
+      setSelectedUserId(supabaseUserId);
+    } else if (activeAdminUser) {
       if (!allowedUsers.some(u => u.id === selectedUserId)) {
         setSelectedUserId(activeAdminUser.id);
       }
     }
-  }, [activeAdminUser, selectedUserId, allowedUsers]);
+  }, [supabaseUserId, activeAdminUser, selectedUserId, allowedUsers]);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
@@ -1197,13 +1276,6 @@ const Agenda = () => {
   const prevWeek = () => setCurrentDate(sub(currentDate, { weeks: 1 }));
   const nextWeek = () => setCurrentDate(add(currentDate, { weeks: 1 }));
   const goToToday = () => setCurrentDate(today);
-
-  // UI state: highlight hovered/selected hour row across the grid
-  const [hoveredHourIndex, setHoveredHourIndex] = useState(null); // 0 -> 08:00, 1 -> 09:00, ...
-  const [selectedHourIndex, setSelectedHourIndex] = useState(null);
-  
-  // Drag and drop state
-  const [dragOverSlot, setDragOverSlot] = useState(null); // {day, hour} pour highlighter la zone de drop
 
   const handleConnectGoogleCalendar = () => {
     toast({ title: "Connexion à Google Agenda 🚀", description: "Simulation: Authentification réussie, votre agenda est synchronisé !" });
@@ -1343,11 +1415,32 @@ const Agenda = () => {
       ? null 
       : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
       
+    console.log('🔍 Filtrage appointments:', {
+      total: normalizedAppointments.length,
+      selectedUserId,
+      activeAdminUserId: activeAdminUser?.id,
+      premier_apt: normalizedAppointments[0]
+    });
+    
     return normalizedAppointments.filter(app => {
       const isVisible = allowedIds ? allowedIds.includes(app.assignedUserId) : true;
-      return isVisible && app.assignedUserId === selectedUserId;
+      const match = app.assignedUserId === selectedUserId;
+      console.log(`🔍 Appointment ${app.id}: assignedUserId=${app.assignedUserId}, selectedUserId=${selectedUserId}, match=${match}`);
+      return isVisible && match;
     });
   }, [normalizedAppointments, selectedUserId, activeAdminUser]);
+
+  // Afficher le loader si les données chargent
+  if (agendaLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Chargement de l'agenda...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)]">
@@ -1377,7 +1470,7 @@ const Agenda = () => {
                 <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-[180px] justify-between">
                         <Users className="mr-2 h-4 w-4" />
-                        {selectedUserId ? users[selectedUserId]?.name : "Utilisateur"}
+                        {selectedUserId ? (supabaseUsers.find(u => u.id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
@@ -1577,7 +1670,19 @@ const Agenda = () => {
 
       <EventDetailsPopup event={selectedEvent} onClose={() => setSelectedEvent(null)} onReport={handleReport} onEdit={handleEdit} />
       <OtherActivityDetailsPopup activity={selectedOtherActivity.data} type={selectedOtherActivity.type} onClose={() => setSelectedOtherActivity({ type: null, data: null })} onEdit={handleEdit} />
-      <AddActivityModal open={isAddActivityModalOpen} onOpenChange={handleAddActivityModalClose} initialData={activityModalData} defaultAssignedUserId={selectedUserId} />
+      <AddActivityModal 
+        open={isAddActivityModalOpen} 
+        onOpenChange={handleAddActivityModalClose} 
+        initialData={activityModalData} 
+        defaultAssignedUserId={selectedUserId}
+        addAppointment={addAppointment}
+        addCall={addSupabaseCall}
+        addTask={addSupabaseTask}
+        updateAppointment={updateAppointment}
+        updateCall={updateSupabaseCall}
+        updateTask={updateSupabaseTask}
+        prospects={prospects}
+      />
     </div>
   );
 };

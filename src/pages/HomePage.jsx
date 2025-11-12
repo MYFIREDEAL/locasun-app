@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
+import { supabase } from '@/lib/supabase';
 
 const HowItWorksCard = ({ icon, title, description, badgeText, delay }) => (
   <motion.div
@@ -32,45 +33,95 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
-    if (loginType === 'pro') {
-      if (email === 'jack.luc@icloud.com' && password === 'password') {
+    try {
+      // Connexion via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        toast({
+          title: "Erreur de connexion",
+          description: "Email ou mot de passe incorrect.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Vérifier si c'est un user PRO ou un CLIENT
+      if (loginType === 'pro') {
+        // Récupérer les données du user PRO depuis public.users
+        console.log('🔍 Recherche user PRO avec user_id:', authData.user.id);
+        
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .single();
+
+        console.log('📊 Résultat query users:', { userData, userError });
+
+        if (userError || !userData) {
+          console.error('❌ Erreur détaillée:', userError);
+          toast({
+            title: "Erreur",
+            description: `Compte professionnel introuvable. ${userError?.message || ''}`,
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          return;
+        }
+
+        // Connexion PRO réussie
         toast({
           title: "Connexion réussie !",
           description: "Redirection vers l'espace pro...",
           className: "bg-green-500 text-white",
         });
-        const proUser = { id: 'user-1', name: 'Jack Luc', email: 'jack.luc@icloud.com', role: 'Admin' };
-        setCurrentUser(proUser);
-        onOpenChange(false); // Fermer la modal
-        setTimeout(() => navigate('/admin'), 500); // Réduire le délai
+        
+        setCurrentUser(userData);
+        onOpenChange(false);
+        setTimeout(() => navigate('/admin'), 500);
       } else {
+        // Récupérer les données du CLIENT depuis public.prospects
+        const { data: prospectData, error: prospectError } = await supabase
+          .from('prospects')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .single();
+
+        if (prospectError || !prospectData) {
+          toast({
+            title: "Erreur",
+            description: "Compte client introuvable.",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          return;
+        }
+
+        // Connexion CLIENT réussie
         toast({
-          title: "Erreur de connexion",
-          description: "Email ou mot de passe incorrect.",
-          variant: "destructive",
-        });
-      }
-    } else { // Client login
-      const clientUser = prospects.find(p => p.email === email);
-      if (clientUser && password === 'password') { // Using a generic password for mock login
-         toast({
           title: "Connexion réussie !",
           description: "Redirection vers votre espace client...",
           className: "bg-blue-500 text-white",
         });
-        setCurrentUser(clientUser);
-        onOpenChange(false); // Fermer la modal
-        setTimeout(() => navigate('/dashboard'), 500); // Réduire le délai
-      } else {
-         toast({
-          title: "Erreur de connexion",
-          description: "Email ou mot de passe incorrect.",
-          variant: "destructive",
-        });
+
+        setCurrentUser(prospectData);
+        onOpenChange(false);
+        setTimeout(() => navigate('/dashboard'), 500);
       }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la connexion.",
+        variant: "destructive",
+      });
     }
   };
 

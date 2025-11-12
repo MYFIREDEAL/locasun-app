@@ -16,6 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AddActivityModal } from '@/pages/admin/Agenda';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useSupabaseUser } from '@/hooks/useSupabaseUser';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -496,6 +498,8 @@ const ProspectDetailsAdmin = ({
   onUpdate
 }) => {
   const { getProjectSteps, completeStepAndProceed, updateProjectSteps, users, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo } = useAppContext();
+  const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project');
   const notificationId = searchParams.get('notificationId');
@@ -517,10 +521,11 @@ const ProspectDetailsAdmin = ({
   const [projectAmountInput, setProjectAmountInput] = useState('');
   const [isEditingAmount, setIsEditingAmount] = useState(false);
 
+  // 🔥 Utiliser les utilisateurs Supabase pour le dropdown
   const userOptions = useMemo(() => [
     { value: 'unassigned', label: 'Non assigné' },
-    ...Object.values(users).map(user => ({ value: user.id, label: user.name }))
-  ], [users]);
+    ...supabaseUsers.map(user => ({ value: user.id, label: user.name }))
+  ], [supabaseUsers]);
 
   const projectSteps = activeProjectTag ? getProjectSteps(prospect.id, activeProjectTag) : [];
   const currentStepIndex = projectSteps.findIndex(step => step.status === STATUS_CURRENT);
@@ -712,12 +717,28 @@ const ProspectDetailsAdmin = ({
     }
   };
   const handleSave = () => {
-    onUpdate(editableProspect);
-    setIsEditing(false);
-    toast({
-      title: "✅ Prospect mis à jour",
-      description: "Les informations du prospect ont été enregistrées."
+    console.log('🔵 CLICK BOUTON SAUVEGARDER !');
+    console.log('💾 Sauvegarde prospect:', {
+      id: editableProspect.id,
+      name: editableProspect.name,
+      ownerId: editableProspect.ownerId
     });
+    
+    try {
+      onUpdate(editableProspect);
+      setIsEditing(false);
+      toast({
+        title: "✅ Prospect mis à jour",
+        description: "Les informations du prospect ont été enregistrées."
+      });
+    } catch (err) {
+      console.error('❌ Erreur sauvegarde:', err);
+      toast({
+        title: "❌ Erreur",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
   };
   const handleInputChange = (fieldId, value) => {
     setEditableProspect(prev => ({
@@ -727,10 +748,32 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleOwnerChange = (ownerId) => {
-    setEditableProspect(prev => ({
-      ...prev,
-      ownerId: ownerId === 'unassigned' ? null : ownerId,
-    }));
+    console.log('👤 handleOwnerChange appelé avec:', ownerId);
+    
+    // 🔧 Convertir l'ID local en UUID Supabase si c'est l'utilisateur connecté
+    let finalOwnerId = ownerId;
+    
+    if (ownerId === 'unassigned') {
+      finalOwnerId = null;
+      console.log('→ Non assigné (null)');
+    } else if (ownerId === 'user-1' && supabaseUserId) {
+      // Si on essaie d'assigner à "user-1" (ID local), utiliser l'UUID Supabase réel
+      finalOwnerId = supabaseUserId;
+      console.log('🔧 Conversion user-1 → UUID Supabase:', supabaseUserId);
+    } else {
+      console.log('→ UUID direct:', finalOwnerId);
+    }
+    
+    console.log('✅ editableProspect.ownerId mis à jour:', finalOwnerId);
+    
+    setEditableProspect(prev => {
+      const updated = {
+        ...prev,
+        ownerId: finalOwnerId,
+      };
+      console.log('📝 Nouvel editableProspect:', updated);
+      return updated;
+    });
   };
 
   const activeProjectData = projectsData[activeProjectTag];
@@ -847,7 +890,9 @@ const ProspectDetailsAdmin = ({
                           emptyText="Aucun utilisateur trouvé."
                         />
                       ) : (
-                        <p className="text-gray-700">{users[prospect.ownerId]?.name || 'Non assigné'}</p>
+                        <p className="text-gray-700">
+                          {supabaseUsers.find(u => u.id === prospect.ownerId)?.name || 'Non assigné'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1052,9 +1097,10 @@ const ProspectActivities = ({ prospectId }) => {
       <div className="bg-white rounded-2xl p-4 shadow mt-4">
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-lg font-semibold text-gray-800">Activité en cours</h3>
-          <Button size="icon" className="rounded-full" onClick={() => setIsAddActivityModalOpen(true)}>
+          {/* 🚧 Bouton temporairement désactivé pour éviter le crash */}
+          {/* <Button size="icon" className="rounded-full" onClick={() => setIsAddActivityModalOpen(true)}>
             <Plus className="h-5 w-5"/>
-          </Button>
+          </Button> */}
         </div>
         
         {prospectActivities.length === 0 ? (
@@ -1201,13 +1247,13 @@ const ProspectActivities = ({ prospectId }) => {
         onEdit={() => {}} // Pas d'édition depuis le prospect pour l'instant
       />
       
-      {/* Modal d'ajout d'activité - réutilisation exacte de l'Agenda */}
-      <AddActivityModal 
+      {/* 🚧 Modal temporairement désactivé pour éviter le crash */}
+      {/* <AddActivityModal 
         open={isAddActivityModalOpen}
         onOpenChange={setIsAddActivityModalOpen}
         initialData={null}
         defaultAssignedUserId="user-1"
-      />
+      /> */}
 
     </>
   );

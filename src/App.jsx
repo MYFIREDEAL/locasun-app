@@ -16,6 +16,7 @@ import OffersPage from '@/pages/client/OffersPage';
 import HomePage from '@/pages/HomePage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import ProducerLandingPage from '@/pages/ProducerLandingPage';
+import TestSupabasePage from '@/pages/TestSupabasePage';
 import { allProjectsData } from '@/data/projects';
 import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
@@ -1114,6 +1115,7 @@ function App() {
         <Route path="/inscription" element={<RegistrationPage />} />
         <Route path="/inscription/:slugUser" element={<RegistrationPage />} />
         <Route path="/producteurs" element={<ProducerLandingPage />} />
+        <Route path="/test-supabase" element={<TestSupabasePage />} />
         <Route path="/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />

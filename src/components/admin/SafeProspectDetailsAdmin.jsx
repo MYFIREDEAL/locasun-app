@@ -4,6 +4,7 @@ import { ArrowLeft, Phone, Mail, Edit, Save, X, User, Building } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 
@@ -15,34 +16,116 @@ const tagColors = {
   'ProducteurPro': 'bg-purple-100 text-purple-800',
 };
 
+const EditModal = ({ open, onOpenChange, prospect, users, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: prospect.name || '',
+    email: prospect.email || '',
+    phone: prospect.phone || '',
+    ownerId: prospect.ownerId || '',
+    status: prospect.status || 'Intéressé',
+    notes: prospect.notes || '',
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await onSave({ ...formData, id: prospect.id });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Modifier le contact</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nom *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="owner">Propriétaire</Label>
+              <select
+                id="owner"
+                value={formData.ownerId}
+                onChange={(e) => setFormData(prev => ({ ...prev, ownerId: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.values(users).map(user => (
+                  <option key={user.id} value={user.id}>{user.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Statut</Label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Intéressé">Intéressé</option>
+                <option value="Contacté">Contacté</option>
+                <option value="Qualifié">Qualifié</option>
+                <option value="Négociation">Négociation</option>
+                <option value="Terminé">Terminé</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Annuler
+            </Button>
+            <Button type="submit">Sauvegarder</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
   const { users = {}, projectsData = {} } = useAppContext();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ ...prospect });
-
-  useEffect(() => {
-    setEditData({ ...prospect });
-  }, [prospect]);
-
-  const handleSave = () => {
-    if (onUpdate) {
-      onUpdate(editData);
-      toast({
-        title: "✅ Contact mis à jour !",
-        description: "Les modifications ont été sauvegardées.",
-      });
-    }
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditData({ ...prospect });
-    setIsEditing(false);
-  };
-
-  const handleInputChange = (field, value) => {
-    setEditData(prev => ({ ...prev, [field]: value }));
-  };
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const getOwnerName = (ownerId) => {
     const owner = users[ownerId];
@@ -78,25 +161,10 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
           </h1>
         </div>
         
-        <div className="flex items-center space-x-2">
-          {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)} className="flex items-center space-x-2">
-              <Edit className="w-4 h-4" />
-              <span>Modifier</span>
-            </Button>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={handleCancel} className="flex items-center space-x-2">
-                <X className="w-4 h-4" />
-                <span>Annuler</span>
-              </Button>
-              <Button onClick={handleSave} className="flex items-center space-x-2">
-                <Save className="w-4 h-4" />
-                <span>Sauvegarder</span>
-              </Button>
-            </div>
-          )}
-        </div>
+        <Button onClick={() => setIsEditModalOpen(true)} className="flex items-center space-x-2">
+          <Edit className="w-4 h-4" />
+          <span>Modifier</span>
+        </Button>
       </div>
 
       {/* Informations principales */}
@@ -106,19 +174,9 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <User className="w-6 h-6 text-blue-600" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {isEditing ? (
-                  <Input
-                    value={editData.name || ''}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="text-xl font-semibold"
-                  />
-                ) : (
-                  prospect.name
-                )}
-              </h2>
-              <p className="text-gray-500">Contact</p>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-900">{prospect.name}</h2>
+              <p className="text-gray-500 text-sm">Contact</p>
             </div>
           </div>
 
@@ -129,15 +187,7 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
                 <Mail className="w-4 h-4" />
                 <span>Email</span>
               </Label>
-              {isEditing ? (
-                <Input
-                  type="email"
-                  value={editData.email || ''}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                />
-              ) : (
-                <p className="text-gray-900">{prospect.email}</p>
-              )}
+              <p className="text-gray-900">{prospect.email}</p>
             </div>
 
             {/* Téléphone */}
@@ -146,14 +196,7 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
                 <Phone className="w-4 h-4" />
                 <span>Téléphone</span>
               </Label>
-              {isEditing ? (
-                <Input
-                  value={editData.phone || ''}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                />
-              ) : (
-                <p className="text-gray-900">{prospect.phone}</p>
-              )}
+              <p className="text-gray-900">{prospect.phone}</p>
             </div>
 
             {/* Propriétaire */}
@@ -162,41 +205,15 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
                 <Building className="w-4 h-4" />
                 <span>Propriétaire</span>
               </Label>
-              {isEditing ? (
-                <select
-                  value={editData.ownerId || ''}
-                  onChange={(e) => handleInputChange('ownerId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {Object.values(users).map(user => (
-                    <option key={user.id} value={user.id}>{user.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <p className="text-gray-900">{getOwnerName(prospect.ownerId)}</p>
-              )}
+              <p className="text-gray-900">{getOwnerName(prospect.ownerId)}</p>
             </div>
 
             {/* Statut */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">Statut</Label>
-              {isEditing ? (
-                <select
-                  value={editData.status || 'Intéressé'}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Intéressé">Intéressé</option>
-                  <option value="Contacté">Contacté</option>
-                  <option value="Qualifié">Qualifié</option>
-                  <option value="Négociation">Négociation</option>
-                  <option value="Terminé">Terminé</option>
-                </select>
-              ) : (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {prospect.status || 'Intéressé'}
-                </span>
-              )}
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {prospect.status || 'Intéressé'}
+              </span>
             </div>
           </div>
         </div>
@@ -243,20 +260,19 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
       {/* Notes (si disponibles) */}
       <div className="bg-white rounded-lg shadow-soft p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
-        {isEditing ? (
-          <textarea
-            value={editData.notes || ''}
-            onChange={(e) => handleInputChange('notes', e.target.value)}
-            placeholder="Ajouter des notes..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={4}
-          />
-        ) : (
-          <p className="text-gray-600">
-            {prospect.notes || 'Aucune note pour ce contact.'}
-          </p>
-        )}
+        <p className="text-gray-600 whitespace-pre-wrap">
+          {prospect.notes || 'Aucune note pour ce contact.'}
+        </p>
       </div>
+
+      {/* Modal de modification */}
+      <EditModal 
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        prospect={prospect}
+        users={users}
+        onSave={onUpdate}
+      />
     </motion.div>
   );
 };

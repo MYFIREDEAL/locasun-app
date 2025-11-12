@@ -11,6 +11,8 @@ import { toast } from '@/components/ui/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -82,15 +84,26 @@ const FinalPipeline = () => {
   }
 
   const { 
-    prospects = [], 
-    addProspect, 
-    updateProspect, 
     projectsData = {}, 
     activeAdminUser,
     users = {},
     globalPipelineSteps = [],
     getProjectSteps,
   } = contextData;
+
+  // 🚀 MIGRATION SUPABASE : Charger les prospects depuis Supabase
+  const {
+    prospects: supabaseProspects,
+    loading: prospectsLoading,
+    addProspect: addSupabaseProspect,
+    updateProspect: updateSupabaseProspect,
+    deleteProspect: deleteSupabaseProspect,
+  } = useSupabaseProspects(activeAdminUser);
+
+  // Utiliser les prospects Supabase
+  const prospects = supabaseProspects;
+  const addProspect = addSupabaseProspect;
+  const updateProspect = updateSupabaseProspect;
 
   const stageDefinitions = useMemo(() => {
     if (Array.isArray(globalPipelineSteps) && globalPipelineSteps.length > 0) {
@@ -465,6 +478,18 @@ const FinalPipeline = () => {
           onUpdate={handleUpdateProspect}
         />
       </motion.div>
+    );
+  }
+
+  // Afficher le chargement si les prospects sont en cours de chargement
+  if (prospectsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des prospects depuis Supabase...</p>
+        </div>
+      </div>
     );
   }
 
