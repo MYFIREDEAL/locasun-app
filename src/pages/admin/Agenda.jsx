@@ -184,7 +184,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Note</span>
-              <span className="font-medium text-gray-800 text-right">{event.description || 'Aucune'}</span>
+              <span className="font-medium text-gray-800 text-right">{event.notes || 'Aucune'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Interlocuteur</span>
