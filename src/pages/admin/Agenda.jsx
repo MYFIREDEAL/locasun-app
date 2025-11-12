@@ -701,10 +701,23 @@ const AgendaSidebar = ({
           {/* Rendez-vous en retard */}
           {overdueActivities.appointments.map(appointment => {
             const contact = prospects.find(p => p.id === appointment.contactId);
-            const appointmentDate = new Date(appointment.start);
+            const appointmentDate = appointment.start instanceof Date ? appointment.start : new Date(appointment.start);
+            
+            // Vérifier que la date est valide
+            if (!appointmentDate || isNaN(appointmentDate.getTime())) {
+              console.warn('[AgendaSidebar] RDV ignoré - date invalide:', appointment);
+              return null;
+            }
+            
+            // S'assurer que start et end sont des objets Date pour le modal
+            const appointmentWithDates = {
+              ...appointment,
+              start: appointmentDate,
+              end: appointment.end instanceof Date ? appointment.end : new Date(appointment.end)
+            };
             
             return (
-              <div key={`overdue-appointment-${appointment.id}`} onClick={() => onAppointmentClick && onAppointmentClick(appointment)} className="bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-red-500">
+              <div key={`overdue-appointment-${appointment.id}`} onClick={() => onAppointmentClick && onAppointmentClick(appointmentWithDates)} className="bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-red-500">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1 min-w-0">
                     <CalendarIcon className="mr-2 h-4 w-4 text-red-500 flex-shrink-0" />
@@ -717,9 +730,9 @@ const AgendaSidebar = ({
                           avec {contact.name}
                         </p>
                       )}
-                      {appointment.description && (
+                      {appointment.notes && (
                         <p className="text-xs text-gray-500 truncate">
-                          {appointment.description}
+                          {appointment.notes}
                         </p>
                       )}
                     </div>
@@ -880,7 +893,7 @@ const AddActivityModal = ({
         if (contact) setSelectedContact(contact);
         setSelectedProject(initialData.projectId || '');
         setSelectedStep(initialData.step || '');
-        setDetails(initialData.description || initialData.details || initialData.text || '');
+        setDetails(initialData.notes || initialData.description || initialData.details || initialData.text || '');
         setShare(initialData.share || false);
         
         const initialDate = initialData.start || initialData.date;
