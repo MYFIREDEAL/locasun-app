@@ -42,8 +42,7 @@ const SidebarToggleIcon = ({ className }) => (
 
 const hours = Array.from({ length: 15 }, (_, i) => `${8 + i}:00`);
 
-const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
-  const { prospects, users, updateAppointment, deleteAppointment } = useAppContext();
+const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supabaseUsers, updateAppointment, deleteAppointment }) => {
   const [status, setStatus] = useState(event?.status || 'pending');
 
   useEffect(() => {
@@ -55,7 +54,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
   if (!event) return null;
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = users[event.assignedUserId] || (contact ? users[contact.ownerId] : null);
+  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -232,8 +231,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
   );
 };
 
-const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
-  const { prospects, users, updateCall, deleteCall, updateTask, deleteTask } = useAppContext();
+const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects, supabaseUsers, updateCall, deleteCall, updateTask, deleteTask }) => {
   const [status, setStatus] = useState(activity?.status || 'pending');
   const [done, setDone] = useState(activity?.done || false);
 
@@ -247,7 +245,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
   if (!activity) return null;
 
   const contact = prospects.find(p => p.id === activity.contactId);
-  const assignedUser = users[activity.assignedUserId] || (contact ? users[contact.ownerId] : null);
+  const assignedUser = supabaseUsers.find(u => u.id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -1668,8 +1666,28 @@ const Agenda = () => {
         </motion.div>
       )}
 
-      <EventDetailsPopup event={selectedEvent} onClose={() => setSelectedEvent(null)} onReport={handleReport} onEdit={handleEdit} />
-      <OtherActivityDetailsPopup activity={selectedOtherActivity.data} type={selectedOtherActivity.type} onClose={() => setSelectedOtherActivity({ type: null, data: null })} onEdit={handleEdit} />
+      <EventDetailsPopup 
+        event={selectedEvent} 
+        onClose={() => setSelectedEvent(null)} 
+        onReport={handleReport} 
+        onEdit={handleEdit}
+        prospects={prospects}
+        supabaseUsers={supabaseUsers}
+        updateAppointment={updateAppointment}
+        deleteAppointment={deleteSupabaseAppointment}
+      />
+      <OtherActivityDetailsPopup 
+        activity={selectedOtherActivity.data} 
+        type={selectedOtherActivity.type} 
+        onClose={() => setSelectedOtherActivity({ type: null, data: null })} 
+        onEdit={handleEdit}
+        prospects={prospects}
+        supabaseUsers={supabaseUsers}
+        updateCall={updateSupabaseCall}
+        deleteCall={deleteSupabaseCall}
+        updateTask={updateSupabaseTask}
+        deleteTask={deleteSupabaseTask}
+      />
       <AddActivityModal 
         open={isAddActivityModalOpen} 
         onOpenChange={handleAddActivityModalClose} 
