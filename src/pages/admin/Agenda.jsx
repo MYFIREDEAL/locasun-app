@@ -851,7 +851,10 @@ const AddActivityModal = ({
     const [assignedUserId, setAssignedUserId] = useState(defaultAssignedUserId || 'user-1');
     const [isEditing, setIsEditing] = useState(false);
 
-    const userOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
+    const userOptions = useMemo(() => {
+      if (!users || !Array.isArray(users)) return [];
+      return users.map(user => ({ value: user.id, label: user.name }));
+    }, [users]);
     
     useEffect(() => {
       if (initialData) {
