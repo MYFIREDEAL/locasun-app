@@ -2,6 +2,7 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+// Test deployment - 13/11/2025
 export default defineConfig({
   base: '/',
   plugins: [react()],
