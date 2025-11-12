@@ -58,8 +58,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    const updatedEvent = { ...event, status: newStatus };
-    updateAppointment(updatedEvent);
+    updateAppointment(event.id, { status: newStatus });
     
     setTimeout(() => {
       onClose();
@@ -961,28 +960,26 @@ const AddActivityModal = ({
         } else { // RDV
             const endDateTime = add(activityDateTime, { hours: 1 });
             const appointmentData = {
-                id: isEditing ? initialData.id : Date.now(),
-                summary: `${activityType === 'physical' ? '📍' : '🎥'} RDV avec ${selectedContact.name}`,
-                description: details,
-                start: activityDateTime,
-                end: endDateTime,
-                attendees: [selectedContact.email],
-                status: isEditing ? initialData.status : 'pending',
-                color: activityType === 'physical' ? 'bg-blue-100 border-blue-500 text-blue-800' : 'bg-purple-100 border-purple-500 text-purple-800',
-                share: share,
+                title: `${activityType === 'physical' ? '📍' : '🎥'} RDV avec ${selectedContact.name}`,
+                startTime: activityDateTime.toISOString(),
+                endTime: endDateTime.toISOString(),
                 contactId: selectedContact.id,
                 projectId: selectedProject,
                 step: selectedStep,
                 assignedUserId: assignedUserId,
                 type: activityType,
+                status: isEditing ? initialData.status : 'pending',
+                share: share,
+                notes: details,
+                location: activityType === 'physical' ? 'À définir' : 'Visio',
             };
             
             if (isEditing) {
-                updateAppointment(appointmentData);
+                updateAppointment(initialData.id, appointmentData);
                 toast({ title: '✅ RDV Modifié !', description: `Le RDV a été mis à jour.` });
             } else {
                 addAppointment(appointmentData);
-                toast({ title: '✅ RDV Ajouté !', description: `${appointmentData.summary} le ${format(activityDateTime, 'dd/MM/yy à HH:mm')}.` });
+                toast({ title: '✅ RDV Ajouté !', description: `RDV le ${format(activityDateTime, 'dd/MM/yy à HH:mm')}.` });
             }
 
             if (share) {
@@ -1379,18 +1376,24 @@ const Agenda = () => {
       const original = normalizedAppointments.find(app => app.id === appointmentId);
       if (original) {
         // 1) Marquer l'original comme reporté (il reste à sa place)
-        const reportedOriginal = { ...original, status: 'reporte' };
-        updateAppointment(reportedOriginal);
+        updateAppointment(original.id, { status: 'reporte' });
 
         // 2) Créer un nouveau RDV à la nouvelle date en conservant les infos
-        const newAppointment = {
-          ...original,
-          id: Date.now(),
-          start: newStart,
-          end: newEnd,
+        const newAppointmentData = {
+          title: original.title,
+          startTime: newStart.toISOString(),
+          endTime: newEnd.toISOString(),
+          contactId: original.contactId,
+          assignedUserId: original.assignedUserId,
+          projectId: original.projectId,
+          step: original.step,
+          type: original.type,
           status: 'pending',
+          share: original.share,
+          notes: original.notes,
+          location: original.location,
         };
-        addAppointment(newAppointment);
+        addAppointment(newAppointmentData);
 
         toast({
           title: "📅 RDV replanifié",
