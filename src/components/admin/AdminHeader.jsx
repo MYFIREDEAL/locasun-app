@@ -19,14 +19,12 @@ import React, { useState } from 'react';
     import { formatDistanceToNow } from 'date-fns';
     import { fr } from 'date-fns/locale';
 
-    const navItems = [
-      { name: 'Pipeline', path: '/admin/pipeline', icon: LayoutGrid },
-      { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
-      { name: 'Contacts', path: '/admin/contacts', icon: Users },
-      { name: 'Charly', path: '/admin/charly', icon: Bot },
-    ];
-
-    const AdminHeader = () => {
+const navItems = [
+  { name: 'Pipeline', path: '/admin/pipeline', icon: LayoutGrid },
+  { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
+  { name: 'Contacts', path: '/admin/contacts', icon: Users },
+  { name: 'Charly AI', path: '/admin/charly', icon: Bot },
+];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;
       const [isMenuOpen, setIsMenuOpen] = useState(false);
