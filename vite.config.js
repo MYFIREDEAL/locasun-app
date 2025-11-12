@@ -2,7 +2,7 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// Final test: Auto-deploy should work now - 13/11/2025 00:44
+// Test after reconnecting GitHub - 13/11/2025 00:50
 export default defineConfig({
   base: '/',
   plugins: [react()],
