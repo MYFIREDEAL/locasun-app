@@ -556,7 +556,7 @@ const Appointment = ({ appointment, onAppointmentClick, onDrop }) => {
       style={{ top: `${top}px`, height: `${height}px` }}
       className={cn(
         "absolute w-[90%] left-[5%] p-2 rounded-lg border-l-4 cursor-move overflow-hidden select-none",
-        appointment.color,
+        appointment.color || (appointment.type === 'physical' ? 'bg-blue-100 border-blue-500 text-blue-800' : 'bg-purple-100 border-purple-500 text-purple-800'),
         isDragging && "opacity-50 scale-95 shadow-lg z-50"
       )}
       draggable
@@ -571,9 +571,9 @@ const Appointment = ({ appointment, onAppointmentClick, onDrop }) => {
       transition={{ duration: 0.2 }}
       title="Glissez pour déplacer le rendez-vous"
     >
-      <p className="font-semibold text-sm truncate">{appointment.summary}</p>
+      <p className="font-semibold text-sm truncate">{appointment.title || appointment.summary || 'RDV'}</p>
       <p className="text-xs truncate">{format(startDate, "HH:mm")} - {format(endDate, "HH:mm")}</p>
-      {appointment.description && <p className="text-xs text-gray-500 truncate">{appointment.description}</p>}
+      {appointment.notes && <p className="text-xs text-gray-500 truncate mt-0.5">{appointment.notes}</p>}
       
       {statusLabels[appointment.status] && (
         <span className={`absolute bottom-1 right-1 text-xs font-bold px-2 py-0.5 rounded-full ${statusBadgeStyles[appointment.status]}`}>
