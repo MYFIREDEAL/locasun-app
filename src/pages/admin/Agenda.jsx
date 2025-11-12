@@ -647,12 +647,33 @@ const AgendaSidebar = ({ onAddActivity, currentDate, selectedUserId, onSelectAct
     const overdueAppointments = appointments.filter(appointment => {
       const isVisible = allowedIds ? allowedIds.includes(appointment.assignedUserId) : true;
       const appointmentEnd = new Date(appointment.end || appointment.start);
-      return isVisible && 
-             appointmentEnd < now && 
-             appointment.assignedUserId === selectedUserId &&
-             appointment.status !== 'effectue' && 
-             appointment.status !== 'annule' &&
-             appointment.status !== 'reporte';
+      const isOverdue = appointmentEnd < now;
+      const isMatchingUser = appointment.assignedUserId === selectedUserId;
+      const isNotCompleted = appointment.status !== 'effectue' && appointment.status !== 'annule' && appointment.status !== 'reporte';
+      
+      console.log('🔍 Checking appointment:', {
+        id: appointment.id,
+        title: appointment.title,
+        end: appointmentEnd,
+        now,
+        isOverdue,
+        assignedUserId: appointment.assignedUserId,
+        selectedUserId,
+        isMatchingUser,
+        status: appointment.status,
+        isNotCompleted,
+        shouldShow: isVisible && isOverdue && isMatchingUser && isNotCompleted
+      });
+      
+      return isVisible && isOverdue && isMatchingUser && isNotCompleted;
+    });
+
+    console.log('📊 Overdue summary:', {
+      total: overdueAppointments.length + overdueCalls.length + overdueTasks.length,
+      appointments: overdueAppointments.length,
+      calls: overdueCalls.length,
+      tasks: overdueTasks.length,
+      selectedUserId
     });
 
     return { calls: overdueCalls, tasks: overdueTasks, appointments: overdueAppointments };
