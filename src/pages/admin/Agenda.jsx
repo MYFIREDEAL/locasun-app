@@ -589,8 +589,25 @@ const capitalizeFirstLetter = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-const AgendaSidebar = ({ onAddActivity, currentDate, selectedUserId, onSelectActivity, onAppointmentClick }) => {
-  const { calls, tasks, appointments, prospects, updateTask, activeAdminUser } = useAppContext();
+const AgendaSidebar = ({ 
+  onAddActivity, 
+  currentDate, 
+  selectedUserId, 
+  onSelectActivity, 
+  onAppointmentClick,
+  calls: callsProp,
+  tasks: tasksProp,
+  appointments: appointmentsProp,
+  prospects: prospectsProp,
+  updateTask: updateTaskProp,
+  activeAdminUser
+}) => {
+  // Utiliser les données Supabase passées en props
+  const calls = callsProp || [];
+  const tasks = tasksProp || [];
+  const appointments = appointmentsProp || [];
+  const prospects = prospectsProp || [];
+  const updateTask = updateTaskProp;
   
   const visibleCalls = useMemo(() => {
     if (!activeAdminUser) return [];
@@ -1627,7 +1644,19 @@ const Agenda = () => {
       </div>
       
       <div className="block lg:hidden border-t border-gray-200">
-        <AgendaSidebar onAddActivity={handleAddActivity} currentDate={currentDate} selectedUserId={selectedUserId} onSelectActivity={handleSelectOtherActivity} onAppointmentClick={setSelectedEvent}/>
+        <AgendaSidebar 
+          onAddActivity={handleAddActivity} 
+          currentDate={currentDate} 
+          selectedUserId={selectedUserId} 
+          onSelectActivity={handleSelectOtherActivity} 
+          onAppointmentClick={setSelectedEvent}
+          calls={calls}
+          tasks={tasks}
+          appointments={appointments}
+          prospects={prospects}
+          updateTask={updateSupabaseTask}
+          activeAdminUser={activeAdminUser}
+        />
       </div>
       
       <motion.div 
@@ -1652,7 +1681,19 @@ const Agenda = () => {
         </Button>
         
         {!isSidebarCollapsed && (
-          <AgendaSidebar onAddActivity={handleAddActivity} currentDate={currentDate} selectedUserId={selectedUserId} onSelectActivity={handleSelectOtherActivity} onAppointmentClick={setSelectedEvent}/>
+          <AgendaSidebar 
+            onAddActivity={handleAddActivity} 
+            currentDate={currentDate} 
+            selectedUserId={selectedUserId} 
+            onSelectActivity={handleSelectOtherActivity} 
+            onAppointmentClick={setSelectedEvent}
+            calls={calls}
+            tasks={tasks}
+            appointments={appointments}
+            prospects={prospects}
+            updateTask={updateSupabaseTask}
+            activeAdminUser={activeAdminUser}
+          />
         )}
       </motion.div>
 
