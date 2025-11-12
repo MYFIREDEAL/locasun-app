@@ -2,7 +2,7 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// Test deployment - 13/11/2025
+// Test automatic deployment from GitHub to Vercel - 13/11/2025 00:35
 export default defineConfig({
   base: '/',
   plugins: [react()],
