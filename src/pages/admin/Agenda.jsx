@@ -647,33 +647,12 @@ const AgendaSidebar = ({ onAddActivity, currentDate, selectedUserId, onSelectAct
     const overdueAppointments = appointments.filter(appointment => {
       const isVisible = allowedIds ? allowedIds.includes(appointment.assignedUserId) : true;
       const appointmentEnd = new Date(appointment.end || appointment.start);
-      const isOverdue = appointmentEnd < now;
-      const isMatchingUser = appointment.assignedUserId === selectedUserId;
-      const isNotCompleted = appointment.status !== 'effectue' && appointment.status !== 'annule' && appointment.status !== 'reporte';
-      
-      console.log('🔍 Checking appointment:', {
-        id: appointment.id,
-        title: appointment.title,
-        end: appointmentEnd,
-        now,
-        isOverdue,
-        assignedUserId: appointment.assignedUserId,
-        selectedUserId,
-        isMatchingUser,
-        status: appointment.status,
-        isNotCompleted,
-        shouldShow: isVisible && isOverdue && isMatchingUser && isNotCompleted
-      });
-      
-      return isVisible && isOverdue && isMatchingUser && isNotCompleted;
-    });
-
-    console.log('📊 Overdue summary:', {
-      total: overdueAppointments.length + overdueCalls.length + overdueTasks.length,
-      appointments: overdueAppointments.length,
-      calls: overdueCalls.length,
-      tasks: overdueTasks.length,
-      selectedUserId
+      return isVisible && 
+             appointmentEnd < now && 
+             appointment.assignedUserId === selectedUserId &&
+             appointment.status !== 'effectue' && 
+             appointment.status !== 'annule' &&
+             appointment.status !== 'reporte';
     });
 
     return { calls: overdueCalls, tasks: overdueTasks, appointments: overdueAppointments };
@@ -842,11 +821,15 @@ const AddActivityModal = ({
   updateCall: updateCallProp,
   updateTask: updateTaskProp,
   prospects: prospectsProp, // 🔥 Recevoir les prospects en props
+  users: usersProp, // 🔥 Recevoir les users Supabase en props
 }) => {
-    const { users, getProjectSteps } = useAppContext();
+    const { getProjectSteps } = useAppContext();
     
     // Utiliser les prospects Supabase passés en props
     const prospects = prospectsProp || [];
+    
+    // Utiliser les users Supabase passés en props
+    const users = usersProp || [];
     
     // Utiliser les fonctions passées en props (Supabase) ou fallback contexte
     const addAppointment = addAppointmentProp;
@@ -868,7 +851,7 @@ const AddActivityModal = ({
     const [assignedUserId, setAssignedUserId] = useState(defaultAssignedUserId || 'user-1');
     const [isEditing, setIsEditing] = useState(false);
 
-    const userOptions = useMemo(() => Object.values(users).map(user => ({ value: user.id, label: user.name })), [users]);
+    const userOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
     
     useEffect(() => {
       if (initialData) {
@@ -1724,6 +1707,7 @@ const Agenda = () => {
         updateCall={updateSupabaseCall}
         updateTask={updateSupabaseTask}
         prospects={prospects}
+        users={supabaseUsers}
       />
     </div>
   );
