@@ -993,6 +993,7 @@ const ProfilePage = () => {
     globalPipelineSteps = [],
     setGlobalPipelineSteps: setGlobalPipelineStepsContext,
     activeAdminUser,
+    setActiveAdminUser,
     companyLogo,
     setCompanyLogo
   } = useAppContext();
@@ -1329,9 +1330,11 @@ const ProfilePage = () => {
       // Déconnexion Supabase
       await supabase.auth.signOut();
       
-      // Nettoyer le state et localStorage
+      // Nettoyer le state
       setActiveAdminUser(null);
-      localStorage.clear(); // Nettoyer tout le localStorage
+      
+      // Nettoyer seulement les données de session, pas tout le localStorage
+      localStorage.removeItem('activeAdminUser');
       
       toast({
         title: "Déconnexion réussie",

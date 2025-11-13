@@ -182,6 +182,7 @@ function App() {
   const { users: supabaseUsers } = useSupabaseUsers();
 
   // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
+  // ⚠️ IMPORTANT: Ne s'applique QUE aux ADMINS (table users), pas aux CLIENTS (table prospects)
   useEffect(() => {
     const syncActiveAdmin = async () => {
       try {
@@ -197,16 +198,19 @@ function App() {
           return;
         }
 
-        // Trouver l'utilisateur dans supabaseUsers par user_id
+        // 🔥 VÉRIFIER SI L'UTILISATEUR EST UN ADMIN (dans table users)
+        // Si c'est un client (dans table prospects), ne rien faire
         const matchedUser = supabaseUsers.find(u => u.user_id === user.id);
         
         if (matchedUser) {
-          // Mettre à jour si nécessaire (ancien format localStorage ou données mises à jour)
-          const needsUpdate = !activeAdminUser || 
+          // C'est un ADMIN → synchroniser activeAdminUser
+          const dataChanged = !activeAdminUser || 
                              activeAdminUser.id !== matchedUser.id || 
-                             activeAdminUser.user_id !== matchedUser.user_id;
+                             activeAdminUser.phone !== matchedUser.phone ||
+                             activeAdminUser.email !== matchedUser.email ||
+                             activeAdminUser.name !== matchedUser.name;
           
-          if (needsUpdate) {
+          if (dataChanged) {
             console.log('✅ activeAdminUser synchronized:', matchedUser.name);
             setActiveAdminUser(matchedUser);
             try {
@@ -216,14 +220,16 @@ function App() {
             }
           }
         } else {
-          console.error('❌ User not found in Supabase users');
+          // Pas trouvé dans users → C'est probablement un CLIENT
+          // Ne rien faire, activeAdminUser reste null pour les clients
+          console.log('ℹ️ User not in admin users table (probably a client)');
         }
       } catch (error) {
         console.error('❌ Error syncing activeAdminUser:', error);
       }
     };
 
-    // Synchroniser dès que supabaseUsers est chargé
+    // Synchroniser dès que supabaseUsers est chargé ou modifié
     if (supabaseUsers.length > 0) {
       syncActiveAdmin();
     }
@@ -1080,7 +1086,7 @@ function App() {
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
-    activeAdminUser, switchActiveAdminUser,
+    activeAdminUser, setActiveAdminUser, switchActiveAdminUser,
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
     companyLogo, setCompanyLogo,
   };

@@ -29,7 +29,7 @@ const HowItWorksCard = ({ icon, title, description, badgeText, delay }) => (
 
 const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
   const navigate = useNavigate();
-  const { setCurrentUser, prospects } = useAppContext();
+  const { setCurrentUser, setActiveAdminUser, prospects } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -83,7 +83,8 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
           className: "bg-green-500 text-white",
         });
         
-        setCurrentUser(userData);
+        // ✅ Définir activeAdminUser pour les PRO (pas currentUser)
+        setActiveAdminUser(userData);
         onOpenChange(false);
         setTimeout(() => navigate('/admin'), 500);
       } else {

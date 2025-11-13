@@ -22,7 +22,7 @@ export const useSupabaseUsers = () => {
         
         const { data, error: fetchError } = await supabase
           .from('users')
-          .select('id, user_id, name, email, role')
+          .select('id, user_id, name, email, role, phone, avatar_url, manager_id, access_rights')
           .order('name', { ascending: true });
 
         console.log('📊 Safari DEBUG - useSupabaseUsers fetch result:', {
