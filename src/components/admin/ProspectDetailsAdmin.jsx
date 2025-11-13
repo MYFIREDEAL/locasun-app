@@ -900,7 +900,14 @@ const ProspectDetailsAdmin = ({
                     <Hash className="h-4 w-4 text-gray-400 mt-1" />
                     <div className="flex-1">
                         <Label className="text-xs text-gray-500">ID Prospect</Label>
-                        <p className="text-gray-700">{prospect.id}</p>
+                        <p className="text-gray-700 text-xs font-mono">{prospect.id}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3 pt-3 border-t border-gray-100">
+                    <User className="h-4 w-4 text-gray-400 mt-1" />
+                    <div className="flex-1">
+                        <Label className="text-xs text-gray-500">ID Utilisateur (owner)</Label>
+                        <p className="text-gray-700 text-xs font-mono">{prospect.ownerId || 'Non assigné'}</p>
                     </div>
                   </div>
                 </div>
