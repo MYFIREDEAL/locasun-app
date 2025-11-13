@@ -1399,8 +1399,17 @@ const ProfilePage = () => {
     if (!editingUser) return;
     
     try {
+      // 🔥 Mapper les valeurs du select vers les rôles Supabase exacts
+      const roleMapping = {
+        'admin': 'Global Admin',
+        'manager': 'Manager',
+        'commercial': 'Commercial'
+      };
+      
+      const finalRole = roleMapping[selectedRole] || selectedRole;
+      
       await updateUser(editingUser.id, {
-        role: selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1),
+        role: finalRole,
         manager: selectedManager === 'none' ? '' : selectedManager
       });
       // Le toast est déjà affiché dans le hook
