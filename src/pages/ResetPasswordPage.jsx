@@ -17,18 +17,52 @@ const ResetPasswordPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    // Vérifier si on a un token de récupération
-    const token = searchParams.get('token');
-    const type = searchParams.get('type');
+    // Supabase peut envoyer les params dans le hash (#) ou en query (?)
+    // On doit gérer les deux cas
     
-    if (!token || type !== 'recovery') {
+    const handleAuthCallback = async () => {
+      // Vérifier si on a un hash fragment
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashAccessToken = hashParams.get('access_token');
+      const hashType = hashParams.get('type');
+      
+      // Vérifier si on a des query params
+      const token = searchParams.get('token');
+      const type = searchParams.get('type');
+      
+      console.log('🔍 Reset password - Hash params:', {
+        access_token: hashAccessToken,
+        type: hashType
+      });
+      console.log('🔍 Reset password - Query params:', {
+        token,
+        type
+      });
+      
+      // Si on a un access_token dans le hash, c'est que Supabase a déjà géré l'auth
+      if (hashAccessToken && hashType === 'recovery') {
+        console.log('✅ Token de récupération détecté dans le hash');
+        // L'utilisateur est déjà authentifié, on peut procéder
+        return;
+      }
+      
+      // Si on a un token classique en query param
+      if (token && type === 'recovery') {
+        console.log('✅ Token de récupération détecté en query param');
+        return;
+      }
+      
+      // Sinon, lien invalide
+      console.warn('❌ Aucun token de récupération valide trouvé');
       toast({
         title: "Lien invalide",
         description: "Ce lien de réinitialisation n'est pas valide ou a expiré.",
         variant: "destructive",
       });
-      navigate('/');
-    }
+      setTimeout(() => navigate('/'), 2000);
+    };
+    
+    handleAuthCallback();
   }, [searchParams, navigate]);
 
   const handleResetPassword = async (e) => {
