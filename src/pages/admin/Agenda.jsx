@@ -1145,7 +1145,7 @@ const AddActivityModal = ({
                                     <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-full justify-between">
-                                                {assignedUserId ? users.find(u => u.id === assignedUserId)?.name : "Sélectionner un utilisateur..."}
+                                                {assignedUserId ? supabaseUsers.find(u => u.id === assignedUserId)?.name : "Sélectionner un utilisateur..."}
                                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -1203,7 +1203,7 @@ const AddActivityModal = ({
 }
 
 const Agenda = () => {
-  const { users, activeAdminUser } = useAppContext();
+  const { activeAdminUser } = useAppContext();
   
   // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
   const { supabaseUserId, loading: userIdLoading } = useSupabaseUser();

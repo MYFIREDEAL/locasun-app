@@ -16,6 +16,7 @@ import React, { useState } from 'react';
     import { toast } from '@/components/ui/use-toast';
     import useWindowSize from '@/hooks/useWindowSize';
     import { useAppContext } from '@/App';
+    import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
     import { formatDistanceToNow } from 'date-fns';
     import { fr } from 'date-fns/locale';
 
@@ -28,7 +29,8 @@ const navItems = [
       const { width } = useWindowSize();
       const isMobile = width < 768;
       const [isMenuOpen, setIsMenuOpen] = useState(false);
-      const { notifications, markNotificationAsRead, users, activeAdminUser, switchActiveAdminUser } = useAppContext();
+      const { notifications, markNotificationAsRead, activeAdminUser, switchActiveAdminUser } = useAppContext();
+      const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
       const navigate = useNavigate();
       const [searchParams, setSearchParams] = useSearchParams();
 
@@ -163,12 +165,16 @@ const navItems = [
                               <DropdownMenuLabel>Changer d'utilisateur</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuRadioGroup value={activeAdminUser?.id} onValueChange={handleUserSwitch}>
-                                  {Object.values(users).map(user => (
+                                  {usersLoading ? (
+                                    <DropdownMenuItem disabled>Chargement...</DropdownMenuItem>
+                                  ) : (
+                                    supabaseUsers.map(user => (
                                       <DropdownMenuRadioItem key={user.id} value={user.id} className="flex justify-between items-center">
                                           <span>{user.name}</span>
                                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{user.role}</span>
                                       </DropdownMenuRadioItem>
-                                  ))}
+                                    ))
+                                  )}
                               </DropdownMenuRadioGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>

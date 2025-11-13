@@ -90,6 +90,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  
+  // 🔥 Trouver le prospect pour afficher son nom dans le chat
+  const currentProspect = prospects.find(p => p.id === prospectId);
 
   const availablePrompts = useMemo(() => {
     return Object.values(prompts).filter(prompt => {
@@ -219,7 +222,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
       <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
         {messages.map((msg, index) => (
           <div key={index} className={`flex items-end gap-2 ${msg.sender === 'pro' ? 'justify-end' : 'justify-start'}`}>
-            {msg.sender === 'client' && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{users[prospectId]?.name.charAt(0) || '?'}</div>}
+            {msg.sender === 'client' && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{currentProspect?.name.charAt(0) || '?'}</div>}
             <div className={`max-w-xs lg:max-w-md rounded-2xl ${msg.sender === 'pro' ? 'bg-blue-500 text-white rounded-br-none p-2.5' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
               {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
               {msg.file && (
@@ -1282,7 +1285,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
   if (!activity) return null;
 
   const contact = prospects.find(p => p.id === activity.contactId);
-  const assignedUser = users[activity.assignedUserId] || (contact ? users[contact.ownerId] : null);
+  const assignedUser = supabaseUsers.find(u => u.id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
   
   // Fonction pour capitaliser la première lettre
   const capitalizeFirstLetter = (string) => {
@@ -1538,7 +1541,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
   if (!event) return null;
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = users[event.assignedUserId] || (contact ? users[contact.ownerId] : null);
+  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
 
   // Fonction pour capitaliser la première lettre
   const capitalizeFirstLetter = (string) => {

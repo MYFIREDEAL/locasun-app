@@ -296,17 +296,6 @@ const CompleteOriginalContacts = () => {
         (prospect.tags && selectedTags.some(tag => prospect.tags.includes(tag)));
       const userMatch = !selectedUserId || prospect.ownerId === selectedUserId;
       
-      // 🔍 DEBUG: Log pour comprendre le filtre
-      if (selectedUserId && prospect.name === 'testnorah') {
-        console.log('🔍 DEBUG Filtre:', {
-          prospectName: prospect.name,
-          prospectOwnerId: prospect.ownerId,
-          selectedUserId: selectedUserId,
-          userMatch: userMatch,
-          comparison: prospect.ownerId === selectedUserId
-        });
-      }
-      
       return searchMatch && tagMatch && userMatch;
     });
   }, [supabaseProspects, searchQuery, selectedTags, selectedUserId, activeAdminUser]);
@@ -363,8 +352,6 @@ const CompleteOriginalContacts = () => {
   };
 
   const handleUserSelect = (userId) => {
-    console.log('🔍 User selected:', userId);
-    console.log('🔍 Available users:', allowedUsers.map(u => ({ id: u.id, name: u.name })));
     setSelectedUserId(userId);
     setUserMenuOpen(false);
   };
