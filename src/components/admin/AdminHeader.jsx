@@ -43,10 +43,14 @@ const navItems = [
       };
 
       const handleUserSwitch = (userId) => {
-        switchActiveAdminUser(userId);
-        const newParams = new URLSearchParams(searchParams);
-        newParams.set('owner', userId);
-        setSearchParams(newParams, {replace: true});
+        // Récupérer l'objet user complet depuis Supabase
+        const userObject = supabaseUsers.find(u => u.id === userId);
+        if (userObject) {
+          switchActiveAdminUser(userObject);
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('owner', userId);
+          setSearchParams(newParams, {replace: true});
+        }
       }
       
       const MobileMenu = () => (

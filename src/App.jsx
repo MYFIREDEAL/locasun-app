@@ -988,14 +988,15 @@ function App() {
     }
   };
 
-  const switchActiveAdminUser = (userId) => {
-    const newActiveUser = users[userId];
-    if (newActiveUser) {
-        setActiveAdminUser(newActiveUser);
-        localStorage.setItem('activeAdminUser', JSON.stringify(newActiveUser));
+  const switchActiveAdminUser = (userObject) => {
+    // ⚠️ Modifié: Prend maintenant un objet user complet au lieu d'un userId
+    // Les composants doivent utiliser useSupabaseUsers() et passer l'objet complet
+    if (userObject && userObject.id) {
+        setActiveAdminUser(userObject);
+        localStorage.setItem('activeAdminUser', JSON.stringify(userObject));
         toast({
-            title: `Connecté en tant que ${newActiveUser.name}`,
-            description: `Vous naviguez maintenant avec le profil de ${newActiveUser.name}.`,
+            title: `Connecté en tant que ${userObject.name}`,
+            description: `Vous naviguez maintenant avec le profil de ${userObject.name}.`,
             className: "bg-blue-600 text-white"
         });
     }

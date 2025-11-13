@@ -31,7 +31,14 @@ const tagColors = {
 const allTags = ['ACC', 'Autonomie', 'Centrale', 'Investissement', 'ProducteurPro'];
 
 const FallbackProspectDetails = ({ prospect, onBack, onUpdate }) => {
-  const { users = {} } = useAppContext();
+  // ✅ Migré vers Supabase
+  const { users: supabaseUsers = [] } = useSupabaseUsers();
+  const users = useMemo(() => {
+    return supabaseUsers.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+  }, [supabaseUsers]);
   
   return (
     <motion.div
@@ -209,10 +216,19 @@ const FallbackAddModal = ({ open, onOpenChange, onAddProspect }) => {
 
 const CompleteOriginalContacts = () => {
   const context = useAppContext();
-  const { users = {}, activeAdminUser } = context || {};
+  const { activeAdminUser } = context || {};
+  // ❌ SUPPRIMÉ: users du context - Utiliser uniquement supabaseUsers
   
-  // ✅ Utiliser les vrais utilisateurs Supabase pour le filtre
+  // ✅ Utiliser les vrais utilisateurs Supabase
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  
+  // Transformer en objet pour compatibilité avec le code existant
+  const users = useMemo(() => {
+    return supabaseUsers.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+  }, [supabaseUsers]);
   
   // Utiliser le hook Supabase pour les prospects
   const {
