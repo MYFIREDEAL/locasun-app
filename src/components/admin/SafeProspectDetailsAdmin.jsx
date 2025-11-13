@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Phone, Mail, Edit, Save, X, User, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 const tagColors = {
   'ACC': 'bg-blue-100 text-blue-800',
@@ -124,8 +125,17 @@ const EditModal = ({ open, onOpenChange, prospect, users, onSave }) => {
 };
 
 const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
-  const { users = {}, projectsData = {} } = useAppContext();
+  const { projectsData = {} } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // 🔥 Transformer array Supabase en object pour compatibilité
+  const users = useMemo(() => {
+    return supabaseUsers.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+  }, [supabaseUsers]);
 
   const getOwnerName = (ownerId) => {
     const owner = users[ownerId];
