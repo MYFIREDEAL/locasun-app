@@ -16,14 +16,23 @@ export const useSupabaseProspects = (activeAdminUser) => {
   // Charger les prospects depuis Supabase
   const fetchProspects = async () => {
     try {
+      console.log('📊 Starting fetchProspects...');
       setLoading(true);
+      
+      // Vérifier la session Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔐 Safari - Session check:', session ? 'OK' : 'NO SESSION', sessionError);
       
       const { data, error: fetchError } = await supabase
         .from('prospects')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      console.log('📊 Prospects fetched:', data?.length || 0, 'prospects');
+      if (fetchError) {
+        console.error('❌ Fetch error:', fetchError);
+        throw fetchError;
+      }
 
       // Transformer les données Supabase vers le format attendu par l'app
       const transformedProspects = (data || []).map(prospect => ({
@@ -60,8 +69,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
   // Charger au montage et quand l'utilisateur change
   useEffect(() => {
+    console.log('🔄 useEffect fetchProspects - activeAdminUser:', activeAdminUser?.name);
     if (activeAdminUser) {
+      console.log('✅ Calling fetchProspects...');
       fetchProspects();
+    } else {
+      console.warn('⚠️ No activeAdminUser, skipping fetchProspects');
+      setLoading(false);
     }
   }, [activeAdminUser]);
 

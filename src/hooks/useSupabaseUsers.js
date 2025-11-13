@@ -13,16 +13,33 @@ export const useSupabaseUsers = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
+        console.log('🔄 Safari DEBUG - useSupabaseUsers: Starting loadUsers...');
         setLoading(true);
+        
+        // Vérifier la session Supabase
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('🔐 Safari DEBUG - useSupabaseUsers session:', session ? 'OK' : 'NO SESSION', sessionError);
         
         const { data, error: fetchError } = await supabase
           .from('users')
-          .select('id, name, email, role')
+          .select('id, user_id, name, email, role')
           .order('name', { ascending: true });
 
-        if (fetchError) throw fetchError;
+        console.log('📊 Safari DEBUG - useSupabaseUsers fetch result:', {
+          success: !fetchError,
+          count: data?.length || 0,
+          error: fetchError
+        });
+
+        if (fetchError) {
+          console.error('❌ Safari DEBUG - useSupabaseUsers fetch error:', fetchError);
+          throw fetchError;
+        }
 
         console.log('✅ Utilisateurs Supabase chargés:', data?.length || 0);
+        if (data && data.length > 0) {
+          console.log('👥 Premiers utilisateurs:', data.slice(0, 2).map(u => ({ id: u.user_id, name: u.name })));
+        }
         
         setUsers(data || []);
       } catch (err) {
