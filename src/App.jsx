@@ -22,6 +22,8 @@ import { allProjectsData } from '@/data/projects';
 import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
+import { supabase } from '@/lib/supabase';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 const GLOBAL_PIPELINE_STORAGE_KEY = 'global_pipeline_steps';
 const DEFAULT_GLOBAL_PIPELINE_STEPS = ['MARKET', 'ETUDE', 'OFFRE'];
@@ -175,6 +177,37 @@ function App() {
   const [companyLogo, setCompanyLogo] = useState('');
   const hasHydratedFormContactConfig = useRef(false);
   const hasHydratedGlobalPipelineSteps = useRef(false);
+
+  // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
+  const { users: supabaseUsers } = useSupabaseUsers();
+
+  // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
+  useEffect(() => {
+    const syncActiveAdmin = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setActiveAdminUser(null);
+          localStorage.removeItem('activeAdminUser');
+          return;
+        }
+
+        // Trouver l'utilisateur dans supabaseUsers par user_id
+        const matchedUser = supabaseUsers.find(u => u.user_id === user.id);
+        if (matchedUser && matchedUser.id !== activeAdminUser?.id) {
+          console.log('🔄 Synchronisation activeAdminUser:', matchedUser.name);
+          setActiveAdminUser(matchedUser);
+          localStorage.setItem('activeAdminUser', JSON.stringify(matchedUser));
+        }
+      } catch (error) {
+        console.error('❌ Erreur sync activeAdminUser:', error);
+      }
+    };
+
+    if (supabaseUsers.length > 0) {
+      syncActiveAdmin();
+    }
+  }, [supabaseUsers]);
 
   useEffect(() => {
     const storedProjectsData = localStorage.getItem('evatime_projects_data');
