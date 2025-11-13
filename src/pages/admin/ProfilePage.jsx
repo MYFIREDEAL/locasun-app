@@ -1298,7 +1298,14 @@ const ProfilePage = () => {
     if(!activeAdminUser) return;
     
     try {
-      await updateUser(activeAdminUser.id, userInfo);
+      // 🔥 FIX: activeAdminUser.id peut être user_id (ancien format localStorage)
+      // Trouver le bon user dans supabaseUsers par user_id
+      const currentUser = supabaseUsers.find(u => u.user_id === activeAdminUser.id || u.id === activeAdminUser.id);
+      if (!currentUser) {
+        throw new Error('Utilisateur non trouvé');
+      }
+      
+      await updateUser(currentUser.id, userInfo);
       // Le toast est déjà affiché dans le hook
     } catch (err) {
       console.error('Erreur sauvegarde modifications:', err);
