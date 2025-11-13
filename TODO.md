@@ -163,21 +163,55 @@
 
 ---
 
-### 🟡 Task 2.3 - Audit final composants restants
-**Priorité:** MOYENNE | **Temps estimé:** 1-2h
+### � Task 2.3 - Audit final composants restants
+**Priorité:** MOYENNE | **Temps estimé:** 1-2h | **Statut:** 🔄 EN COURS (13 nov 2025)
 
-**Fichiers à vérifier:**
+**Progression:** 5/7 fichiers migrés
 
-1. [ ] **RegistrationPage.jsx**
-   - Vérifier si utilise encore `users` du context
-   - Migrer vers Supabase si nécessaire
+**✅ Fichiers complétés:**
+1. [x] **App.jsx** (commit 50d261d)
+   - ✅ Modified `switchActiveAdminUser()` to accept user object instead of userId
+   - ✅ Components must now pass full user object from `useSupabaseUsers()`
 
-2. [ ] **ProspectCard.jsx / ProspectCardFixed.jsx**
-   - Vérifier affichage nom propriétaire
-   - Devrait déjà utiliser `ownerId` de Supabase
+2. [x] **AdminHeader.jsx** (commit 50d261d)
+   - ✅ Updated `handleUserSwitch()` to find user from `supabaseUsers`
+   - ✅ Passes full user object to `switchActiveAdminUser()`
 
-3. [ ] **MobileNav.jsx**
-   - Vérifier références utilisateurs
+3. [x] **CompleteOriginalContacts.jsx** (commit 50d261d)
+   - ✅ Removed `users` from context
+   - ✅ Added `useMemo` to transform `supabaseUsers` array to object
+   - ✅ All `users[ownerId]` references now use Supabase data
+
+4. [x] **ProspectDetailsAdmin.jsx** (commit 71a75e1)
+   - ✅ Fixed `supabaseUsers` undefined error causing blank page
+   - ✅ Removed `users` from context in 5 nested components:
+     - `ChatInterface`
+     - `ProspectActivities`
+     - `OtherActivityDetailsPopup`
+     - `EventDetailsPopup`
+     - `ProspectDetailsAdmin` (main)
+   - ✅ Added `useSupabaseUsers()` hook to each component
+   - ✅ **BUG FIX:** Clicking on associated project no longer causes blank page
+
+5. [x] **FinalPipeline.jsx** (commit 71a75e1)
+   - ✅ Added `useSupabaseUsers()` import and hook call
+   - ✅ Ready for future users display needs
+
+**🔴 Fichiers restants:**
+
+1. [ ] **SafeProspectDetailsAdmin.jsx**
+   - 2 références à 'users' context (lignes 127, 131)
+   - Pattern: `users[ownerId]`
+   - À migrer vers `useSupabaseUsers()`
+
+2. [ ] **ProfilePage.jsx**
+   - 1 référence ligne 1356: `users[userId]`
+   - ⚠️ Task 2.1 devrait avoir tout migré → À VÉRIFIER uniquement
+
+3. [ ] **RegistrationPage.jsx**
+   - 5 références (lignes 16, 37, 103, 104, 106, 107)
+   - Pattern: `users[affiliateId]`, `users['user-1']`
+   - Logique d'affiliation à migrer vers Supabase
 
 **Méthode:**
 ```bash
@@ -192,7 +226,7 @@ grep -rn "users =\|users\[\|Object.values(users)" src/
 4. Tester en local
 5. Commit incrémental
 
-**Commit final:** `"feat: Phase 2 - Remove all localStorage users references"`
+**Commit final:** `"feat: Phase 2 complete - All localStorage users references removed"`
 
 **⚠️ Note importante:**
 - Certains composants utilisent déjà `useSupabaseUsers()` (Agenda, ProspectDetailsAdmin, AdminHeader)
