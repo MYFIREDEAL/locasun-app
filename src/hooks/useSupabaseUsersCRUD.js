@@ -102,6 +102,9 @@ export const useSupabaseUsersCRUD = () => {
    * ✅ AJOUTER UN UTILISATEUR
    * Crée l'utilisateur dans auth.users puis dans public.users
    * 
+   * ⚠️ NOTE : Utilise signUp() qui nécessite une confirmation d'email
+   * Pour production, il faudrait une Edge Function avec Service Role Key
+   * 
    * @param {Object} userData - Données du nouvel utilisateur
    * @param {string} userData.name - Nom complet
    * @param {string} userData.email - Email (doit être unique)
@@ -116,10 +119,16 @@ export const useSupabaseUsersCRUD = () => {
       console.log('🔧 Adding user:', userData);
 
       // 1️⃣ Créer l'utilisateur dans auth.users (Supabase Auth)
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Note: signUp() envoie un email de confirmation par défaut
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
-        email_confirm: true, // Auto-confirmer l'email
+        options: {
+          data: {
+            name: userData.name,
+            role: userData.role,
+          }
+        }
       });
 
       if (authError) throw new Error(`Auth error: ${authError.message}`);
@@ -129,7 +138,7 @@ export const useSupabaseUsersCRUD = () => {
 
       // 2️⃣ Trouver l'ID du manager si spécifié
       let managerId = null;
-      if (userData.manager) {
+      if (userData.manager && userData.manager !== 'none' && userData.manager !== '') {
         const { data: managerData } = await supabase
           .from('users')
           .select('id')
@@ -160,8 +169,7 @@ export const useSupabaseUsersCRUD = () => {
         .single();
 
       if (publicUserError) {
-        // Si échec public.users, supprimer le compte auth créé
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        console.error('❌ Error creating public user:', publicUserError);
         throw new Error(`Public user error: ${publicUserError.message}`);
       }
 
