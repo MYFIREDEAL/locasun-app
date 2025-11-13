@@ -66,10 +66,12 @@
 ## 🔄 PHASE 2 - À FAIRE (4-6h)
 **Objectif:** Migration complète du user management
 
-### 🔴 Task 2.1 - ProfilePage.jsx - Gestion des utilisateurs
-**Priorité:** HAUTE | **Temps estimé:** 3-4h
+### ✅ Task 2.1 - ProfilePage.jsx - Gestion des utilisateurs
+**Priorité:** HAUTE | **Temps estimé:** 3-4h | **Statut:** ✅ TERMINÉ
 
 **Fichier:** `src/pages/admin/ProfilePage.jsx`
+**Commit:** c3b722b
+**Date:** 13 novembre 2025
 
 **Lignes à migrer:**
 - [x] ~~Ligne 1275: `users[editingUser]`~~ → Migré vers Supabase
