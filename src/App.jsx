@@ -181,7 +181,7 @@ function App() {
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
   const { users: supabaseUsers } = useSupabaseUsers();
 
-  // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
+  // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté (UNE SEULE FOIS au chargement)
   useEffect(() => {
     const syncActiveAdmin = async () => {
       try {
@@ -194,7 +194,7 @@ function App() {
 
         // Trouver l'utilisateur dans supabaseUsers par user_id
         const matchedUser = supabaseUsers.find(u => u.user_id === user.id);
-        if (matchedUser && matchedUser.id !== activeAdminUser?.id) {
+        if (matchedUser) {
           console.log('🔄 Synchronisation activeAdminUser:', matchedUser.name);
           setActiveAdminUser(matchedUser);
           localStorage.setItem('activeAdminUser', JSON.stringify(matchedUser));
@@ -204,10 +204,11 @@ function App() {
       }
     };
 
-    if (supabaseUsers.length > 0) {
+    // Ne synchroniser que si supabaseUsers est chargé ET qu'on n'a pas encore d'activeAdminUser
+    if (supabaseUsers.length > 0 && !activeAdminUser) {
       syncActiveAdmin();
     }
-  }, [supabaseUsers]);
+  }, [supabaseUsers, activeAdminUser]);
 
   useEffect(() => {
     const storedProjectsData = localStorage.getItem('evatime_projects_data');
