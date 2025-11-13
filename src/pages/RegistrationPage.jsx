@@ -9,15 +9,25 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { User, Phone, Mail, Lock, Building2 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
-  const { projectsData, setUserProjects, addProspect, setCurrentUser, users } = useAppContext();
+  const { projectsData, setUserProjects, addProspect, setCurrentUser } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', company: '' });
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
+
+  // 🔥 Transformer array Supabase en object pour compatibilité
+  const users = useMemo(() => {
+    return supabaseUsers.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+  }, [supabaseUsers]);
 
   const projectOptions = useMemo(() => 
     Object.values(projectsData)
