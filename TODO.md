@@ -63,11 +63,11 @@
 
 ---
 
-## 🔄 PHASE 2 - À FAIRE (4-6h)
+## 🔄 PHASE 2 - EN COURS (4-6h)
 **Objectif:** Migration complète du user management
 
 ### ✅ Task 2.1 - ProfilePage.jsx - Gestion des utilisateurs
-**Priorité:** HAUTE | **Temps estimé:** 3-4h | **Statut:** ✅ TERMINÉ
+**Priorité:** HAUTE | **Temps estimé:** 3-4h | **Statut:** ✅ TERMINÉ (13 nov 2025)
 
 **Fichier:** `src/pages/admin/ProfilePage.jsx`
 **Commit:** c3b722b
@@ -101,31 +101,65 @@
 **Dépendances:**
 - Permissions RLS dans Supabase ✅ (déjà configuré dans `schema.sql`)
 
-**Notes:**
-- Les utilisateurs doivent être créés dans `auth.users` ET `public.users`
-- Vérifier la cohérence avec `supabase/AUTH_LOGIC.md`
+**Résultats:**
+- ✅ Création d'utilisateurs fonctionne (testé en local)
+- ✅ Modification des droits d'accès fonctionne
+- ✅ Changement de rôle fonctionne
+- ✅ Suppression avec réassignation des prospects fonctionne
+- ✅ Real-time sync opérationnel
+- ⚠️ Email de confirmation envoyé (désactivable dans Supabase settings)
+
+**Notes importantes:**
+- Les utilisateurs sont créés avec `auth.signUp()` (envoie email confirmation)
+- RLS policy "Global Admin can insert users" ajoutée dans Supabase
+- Hook transforme array → object via `useMemo` pour compatibilité
+- Pour production future : Créer Edge Function avec Service Role Key (pas d'email)
+- Les utilisateurs doivent être dans `auth.users` ET `public.users`
+- Vérifier cohérence avec `supabase/AUTH_LOGIC.md`
 
 ---
 
-### 🔴 Task 2.2 - App.jsx - Nettoyer Context
-**Priorité:** HAUTE | **Temps estimé:** 30 min
+### ✅ Task 2.2 - App.jsx - Nettoyer Context
+**Priorité:** HAUTE | **Temps estimé:** 30 min | **Statut:** ✅ TERMINÉ (13 nov 2025)
 
 **Fichier:** `src/App.jsx`
+**Commit:** À faire
 
 **Actions:**
-- [ ] Supprimer l'objet `users` du state initial (localStorage)
-- [ ] Supprimer `setUsers` des fonctions
-- [ ] Vérifier `switchActiveAdminUser()` - doit utiliser uniquement UUID
-- [ ] Garder uniquement `activeAdminUser` (UUID Supabase)
-- [ ] Nettoyer `localStorage.getItem('users')` au chargement
+- [x] Supprimer l'objet `users` du state initial (localStorage) - ligne 162
+- [x] Supprimer `setUsers` des fonctions (ligne ~807)
+- [x] Supprimer `updateUsers()` fonction (ligne ~807)
+- [x] Supprimer `deleteUser()` fonction (ligne ~812) - déjà migré vers hook
+- [x] Supprimer `getAdminById()` fonction - utilisait `users[userId]`
+- [x] Supprimer chargement localStorage 'evatime_users' (lignes 356-377)
+- [x] Supprimer `users`, `updateUsers`, `deleteUser`, `getAdminById` du context
+- [x] Garder `activeAdminUser` et `switchActiveAdminUser()` (toujours nécessaires)
+
+**Résultats:**
+- ✅ Context App.jsx nettoyé : ~100 lignes supprimées
+- ✅ Plus aucune référence `users` localStorage dans App.jsx
+- ✅ Tous les composants doivent maintenant utiliser les hooks Supabase
+- ✅ Context est plus léger et performant
+- ⚠️ `activeAdminUser` conservé (nécessaire pour switch user + routing)
 
 **Impact:** 
-- Tous les composants devront utiliser `useSupabaseUsers()` exclusivement
-- Plus de conflits localStorage/Supabase
+- Tous les composants devront utiliser `useSupabaseUsers()` ou `useSupabaseUsersCRUD()` exclusivement
+- Plus de conflits localStorage/Supabase possible
+- ProfilePage ✅ déjà migré (Task 2.1)
+- AdminHeader ✅ déjà migré (Phase 1)
+- Agenda ✅ déjà migré (Phase 1)
+- ProspectDetailsAdmin ✅ déjà migré (Phase 1)
 
-**Test:**
+**Tests à effectuer:**
 - [ ] Vérifier que le switch user fonctionne encore dans AdminHeader
 - [ ] Vérifier que les filtres par user fonctionnent (Pipeline, Agenda, Contacts)
+- [ ] Vérifier que ProfilePage continue à fonctionner
+- [ ] Vérifier qu'aucun composant ne crash par manque de `users` context
+
+**⚠️ Note:**
+- `activeAdminUser` conservé dans localStorage (objet complet)
+- `switchActiveAdminUser()` toujours fonctionnel
+- Si besoin futur : remplacer par UUID + hook pour optimiser
 
 ---
 
@@ -154,11 +188,16 @@ grep -rn "users =\|users\[\|Object.values(users)" src/
 **Actions pour chaque match:**
 1. Lire le contexte du code
 2. Décider si migration nécessaire
-3. Migrer vers `useSupabaseUsers()` si besoin
+3. Migrer vers `useSupabaseUsers()` ou `useSupabaseUsersCRUD()` si besoin
 4. Tester en local
 5. Commit incrémental
 
 **Commit final:** `"feat: Phase 2 - Remove all localStorage users references"`
+
+**⚠️ Note importante:**
+- Certains composants utilisent déjà `useSupabaseUsers()` (Agenda, ProspectDetailsAdmin, AdminHeader)
+- Vérifier qu'ils ne cassent pas après suppression du context
+- Si un composant utilise `users` du context ET le hook Supabase → supprimer la référence context
 
 ---
 

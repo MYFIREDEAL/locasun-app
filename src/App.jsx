@@ -159,7 +159,8 @@ function App() {
   const [projectStepsStatus, setProjectStepsStatus] = useState({});
   const [calls, setCalls] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [users, setUsers] = useState({});
+  // ❌ SUPPRIMÉ: users localStorage - Maintenant géré par useSupabaseUsers() et useSupabaseUsersCRUD()
+  // const [users, setUsers] = useState({});
   const [chatMessages, setChatMessages] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [clientNotifications, setClientNotifications] = useState([]);
@@ -354,36 +355,15 @@ function App() {
       localStorage.setItem('evatime_tasks', JSON.stringify(defaultTasks));
     }
 
-    const storedUsers = localStorage.getItem('evatime_users');
-    let initialUsersObject;
-    if (storedUsers) {
-      initialUsersObject = JSON.parse(storedUsers);
-      setUsers(initialUsersObject);
-    } else {
-      const initialUsers = [
-        { id: 'user-1', name: 'Jack Luc', email: 'jack.luc@icloud.com', role: 'Global Admin', manager: '', accessRights: { modules: ['Pipeline', 'Agenda', 'Contacts'], users: [] } },
-        { id: 'user-2', name: 'Charly', email: 'charly.rosca.ai@gmail.com', role: 'Manager', manager: '', accessRights: { modules: ['Pipeline', 'Agenda', 'Contacts'], users: [] } },
-        { id: 'user-3', name: 'Lucas', email: 'luca23@yopmail.com', role: 'Commercial', manager: 'Charly', accessRights: { modules: ['Pipeline', 'Agenda', 'Contacts'], users: [] } },
-        { id: 'user-4', name: 'Joe', email: 'lucjeanjacques@gmail.com', role: 'Commercial', manager: 'Charly', accessRights: { modules: ['Pipeline', 'Agenda', 'Contacts'], users: [] } },
-        { id: 'user-5', name: 'Marie', email: 'marie@example.com', role: 'Commercial', manager: 'Charly', accessRights: { modules: ['Pipeline', 'Agenda', 'Contacts'], users: [] } },
-        { id: 'user-6', name: 'Pierre', email: 'pierre@example.com', role: 'Manager', manager: '', accessRights: { modules: ['Pipeline', 'Agenda', 'Contacts'], users: [] } },
-      ];
-      initialUsersObject = initialUsers.reduce((acc, user) => {
-        acc[user.id] = user;
-        return acc;
-      }, {});
-      setUsers(initialUsersObject);
-      localStorage.setItem('evatime_users', JSON.stringify(initialUsersObject));
-    }
+    // ❌ SUPPRIMÉ: Chargement users localStorage - Maintenant géré par useSupabaseUsers()
+    // Les utilisateurs sont stockés dans Supabase (auth.users + public.users)
+    // Utiliser useSupabaseUsers() pour lecture ou useSupabaseUsersCRUD() pour CRUD
 
     const storedActiveAdminUser = localStorage.getItem('activeAdminUser');
     if (storedActiveAdminUser) {
         setActiveAdminUser(JSON.parse(storedActiveAdminUser));
-    } else if (initialUsersObject && initialUsersObject['user-1']) {
-        const defaultAdmin = initialUsersObject['user-1'];
-        setActiveAdminUser(defaultAdmin);
-        localStorage.setItem('activeAdminUser', JSON.stringify(defaultAdmin));
     }
+    // Note: activeAdminUser sera chargé via HomePage.jsx après authentification
     
     const storedChatMessages = localStorage.getItem('evatime_chat_messages');
     setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
@@ -804,36 +784,11 @@ function App() {
     setClientFormPanels(prev => prev.filter(item => !(item.prospectId === prospectId && item.projectType === projectType)));
   }, []);
 
-  const updateUsers = (newUsersObject) => {
-    setUsers(newUsersObject);
-    localStorage.setItem('evatime_users', JSON.stringify(newUsersObject));
-  };
-
-  const deleteUser = (userIdToDelete) => {
-    const userToDelete = users[userIdToDelete];
-    if (!userToDelete) return;
-
-    let newOwnerId = 'user-1'; 
-    if (userToDelete.manager) {
-        const manager = Object.values(users).find(u => u.name === userToDelete.manager);
-        if (manager) {
-            newOwnerId = manager.id;
-        }
-    }
-
-    const updatedProspects = prospects.map(prospect => {
-        if (prospect.ownerId === userIdToDelete) {
-            return { ...prospect, ownerId: newOwnerId };
-        }
-        return prospect;
-    });
-    setProspects(updatedProspects);
-    localStorage.setItem('evatime_prospects', JSON.stringify(updatedProspects));
-
-    const updatedUsers = { ...users };
-    delete updatedUsers[userIdToDelete];
-    updateUsers(updatedUsers);
-  };
+  // ❌ SUPPRIMÉ: updateUsers() et deleteUser() - Maintenant dans useSupabaseUsersCRUD()
+  // Utiliser le hook useSupabaseUsersCRUD() pour toutes les opérations CRUD sur les utilisateurs
+  // - addUser(userData) pour créer
+  // - updateUser(userId, updates) pour modifier
+  // - deleteUser(userId) pour supprimer (avec réassignation automatique des prospects)
 
   const addAppointment = (newAppointment) => {
     setAppointments(prev => {
@@ -1046,9 +1001,11 @@ function App() {
     }
   };
 
-  const getAdminById = (userId) => {
-    return users[userId] || null;
-  };
+  // ❌ SUPPRIMÉ: getAdminById() - Utiliser useSupabaseUsers() pour récupérer les utilisateurs
+  // const getAdminById = (userId) => {
+  //   const { users } = useSupabaseUsers();
+  //   return users.find(u => u.id === userId) || null;
+  // };
   
   const appState = { 
     userProjects, setUserProjects, addProject, 
@@ -1059,7 +1016,7 @@ function App() {
     getProjectSteps, updateProjectSteps, completeStepAndProceed,
     calls, addCall, updateCall, deleteCall,
     tasks, addTask, updateTask, deleteTask,
-    users, updateUsers, deleteUser, getAdminById,
+    // ❌ SUPPRIMÉ: users, updateUsers, deleteUser, getAdminById - Utiliser useSupabaseUsers() ou useSupabaseUsersCRUD()
     chatMessages, addChatMessage, getChatMessages,
     notifications, markNotificationAsRead,
     clientNotifications, markClientNotificationAsRead,
