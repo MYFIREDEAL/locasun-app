@@ -158,30 +158,7 @@ const navItems = [
                                 <span>Espace Client</span>
                             </Button>
                         </Link>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                              <Button variant="outline" className="rounded-full flex items-center space-x-2">
-                                  <Users2 className="h-4 w-4 text-gray-600"/>
-                                  <span>{activeAdminUser ? activeAdminUser.name : 'Changer d\'utilisateur'}</span>
-                              </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-64">
-                              <DropdownMenuLabel>Changer d'utilisateur</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuRadioGroup value={activeAdminUser?.id} onValueChange={handleUserSwitch}>
-                                  {usersLoading ? (
-                                    <DropdownMenuItem disabled>Chargement...</DropdownMenuItem>
-                                  ) : (
-                                    supabaseUsers.map(user => (
-                                      <DropdownMenuRadioItem key={user.id} value={user.id} className="flex justify-between items-center">
-                                          <span>{user.name}</span>
-                                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{user.role}</span>
-                                      </DropdownMenuRadioItem>
-                                    ))
-                                  )}
-                              </DropdownMenuRadioGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {/* Bouton "Changer d'utilisateur" désactivé - L'authentification Supabase gère maintenant les sessions utilisateur */}
                       </div>
                    )}
                   <DropdownMenu>
