@@ -170,6 +170,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       // Récupérer l'UUID réel du user depuis Supabase
       const { data: { user } } = await supabase.auth.getUser();
       
+      console.log('🔍 DEBUG auth.getUser():', { user_id: user?.id, email: user?.email });
+      
       if (!user) {
         throw new Error("Utilisateur non authentifié");
       }
@@ -180,6 +182,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         .select('id')
         .eq('user_id', user.id)
         .single();
+
+      console.log('🔍 DEBUG userData query:', { userData, userError, searching_for: user.id });
 
       if (userError || !userData) {
         throw new Error("Impossible de récupérer les informations utilisateur");

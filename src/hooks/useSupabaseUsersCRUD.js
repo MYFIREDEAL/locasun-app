@@ -75,8 +75,13 @@ export const useSupabaseUsersCRUD = () => {
               className: "bg-green-500 text-white",
             });
           } else if (payload.eventType === 'UPDATE') {
-            // Utilisateur modifié
-            setUsers(prev => prev.map(u => u.id === payload.new.id ? payload.new : u));
+            // Utilisateur modifié - CONSERVER les champs qui existent déjà
+            // pour éviter d'écraser avec des données manquantes
+            setUsers(prev => prev.map(u => 
+              u.id === payload.new.id 
+                ? { ...u, ...payload.new } // Merge au lieu de remplacement total
+                : u
+            ));
             console.log('📝 User updated:', payload.new.name);
           } else if (payload.eventType === 'DELETE') {
             // Utilisateur supprimé
@@ -235,14 +240,25 @@ export const useSupabaseUsersCRUD = () => {
       // Ajouter updated_at
       dbUpdates.updated_at = new Date().toISOString();
 
+      // Vérifier la session active
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔍 DEBUG - Current session:', session ? 'LOGGED IN' : 'NOT LOGGED IN');
+      console.log('🔍 DEBUG - Auth user ID:', session?.user?.id);
+      console.log('🔍 DEBUG - Updating user with data:', dbUpdates);
+      console.log('🔍 DEBUG - Target user ID:', userId);
+
       const { data, error: updateError } = await supabase
         .from('users')
         .update(dbUpdates)
         .eq('id', userId)
-        .select()
-        .single();
+        .select();
+
+      console.log('🔍 DEBUG - Update result:', { data, error: updateError });
 
       if (updateError) throw updateError;
+      
+      // Extraire le premier élément si c'est un array
+      const updatedUser = Array.isArray(data) ? data[0] : data;
 
       // ✅ Le real-time va automatiquement mettre à jour la liste
       console.log('✅ User updated in DB, waiting for real-time sync...');
@@ -253,7 +269,7 @@ export const useSupabaseUsersCRUD = () => {
         className: "bg-green-500 text-white",
       });
 
-      return data;
+      return updatedUser;
     } catch (err) {
       console.error('❌ Erreur update utilisateur:', err);
       toast({
