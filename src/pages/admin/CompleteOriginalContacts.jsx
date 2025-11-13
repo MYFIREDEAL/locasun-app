@@ -10,6 +10,7 @@ import { useAppContext } from '@/App';
 import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 // Import des composants originaux avec gestion d'erreur
 let ProspectDetailsAdmin;
@@ -210,6 +211,9 @@ const CompleteOriginalContacts = () => {
   const context = useAppContext();
   const { users = {}, activeAdminUser } = context || {};
   
+  // ✅ Utiliser les vrais utilisateurs Supabase pour le filtre
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  
   // Utiliser le hook Supabase pour les prospects
   const {
     prospects: supabaseProspects,
@@ -238,21 +242,21 @@ const CompleteOriginalContacts = () => {
   const location = useLocation();
 
   const allowedUsers = useMemo(() => {
-    if (!activeAdminUser) return [];
+    if (!activeAdminUser || !supabaseUsers) return [];
     if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
-      return Object.values(users);
+      return supabaseUsers;
     }
     const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-    return Object.values(users).filter(u => allowedIds.includes(u.id));
-  }, [activeAdminUser, users]);
+    return supabaseUsers.filter(u => allowedIds.includes(u.id));
+  }, [activeAdminUser, supabaseUsers]);
 
   const userFilterLabel = useMemo(() => {
     if (!selectedUserId) {
       // Si un seul utilisateur autorisé, ne pas afficher "Tous les utilisateurs"
       return allowedUsers.length === 1 ? allowedUsers[0].name : 'Tous les utilisateurs';
     }
-    return users[selectedUserId]?.name || allowedUsers.find(u => u.id === selectedUserId)?.name || 'Utilisateur inconnu';
-  }, [selectedUserId, users, allowedUsers]);
+    return allowedUsers.find(u => u.id === selectedUserId)?.name || 'Utilisateur inconnu';
+  }, [selectedUserId, allowedUsers]);
 
   // Initialiser selectedUserId selon le nombre d'utilisateurs autorisés
   useEffect(() => {
