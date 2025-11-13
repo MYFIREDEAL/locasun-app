@@ -166,7 +166,7 @@
 ### � Task 2.3 - Audit final composants restants
 **Priorité:** MOYENNE | **Temps estimé:** 1-2h | **Statut:** 🔄 EN COURS (13 nov 2025)
 
-**Progression:** 5/7 fichiers migrés
+**Progression:** 6/7 fichiers migrés (~86% complete)
 
 **✅ Fichiers complétés:**
 1. [x] **App.jsx** (commit 50d261d)
@@ -196,6 +196,13 @@
 5. [x] **FinalPipeline.jsx** (commit 71a75e1)
    - ✅ Added `useSupabaseUsers()` import and hook call
    - ✅ Ready for future users display needs
+
+6. [x] **Agenda.jsx - AddActivityModal** (commit f084af2)
+   - ✅ **CRITICAL BUG FIX:** Fixed blank page when creating appointment
+   - ✅ Line 1148: Changed `supabaseUsers.find()` → `users.find()`
+   - ✅ AddActivityModal uses `users` prop (from parent), not global `supabaseUsers`
+   - ✅ Error: "ReferenceError: Can't find variable: supabaseUsers"
+   - ✅ Impact: Appointment creation now works properly
 
 **🔴 Fichiers restants:**
 
