@@ -83,7 +83,8 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
 };
 
 const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
-  const { getChatMessages, addChatMessage, users, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed } = useAppContext();
+  const { getChatMessages, addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const messages = getChatMessages(prospectId, projectType);
@@ -500,7 +501,7 @@ const ProspectDetailsAdmin = ({
   onBack,
   onUpdate
 }) => {
-  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, users, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo } = useAppContext();
+  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1048,7 +1049,8 @@ const ProspectDetailsAdmin = ({
 
 // Composant réutilisant les mêmes cartes et modal que l'Agenda
 const ProspectActivities = ({ prospectId }) => {
-  const { appointments, calls, tasks, prospects, users } = useAppContext();
+  const { appointments, calls, tasks, prospects } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedActivityType, setSelectedActivityType] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -1271,7 +1273,8 @@ const ProspectActivities = ({ prospectId }) => {
 
 // Copie exacte du composant OtherActivityDetailsPopup de l'Agenda
 const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
-  const { prospects, users, updateCall, deleteCall, updateTask, deleteTask, projectsData } = useAppContext();
+  const { prospects, updateCall, deleteCall, updateTask, deleteTask, projectsData } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [status, setStatus] = useState(activity?.status || 'pending');
   const [done, setDone] = useState(activity?.done || false);
 
@@ -1529,7 +1532,8 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
 
 // Copie exacte du composant EventDetailsPopup de l'Agenda pour les RDV
 const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
-  const { prospects, users, updateAppointment, deleteAppointment, projectsData } = useAppContext();
+  const { prospects, updateAppointment, deleteAppointment, projectsData } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [status, setStatus] = useState(event?.status || 'pending');
 
   useEffect(() => {

@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -99,6 +100,9 @@ const FinalPipeline = () => {
     updateProspect: updateSupabaseProspect,
     deleteProspect: deleteSupabaseProspect,
   } = useSupabaseProspects(activeAdminUser);
+
+  // 🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
 
   // Utiliser les prospects Supabase
   const prospects = supabaseProspects;
