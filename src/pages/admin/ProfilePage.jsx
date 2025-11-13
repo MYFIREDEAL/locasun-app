@@ -17,6 +17,7 @@ import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
+import { supabase } from '@/lib/supabase';
 
 const normalizePipelineStepLabel = (label) => (label || '').toString().trim().toUpperCase();
 const generatePipelineStepId = (prefix = 'pipeline-step') => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -1318,14 +1319,30 @@ const ProfilePage = () => {
     });
   };
   
-  const handleAdminLogout = () => {
-    setActiveAdminUser(null);
-    localStorage.removeItem('evatime_active_admin_user');
-    toast({
-      title: "Déconnexion réussie",
-      description: "À bientôt !",
-    });
-    window.location.href = '/admin';
+  const handleAdminLogout = async () => {
+    try {
+      // Déconnexion Supabase
+      await supabase.auth.signOut();
+      
+      // Nettoyer le state et localStorage
+      setActiveAdminUser(null);
+      localStorage.clear(); // Nettoyer tout le localStorage
+      
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
+      });
+      
+      // Rediriger vers la page de login
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Erreur déconnexion:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de se déconnecter.",
+        variant: "destructive",
+      });
+    }
   };
   
   const scrollToSection = (sectionId) => {
