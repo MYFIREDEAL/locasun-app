@@ -23,7 +23,7 @@ const navItems = [
   { name: 'Pipeline', path: '/admin/pipeline', icon: LayoutGrid },
   { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
   { name: 'Contacts', path: '/admin/contacts', icon: Users },
-  { name: 'Charly AI', path: '/admin/charly', icon: Bot },
+  { name: 'Charly AI', path: '/admin/charly', icon: Bot }, // Updated label
 ];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;
