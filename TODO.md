@@ -5,6 +5,22 @@
 
 ---
 
+## ⚠️ RÈGLES DE GESTION TODO
+
+**🤖 Copilot gère ce fichier automatiquement :**
+- ✅ C'est Copilot qui coche les cases `[ ]` → `[x]` quand une tâche est terminée
+- ✅ C'est Copilot qui met à jour les dates et statuts
+- ✅ C'est Copilot qui commit TODO.md avec les changements de code
+
+**👤 L'utilisateur ne touche JAMAIS à TODO.md :**
+- Il dit juste "On fait Task 2.1" ou "Continue Phase 2"
+- Copilot code + coche + commit automatiquement
+
+**📖 Pour consulter l'avancement :**
+- L'utilisateur dit "Regarde la TODO" → Copilot lit TODO.md
+
+---
+
 ## ✅ PHASE 1 - TERMINÉE (40 min)
 **Objectif:** Fixer les affichages utilisateurs urgents
 
