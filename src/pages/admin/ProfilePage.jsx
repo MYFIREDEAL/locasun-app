@@ -16,6 +16,7 @@ import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bo
 import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
+import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
 
 const normalizePipelineStepLabel = (label) => (label || '').toString().trim().toUpperCase();
 const generatePipelineStepId = (prefix = 'pipeline-step') => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -980,9 +981,6 @@ const PromptCreatorDialog = ({
 };
 const ProfilePage = () => {
   const {
-    users,
-    updateUsers,
-    deleteUser,
     projectsData,
     setProjectsData,
     forms,
@@ -997,6 +995,34 @@ const ProfilePage = () => {
     companyLogo,
     setCompanyLogo
   } = useAppContext();
+
+  // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
+  const {
+    users: supabaseUsers,
+    loading: usersLoading,
+    addUser,
+    updateUser,
+    deleteUser: deleteUserSupabase
+  } = useSupabaseUsersCRUD();
+
+  // Transformer le array Supabase en objet compatible avec le code existant
+  // { userId: { id, name, email, ... } }
+  const users = useMemo(() => {
+    return supabaseUsers.reduce((acc, user) => {
+      acc[user.id] = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        avatarUrl: user.avatar_url,
+        manager: user.manager_id, // TODO: résoudre le nom du manager si nécessaire
+        accessRights: user.access_rights,
+      };
+      return acc;
+    }, {});
+  }, [supabaseUsers]);
+
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isInviteUserOpen, setIsInviteUserOpen] = useState(false);
   const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
@@ -1268,18 +1294,15 @@ const ProfilePage = () => {
       [name]: value
     }));
   };
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if(!activeAdminUser) return;
     
-    const updatedUser = { ...activeAdminUser, ...userInfo };
-    const updatedUsers = { ...users, [activeAdminUser.id]: updatedUser };
-    updateUsers(updatedUsers);
-
-    toast({
-      title: "Modifications enregistrées",
-      description: "Vos informations personnelles ont été mises à jour.",
-      className: "bg-green-500 text-white"
-    });
+    try {
+      await updateUser(activeAdminUser.id, userInfo);
+      // Le toast est déjà affiché dans le hook
+    } catch (err) {
+      console.error('Erreur sauvegarde modifications:', err);
+    }
   };
   const handleFeatureClick = featureName => {
     toast({
@@ -1343,30 +1366,25 @@ const ProfilePage = () => {
     }
     setIsAccessRightsOpen(true);
   };
-  const handleSaveAccessRights = () => {
+  const handleSaveAccessRights = async () => {
     if (!editingUser || editingUser.role === 'Admin' || editingUser.role === 'Global Admin') {
       setIsAccessRightsOpen(false);
       return;
     }
     
-    const updatedUsers = {
-      ...users
-    };
-    updatedUsers[editingUser.id] = {
-      ...editingUser,
-      accessRights: {
-        modules: accessRights.modules,
-        users: accessRights.users.map(u => u.value)
-      }
-    };
-    updateUsers(updatedUsers);
-    toast({
-      title: "Droits d'accès modifiés !",
-      description: `Les droits de ${editingUser.name} ont été mis à jour.`,
-      className: "bg-green-500 text-white"
-    });
-    setIsAccessRightsOpen(false);
-    setEditingUser(null);
+    try {
+      await updateUser(editingUser.id, {
+        accessRights: {
+          modules: accessRights.modules,
+          users: accessRights.users.map(u => u.value)
+        }
+      });
+      // Le toast est déjà affiché dans le hook
+      setIsAccessRightsOpen(false);
+      setEditingUser(null);
+    } catch (err) {
+      console.error('Erreur sauvegarde droits accès:', err);
+    }
   };
   const handleAccessModuleChange = (moduleName, checked) => {
     setAccessRights(prev => {
@@ -1377,32 +1395,28 @@ const ProfilePage = () => {
       };
     });
   };
-  const handleChangeRole = () => {
+  const handleChangeRole = async () => {
     if (!editingUser) return;
-    const updatedUsers = {
-      ...users
-    };
-    updatedUsers[editingUser.id] = {
-      ...editingUser,
-      role: selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1),
-      manager: selectedManager === 'none' ? '' : selectedManager
-    };
-    updateUsers(updatedUsers);
-    toast({
-      title: "Rôle modifié !",
-      description: `Le rôle de ${editingUser.name} a été mis à jour.`,
-      className: "bg-green-500 text-white"
-    });
-    setIsChangeRoleOpen(false);
-    setEditingUser(null);
+    
+    try {
+      await updateUser(editingUser.id, {
+        role: selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1),
+        manager: selectedManager === 'none' ? '' : selectedManager
+      });
+      // Le toast est déjà affiché dans le hook
+      setIsChangeRoleOpen(false);
+      setEditingUser(null);
+    } catch (err) {
+      console.error('Erreur changement rôle:', err);
+    }
   };
-  const handleDeleteUser = userToDelete => {
-    deleteUser(userToDelete.id);
-    toast({
-      title: "Utilisateur supprimé",
-      description: `${userToDelete.name} a été supprimé et ses contacts ont été réassignés.`,
-      className: "bg-green-500 text-white"
-    });
+  const handleDeleteUser = async (userToDelete) => {
+    try {
+      await deleteUserSupabase(userToDelete.id);
+      // Le toast est déjà affiché dans le hook
+    } catch (err) {
+      console.error('Erreur suppression utilisateur:', err);
+    }
   };
   const handleCopyLink = user => {
     if (!user?.id) return;
@@ -1601,7 +1615,7 @@ const ProfilePage = () => {
       [field]: value
     }));
   };
-  const handleInviteUser = () => {
+  const handleInviteUser = async () => {
     if (!newUser.name || !newUser.email || !newUser.password) {
       toast({
         title: "Champs manquants",
@@ -1610,36 +1624,33 @@ const ProfilePage = () => {
       });
       return;
     }
-    const newUserId = `user-${Date.now()}`;
-    const newUserObject = {
-      id: newUserId,
-      ...newUser,
-      name: `${newUser.name}`,
-      role: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),
-      manager: newUser.manager === 'none' ? '' : newUser.manager,
-      accessRights: {
-        modules: ['Pipeline', 'Agenda', 'Contacts'],
-        users: []
-      }
-    };
-    const updatedUsers = {
-      ...users,
-      [newUserId]: newUserObject
-    };
-    updateUsers(updatedUsers);
-    toast({
-      title: "Utilisateur invité !",
-      description: `${newUser.name} a été ajouté à la liste.`,
-      className: "bg-green-500 text-white"
-    });
-    setIsInviteUserOpen(false);
-    setNewUser({
-      name: '',
-      email: '',
-      password: '',
-      role: 'commercial',
-      manager: ''
-    });
+
+    try {
+      await addUser({
+        name: newUser.name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),
+        manager: newUser.manager === 'none' ? '' : newUser.manager,
+        phone: newUser.phone || '',
+        accessRights: {
+          modules: ['Pipeline', 'Agenda', 'Contacts'],
+          users: []
+        }
+      });
+
+      // Le toast est déjà affiché dans le hook
+      setIsInviteUserOpen(false);
+      setNewUser({
+        name: '',
+        email: '',
+        password: '',
+        role: 'commercial',
+        manager: ''
+      });
+    } catch (err) {
+      console.error('Erreur invitation utilisateur:', err);
+    }
   };
   const containerVariants = {
     hidden: {

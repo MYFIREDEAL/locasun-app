@@ -72,29 +72,29 @@
 **Fichier:** `src/pages/admin/ProfilePage.jsx`
 
 **Lignes à migrer:**
-- [ ] Ligne 1275: `users[editingUser]` → migration vers Supabase
-- [ ] Ligne 1316: `Object.values(users)` → `supabaseUsers`
-- [ ] Ligne 1332: `handleAddUser()` → `INSERT` Supabase
-- [ ] Ligne 1333: `setUsers(prev => ({...prev}))` → supprimer
-- [ ] Ligne 1352: `handleUpdateUser()` → `UPDATE` Supabase
-- [ ] Ligne 1355: `setUsers(prev => ({...prev}))` → supprimer
-- [ ] Ligne 1382: `handleDeleteUser()` → `DELETE` Supabase
-- [ ] Ligne 1385: `setUsers(prev => {...prev})` → supprimer
-- [ ] Ligne 1584: Formulaire édition utilisateur
-- [ ] Ligne 1597: Tableau liste utilisateurs
-- [ ] Ligne 1625: Actions CRUD boutons
+- [x] ~~Ligne 1275: `users[editingUser]`~~ → Migré vers Supabase
+- [x] ~~Ligne 1316: `Object.values(users)`~~ → Utilise `useMemo` sur `supabaseUsers`
+- [x] ~~Ligne 1332: `handleAddUser()`~~ → Remplacé par `addUser()` hook
+- [x] ~~Ligne 1333: `setUsers(prev => ({...prev}))`~~ → Supprimé (real-time)
+- [x] ~~Ligne 1352: `handleUpdateUser()`~~ → Remplacé par `updateUser()` hook
+- [x] ~~Ligne 1355: `setUsers(prev => ({...prev}))`~~ → Supprimé (real-time)
+- [x] ~~Ligne 1382: `handleDeleteUser()`~~ → Remplacé par `deleteUserSupabase()` hook
+- [x] ~~Ligne 1385: `setUsers(prev => {...prev})`~~ → Supprimé (real-time)
+- [x] Formulaire édition utilisateur → Migré
+- [x] Tableau liste utilisateurs → Migré
+- [x] Actions CRUD boutons → Migré
 
 **Actions requises:**
-1. [ ] Créer `src/hooks/useSupabaseUsersCRUD.js` avec:
+1. [x] Créer `src/hooks/useSupabaseUsersCRUD.js` avec:
    - `addUser(userData)` - INSERT dans `public.users`
    - `updateUser(userId, updates)` - UPDATE
    - `deleteUser(userId)` - DELETE
    - Real-time sync automatique via subscription
-2. [ ] Ajouter import: `import { useSupabaseUsers } from '@/hooks/useSupabaseUsers'`
-3. [ ] Remplacer `const { users, setUsers } = useAppContext()` par `const { users: supabaseUsers } = useSupabaseUsers()`
-4. [ ] Remplacer tous les `setUsers()` localStorage par appels Supabase
-5. [ ] Gérer les UUID Supabase (pas de fake IDs)
-6. [ ] Ajouter validation/error handling
+2. [x] Ajouter import: `import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD'`
+3. [x] Remplacer `const { users, updateUsers, deleteUser } = useAppContext()` par hook Supabase
+4. [x] Remplacer tous les `updateUsers()` localStorage par appels Supabase
+5. [x] Remplacer `deleteUser()` localStorage par `deleteUserSupabase()`
+6. [x] Transformer array Supabase en objet compatible (useMemo)
 
 **Dépendances:**
 - Permissions RLS dans Supabase ✅ (déjà configuré dans `schema.sql`)
