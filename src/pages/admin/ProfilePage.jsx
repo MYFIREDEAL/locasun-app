@@ -1299,17 +1299,22 @@ const ProfilePage = () => {
     if(!activeAdminUser) return;
     
     try {
-      // 🔥 FIX: activeAdminUser.id peut être user_id (ancien format localStorage)
-      // Trouver le bon user dans supabaseUsers par user_id
-      const currentUser = supabaseUsers.find(u => u.user_id === activeAdminUser.id || u.id === activeAdminUser.id);
+      // Trouver l'utilisateur dans supabaseUsers par ID ou user_id
+      const currentUser = supabaseUsers.find(u => u.id === activeAdminUser.id || u.user_id === activeAdminUser.user_id);
+      
       if (!currentUser) {
         throw new Error('Utilisateur non trouvé');
       }
       
       await updateUser(currentUser.id, userInfo);
-      // Le toast est déjà affiché dans le hook
+      // Le toast de succès est déjà affiché dans le hook
     } catch (err) {
       console.error('Erreur sauvegarde modifications:', err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les modifications.",
+        variant: "destructive",
+      });
     }
   };
   const handleFeatureClick = featureName => {

@@ -181,61 +181,53 @@ function App() {
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
   const { users: supabaseUsers } = useSupabaseUsers();
 
-  // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté (UNE SEULE FOIS au chargement)
+  // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
   useEffect(() => {
     const syncActiveAdmin = async () => {
       try {
-        console.log('🔄 Safari DEBUG - Starting syncActiveAdmin...');
-        console.log('🔄 Safari DEBUG - supabaseUsers count:', supabaseUsers.length);
-        console.log('🔄 Safari DEBUG - activeAdminUser:', activeAdminUser?.name);
-        
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        console.log('🔐 Safari DEBUG - Auth user:', user?.id, authError);
         
         if (!user) {
-          console.warn('⚠️ Safari DEBUG - No auth user found');
           setActiveAdminUser(null);
           try {
             localStorage.removeItem('activeAdminUser');
           } catch (e) {
-            console.warn('⚠️ Safari localStorage blocked:', e);
+            console.warn('⚠️ localStorage blocked:', e);
           }
           return;
         }
 
         // Trouver l'utilisateur dans supabaseUsers par user_id
         const matchedUser = supabaseUsers.find(u => u.user_id === user.id);
-        console.log('👤 Safari DEBUG - Matched user:', matchedUser?.name);
         
         if (matchedUser) {
-          console.log('✅ Synchronisation activeAdminUser:', matchedUser.name);
-          setActiveAdminUser(matchedUser);
-          try {
-            localStorage.setItem('activeAdminUser', JSON.stringify(matchedUser));
-          } catch (e) {
-            console.warn('⚠️ Safari localStorage write blocked, continuing without cache:', e);
-            // Continue anyway - activeAdminUser is set in state
+          // Mettre à jour si nécessaire (ancien format localStorage ou données mises à jour)
+          const needsUpdate = !activeAdminUser || 
+                             activeAdminUser.id !== matchedUser.id || 
+                             activeAdminUser.user_id !== matchedUser.user_id;
+          
+          if (needsUpdate) {
+            console.log('✅ activeAdminUser synchronized:', matchedUser.name);
+            setActiveAdminUser(matchedUser);
+            try {
+              localStorage.setItem('activeAdminUser', JSON.stringify(matchedUser));
+            } catch (e) {
+              console.warn('⚠️ localStorage write blocked:', e);
+            }
           }
         } else {
-          console.error('❌ Safari DEBUG - User not found in supabaseUsers array');
-          console.log('Available users:', supabaseUsers.map(u => ({ id: u.user_id, name: u.name })));
+          console.error('❌ User not found in Supabase users');
         }
       } catch (error) {
-        console.error('❌ Erreur sync activeAdminUser:', error);
+        console.error('❌ Error syncing activeAdminUser:', error);
       }
     };
 
-    // Ne synchroniser que si supabaseUsers est chargé ET qu'on n'a pas encore d'activeAdminUser
-    if (supabaseUsers.length > 0 && !activeAdminUser) {
-      console.log('🚀 Safari DEBUG - Triggering sync (users loaded, no activeAdminUser yet)');
+    // Synchroniser dès que supabaseUsers est chargé
+    if (supabaseUsers.length > 0) {
       syncActiveAdmin();
-    } else {
-      console.log('⏸️ Safari DEBUG - Skipping sync:', {
-        usersCount: supabaseUsers.length,
-        hasActiveAdmin: !!activeAdminUser
-      });
     }
-  }, [supabaseUsers, activeAdminUser]);
+  }, [supabaseUsers]);
 
   useEffect(() => {
     const storedProjectsData = localStorage.getItem('evatime_projects_data');
