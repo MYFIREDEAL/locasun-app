@@ -313,6 +313,67 @@ export const useSupabaseCompanySettings = () => {
     return companySettings?.settings?.form_contact_config || [];
   };
 
+  /**
+   * ✅ METTRE À JOUR LES PIPELINES GLOBAUX
+   * @param {Array} globalPipelineSteps - Array de projets avec leurs étapes
+   */
+  const updateGlobalPipelineSteps = async (globalPipelineSteps) => {
+    try {
+      console.log('🔧 Updating global pipeline steps...', globalPipelineSteps);
+      
+      // Marquer comme mise à jour locale
+      isLocalUpdate.current = true;
+
+      // Récupérer les settings actuels et ajouter/modifier global_pipeline_steps
+      const currentSettings = companySettings?.settings || {};
+      const newSettings = {
+        ...currentSettings,
+        global_pipeline_steps: globalPipelineSteps
+      };
+
+      const { error: updateError } = await supabase
+        .from('company_settings')
+        .update({ 
+          settings: newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', COMPANY_SETTINGS_ID);
+
+      if (updateError) {
+        console.error('❌ Supabase global pipeline update error:', updateError);
+        isLocalUpdate.current = false;
+        throw updateError;
+      }
+
+      console.log('✅ Global pipeline steps updated in Supabase');
+      
+      // Mise à jour immédiate de l'état local
+      setCompanySettings(prev => ({
+        ...prev,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      }));
+
+      return true;
+    } catch (err) {
+      console.error('❌ Erreur update global pipeline steps:', err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour les pipelines globaux.",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  };
+
+  /**
+   * ✅ RÉCUPÉRER LES PIPELINES GLOBAUX
+   * @returns {Array} - Array de projets avec leurs étapes
+   */
+  const getGlobalPipelineSteps = () => {
+    return companySettings?.settings?.global_pipeline_steps || [];
+  };
+
   return {
     companySettings,
     loading,
@@ -322,6 +383,8 @@ export const useSupabaseCompanySettings = () => {
     updateSettings,
     updateFormContactConfig,
     getFormContactConfig,
+    updateGlobalPipelineSteps,
+    getGlobalPipelineSteps,
     refetch: fetchCompanySettings,
   };
 };

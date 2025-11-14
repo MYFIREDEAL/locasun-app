@@ -26,9 +26,9 @@ import { formContactConfig as defaultFormContactConfig } from '@/config/formCont
 import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
+import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 
-const GLOBAL_PIPELINE_STORAGE_KEY = 'global_pipeline_steps';
-const DEFAULT_GLOBAL_PIPELINE_STEPS = ['MARKET', 'ETUDE', 'OFFRE'];
+// ✅ globalPipelineSteps maintenant géré par Supabase (constantes localStorage supprimées)
 const GLOBAL_PIPELINE_COLOR_PALETTE = [
   'bg-blue-100',
   'bg-yellow-100',
@@ -173,7 +173,7 @@ function App() {
   const [prompts, setPrompts] = useState({});
   // formContactConfig est maintenant géré par useSupabaseCompanySettings (plus besoin de useState)
   const [projectInfos, setProjectInfos] = useState({});
-  const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
+  // ✅ globalPipelineSteps maintenant géré par useSupabaseGlobalPipeline (plus de localStorage)
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
@@ -189,6 +189,16 @@ function App() {
     updateFormContactConfig,
     getFormContactConfig 
   } = useSupabaseCompanySettings();
+
+  // 🔥 Charger les colonnes du pipeline global depuis Supabase avec real-time
+  const { 
+    globalPipelineSteps,
+    loading: pipelineLoading,
+    addStep: addPipelineStep,
+    updateStep: updatePipelineStep,
+    deleteStep: deletePipelineStep,
+    reorderSteps: reorderPipelineSteps
+  } = useSupabaseGlobalPipeline();
   
   // Exposer le logo pour le contexte (compatibilité avec le code existant)
   const companyLogo = companySettings?.logo_url || '';
@@ -511,30 +521,9 @@ function App() {
       localStorage.setItem(PROJECT_INFO_STORAGE_KEY, JSON.stringify(initialProjectInfos));
     }
 
-    const storedGlobalPipelineSteps = localStorage.getItem(GLOBAL_PIPELINE_STORAGE_KEY);
-
-    if (storedGlobalPipelineSteps) {
-      try {
-        const parsedSteps = JSON.parse(storedGlobalPipelineSteps);
-        const sanitized = sanitizeGlobalPipelineSteps(parsedSteps);
-        if (sanitized.length > 0) {
-          setGlobalPipelineSteps(sanitized);
-        } else {
-          const defaults = buildDefaultGlobalPipelineSteps();
-          setGlobalPipelineSteps(defaults);
-          localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
-        }
-      } catch {
-        const defaults = buildDefaultGlobalPipelineSteps();
-        setGlobalPipelineSteps(defaults);
-        localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
-      }
-    } else {
-      const defaults = buildDefaultGlobalPipelineSteps();
-      setGlobalPipelineSteps(defaults);
-      localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
-    }
-
+    // ✅ globalPipelineSteps maintenant chargé automatiquement par useSupabaseGlobalPipeline
+    // Plus besoin de localStorage.getItem(GLOBAL_PIPELINE_STORAGE_KEY)
+    
     // hasHydratedFormContactConfig n'est plus nécessaire (géré par Supabase)
     hasHydratedGlobalPipelineSteps.current = true;
   }, []);
@@ -629,15 +618,62 @@ function App() {
     });
   };
 
-  const handleSetGlobalPipelineSteps = (updater) => {
-    setGlobalPipelineSteps(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      const sanitized = sanitizeGlobalPipelineSteps(next);
-      if (areGlobalPipelineStepsEqual(prev, sanitized)) {
-        return prev;
+  // ✅ Fonction wrapper pour compatibilité avec le code existant
+  // Maintenant les modifications passent par useSupabaseGlobalPipeline
+  const handleSetGlobalPipelineSteps = async (updater) => {
+    const current = globalPipelineSteps;
+    const next = typeof updater === 'function' ? updater(current) : updater;
+    
+    // Comparer et mettre à jour via Supabase
+    const sanitized = sanitizeGlobalPipelineSteps(next);
+    
+    if (areGlobalPipelineStepsEqual(current, sanitized)) {
+      return; // Pas de changement
+    }
+
+    try {
+      // Détecter les ajouts, suppressions, modifications
+      const currentIds = new Set(current.map(s => s.id));
+      const nextIds = new Set(sanitized.map(s => s.id));
+
+      // 1. Supprimer les colonnes qui n'existent plus
+      for (const step of current) {
+        if (!nextIds.has(step.id)) {
+          await deletePipelineStep(step.id);
+        }
       }
-      return sanitized;
-    });
+
+      // 2. Ajouter les nouvelles colonnes
+      for (const step of sanitized) {
+        if (!currentIds.has(step.id)) {
+          await addPipelineStep(step.label, step.color || 'bg-gray-100');
+        }
+      }
+
+      // 3. Mettre à jour les colonnes modifiées et réorganiser
+      const stepsToUpdate = sanitized.filter(s => currentIds.has(s.id));
+      for (let i = 0; i < stepsToUpdate.length; i++) {
+        const step = stepsToUpdate[i];
+        const oldStep = current.find(s => s.id === step.id);
+        
+        if (oldStep && (oldStep.label !== step.label || oldStep.color !== step.color || oldStep.position !== i)) {
+          await updatePipelineStep(step.id, {
+            label: step.label,
+            color: step.color,
+            position: i
+          });
+        }
+      }
+
+      console.log('✅ Pipeline steps updated in Supabase');
+    } catch (error) {
+      console.error('❌ Error updating pipeline steps:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour les colonnes du pipeline.",
+        variant: "destructive",
+      });
+    }
   };
 
   // 🔥 Migration : Charger formContactConfig depuis localStorage et migrer vers Supabase
@@ -666,20 +702,8 @@ function App() {
     migrateFormContactConfig();
   }, [companySettings]); // Exécuter uniquement quand companySettings est chargé
 
-  useEffect(() => {
-    if (!hasHydratedGlobalPipelineSteps.current) {
-      hasHydratedGlobalPipelineSteps.current = true;
-      return undefined;
-    }
-    const cancel = scheduleDeferredWrite(() => {
-      try {
-        localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(globalPipelineSteps));
-      } catch {
-        /* ignore storage errors */
-      }
-    });
-    return () => cancel();
-  }, [globalPipelineSteps]);
+  // ✅ globalPipelineSteps maintenant géré par Supabase (plus de localStorage)
+  // Plus besoin de sauvegarder dans localStorage à chaque changement
 
   // 🔥 Le logo est maintenant géré par Supabase (useSupabaseCompanySettings)
   // Plus besoin de localStorage - Migration : nettoyer l'ancien logo
