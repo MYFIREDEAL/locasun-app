@@ -1040,13 +1040,50 @@ function App() {
     });
   };
   
-  const updateProjectSteps = (prospectId, projectType, newSteps) => {
+  const updateProjectSteps = async (prospectId, projectType, newSteps) => {
     const key = `prospect_${prospectId}_project_${projectType}`;
+    
+    // 1️⃣ Mettre à jour l'état local immédiatement pour UI réactive
     setProjectStepsStatus(prev => {
         const updated = { ...prev, [key]: newSteps };
         localStorage.setItem('evatime_project_steps_status', JSON.stringify(updated));
         return updated;
     });
+
+    // 2️⃣ Sauvegarder dans Supabase (real-time sync)
+    try {
+      console.log('💾 Saving project steps to Supabase...', { prospectId, projectType, newSteps });
+      
+      const { data, error } = await supabase
+        .from('project_steps_status')
+        .upsert(
+          {
+            prospect_id: prospectId,
+            project_type: projectType,
+            steps: newSteps,
+            updated_at: new Date().toISOString()
+          },
+          {
+            onConflict: 'prospect_id,project_type'
+          }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error saving to Supabase:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de sauvegarder les étapes",
+          variant: "destructive",
+        });
+        throw error;
+      }
+
+      console.log('✅ Project steps saved to Supabase:', data);
+    } catch (err) {
+      console.error('❌ Failed to save project steps:', err);
+    }
   };
   
    const getProjectSteps = (prospectId, projectType) => {
