@@ -646,20 +646,15 @@ function App() {
     return () => cancel();
   }, [globalPipelineSteps]);
 
-  // Load company logo from localStorage
+  // 🔥 Le logo est maintenant géré par Supabase (useSupabaseCompanySettings)
+  // Plus besoin de localStorage - Migration : nettoyer l'ancien logo
   useEffect(() => {
-    const storedLogo = localStorage.getItem('evatime_company_logo');
-    if (storedLogo) {
-      setCompanyLogo(storedLogo);
+    const oldLogo = localStorage.getItem('evatime_company_logo');
+    if (oldLogo) {
+      console.log('🧹 Migration: Suppression ancien logo localStorage');
+      localStorage.removeItem('evatime_company_logo');
     }
   }, []);
-
-  // Save company logo to localStorage
-  useEffect(() => {
-    if (companyLogo) {
-      localStorage.setItem('evatime_company_logo', companyLogo);
-    }
-  }, [companyLogo]);
 
   const addChatMessage = (prospectId, projectType, message) => {
     const chatKey = `chat_${prospectId}_${projectType}`;
