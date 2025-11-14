@@ -14,9 +14,17 @@ function ClientDashboardPage() {
 
   useEffect(() => {
     console.log('🔄 ClientDashboardPage: currentUser changed', currentUser);
+    console.log('🔄 ProjectsData keys:', Object.keys(projectsData));
     
     if (!currentUser) {
       // Pas de client connecté → on ne peut pas afficher de projets
+      setDisplayedProjects([]);
+      return;
+    }
+    
+    // ⚠️ IMPORTANT: Attendre que projectsData soit chargé depuis Supabase
+    if (Object.keys(projectsData).length === 0) {
+      console.log('⏳ projectsData not loaded yet, waiting...');
       setDisplayedProjects([]);
       return;
     }

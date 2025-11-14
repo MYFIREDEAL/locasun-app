@@ -9,15 +9,10 @@ import React from 'react';
       const { currentUser } = useAppContext();
       const totalProjects = projects.length;
       
-      const getProjectStats = (project) => {
-        const completedStepsCount = project.steps.filter(step => step.status === 'completed').length;
-        const totalSteps = project.steps.length;
-        const progress = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
-        return { progress };
-      };
-
-      const activeProjects = projects.filter(p => getProjectStats(p).progress === 100).length;
-      const inProgressProjects = totalProjects - activeProjects;
+      // Note: La progression est maintenant calculée dans ProjectCard via Supabase
+      // On affiche juste le nombre total de projets
+      const activeProjects = 0; // TODO: calculer depuis les vraies progressions Supabase
+      const inProgressProjects = totalProjects;
 
       return (
         <motion.div
