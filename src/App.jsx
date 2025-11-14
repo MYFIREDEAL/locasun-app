@@ -25,6 +25,7 @@ import { slugify } from '@/lib/utils';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 
 const GLOBAL_PIPELINE_STORAGE_KEY = 'global_pipeline_steps';
 const DEFAULT_GLOBAL_PIPELINE_STEPS = ['MARKET', 'ETUDE', 'OFFRE'];
@@ -175,12 +176,18 @@ function App() {
   const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [clientFormPanels, setClientFormPanels] = useState([]);
-  const [companyLogo, setCompanyLogo] = useState('');
   const hasHydratedFormContactConfig = useRef(false);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
   const { users: supabaseUsers } = useSupabaseUsers();
+  
+  // 🔥 Charger les company settings (logo, etc.) depuis Supabase avec real-time
+  const { companySettings, updateLogo, removeLogo } = useSupabaseCompanySettings();
+  
+  // Exposer le logo pour le contexte (compatibilité avec le code existant)
+  const companyLogo = companySettings?.logo_url || '';
+  const setCompanyLogo = updateLogo;
 
   // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
   // ⚠️ IMPORTANT: Ne s'applique QUE aux ADMINS (table users), pas aux CLIENTS (table prospects)
@@ -1089,7 +1096,7 @@ function App() {
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     activeAdminUser, setActiveAdminUser, switchActiveAdminUser,
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
-    companyLogo, setCompanyLogo,
+    companyLogo, setCompanyLogo, removeLogo,
   };
 
   const getPageTitle = () => {

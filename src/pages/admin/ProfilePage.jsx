@@ -995,7 +995,8 @@ const ProfilePage = () => {
     activeAdminUser,
     setActiveAdminUser,
     companyLogo,
-    setCompanyLogo
+    setCompanyLogo,
+    removeLogo
   } = useAppContext();
 
   // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
@@ -1557,32 +1558,34 @@ const ProfilePage = () => {
     }));
   };
   
-  const handleLogoUpload = (e) => {
+  const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setCompanyLogo(reader.result);
-        toast({
-          title: "Logo téléchargé",
-          description: `Le logo "${file.name}" a été chargé avec succès.`,
-          className: "bg-green-500 text-white"
-        });
+      reader.onloadend = async () => {
+        try {
+          // 🔥 Sauvegarder dans Supabase (le real-time mettra à jour le contexte)
+          await setCompanyLogo(reader.result);
+        } catch (error) {
+          console.error('Error uploading logo:', error);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
   
-  const handleRemoveLogo = () => {
-    setCompanyLogo('');
-    if (logoInputRef.current) {
-      logoInputRef.current.value = '';
+  const handleRemoveLogo = async () => {
+    try {
+      // 🔥 Supprimer dans Supabase via le contexte
+      await removeLogo();
+      
+      if (logoInputRef.current) {
+        logoInputRef.current.value = '';
+      }
+      setIsLogoMenuOpen(false);
+    } catch (error) {
+      console.error('Error removing logo:', error);
     }
-    localStorage.removeItem('evatime_company_logo');
-    toast({
-      title: "Logo supprimé",
-      description: "Le logo a été retiré.",
-    });
   };
   const handleSaveForm = formToSave => {
     const newForms = {
