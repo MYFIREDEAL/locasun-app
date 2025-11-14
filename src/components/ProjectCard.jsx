@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
@@ -12,10 +12,12 @@ import React from 'react';
       // 🔥 PRIORITÉ: Charger depuis Supabase
       const { projectStepsStatus } = useSupabaseProjectStepsStatus(currentUser?.id);
       
-      // Récupérer les steps pour ce projet spécifique
-      const steps = (projectStepsStatus && projectStepsStatus[project.type]) 
-        ? projectStepsStatus[project.type] 
-        : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
+      // Récupérer les steps pour ce projet spécifique (useMemo pour forcer re-render)
+      const steps = useMemo(() => {
+        return (projectStepsStatus && projectStepsStatus[project.type]) 
+          ? projectStepsStatus[project.type] 
+          : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
+      }, [projectStepsStatus, project.type, currentUser, getProjectSteps]);
       
       console.log('🔍 [ProjectCard] Steps for', project.type, ':', {
         projectStepsStatusExists: !!projectStepsStatus,
