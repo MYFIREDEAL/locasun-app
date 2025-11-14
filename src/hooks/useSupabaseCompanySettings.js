@@ -107,7 +107,14 @@ export const useSupabaseCompanySettings = () => {
         throw updateError;
       }
 
-      console.log('✅ Logo updated in DB, waiting for real-time sync...');
+      console.log('✅ Logo updated in DB');
+      
+      // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
+      setCompanySettings(prev => ({
+        ...prev,
+        logo_url: logoData,
+        updated_at: new Date().toISOString()
+      }));
 
       toast({
         title: "Logo mis à jour !",
@@ -148,7 +155,14 @@ export const useSupabaseCompanySettings = () => {
         throw updateError;
       }
 
-      console.log('✅ Logo removed, waiting for real-time sync...');
+      console.log('✅ Logo removed from Supabase');
+      
+      // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
+      setCompanySettings(prev => ({
+        ...prev,
+        logo_url: null,
+        updated_at: new Date().toISOString()
+      }));
 
       toast({
         title: "Logo supprimé",
@@ -190,7 +204,14 @@ export const useSupabaseCompanySettings = () => {
         throw updateError;
       }
 
-      console.log('✅ Settings updated, waiting for real-time sync...');
+      console.log('✅ Settings updated in Supabase');
+      
+      // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
+      setCompanySettings(prev => ({
+        ...prev,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      }));
 
       // Pas besoin de retourner les données, le real-time s'en charge
       return true;
