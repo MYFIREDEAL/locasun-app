@@ -1260,7 +1260,7 @@ const ProfilePage = () => {
       [field]: value
     }));
   };
-  const handleSaveDisplayData = () => {
+  const handleSaveDisplayData = async () => {
     if (!selectedProjectForDisplay) return;
     const updatedProject = {
       ...projectsData[selectedProjectForDisplay],
@@ -1270,12 +1270,21 @@ const ProfilePage = () => {
       ...projectsData,
       [selectedProjectForDisplay]: updatedProject
     };
-    setProjectsData(newProjectsData);
-    toast({
-      title: "Modifications enregistrées !",
-      description: `L'affichage du projet "${projectsData[selectedProjectForDisplay].title}" a été mis à jour.`,
-      className: "bg-green-500 text-white"
-    });
+    
+    try {
+      await setProjectsData(newProjectsData);
+      toast({
+        title: "Modifications enregistrées !",
+        description: `L'affichage du projet "${projectsData[selectedProjectForDisplay].title}" a été mis à jour.`,
+        className: "bg-green-500 text-white"
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur !",
+        description: "Impossible de sauvegarder les modifications.",
+        variant: "destructive"
+      });
+    }
   };
   const handleFileSelect = event => {
     const file = event.target.files[0];
@@ -1484,18 +1493,27 @@ const ProfilePage = () => {
       });
     });
   };
-  const handleSaveProject = projectToSave => {
+  const handleSaveProject = async projectToSave => {
     const newProjectsData = {
       ...projectsData,
       [projectToSave.type]: projectToSave
     };
-    setProjectsData(newProjectsData);
-    toast({
-      title: "Projet enregistré !",
-      description: `Le projet "${projectToSave.title}" a été sauvegardé.`,
-      className: "bg-green-500 text-white"
-    });
-    setEditingProject(null);
+    
+    try {
+      await setProjectsData(newProjectsData);
+      toast({
+        title: "Projet enregistré !",
+        description: `Le projet "${projectToSave.title}" a été sauvegardé.`,
+        className: "bg-green-500 text-white"
+      });
+      setEditingProject(null);
+    } catch (error) {
+      toast({
+        title: "Erreur !",
+        description: "Impossible de sauvegarder le projet.",
+        variant: "destructive"
+      });
+    }
   };
   const handleToggleProjectVisibility = (projectType, isPublic) => {
     const projectToUpdate = projectsData[projectType];
@@ -1511,16 +1529,25 @@ const ProfilePage = () => {
       });
     }
   };
-  const handleDeleteProject = projectType => {
+  const handleDeleteProject = async projectType => {
     const {
       [projectType]: _,
       ...remainingProjects
     } = projectsData;
-    setProjectsData(remainingProjects);
-    toast({
-      title: "Projet supprimé !",
-      className: "bg-green-500 text-white"
-    });
+    
+    try {
+      await setProjectsData(remainingProjects);
+      toast({
+        title: "Projet supprimé !",
+        className: "bg-green-500 text-white"
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur !",
+        description: "Impossible de supprimer le projet.",
+        variant: "destructive"
+      });
+    }
   };
   const handleCreateCompany = () => {
     if (!newCompany.name) {

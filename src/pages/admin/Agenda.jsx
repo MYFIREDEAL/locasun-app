@@ -422,7 +422,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
                 <div className="flex justify-between">
                   <span className="text-gray-500">Projet</span>
                   <span className="font-medium text-gray-800">
-                    {allProjectsData[activity.projectId]?.title || 'Aucun'}
+                    {projectsData[activity.projectId]?.title || 'Aucun'}
                   </span>
                 </div>
                 <div className="flex justify-between">

@@ -19,7 +19,7 @@ import RegistrationPage from '@/pages/RegistrationPage';
 import ProducerLandingPage from '@/pages/ProducerLandingPage';
 import TestSupabasePage from '@/pages/TestSupabasePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import { allProjectsData } from '@/data/projects';
+// ✅ allProjectsData maintenant chargé depuis Supabase (project_templates table)
 import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
@@ -27,8 +27,9 @@ import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
+import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 
-// ✅ globalPipelineSteps maintenant géré par Supabase (constantes localStorage supprimées)
+// ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
 const GLOBAL_PIPELINE_COLOR_PALETTE = [
   'bg-blue-100',
   'bg-yellow-100',
@@ -157,7 +158,7 @@ function App() {
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [userProjects, setUserProjects] = useState([]);
-  const [projectsData, setProjectsData] = useState({});
+  // ✅ projectsData maintenant géré par useSupabaseProjectTemplates (plus de localStorage)
   const [prospects, setProspects] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -199,6 +200,23 @@ function App() {
     deleteStep: deletePipelineStep,
     reorderSteps: reorderPipelineSteps
   } = useSupabaseGlobalPipeline();
+
+  // 🔥 Charger les modèles de projets depuis Supabase avec real-time
+  const {
+    projectTemplates,
+    loading: templatesLoading,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
+    getPublicTemplates
+  } = useSupabaseProjectTemplates();
+
+  // Convertir projectTemplates en format compatible avec le code existant
+  // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
+  const projectsData = projectTemplates.reduce((acc, template) => {
+    acc[template.type] = template;
+    return acc;
+  }, {});
   
   // Exposer le logo pour le contexte (compatibilité avec le code existant)
   const companyLogo = companySettings?.logo_url || '';
@@ -272,15 +290,10 @@ function App() {
     }
   }, [supabaseUsers]);
 
-  useEffect(() => {
-    const storedProjectsData = localStorage.getItem('evatime_projects_data');
-    if (storedProjectsData) {
-        setProjectsData(JSON.parse(storedProjectsData));
-    } else {
-        setProjectsData(allProjectsData);
-        localStorage.setItem('evatime_projects_data', JSON.stringify(allProjectsData));
-    }
+  // ✅ projectsData est maintenant chargé en temps réel depuis Supabase (project_templates table)
+  // Plus besoin de localStorage pour evatime_projects_data
 
+  useEffect(() => {
     const storedProjects = localStorage.getItem('userProjects');
     if (storedProjects) {
       const parsedProjects = JSON.parse(storedProjects);
@@ -528,9 +541,40 @@ function App() {
     hasHydratedGlobalPipelineSteps.current = true;
   }, []);
   
-  const handleSetProjectsData = (newProjectsData) => {
-      setProjectsData(newProjectsData);
-      localStorage.setItem('evatime_projects_data', JSON.stringify(newProjectsData));
+  // ✅ Nouvelle fonction qui met à jour les templates dans Supabase
+  const handleSetProjectsData = async (newProjectsData) => {
+    try {
+      // Convertir l'objet projectsData en array de templates pour Supabase
+      for (const [type, templateData] of Object.entries(newProjectsData)) {
+        const existingTemplate = projectTemplates.find(t => t.type === type);
+        
+        // ⚠️ IMPORTANT: Convertir camelCase → snake_case pour Supabase
+        const supabaseData = {
+          title: templateData.title,
+          client_title: templateData.clientTitle || templateData.client_title,
+          icon: templateData.icon,
+          color: templateData.color,
+          steps: templateData.steps,
+          is_public: templateData.isPublic !== undefined ? templateData.isPublic : templateData.is_public
+        };
+        
+        if (existingTemplate) {
+          // Mise à jour du template existant
+          await updateTemplate(existingTemplate.id, supabaseData);
+          console.log('✅ Template mis à jour:', type, supabaseData);
+        } else {
+          // Ajout d'un nouveau template
+          await addTemplate({
+            type: type,
+            ...supabaseData
+          });
+          console.log('✅ Nouveau template créé:', type, supabaseData);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erreur handleSetProjectsData:', error);
+      throw error;
+    }
   };
 
   const handleSetForms = (newForms) => {
@@ -1004,26 +1048,35 @@ function App() {
   
    const getProjectSteps = (prospectId, projectType) => {
     const key = `prospect_${prospectId}_project_${projectType}`;
-    const specificSteps = projectStepsStatus[key];
-    const defaultSteps = projectsData[projectType]?.steps;
+    const savedSteps = projectStepsStatus[key];
+    const templateSteps = projectsData[projectType]?.steps;
 
-    if (specificSteps) {
-      return specificSteps;
+    // ✅ TOUJOURS utiliser la structure du template Supabase (ordre à jour)
+    if (!templateSteps || templateSteps.length === 0) {
+      return [];
     }
-    if (defaultSteps) {
-      const initializedSteps = JSON.parse(JSON.stringify(defaultSteps));
-      const keyExists = Object.keys(projectStepsStatus).includes(key);
 
-      if(!keyExists) {
-        if (initializedSteps.length > 0) {
-          initializedSteps[0].status = 'in_progress';
+    // Créer une copie des steps du template
+    const currentSteps = JSON.parse(JSON.stringify(templateSteps));
+
+    // Si des steps ont déjà été sauvegardés, restaurer les statuts
+    if (savedSteps && savedSteps.length > 0) {
+      // Matcher les steps par name pour préserver les statuts
+      currentSteps.forEach((step, index) => {
+        const savedStep = savedSteps.find(s => s.name === step.name);
+        if (savedStep) {
+          step.status = savedStep.status;
         }
+      });
+    } else {
+      // Nouveau prospect : initialiser la première étape
+      if (currentSteps.length > 0) {
+        currentSteps[0].status = 'in_progress';
       }
-      
-      updateProjectSteps(prospectId, projectType, initializedSteps);
-      return initializedSteps;
+      updateProjectSteps(prospectId, projectType, currentSteps);
     }
-    return [];
+    
+    return currentSteps;
   };
 
   const completeStepAndProceed = (prospectId, projectType, currentStepIndex) => {
