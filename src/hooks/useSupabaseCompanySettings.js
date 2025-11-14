@@ -251,6 +251,68 @@ export const useSupabaseCompanySettings = () => {
     }
   };
 
+  /**
+   * ✅ METTRE À JOUR LA CONFIG DU FORMULAIRE CONTACT
+   * @param {Array} formContactConfig - Array de champs du formulaire
+   */
+  const updateFormContactConfig = async (formContactConfig) => {
+    try {
+      console.log('🔧 Updating form contact config...', formContactConfig);
+      
+      // Marquer comme mise à jour locale
+      isLocalUpdate.current = true;
+
+      // Récupérer les settings actuels et ajouter/modifier form_contact_config
+      const currentSettings = companySettings?.settings || {};
+      const newSettings = {
+        ...currentSettings,
+        form_contact_config: formContactConfig
+      };
+
+      const { error: updateError } = await supabase
+        .from('company_settings')
+        .update({ 
+          settings: newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', COMPANY_SETTINGS_ID);
+
+      if (updateError) {
+        console.error('❌ Supabase form contact update error:', updateError);
+        isLocalUpdate.current = false;
+        throw updateError;
+      }
+
+      console.log('✅ Form contact config updated in Supabase');
+      
+      // Mise à jour immédiate de l'état local
+      setCompanySettings(prev => ({
+        ...prev,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      }));
+
+      // Pas besoin de toast pour les changements de config
+      return true;
+    } catch (err) {
+      console.error('❌ Erreur update form contact config:', err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le formulaire de contact.",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  };
+
+  /**
+   * ✅ RÉCUPÉRER LA CONFIG DU FORMULAIRE CONTACT
+   * @returns {Array} - Array de champs du formulaire
+   */
+  const getFormContactConfig = () => {
+    return companySettings?.settings?.form_contact_config || [];
+  };
+
   return {
     companySettings,
     loading,
@@ -258,6 +320,8 @@ export const useSupabaseCompanySettings = () => {
     updateLogo,
     removeLogo,
     updateSettings,
+    updateFormContactConfig,
+    getFormContactConfig,
     refetch: fetchCompanySettings,
   };
 };

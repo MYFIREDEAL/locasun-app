@@ -171,23 +171,33 @@ function App() {
   const [clientNotifications, setClientNotifications] = useState([]);
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
-  const [formContactConfig, setFormContactConfig] = useState(defaultFormContactConfig);
+  // formContactConfig est maintenant géré par useSupabaseCompanySettings (plus besoin de useState)
   const [projectInfos, setProjectInfos] = useState({});
   const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [clientFormPanels, setClientFormPanels] = useState([]);
-  const hasHydratedFormContactConfig = useRef(false);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
   const { users: supabaseUsers } = useSupabaseUsers();
   
-  // 🔥 Charger les company settings (logo, etc.) depuis Supabase avec real-time
-  const { companySettings, updateLogo, removeLogo } = useSupabaseCompanySettings();
+  // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
+  const { 
+    companySettings, 
+    updateLogo, 
+    removeLogo,
+    updateFormContactConfig,
+    getFormContactConfig 
+  } = useSupabaseCompanySettings();
   
   // Exposer le logo pour le contexte (compatibilité avec le code existant)
   const companyLogo = companySettings?.logo_url || '';
   const setCompanyLogo = updateLogo;
+  
+  // 🔥 Formulaire contact depuis Supabase (au lieu de localStorage)
+  const formContactConfig = getFormContactConfig().length > 0 
+    ? getFormContactConfig() 
+    : defaultFormContactConfig;
   
   // Debug: Logger les changements de logo
   useEffect(() => {
@@ -544,14 +554,28 @@ function App() {
     localStorage.setItem('evatime_prompts', JSON.stringify(newPrompts));
   };
 
-  const handleSetFormContactConfig = (updater) => {
-    setFormContactConfig(prevConfig => {
-      const nextConfig = typeof updater === 'function' ? updater(prevConfig) : updater;
-      if (!Array.isArray(nextConfig)) {
-        return prevConfig;
-      }
-      return areFormConfigsEqual(prevConfig, nextConfig) ? prevConfig : nextConfig;
-    });
+  const handleSetFormContactConfig = async (updater) => {
+    // Récupérer la config actuelle depuis Supabase
+    const prevConfig = getFormContactConfig();
+    const nextConfig = typeof updater === 'function' ? updater(prevConfig) : updater;
+    
+    if (!Array.isArray(nextConfig)) {
+      console.warn('⚠️ Invalid form contact config (not an array)');
+      return;
+    }
+    
+    // Ne mettre à jour que si différent
+    if (areFormConfigsEqual(prevConfig, nextConfig)) {
+      return;
+    }
+    
+    // Mettre à jour dans Supabase (avec real-time automatique)
+    try {
+      await updateFormContactConfig(nextConfig);
+      console.log('✅ Form contact config updated');
+    } catch (error) {
+      console.error('❌ Error updating form contact config:', error);
+    }
   };
 
   const setProjectInfosState = (updater) => {
@@ -616,20 +640,31 @@ function App() {
     });
   };
 
+  // 🔥 Migration : Charger formContactConfig depuis localStorage et migrer vers Supabase
   useEffect(() => {
-    if (!hasHydratedFormContactConfig.current) {
-      hasHydratedFormContactConfig.current = true;
-      return undefined;
-    }
-    const cancel = scheduleDeferredWrite(() => {
-      try {
-        localStorage.setItem('evatime_form_contact_config', JSON.stringify(formContactConfig));
-      } catch {
-        /* ignore storage errors */
+    const migrateFormContactConfig = async () => {
+      const storedConfig = localStorage.getItem('evatime_form_contact_config');
+      
+      if (storedConfig && companySettings) {
+        const parsedConfig = JSON.parse(storedConfig);
+        const currentConfig = companySettings?.settings?.form_contact_config;
+        
+        // Si Supabase est vide mais localStorage a des données, migrer
+        if (!currentConfig || currentConfig.length === 0) {
+          console.log('🧹 Migration: localStorage → Supabase (form contact config)');
+          await updateFormContactConfig(parsedConfig);
+          // Nettoyer le localStorage après migration
+          localStorage.removeItem('evatime_form_contact_config');
+        } else {
+          // Supabase a déjà des données, supprimer localStorage
+          console.log('🧹 Nettoyage: Suppression localStorage (form contact config)');
+          localStorage.removeItem('evatime_form_contact_config');
+        }
       }
-    });
-    return () => cancel();
-  }, [formContactConfig]);
+    };
+    
+    migrateFormContactConfig();
+  }, [companySettings]); // Exécuter uniquement quand companySettings est chargé
 
   useEffect(() => {
     if (!hasHydratedGlobalPipelineSteps.current) {
