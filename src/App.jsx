@@ -1109,12 +1109,12 @@ function App() {
         }
       });
     } else {
-      // Nouveau prospect : initialiser la première étape
+      // Nouveau prospect : initialiser la première étape avec status 'pending'
+      // ⚠️ NE PAS sauvegarder automatiquement pour éviter les multiples appels
+      // La sauvegarde sera faite uniquement quand l'utilisateur modifie explicitement une étape
       if (currentSteps.length > 0) {
         currentSteps[0].status = 'in_progress';
       }
-      // Sauvegarder dans Supabase (pas de await car fonction synchrone pour compatibilité)
-      updateProjectSteps(prospectId, projectType, currentSteps);
     }
     
     return currentSteps;

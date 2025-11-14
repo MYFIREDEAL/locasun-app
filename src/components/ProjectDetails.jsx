@@ -313,9 +313,22 @@ const ProjectDetails = ({ project, onBack }) => {
   const [progress, setProgress] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [stepsFromSupabase, setStepsFromSupabase] = useState(null);
+  const [stepsLoading, setStepsLoading] = useState(true);
   
-  // Utiliser les steps Supabase si disponibles, sinon fallback sur getProjectSteps
-  const steps = stepsFromSupabase || (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
+  // ✅ PRIORITÉ ABSOLUE : Toujours utiliser Supabase, jamais le fallback localStorage
+  // Si pas encore chargé, afficher le template par défaut avec status initial
+  const steps = stepsFromSupabase || project.steps;
+  
+  // 🐛 DEBUG: Logger les steps utilisés
+  useEffect(() => {
+    console.log('🔍 [ProjectDetails] Steps source:', {
+      fromSupabase: !!stepsFromSupabase,
+      stepsUsed: steps,
+      projectType: project.type,
+      currentUserId: currentUser?.id
+    });
+  }, [stepsFromSupabase, steps, project.type, currentUser?.id]);
+  
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
   const effectiveStepIndex = currentStepIndex !== -1 ? currentStepIndex : 0;
@@ -389,6 +402,8 @@ const ProjectDetails = ({ project, onBack }) => {
     // Charger les steps initiaux depuis Supabase
     const fetchInitialSteps = async () => {
       try {
+        setStepsLoading(true);
+        
         const { data, error } = await supabase
           .from('project_steps_status')
           .select('steps')
@@ -397,7 +412,10 @@ const ProjectDetails = ({ project, onBack }) => {
           .single();
 
         if (error) {
-          console.warn('⚠️ No steps found in Supabase, using local data');
+          console.warn('⚠️ No steps found in Supabase for this project, using template default');
+          console.log('Error details:', error);
+          // Ne pas utiliser localStorage, rester sur le template par défaut
+          setStepsFromSupabase(null);
           return;
         }
 
@@ -407,6 +425,8 @@ const ProjectDetails = ({ project, onBack }) => {
         }
       } catch (err) {
         console.error('❌ Error fetching initial steps:', err);
+      } finally {
+        setStepsLoading(false);
       }
     };
 
