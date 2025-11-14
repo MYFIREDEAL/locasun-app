@@ -10,17 +10,18 @@ import React from 'react';
       const { currentUser, getProjectSteps } = useAppContext();
       
       // 🔥 PRIORITÉ: Charger depuis Supabase
-      const { steps: supabaseSteps } = useSupabaseProjectStepsStatus(currentUser?.id);
+      const { projectStepsStatus } = useSupabaseProjectStepsStatus(currentUser?.id);
       
       // Récupérer les steps pour ce projet spécifique
-      const steps = (supabaseSteps && supabaseSteps[project.type]) 
-        ? supabaseSteps[project.type] 
+      const steps = (projectStepsStatus && projectStepsStatus[project.type]) 
+        ? projectStepsStatus[project.type] 
         : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
       
       console.log('🔍 [ProjectCard] Steps for', project.type, ':', {
-        supabaseStepsExists: !!supabaseSteps,
-        hasSupabaseSteps: !!(supabaseSteps && supabaseSteps[project.type]),
-        stepsCount: steps?.length || 0
+        projectStepsStatusExists: !!projectStepsStatus,
+        hasSupabaseSteps: !!(projectStepsStatus && projectStepsStatus[project.type]),
+        stepsCount: steps?.length || 0,
+        source: (projectStepsStatus && projectStepsStatus[project.type]) ? 'SUPABASE' : 'FALLBACK'
       });
       
       const completedStepsCount = steps.filter(step => step.status === STATUS_COMPLETED).length;
