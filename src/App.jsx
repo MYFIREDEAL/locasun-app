@@ -392,8 +392,8 @@ function App() {
       setAppointments(parsedAppointments);
     }
     
-    const storedStepsStatus = localStorage.getItem('evatime_project_steps_status');
-    setProjectStepsStatus(storedStepsStatus ? JSON.parse(storedStepsStatus) : {});
+    // ✅ projectStepsStatus maintenant chargé depuis Supabase via useSupabaseProjectStepsStatus
+    // Plus besoin de localStorage pour 'evatime_project_steps_status'
 
     const storedCalls = localStorage.getItem('evatime_calls');
     if (storedCalls) {
@@ -1046,7 +1046,7 @@ function App() {
     // 1️⃣ Mettre à jour l'état local immédiatement pour UI réactive
     setProjectStepsStatus(prev => {
         const updated = { ...prev, [key]: newSteps };
-        localStorage.setItem('evatime_project_steps_status', JSON.stringify(updated));
+        // ✅ Plus de localStorage, tout en Supabase
         return updated;
     });
 
@@ -1099,7 +1099,7 @@ function App() {
     // Créer une copie des steps du template
     const currentSteps = JSON.parse(JSON.stringify(templateSteps));
 
-    // Si des steps ont déjà été sauvegardés, restaurer les statuts
+    // Si des steps ont déjà été sauvegardés dans le state, restaurer les statuts
     if (savedSteps && savedSteps.length > 0) {
       // Matcher les steps par name pour préserver les statuts
       currentSteps.forEach((step, index) => {
@@ -1113,6 +1113,7 @@ function App() {
       if (currentSteps.length > 0) {
         currentSteps[0].status = 'in_progress';
       }
+      // Sauvegarder dans Supabase (pas de await car fonction synchrone pour compatibilité)
       updateProjectSteps(prospectId, projectType, currentSteps);
     }
     

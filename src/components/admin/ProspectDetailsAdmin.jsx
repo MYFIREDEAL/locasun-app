@@ -18,6 +18,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -504,6 +505,7 @@ const ProspectDetailsAdmin = ({
   const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
+  const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project');
   const notificationId = searchParams.get('notificationId');
@@ -531,7 +533,19 @@ const ProspectDetailsAdmin = ({
     ...supabaseUsers.map(user => ({ value: user.id, label: user.name }))
   ], [supabaseUsers]);
 
-  const projectSteps = activeProjectTag ? getProjectSteps(prospect.id, activeProjectTag) : [];
+  // 🔥 PRIORITÉ: Steps depuis Supabase (real-time), sinon fallback sur getProjectSteps
+  const projectSteps = useMemo(() => {
+    if (!activeProjectTag) return [];
+    
+    // Si on a des steps depuis Supabase, les utiliser
+    if (supabaseSteps[activeProjectTag]) {
+      return supabaseSteps[activeProjectTag];
+    }
+    
+    // Sinon fallback sur l'ancienne méthode
+    return getProjectSteps(prospect.id, activeProjectTag);
+  }, [activeProjectTag, supabaseSteps, prospect.id, getProjectSteps]);
+
   const currentStepIndex = projectSteps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = projectSteps[currentStepIndex] || projectSteps.find(s => s.status === STATUS_PENDING) || projectSteps[0];
   
@@ -634,9 +648,17 @@ const ProspectDetailsAdmin = ({
     }
   };
 
-  const handleUpdateStatus = (clickedIndex, newStatus) => {
+  const handleUpdateStatus = async (clickedIndex, newStatus) => {
     if (newStatus === STATUS_COMPLETED) {
-      completeStepAndProceed(prospect.id, activeProjectTag, clickedIndex);
+      // Compléter et passer à l'étape suivante
+      const newSteps = JSON.parse(JSON.stringify(projectSteps));
+      newSteps[clickedIndex].status = 'completed';
+      if (clickedIndex + 1 < newSteps.length) {
+        newSteps[clickedIndex + 1].status = 'in_progress';
+      }
+      
+      // Utiliser le hook Supabase (real-time)
+      await updateSupabaseSteps(activeProjectTag, newSteps);
     } else {
       const updatedSteps = projectSteps.map((step, index) => {
         let status = step.status;
@@ -645,7 +667,9 @@ const ProspectDetailsAdmin = ({
         }
         return { ...step, status };
       });
-      updateProjectSteps(prospect.id, activeProjectTag, updatedSteps);
+      
+      // Utiliser le hook Supabase (real-time)
+      await updateSupabaseSteps(activeProjectTag, updatedSteps);
     }
   };
 
