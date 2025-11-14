@@ -653,12 +653,32 @@ const ProspectDetailsAdmin = ({
       // Compléter et passer à l'étape suivante
       const newSteps = JSON.parse(JSON.stringify(projectSteps));
       newSteps[clickedIndex].status = 'completed';
-      if (clickedIndex + 1 < newSteps.length) {
-        newSteps[clickedIndex + 1].status = 'in_progress';
+      
+      let nextStepIndex = clickedIndex + 1;
+      if (nextStepIndex < newSteps.length) {
+        newSteps[nextStepIndex].status = 'in_progress';
       }
       
       // Utiliser le hook Supabase (real-time)
       await updateSupabaseSteps(activeProjectTag, newSteps);
+      
+      // 🔥 MISE À JOUR DU PIPELINE GLOBAL
+      // Si l'étape suivante a un globalStepId, déplacer le prospect dans cette colonne
+      if (nextStepIndex < newSteps.length && newSteps[nextStepIndex].globalStepId) {
+        const globalStepId = newSteps[nextStepIndex].globalStepId;
+        console.log('🔄 Déplacement du prospect vers la colonne:', globalStepId);
+        
+        const updatedProspect = {
+          ...prospect,
+          status: globalStepId // Mettre à jour le status global du prospect
+        };
+        onUpdate(updatedProspect);
+        
+        toast({
+          title: "📊 Pipeline mis à jour",
+          description: "Le prospect a été déplacé dans le pipeline",
+        });
+      }
     } else {
       const updatedSteps = projectSteps.map((step, index) => {
         let status = step.status;
@@ -670,6 +690,18 @@ const ProspectDetailsAdmin = ({
       
       // Utiliser le hook Supabase (real-time)
       await updateSupabaseSteps(activeProjectTag, updatedSteps);
+      
+      // 🔥 MISE À JOUR DU PIPELINE GLOBAL si l'étape en cours a un globalStepId
+      const currentStep = updatedSteps[clickedIndex];
+      if (currentStep.globalStepId && newStatus === 'in_progress') {
+        console.log('🔄 Déplacement du prospect vers la colonne:', currentStep.globalStepId);
+        
+        const updatedProspect = {
+          ...prospect,
+          status: currentStep.globalStepId
+        };
+        onUpdate(updatedProspect);
+      }
     }
   };
 
