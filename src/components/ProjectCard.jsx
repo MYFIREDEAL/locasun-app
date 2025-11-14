@@ -2,12 +2,25 @@ import React from 'react';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
+    import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 
     const STATUS_COMPLETED = 'completed';
 
     const ProjectCard = ({ project, onSelectProject, index }) => {
       const { currentUser, getProjectSteps } = useAppContext();
-      const steps = currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps;
+      
+      // 🔥 PRIORITÉ: Charger depuis Supabase
+      const { steps: supabaseSteps } = useSupabaseProjectStepsStatus(currentUser?.id);
+      
+      // Récupérer les steps pour ce projet spécifique
+      const steps = supabaseSteps[project.type] 
+        ? supabaseSteps[project.type] 
+        : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
+      
+      console.log('🔍 [ProjectCard] Steps for', project.type, ':', {
+        hasSupabaseSteps: !!supabaseSteps[project.type],
+        steps
+      });
       
       const completedStepsCount = steps.filter(step => step.status === STATUS_COMPLETED).length;
       const totalSteps = steps.length;
