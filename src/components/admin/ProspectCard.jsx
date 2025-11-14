@@ -7,6 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 const normalizeLabel = (label) => (label || '').toString().trim().toUpperCase();
 
 const ProspectCard = ({ prospect, onClick, sortableId }) => {
+  // 🎯 Contexte du projet pour CETTE carte spécifique
   const activeProjectLabel =
     prospect._projectContext?.projectTitle ||
     prospect._projectContext?.projectType ||
@@ -53,49 +54,62 @@ const ProspectCard = ({ prospect, onClick, sortableId }) => {
           )}
         </div>
         <div className="flex flex-wrap gap-2 mt-3 items-center">
-          {(Array.isArray(prospect.tags) ? prospect.tags : []).map(tag => {
-            const normalizedTag = normalizeLabel(tag);
-            const isActive = normalizedActiveLabel && normalizedTag === normalizedActiveLabel;
-            const tagColorClass = (() => {
-              switch (normalizedTag) {
-                case 'ACC':
-                  return 'bg-blue-100 text-blue-800';
-                case 'AUTONOMIE':
-                  return 'bg-green-100 text-green-800';
-                case 'CENTRALE':
-                  return 'bg-orange-100 text-orange-800';
-                case 'INVESTISSEMENT':
-                  return 'bg-teal-100 text-teal-800';
-                case 'PRODUCTEURPRO':
-                  return 'bg-purple-100 text-purple-800';
-                default:
-                  return 'bg-gray-100 text-gray-600';
-              }
-            })();
+          {/* 🎯 Afficher LE projet principal de cette carte */}
+          {activeProjectLabel && (
+            <span
+              className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border-2 border-blue-400 font-semibold shadow-sm tracking-wide ${(() => {
+                const normalized = normalizeLabel(activeProjectLabel);
+                switch (normalized) {
+                  case 'ACC':
+                    return 'bg-blue-100 text-blue-800';
+                  case 'AUTONOMIE':
+                    return 'bg-green-100 text-green-800';
+                  case 'CENTRALE':
+                    return 'bg-orange-100 text-orange-800';
+                  case 'INVESTISSEMENT':
+                    return 'bg-teal-100 text-teal-800';
+                  case 'PRODUCTEURPRO':
+                    return 'bg-purple-100 text-purple-800';
+                  default:
+                    return 'bg-gray-100 text-gray-600';
+                }
+              })()}`}
+            >
+              <span>{activeProjectLabel}</span>
+            </span>
+          )}
+          
+          {/* 📋 Afficher les autres tags en mode normal (non entourés) */}
+          {(Array.isArray(prospect.tags) ? prospect.tags : [])
+            .filter(tag => normalizeLabel(tag) !== normalizedActiveLabel)
+            .map(tag => {
+              const normalizedTag = normalizeLabel(tag);
+              const tagColorClass = (() => {
+                switch (normalizedTag) {
+                  case 'ACC':
+                    return 'bg-blue-100 text-blue-800';
+                  case 'AUTONOMIE':
+                    return 'bg-green-100 text-green-800';
+                  case 'CENTRALE':
+                    return 'bg-orange-100 text-orange-800';
+                  case 'INVESTISSEMENT':
+                    return 'bg-teal-100 text-teal-800';
+                  case 'PRODUCTEURPRO':
+                    return 'bg-purple-100 text-purple-800';
+                  default:
+                    return 'bg-gray-100 text-gray-600';
+                }
+              })();
 
-            if (isActive) {
               return (
                 <span
                   key={tag}
-                  className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border-2 border-blue-400 font-semibold shadow-sm tracking-wide ${tagColorClass}`}
+                  className={`text-xs px-2 py-1 rounded-full ${tagColorClass}`}
                 >
-                  <span className="inline-flex h-2.5 w-2.5 rounded-full bg-blue-500 shadow-inner" />
-                  <span>{tag}</span>
-                  {activeStepLabel && (
-                    <span className="text-blue-500 font-medium">• {activeStepLabel}</span>
-                  )}
+                  {tag}
                 </span>
               );
-            }
-            return (
-              <span
-                key={tag}
-                className={`text-xs px-2 py-1 rounded-full ${tagColorClass}`}
-              >
-                {tag}
-              </span>
-            );
-          })}
+            })}
         </div>
       </motion.div>
     </div>

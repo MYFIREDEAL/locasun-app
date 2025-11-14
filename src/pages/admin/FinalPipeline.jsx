@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Users, Filter, ChevronDown, Check } from 'lucide-react';
+import { Plus, Users, Filter, ChevronDown, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '@/App';
 import ProspectCard from '@/components/admin/ProspectCard';
@@ -76,6 +77,7 @@ const FinalPipeline = () => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [isTagMenuOpen, setTagMenuOpen] = useState(false);
   const tagMenuRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // ✅ Real-time pour le prospect sélectionné (détail)
   useEffect(() => {
@@ -158,6 +160,23 @@ const FinalPipeline = () => {
   // 🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
 
+  // Transformer le array Supabase en objet { userId: userObject }
+  const usersFromSupabase = useMemo(() => {
+    return supabaseUsers.reduce((acc, user) => {
+      acc[user.id] = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        avatarUrl: user.avatar_url,
+        managerId: user.manager_id,
+        accessRights: user.access_rights,
+      };
+      return acc;
+    }, {});
+  }, [supabaseUsers]);
+
   // Utiliser les prospects Supabase
   const prospects = supabaseProspects;
   const addProspect = addSupabaseProspect;
@@ -199,11 +218,11 @@ const FinalPipeline = () => {
   const allowedUsers = useMemo(() => {
     if (!activeAdminUser) return [];
     if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
-      return Object.values(users);
+      return Object.values(usersFromSupabase);
     }
     const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-    return Object.values(users).filter(u => allowedIds.includes(u.id));
-  }, [activeAdminUser, users]);
+    return Object.values(usersFromSupabase).filter(u => allowedIds.includes(u.id));
+  }, [activeAdminUser, usersFromSupabase]);
 
   const userOptions = useMemo(() => {
     const options = allowedUsers.map(user => ({ value: user.id, label: user.name }));
@@ -279,12 +298,23 @@ const FinalPipeline = () => {
       filtered = filtered.filter(prospect => prospect.ownerId === selectedUserId);
     }
 
+    // Filtrer par recherche (nom, email, ville)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(prospect => 
+        (prospect.name || '').toLowerCase().includes(query) ||
+        (prospect.email || '').toLowerCase().includes(query) ||
+        (prospect.city || '').toLowerCase().includes(query) ||
+        (prospect.phone || '').toLowerCase().includes(query)
+      );
+    }
+
     // Puis filtrer par "Mes prospects" si nécessaire
     if (filter === 'mine' && activeAdminUser?.id) {
       return filtered.filter((prospect) => prospect.ownerId === activeAdminUser.id);
     }
     return filtered;
-  }, [prospects, filter, activeAdminUser, selectedUserId, selectedTags]);
+  }, [prospects, filter, activeAdminUser, selectedUserId, selectedTags, searchQuery]);
 
   const { stagesWithCounts, prospectsByStage } = useMemo(() => {
     const stageBuckets = stageDefinitions.reduce((acc, stage) => {
@@ -620,7 +650,7 @@ const FinalPipeline = () => {
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-[230px] justify-between">
                   <Users className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{selectedUserId === 'all' ? 'Tous les utilisateurs' : (users[selectedUserId]?.name || "Utilisateur")}</span>
+                  <span className="truncate">{selectedUserId === 'all' ? 'Tous les utilisateurs' : (usersFromSupabase[selectedUserId]?.name || "Utilisateur")}</span>
                   <ChevronDown className="ml-2 h-4 w-4 flex-shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -649,6 +679,25 @@ const FinalPipeline = () => {
               </PopoverContent>
             </Popover>
             
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Rechercher un prospect..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
             <Button onClick={() => setIsAddModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nouveau Prospect
@@ -672,22 +721,38 @@ const FinalPipeline = () => {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-800">{stage.name}</h3>
                 <span className="bg-white bg-opacity-70 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
-                  {stage.count}
+                  {/* 🎯 Calculer le count en tenant compte du filtre tags */}
+                  {(prospectsByStage[stage.id] || []).filter(entry => {
+                    if (selectedTags.length === 0) return true;
+                    const { projectType } = entry;
+                    return selectedTags.some(tag => 
+                      tag.toUpperCase() === (projectType || '').toUpperCase()
+                    );
+                  }).length}
                 </span>
               </div>
 
               {/* Prospects List */}
               <div className="flex-1 space-y-3 overflow-y-auto">
-                {(prospectsByStage[stage.id] || []).map((entry, idx) => {
-                  const { prospect, projectType, activeStep } = entry;
-                  const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
-                  const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
-                  const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
-                  const stepLabel = activeStep?.label || activeStep?.name || stage.name;
-                  const projectColor = stage.color || 'bg-blue-100 text-blue-700';
-                  const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
+                {(prospectsByStage[stage.id] || [])
+                  .filter(entry => {
+                    // 🎯 Filtrer par tags sélectionnés au niveau de la CARTE (projectType)
+                    if (selectedTags.length === 0) return true;
+                    const { projectType } = entry;
+                    return selectedTags.some(tag => 
+                      tag.toUpperCase() === (projectType || '').toUpperCase()
+                    );
+                  })
+                  .map((entry, idx) => {
+                    const { prospect, projectType, activeStep } = entry;
+                    const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
+                    const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
+                    const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
+                    const stepLabel = activeStep?.label || activeStep?.name || stage.name;
+                    const projectColor = stage.color || 'bg-blue-100 text-blue-700';
+                    const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
 
-                  return (
+                    return (
                     <motion.div
                       key={key}
                       initial={{ opacity: 0, scale: 0.95 }}
