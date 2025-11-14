@@ -9,8 +9,13 @@ import { supabase } from '@/lib/supabase';
 const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
-  const { clientFormPanels, currentUser, setCurrentUser } = useAppContext();
+  const { clientFormPanels, currentUser, setCurrentUser, companyLogo } = useAppContext();
   const hasForms = currentUser ? clientFormPanels.some(panel => panel.prospectId === currentUser.id) : false;
+  
+  // Force re-render quand le logo change (pour que ClientHeader se mette à jour)
+  useEffect(() => {
+    console.log('🎨 Client: Logo changed, re-rendering header');
+  }, [companyLogo]);
 
   // 🔥 Real-time : Écouter les modifications du prospect connecté
   useEffect(() => {
