@@ -21,27 +21,49 @@ const ResetPasswordPage = () => {
     // On doit gérer les deux cas
     
     const handleAuthCallback = async () => {
+      // DEBUG COMPLET
+      console.log('🔍 FULL URL:', window.location.href);
+      console.log('🔍 HASH:', window.location.hash);
+      console.log('🔍 SEARCH:', window.location.search);
+      
       // Vérifier si on a un hash fragment
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const hashAccessToken = hashParams.get('access_token');
       const hashType = hashParams.get('type');
+      const hashError = hashParams.get('error');
+      const hashErrorDescription = hashParams.get('error_description');
       
       // Vérifier si on a des query params
       const token = searchParams.get('token');
       const type = searchParams.get('type');
       
       console.log('🔍 Reset password - Hash params:', {
-        access_token: hashAccessToken,
-        type: hashType
+        access_token: hashAccessToken ? '✅ PRESENT' : '❌ ABSENT',
+        type: hashType,
+        error: hashError,
+        error_description: hashErrorDescription,
+        full_hash: window.location.hash
       });
       console.log('🔍 Reset password - Query params:', {
         token,
         type
       });
       
+      // Si on a une erreur dans le hash
+      if (hashError) {
+        console.error('❌ Erreur dans le hash:', hashError, hashErrorDescription);
+        toast({
+          title: "Erreur d'authentification",
+          description: hashErrorDescription || "Une erreur est survenue.",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate('/'), 3000);
+        return;
+      }
+      
       // Si on a un access_token dans le hash, c'est que Supabase a déjà géré l'auth
-      if (hashAccessToken && hashType === 'recovery') {
-        console.log('✅ Token de récupération détecté dans le hash');
+      if (hashAccessToken) {
+        console.log('✅ Token de récupération détecté dans le hash - type:', hashType);
         // L'utilisateur est déjà authentifié, on peut procéder
         return;
       }
@@ -54,12 +76,13 @@ const ResetPasswordPage = () => {
       
       // Sinon, lien invalide
       console.warn('❌ Aucun token de récupération valide trouvé');
+      console.warn('URL complète:', window.location.href);
       toast({
         title: "Lien invalide",
         description: "Ce lien de réinitialisation n'est pas valide ou a expiré.",
         variant: "destructive",
       });
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => navigate('/'), 3000);
     };
     
     handleAuthCallback();
@@ -95,16 +118,52 @@ const ResetPasswordPage = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "✅ Mot de passe modifié",
-        description: "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.",
-        className: "bg-green-500 text-white",
-      });
-
-      // Rediriger vers la page de connexion après 2 secondes
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
+      // Vérifier si c'est un prospect (client) ou un admin
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Chercher si c'est un prospect
+        const { data: prospect } = await supabase
+          .from('prospects')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (prospect) {
+          // C'est un client ! Rediriger vers le dashboard client
+          toast({
+            title: "✅ Compte activé",
+            description: "Bienvenue ! Votre compte a été activé avec succès.",
+            className: "bg-green-500 text-white",
+          });
+          
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
+        } else {
+          // C'est probablement un admin
+          toast({
+            title: "✅ Mot de passe modifié",
+            description: "Votre mot de passe a été réinitialisé avec succès.",
+            className: "bg-green-500 text-white",
+          });
+          
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
+        }
+      } else {
+        // Par défaut, rediriger vers la page de connexion
+        toast({
+          title: "✅ Mot de passe modifié",
+          description: "Vous pouvez maintenant vous connecter.",
+          className: "bg-green-500 text-white",
+        });
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      }
 
     } catch (error) {
       console.error('Erreur réinitialisation mot de passe:', error);

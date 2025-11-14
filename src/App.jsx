@@ -13,6 +13,7 @@ import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
+import ActivationPage from '@/pages/client/ActivationPage';
 import HomePage from '@/pages/HomePage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import ProducerLandingPage from '@/pages/ProducerLandingPage';
@@ -1135,6 +1136,7 @@ function App() {
         <Route path="/producteurs" element={<ProducerLandingPage />} />
         <Route path="/test-supabase" element={<TestSupabasePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/client/activation" element={<ActivationPage />} />
         <Route path="/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />

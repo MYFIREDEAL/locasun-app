@@ -5,13 +5,17 @@ import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/App';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 
 const OfferCard = ({ project }) => {
-  const { addProject, userProjects } = useAppContext();
+  const { currentUser, setCurrentUser } = useAppContext();
+  const { updateProspect } = useSupabaseProspects();
   const navigate = useNavigate();
-  const isProjectAdded = userProjects.includes(project.type);
+  
+  // 🔥 Utiliser currentUser.tags depuis Supabase (pas localStorage)
+  const isProjectAdded = currentUser?.tags?.includes(project.type) || false;
 
-  const handleCtaClick = () => {
+  const handleCtaClick = async () => {
     if (isProjectAdded) {
       toast({
         title: "Projet déjà ajouté !",
@@ -22,13 +26,47 @@ const OfferCard = ({ project }) => {
       return;
     }
 
-    const success = addProject(project.type);
-    if (success) {
+    if (!currentUser?.id) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour ajouter un projet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Ajouter le nouveau tag au prospect dans Supabase
+      const updatedTags = [...(currentUser.tags || []), project.type];
+      
+      console.log('🔄 Ajout du projet:', project.type);
+      console.log('📦 Anciens tags:', currentUser.tags);
+      console.log('📦 Nouveaux tags:', updatedTags);
+      
+      await updateProspect({
+        id: currentUser.id,
+        tags: updatedTags,
+      });
+
+      // 🔥 Mettre à jour currentUser localement immédiatement
+      setCurrentUser({
+        ...currentUser,
+        tags: updatedTags,
+      });
+
       toast({
         title: "Projet ajouté avec succès ! ✅",
         description: `Le projet "${project.clientTitle}" est maintenant dans votre tableau de bord.`,
       });
+      
       navigate('/dashboard');
+    } catch (error) {
+      console.error('Erreur ajout projet:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter le projet. Veuillez réessayer.",
+        variant: "destructive",
+      });
     }
   };
 

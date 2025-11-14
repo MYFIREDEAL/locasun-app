@@ -227,14 +227,95 @@ export const useSupabaseProspects = (activeAdminUser) => {
         updatedAt: data.updated_at,
       };
 
-      // ✅ Ne pas ajouter localement, laisser le real-time s'en charger
-      console.log('✅ Prospect created in DB, waiting for real-time sync...');
+      // Ne pas ajouter localement, laisser le real-time s'en charger
+      console.log('Prospect created in DB, waiting for real-time sync...');
 
-      toast({
-        title: "Succès",
-        description: "Prospect ajouté avec succès !",
-        className: "bg-green-500 text-white",
-      });
+      // ENVOYER UN EMAIL D'INVITATION AU PROSPECT
+      try {
+        console.log('📧 Envoi invitation prospect:', data.email);
+        
+        // STRATÉGIE : 
+        // 1. Créer un user temporaire dans auth.users avec un mot de passe aléatoire
+        // 2. Envoyer un email de réinitialisation de mot de passe
+        // 3. Le prospect définit son mot de passe et active son compte
+        
+        const tempPassword = `temp_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+        
+        // Créer le user dans auth.users
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: data.email,
+          password: tempPassword,
+          options: {
+            data: {
+              prospect_id: data.id,
+            }
+          }
+        });
+
+        if (signUpError) {
+          console.error('❌ Erreur création auth user:', signUpError);
+          
+          // Si l'user existe déjà, envoyer juste un reset password
+          if (signUpError.message.includes('already registered')) {
+            console.log('User existe déjà, envoi reset password...');
+            
+            const redirectUrl = import.meta.env.DEV 
+              ? `${window.location.origin}/reset-password`
+              : 'https://evatime.vercel.app/reset-password';
+            
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(data.email, {
+              redirectTo: redirectUrl,
+            });
+            
+            if (resetError) {
+              throw resetError;
+            }
+            
+            console.log('✅ Email de réinitialisation envoyé');
+            toast({
+              title: "Prospect créé",
+              description: `Un email d'activation a été envoyé à ${data.email}`,
+              className: "bg-green-500 text-white",
+            });
+          } else {
+            throw signUpError;
+          }
+        } else {
+          console.log('✅ User auth créé:', authData.user?.id);
+          
+          // Lier immédiatement le user_id au prospect
+          const { error: updateError } = await supabase
+            .from('prospects')
+            .update({ user_id: authData.user.id })
+            .eq('id', data.id);
+          
+          if (updateError) {
+            console.error('⚠️ Erreur liaison user_id:', updateError);
+          }
+          
+          // Envoyer un email de définition de mot de passe
+          const redirectUrl = import.meta.env.DEV 
+            ? `${window.location.origin}/reset-password`
+            : 'https://evatime.vercel.app/reset-password';
+          
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(data.email, {
+            redirectTo: redirectUrl,
+          });
+          
+          if (resetError) {
+            console.error('⚠️ Erreur envoi email:', resetError);
+          }
+          
+          console.log('✅ Email d\'activation envoyé');
+          toast({
+            title: "Succès",
+            description: `Prospect ajouté ! Un email d'activation a été envoyé à ${data.email}`,
+            className: "bg-green-500 text-white",
+          });
+        }
+      } catch (emailErr) {
+        console.error('Erreur email:', emailErr);
+      }
 
       return transformed;
     } catch (err) {

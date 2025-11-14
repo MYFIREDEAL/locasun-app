@@ -10,6 +10,7 @@ import { useAppContext } from '@/App';
 import { User, Phone, Mail, Lock, Building2 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { supabase } from '@/lib/supabase';
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
@@ -77,57 +78,123 @@ const RegistrationPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    if (!validateForm()) return;
+
+    try {
       const finalProjects = [...new Set(selectedProjects)];
 
-      const newProspect = {
-        id: `prospect-${Date.now()}`,
-        name: formData.name,
+      // 🔥 ÉTAPE 1: Créer le compte dans Supabase Auth (ESPACE CLIENT, pas admin!)
+      console.log('📝 Création du compte client dans Supabase Auth...');
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
-        phone: formData.phone,
-        company: formData.company,
-        address: '', // Address can be added later
-        tags: finalProjects,
-        status: 'Intéressé',
-        hasAppointment: false,
-        ownerId: affiliateInfo.id || 'user-1', // Default to admin if no affiliate
+        password: formData.password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            email_confirm: false, // Forcer la confirmation à false
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('❌ Erreur Auth:', authError);
+        toast({
+          title: "Erreur d'inscription",
+          description: authError.message === 'User already registered' 
+            ? "Un compte existe déjà avec cet email."
+            : authError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!authData.user || !authData.session) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer le compte. Veuillez réessayer.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Compte Auth créé:', authData.user.id);
+      console.log('✅ Session établie:', authData.session ? 'OUI' : 'NON');
+
+      // 🔥 IMPORTANT : Attendre que la session soit bien établie
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 🔥 ÉTAPE 2: Créer le prospect dans public.prospects avec user_id
+      // La session est maintenant active, donc auth.uid() retournera le bon user_id
+      console.log('📝 Création du prospect CLIENT dans Supabase (prospects table)...');
+      const { data: prospectData, error: prospectError } = await supabase
+        .from('prospects')
+        .insert([{
+          user_id: authData.user.id, // ⚠️ IMPORTANT: Lier le prospect au compte Auth
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company_name: formData.company || null,
+          address: '',
+          owner_id: affiliateInfo.id || null, // Commercial qui a parrainé (si lien d'affiliation)
+          status: 'Intéressé',
+          tags: finalProjects, // Projets sélectionnés
+          has_appointment: false,
+          affiliate_name: affiliateInfo.name || null,
+        }])
+        .select()
+        .single();
+
+      if (prospectError) {
+        console.error('❌ Erreur création prospect:', prospectError);
+        // Si le prospect existe déjà, supprimer le compte Auth créé
+        await supabase.auth.signOut();
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer votre profil. Veuillez réessayer.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Prospect CLIENT créé dans Supabase:', prospectData);
+
+      // 🔥 ÉTAPE 3: Définir currentUser dans le contexte (format app)
+      const clientUserData = {
+        id: prospectData.id,
+        userId: prospectData.user_id, // UUID de auth.users
+        name: prospectData.name,
+        email: prospectData.email,
+        phone: prospectData.phone,
+        company: prospectData.company_name,
+        address: prospectData.address,
+        tags: prospectData.tags,
+        status: prospectData.status,
+        ownerId: prospectData.owner_id,
+        affiliateName: prospectData.affiliate_name,
+        hasAppointment: prospectData.has_appointment,
       };
 
-      addProspect(newProspect);
-      
-      localStorage.setItem('userProjects', JSON.stringify(finalProjects));
-      setUserProjects(finalProjects);
-
-      const currentUserData = { 
-        id: newProspect.id, 
-        name: newProspect.name, 
-        email: newProspect.email,
-        phone: newProspect.phone,
-        company: newProspect.company,
-        address: newProspect.address
-      };
-      
-      let affiliateName = affiliateInfo.name;
-      if (!affiliateName && affiliateInfo.id && users[affiliateInfo.id]) {
-        affiliateName = users[affiliateInfo.id].name;
-      }
-      if (!affiliateName && users['user-1']) {
-        affiliateName = users['user-1'].name;
-      }
-      if (!affiliateName) {
-        affiliateName = 'Admin';
-      }
-      setCurrentUser(currentUserData, affiliateName);
+      setCurrentUser(clientUserData);
       
       sessionStorage.removeItem('affiliateUser');
 
       toast({
-        title: "Inscription réussie !",
-        description: "Bienvenue dans votre espace Evatime.",
+        title: "✅ Inscription réussie !",
+        description: "Bienvenue dans votre espace client Evatime.",
+        className: "bg-blue-500 text-white",
       });
+
+      // 🔥 ÉTAPE 4: Rediriger vers le dashboard CLIENT
       navigate('/dashboard');
+    } catch (error) {
+      console.error('❌ Erreur inscription:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'inscription. Veuillez réessayer.",
+        variant: "destructive",
+      });
     }
   };
 

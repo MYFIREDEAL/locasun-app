@@ -11,6 +11,7 @@ import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { supabase } from '@/lib/supabase';
 
 // Import des composants originaux avec gestion d'erreur
 let ProspectDetailsAdmin;
@@ -256,6 +257,47 @@ const CompleteOriginalContacts = () => {
       : `${selectedTags.length} tags`;
   const navigate = useNavigate();
   const location = useLocation();
+
+  // ✅ Real-time pour le prospect sélectionné (détail)
+  useEffect(() => {
+    if (!selectedProspect?.id) return;
+
+    const channel = supabase
+      .channel(`admin-prospect-detail-${selectedProspect.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'prospects',
+        filter: `id=eq.${selectedProspect.id}`
+      }, (payload) => {
+        console.log('Real-time update for selected prospect:', payload.new);
+        
+        // Transformation Supabase → App (snake_case → camelCase)
+        const transformedData = {
+          id: payload.new.id,
+          name: payload.new.name,
+          email: payload.new.email,
+          phone: payload.new.phone,
+          address: payload.new.address,
+          city: payload.new.city,
+          postalCode: payload.new.postal_code,
+          tags: payload.new.tags || [],
+          ownerId: payload.new.owner_id,
+          userId: payload.new.user_id,
+          createdAt: payload.new.created_at,
+          updatedAt: payload.new.updated_at,
+          notes: payload.new.notes,
+          status: payload.new.status
+        };
+
+        setSelectedProspect(transformedData);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedProspect?.id]);
 
   const allowedUsers = useMemo(() => {
     if (!activeAdminUser || !supabaseUsers) return [];

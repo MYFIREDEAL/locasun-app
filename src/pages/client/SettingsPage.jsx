@@ -10,6 +10,8 @@ import React, { useState, useEffect } from 'react';
     import { useAppContext } from '@/App';
     import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
     import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+    import { supabase } from '@/lib/supabase';
+    import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 
     const SettingsSection = ({ title, children }) => (
       <motion.div
@@ -25,7 +27,8 @@ import React, { useState, useEffect } from 'react';
     const SettingsPage = () => {
       const location = useLocation();
       const navigate = useNavigate();
-      const { currentUser, updateProspect, setCurrentUser } = useAppContext();
+      const { currentUser, setCurrentUser } = useAppContext();
+      const { updateProspect: updateSupabaseProspect } = useSupabaseProspects();
       const isProfilePage = location.pathname.includes('/profil');
 
       const [formData, setFormData] = useState({
@@ -59,21 +62,44 @@ import React, { useState, useEffect } from 'react';
         setFormData(prev => ({ ...prev, [id]: value }));
       };
 
-      const handleSaveInfo = () => {
+      const handleSaveInfo = async () => {
         if (!currentUser) return;
 
-        const updatedProspectData = {
-          ...currentUser,
-          ...formData,
-        };
-        
-        updateProspect(updatedProspectData);
+        try {
+          // Mettre à jour dans Supabase (table prospects)
+          await updateSupabaseProspect({
+            id: currentUser.id,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.companyName,
+            address: formData.address,
+          });
 
-        toast({
-          title: "Profil mis à jour !",
-          description: "Vos informations ont été enregistrées avec succès.",
-          className: "bg-green-100 border-green-300 text-green-800",
-        });
+          // Mettre à jour le contexte local
+          const updatedUser = {
+            ...currentUser,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            companyName: formData.companyName,
+            address: formData.address,
+          };
+          setCurrentUser(updatedUser);
+
+          toast({
+            title: "Profil mis a jour !",
+            description: "Vos informations ont ete enregistrees avec succes.",
+            className: "bg-green-100 border-green-300 text-green-800",
+          });
+        } catch (error) {
+          console.error('Erreur sauvegarde profil:', error);
+          toast({
+            title: "Erreur",
+            description: "Impossible de sauvegarder les modifications.",
+            variant: "destructive",
+          });
+        }
       };
 
       const handleSavePreferences = () => {
@@ -83,7 +109,7 @@ import React, { useState, useEffect } from 'react';
         });
       };
 
-      const handleChangePassword = () => {
+      const handleChangePassword = async () => {
         if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
           toast({
             title: "Erreur",
@@ -105,35 +131,66 @@ import React, { useState, useEffect } from 'react';
         if (passwordData.newPassword.length < 6) {
           toast({
             title: "Erreur",
-            description: "Le mot de passe doit contenir au moins 6 caractères.",
+            description: "Le mot de passe doit contenir au moins 6 caracteres.",
             variant: "destructive",
           });
           return;
         }
 
-        // Ici vous pouvez ajouter la logique de vérification du mot de passe actuel
-        // Pour l'instant, on simule un changement réussi
-        setPasswordData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        });
+        try {
+          // Changer le mot de passe via Supabase Auth
+          const { error } = await supabase.auth.updateUser({
+            password: passwordData.newPassword
+          });
 
-        toast({
-          title: "Mot de passe modifié !",
-          description: "Votre mot de passe a été mis à jour avec succès.",
-          className: "bg-green-100 border-green-300 text-green-800",
-        });
+          if (error) {
+            throw error;
+          }
+
+          // Réinitialiser les champs
+          setPasswordData({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          });
+
+          toast({
+            title: "Mot de passe modifie !",
+            description: "Votre mot de passe a ete mis a jour avec succes.",
+            className: "bg-green-100 border-green-300 text-green-800",
+          });
+        } catch (error) {
+          console.error('Erreur changement mot de passe:', error);
+          toast({
+            title: "Erreur",
+            description: error.message || "Impossible de changer le mot de passe.",
+            variant: "destructive",
+          });
+        }
       };
 
-      const handleLogout = () => {
-        setCurrentUser(null);
-        localStorage.removeItem('evatime_current_user');
-        toast({
-          title: "Déconnexion réussie",
-          description: "À bientôt !",
-        });
-        navigate('/');
+      const handleLogout = async () => {
+        try {
+          // Deconnexion de Supabase Auth
+          await supabase.auth.signOut();
+          
+          // Nettoyer le contexte local
+          setCurrentUser(null);
+          localStorage.removeItem('evatime_current_user');
+          
+          toast({
+            title: "Deconnexion reussie",
+            description: "A bientot !",
+          });
+          
+          navigate('/');
+        } catch (error) {
+          console.error('Erreur deconnexion:', error);
+          // Deconnecter quand meme localement
+          setCurrentUser(null);
+          localStorage.removeItem('evatime_current_user');
+          navigate('/');
+        }
       };
 
       const pageTitle = isProfilePage ? "Mon Profil" : "Paramètres";

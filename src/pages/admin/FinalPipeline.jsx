@@ -72,6 +72,56 @@ const FinalPipeline = () => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [isTagMenuOpen, setTagMenuOpen] = useState(false);
   const tagMenuRef = useRef(null);
+
+  // ✅ Real-time pour le prospect sélectionné (détail)
+  useEffect(() => {
+    if (!selectedProspect?.id) return;
+
+    console.log('🔔 Setting up real-time subscription for prospect:', selectedProspect.id);
+
+    const channel = supabase
+      .channel(`pipeline-prospect-detail-${selectedProspect.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'prospects',
+        filter: `id=eq.${selectedProspect.id}`
+      }, (payload) => {
+        console.log('🔥 Real-time update received for selected prospect:', payload.new);
+        
+        // Transformation Supabase → App (snake_case → camelCase)
+        const transformedData = {
+          id: payload.new.id,
+          name: payload.new.name,
+          email: payload.new.email,
+          phone: payload.new.phone,
+          address: payload.new.address,
+          city: payload.new.city,
+          postalCode: payload.new.postal_code,
+          tags: payload.new.tags || [],
+          ownerId: payload.new.owner_id,
+          userId: payload.new.user_id,
+          createdAt: payload.new.created_at,
+          updatedAt: payload.new.updated_at,
+          notes: payload.new.notes,
+          status: payload.new.status
+        };
+
+        setSelectedProspect(transformedData);
+        
+        toast({
+          title: "✅ Contact mis à jour",
+          description: "Les modifications ont été synchronisées en temps réel.",
+          duration: 2000,
+        });
+      })
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Cleaning up real-time subscription for prospect:', selectedProspect.id);
+      supabase.removeChannel(channel);
+    };
+  }, [selectedProspect?.id]);
   
   if (!contextData) {
     return (

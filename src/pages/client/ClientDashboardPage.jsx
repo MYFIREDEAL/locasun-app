@@ -6,35 +6,42 @@ import ProjectDetails from '@/components/ProjectDetails';
 import { useAppContext } from '@/App';
 
 function ClientDashboardPage() {
-  const { userProjects, projectsData, currentUser } = useAppContext();
+  const { projectsData, currentUser } = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedProject, setSelectedProject] = useState(null);
   const [displayedProjects, setDisplayedProjects] = useState([]);
 
   useEffect(() => {
+    console.log('🔄 ClientDashboardPage: currentUser changed', currentUser);
+    
     if (!currentUser) {
-      // If there's no logged in user, maybe redirect or show a login message.
-      // For now, let's assume registration page sets a user.
-      // If not, we should handle this case. Let's just show no projects for now.
-       setDisplayedProjects([]);
-       return;
+      // Pas de client connecté → on ne peut pas afficher de projets
+      setDisplayedProjects([]);
+      return;
     }
 
-    if (!userProjects || userProjects.length === 0) {
-      const storedProjects = localStorage.getItem('userProjects');
-      if (!storedProjects || JSON.parse(storedProjects).length === 0) {
-        const defaultProjects = ['ACC'];
-        localStorage.setItem('userProjects', JSON.stringify(defaultProjects));
-        // This will be picked up by the context in the next render cycle.
-        return;
-      }
+    // 🔥 IMPORTANT: Utiliser currentUser.tags directement depuis Supabase (prospects.tags)
+    // Pas de localStorage, la source de vérité est la base de données
+    const clientTags = currentUser.tags || [];
+    
+    console.log('📦 Tags du client:', clientTags);
+    
+    if (clientTags.length === 0) {
+      // Client sans projets assignés
+      setDisplayedProjects([]);
+      return;
     }
     
-    const projectsToDisplay = userProjects.map(pId => projectsData[pId]).filter(Boolean);
+    // Mapper les tags du client vers les objets de projet complets
+    const projectsToDisplay = clientTags
+      .map(tag => projectsData[tag])
+      .filter(Boolean); // Filtrer les projets qui n'existent pas
+    
+    console.log('✅ Projets à afficher:', projectsToDisplay.map(p => p.type));
     setDisplayedProjects(projectsToDisplay);
 
-  }, [userProjects, projectsData, navigate, currentUser]);
+  }, [currentUser, projectsData, navigate]);
 
   const handleProjectClick = (project) => {
     setSelectedProject(project);
@@ -65,9 +72,7 @@ function ClientDashboardPage() {
     );
   }
 
-  if (!displayedProjects.length && userProjects.length > 0) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p>Chargement...</p></div>;
-  }
+  // Pas besoin de vérifier userProjects, on utilise directement currentUser.tags depuis Supabase
 
   return (
     <AnimatePresence mode="wait">
