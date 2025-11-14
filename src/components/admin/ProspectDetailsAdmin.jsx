@@ -537,12 +537,22 @@ const ProspectDetailsAdmin = ({
   const projectSteps = useMemo(() => {
     if (!activeProjectTag) return [];
     
+    console.log('🔍 [ProspectDetailsAdmin] Loading steps:', {
+      prospectId: prospect.id,
+      prospectName: prospect.name,
+      activeProjectTag,
+      supabaseSteps,
+      hasSupabaseSteps: !!supabaseSteps[activeProjectTag]
+    });
+    
     // Si on a des steps depuis Supabase, les utiliser
     if (supabaseSteps[activeProjectTag]) {
+      console.log('✅ Using Supabase steps:', supabaseSteps[activeProjectTag]);
       return supabaseSteps[activeProjectTag];
     }
     
     // Sinon fallback sur l'ancienne méthode
+    console.log('⚠️ Fallback to getProjectSteps (no Supabase data)');
     return getProjectSteps(prospect.id, activeProjectTag);
   }, [activeProjectTag, supabaseSteps, prospect.id, getProjectSteps]);
 
