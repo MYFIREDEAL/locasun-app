@@ -180,6 +180,14 @@ export const useSupabaseUsersCRUD = () => {
 
       console.log('✅ Public user created:', publicUserData);
 
+      // 🔥 Ajouter manuellement à la liste (le real-time devrait le faire, mais on force au cas où)
+      setUsers(prev => {
+        console.log('📝 Adding user manually to list. Current users:', prev.length);
+        const newList = [...prev, publicUserData];
+        console.log('📝 New users list:', newList.length);
+        return newList;
+      });
+
       // ✅ Le real-time va automatiquement ajouter l'utilisateur à la liste
       toast({
         title: "Succès !",

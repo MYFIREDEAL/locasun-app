@@ -83,8 +83,25 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
           className: "bg-green-500 text-white",
         });
         
+        // ✅ Transformer les données Supabase (snake_case → camelCase)
+        const transformedUserData = {
+          id: userData.id,
+          userId: userData.user_id,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          phone: userData.phone,
+          avatarUrl: userData.avatar_url,
+          managerId: userData.manager_id,
+          accessRights: userData.access_rights, // ⚠️ IMPORTANT pour les droits d'accès
+          createdAt: userData.created_at,
+          updatedAt: userData.updated_at,
+        };
+        
+        console.log('🔐 Transformed admin user data:', transformedUserData);
+        
         // ✅ Définir activeAdminUser pour les PRO (pas currentUser)
-        setActiveAdminUser(userData);
+        setActiveAdminUser(transformedUserData);
         onOpenChange(false);
         setTimeout(() => navigate('/admin'), 500);
       } else {
