@@ -96,10 +96,6 @@ const navItems = [
                         </NavLink>
                     ))}
                     <div className="pt-4 mt-4 border-t">
-                        <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center space-x-3 p-3 rounded-lg text-lg font-medium transition-colors text-gray-600 hover:bg-gray-50">
-                            <ArrowLeft className="h-6 w-6" />
-                            <span>Espace Client</span>
-                        </Link>
                         <Link to="/admin/parametres" onClick={() => setIsMenuOpen(false)} className="flex items-center space-x-3 p-3 rounded-lg text-lg font-medium transition-colors text-gray-600 hover:bg-gray-50">
                             <Settings className="h-6 w-6" />
                             <span>Paramètres</span>
@@ -150,17 +146,6 @@ const navItems = [
                 </nav>
 
                 <div className="flex items-center space-x-2">
-                   {!isMobile && (
-                      <div className="flex items-center gap-2">
-                        <Link to="/dashboard">
-                            <Button variant="outline" className="rounded-full text-green-600 border-green-200 hover:bg-green-50 flex items-center space-x-2">
-                                <ArrowLeft className="h-4 w-4" />
-                                <span>Espace Client</span>
-                            </Button>
-                        </Link>
-                        {/* Bouton "Changer d'utilisateur" désactivé - L'authentification Supabase gère maintenant les sessions utilisateur */}
-                      </div>
-                   )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button

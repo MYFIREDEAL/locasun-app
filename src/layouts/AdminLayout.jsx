@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-    import { Outlet, useLocation } from 'react-router-dom';
+    import { Outlet, useLocation, useNavigate } from 'react-router-dom';
     import AdminHeader from '@/components/admin/AdminHeader';
     import Chatbot from '@/components/Chatbot'; 
     import useWindowSize from '@/hooks/useWindowSize';
@@ -13,6 +13,7 @@ import React, { useEffect } from 'react';
       const isMobile = width < 768;
       const isDesktop = width >= 1024;
       const location = useLocation();
+      const navigate = useNavigate();
       const isCharlyPage = location.pathname.startsWith('/admin/charly');
       const isAgendaPage = location.pathname.startsWith('/admin/agenda');
       const isProfilePage = location.pathname.startsWith('/admin/profil');
@@ -20,6 +21,31 @@ import React, { useEffect } from 'react';
       const isContactsPage = location.pathname.startsWith('/admin/contacts');
 
       const showAside = isDesktop && !isCharlyPage && !isAgendaPage && !isProfilePage && !isPipelinePage && !isContactsPage;
+
+      // 🔒 PROTECTION : Détecter si un client est connecté et le déconnecter
+      useEffect(() => {
+        const checkClientSession = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user && !activeAdminUser) {
+            // Utilisateur connecté mais pas dans la table users (= client)
+            // Vérifier si c'est un prospect (client)
+            const { data: prospect } = await supabase
+              .from('prospects')
+              .select('id')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (prospect) {
+              console.warn('⚠️ Client détecté sur espace admin → déconnexion automatique');
+              await supabase.auth.signOut();
+              navigate('/');
+            }
+          }
+        };
+        
+        checkClientSession();
+      }, [activeAdminUser, navigate]);
 
       // 🔥 Real-time : Écouter les modifications de l'utilisateur admin connecté
       useEffect(() => {

@@ -82,12 +82,6 @@ const ClientHeader = () => {
                         <span>{item.name}</span>
                     </NavLink>
                 ))}
-                <div className="pt-4 mt-4 border-t">
-                    <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="flex items-center space-x-3 p-3 rounded-lg text-lg font-medium transition-colors text-gray-600 hover:bg-gray-50">
-                        <BarChart3 className="h-6 w-6" />
-                        <span>Accès Pro</span>
-                    </Link>
-                </div>
             </nav>
           </motion.div>
         </motion.div>
@@ -151,15 +145,6 @@ const ClientHeader = () => {
           )}
 
           <div className="flex items-center space-x-2">
-             {!isMobile && (
-              <Link to="/admin">
-                <Button variant="outline" className="rounded-full text-blue-600 border-blue-200 hover:bg-blue-50 flex items-center space-x-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Accès Pro</span>
-                </Button>
-              </Link>
-            )}
-            
             {/* Notifications Client */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

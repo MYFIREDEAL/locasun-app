@@ -213,10 +213,13 @@ function App() {
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
-  const projectsData = projectTemplates.reduce((acc, template) => {
-    acc[template.type] = template;
-    return acc;
-  }, {});
+  // IMPORTANT: useMemo pour que projectsData se recalcule quand projectTemplates change (real-time)
+  const projectsData = useMemo(() => {
+    return projectTemplates.reduce((acc, template) => {
+      acc[template.type] = template;
+      return acc;
+    }, {});
+  }, [projectTemplates]);
   
   // Exposer le logo pour le contexte (compatibilité avec le code existant)
   const companyLogo = companySettings?.logo_url || '';
