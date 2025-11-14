@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 
@@ -16,6 +16,9 @@ export const useSupabaseCompanySettings = () => {
   const [companySettings, setCompanySettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Flag pour savoir si la mise à jour vient de nous (ne pas afficher le toast)
+  const isLocalUpdate = useRef(false);
 
   // ID fixe du singleton (une seule ligne dans la table)
   const COMPANY_SETTINGS_ID = '9769af46-b3ac-4909-8810-a8cf3fd6e307';
@@ -72,14 +75,17 @@ export const useSupabaseCompanySettings = () => {
               return prev;
             }
             
-            // Afficher le toast uniquement si c'est un vrai changement (pas le chargement initial)
-            if (prev !== null) {
+            // Afficher le toast uniquement si c'est un changement externe (pas nous)
+            if (prev !== null && !isLocalUpdate.current) {
               toast({
-                title: "Paramètres synchronisés",
-                description: "Un autre admin a modifié les paramètres.",
+                title: "Logo synchronisé",
+                description: "Un autre admin a modifié le logo de l'entreprise.",
                 className: "bg-blue-500 text-white",
               });
             }
+            
+            // Reset le flag après traitement
+            isLocalUpdate.current = false;
             
             return payload.new;
           });
@@ -105,6 +111,9 @@ export const useSupabaseCompanySettings = () => {
         dataLength: logoData?.length,
         isBase64: logoData?.startsWith('data:'),
       });
+      
+      // Marquer comme mise à jour locale (pour ne pas afficher le toast)
+      isLocalUpdate.current = true;
 
       const { error: updateError } = await supabase
         .from('company_settings')
@@ -116,6 +125,7 @@ export const useSupabaseCompanySettings = () => {
 
       if (updateError) {
         console.error('❌ Supabase update error details:', updateError);
+        isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
 
@@ -153,6 +163,9 @@ export const useSupabaseCompanySettings = () => {
   const removeLogo = async () => {
     try {
       console.log('🔧 Removing company logo...');
+      
+      // Marquer comme mise à jour locale (pour ne pas afficher le toast)
+      isLocalUpdate.current = true;
 
       const { error: updateError } = await supabase
         .from('company_settings')
@@ -164,6 +177,7 @@ export const useSupabaseCompanySettings = () => {
 
       if (updateError) {
         console.error('❌ Supabase remove error details:', updateError);
+        isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
 
@@ -202,6 +216,9 @@ export const useSupabaseCompanySettings = () => {
   const updateSettings = async (newSettings) => {
     try {
       console.log('🔧 Updating company settings...');
+      
+      // Marquer comme mise à jour locale (pour ne pas afficher le toast)
+      isLocalUpdate.current = true;
 
       const { error: updateError } = await supabase
         .from('company_settings')
@@ -213,6 +230,7 @@ export const useSupabaseCompanySettings = () => {
 
       if (updateError) {
         console.error('❌ Supabase settings update error details:', updateError);
+        isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
 
