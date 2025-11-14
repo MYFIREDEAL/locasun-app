@@ -1875,12 +1875,16 @@ const ProfilePage = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {companyLogo ? (
+                  {companyLogo && (companyLogo.startsWith('data:') || companyLogo.startsWith('http')) ? (
                     <div className="flex flex-col items-center gap-4 p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                       <img 
                         src={companyLogo} 
                         alt="Logo de l'entreprise" 
                         className="max-w-xs max-h-48 object-contain rounded-lg shadow-md"
+                        onError={(e) => {
+                          console.error('❌ Erreur chargement image:', companyLogo);
+                          e.target.style.display = 'none';
+                        }}
                       />
                       <div className="flex gap-2">
                         <Button 
