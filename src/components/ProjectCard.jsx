@@ -13,13 +13,14 @@ import React from 'react';
       const { steps: supabaseSteps } = useSupabaseProjectStepsStatus(currentUser?.id);
       
       // Récupérer les steps pour ce projet spécifique
-      const steps = supabaseSteps[project.type] 
+      const steps = (supabaseSteps && supabaseSteps[project.type]) 
         ? supabaseSteps[project.type] 
         : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
       
       console.log('🔍 [ProjectCard] Steps for', project.type, ':', {
-        hasSupabaseSteps: !!supabaseSteps[project.type],
-        steps
+        supabaseStepsExists: !!supabaseSteps,
+        hasSupabaseSteps: !!(supabaseSteps && supabaseSteps[project.type]),
+        stepsCount: steps?.length || 0
       });
       
       const completedStepsCount = steps.filter(step => step.status === STATUS_COMPLETED).length;

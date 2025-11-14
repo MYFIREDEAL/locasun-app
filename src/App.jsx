@@ -215,10 +215,16 @@ function App() {
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
   // IMPORTANT: useMemo pour que projectsData se recalcule quand projectTemplates change (real-time)
   const projectsData = useMemo(() => {
-    return projectTemplates.reduce((acc, template) => {
+    const result = projectTemplates.reduce((acc, template) => {
       acc[template.type] = template;
       return acc;
     }, {});
+    console.log('🔧 projectsData rebuilt:', {
+      templatesCount: projectTemplates.length,
+      keys: Object.keys(result),
+      isEmpty: Object.keys(result).length === 0
+    });
+    return result;
   }, [projectTemplates]);
   
   // Exposer le logo pour le contexte (compatibilité avec le code existant)

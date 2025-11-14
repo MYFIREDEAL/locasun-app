@@ -38,7 +38,9 @@ function ClientDashboardPage() {
       .map(tag => projectsData[tag])
       .filter(Boolean); // Filtrer les projets qui n'existent pas
     
-    console.log('✅ Projets à afficher:', projectsToDisplay.map(p => p.type));
+    console.log('✅ Projets à afficher:', projectsToDisplay.map(p => p?.type || 'UNDEFINED'));
+    console.log('🔍 ProjectsData keys:', Object.keys(projectsData));
+    console.log('🔍 Full projects:', projectsToDisplay);
     setDisplayedProjects(projectsToDisplay);
 
   }, [currentUser, projectsData, navigate]);
