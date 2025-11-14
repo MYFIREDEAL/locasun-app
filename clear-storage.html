@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clear Storage</title></head>
+<body>
+<h1>Nettoyer le localStorage Supabase</h1>
+<button onclick="clearAll()">Nettoyer tout</button>
+<div id="result"></div>
+<script>
+function clearAll() {
+  // Supprimer toutes les clés Supabase
+  const keys = Object.keys(localStorage);
+  keys.forEach(key => {
+    if (key.includes('supabase')) {
+      localStorage.removeItem(key);
+      console.log('Supprimé:', key);
+    }
+  });
+  document.getElementById('result').innerHTML = '<p style="color:green">✅ LocalStorage nettoyé ! Rechargez votre app.</p>';
+}
+</script>
+</body>
+</html>

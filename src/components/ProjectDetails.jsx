@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
+import { supabase } from '@/lib/supabase';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -311,8 +312,10 @@ const ProjectDetails = ({ project, onBack }) => {
   } = useAppContext();
   const [progress, setProgress] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [stepsFromSupabase, setStepsFromSupabase] = useState(null);
   
-  const steps = currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps;
+  // Utiliser les steps Supabase si disponibles, sinon fallback sur getProjectSteps
+  const steps = stepsFromSupabase || (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
   const effectiveStepIndex = currentStepIndex !== -1 ? currentStepIndex : 0;
@@ -374,11 +377,82 @@ const ProjectDetails = ({ project, onBack }) => {
     };
   }, [clearClientFormsFor, currentUser, project.type]);
 
+  // 🔥 REAL-TIME : Écouter les changements de steps depuis Supabase
+  useEffect(() => {
+    if (!currentUser?.id || !project.type) return;
+
+    console.log('🔥 [ProjectDetails] Setting up real-time listener for project steps...', {
+      prospectId: currentUser.id,
+      projectType: project.type
+    });
+
+    // Charger les steps initiaux depuis Supabase
+    const fetchInitialSteps = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('project_steps_status')
+          .select('steps')
+          .eq('prospect_id', currentUser.id)
+          .eq('project_type', project.type)
+          .single();
+
+        if (error) {
+          console.warn('⚠️ No steps found in Supabase, using local data');
+          return;
+        }
+
+        if (data?.steps) {
+          console.log('✅ [ProjectDetails] Initial steps loaded from Supabase:', data.steps);
+          setStepsFromSupabase(data.steps);
+        }
+      } catch (err) {
+        console.error('❌ Error fetching initial steps:', err);
+      }
+    };
+
+    fetchInitialSteps();
+
+    // Écouter les changements real-time
+    const channel = supabase
+      .channel(`client-project-steps-${currentUser.id}-${project.type}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'project_steps_status',
+          filter: `prospect_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          console.log('🔥 [ProjectDetails] Real-time steps update:', payload);
+
+          if (payload.new?.project_type === project.type && payload.new?.steps) {
+            console.log('✅ [ProjectDetails] Updating steps from real-time:', payload.new.steps);
+            setStepsFromSupabase(payload.new.steps);
+            
+            toast({
+              title: "📊 Timeline mise à jour",
+              description: "Votre conseiller a mis à jour l'avancement du projet",
+              className: "bg-blue-500 text-white",
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [ProjectDetails] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔌 [ProjectDetails] Unsubscribing from real-time...');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, project.type]);
+
   useEffect(() => {
     const completedSteps = steps.filter(step => step.status === STATUS_COMPLETED).length;
     const totalSteps = steps.length;
-    const newProgress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-    setProgress(newProgress);
+    const calculatedProgress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    setProgress(calculatedProgress);
   }, [steps]);
 
   return (
