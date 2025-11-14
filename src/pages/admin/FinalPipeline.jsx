@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -62,6 +63,9 @@ const FinalPipeline = () => {
   // Récupération du contexte avec gestion d'erreur
   const contextData = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // ✅ Charger TOUS les project steps pour afficher les bonnes étapes sur les cartes
+  const { allProjectSteps } = useSupabaseAllProjectSteps();
   
   // États locaux
   const [selectedProspect, setSelectedProspect] = useState(null);
@@ -331,8 +335,16 @@ const FinalPipeline = () => {
       }
 
       projectTypes.forEach((projectType) => {
-        const projectSteps = getProjectSteps(prospect.id, projectType) || [];
+        // 🔥 PRIORITÉ: Charger depuis Supabase, sinon fallback sur getProjectSteps
+        const supabaseKey = `${prospect.id}-${projectType}`;
+        const projectSteps = allProjectSteps[supabaseKey] || (typeof getProjectSteps === 'function' ? getProjectSteps(prospect.id, projectType) : []) || [];
         const projectDefaultSteps = projectsData[projectType]?.steps || [];
+
+        console.log(`🔍 [Pipeline] Steps for ${prospect.name} - ${projectType}:`, {
+          supabaseKey,
+          hasSupabaseSteps: !!allProjectSteps[supabaseKey],
+          steps: projectSteps
+        });
 
         if (!projectSteps.length) {
           entries.push({ stageId: fallbackStageId, prospect, projectType });
