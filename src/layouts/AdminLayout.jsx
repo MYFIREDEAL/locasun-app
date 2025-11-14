@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
     import { Outlet, useLocation } from 'react-router-dom';
     import AdminHeader from '@/components/admin/AdminHeader';
     import Chatbot from '@/components/Chatbot'; 
     import useWindowSize from '@/hooks/useWindowSize';
     import CharlyChat from '@/components/admin/CharlyChat';
+    import { useAppContext } from '@/App';
+    import { supabase } from '@/lib/supabase';
 
     const AdminLayout = () => {
       const { width } = useWindowSize();
+      const { activeAdminUser, setActiveAdminUser } = useAppContext();
       const isMobile = width < 768;
       const isDesktop = width >= 1024;
       const location = useLocation();
@@ -17,6 +20,54 @@ import React from 'react';
       const isContactsPage = location.pathname.startsWith('/admin/contacts');
 
       const showAside = isDesktop && !isCharlyPage && !isAgendaPage && !isProfilePage && !isPipelinePage && !isContactsPage;
+
+      // 🔥 Real-time : Écouter les modifications de l'utilisateur admin connecté
+      useEffect(() => {
+        if (!activeAdminUser?.id) return;
+
+        console.log('🔥 Admin real-time : Écoute des changements pour user', activeAdminUser.id);
+
+        const channel = supabase
+          .channel(`admin-user-${activeAdminUser.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'users',
+              filter: `id=eq.${activeAdminUser.id}`
+            },
+            (payload) => {
+              console.log('🔥 Admin real-time : User modifié', payload.new);
+              
+              // Transformer les données Supabase (snake_case → camelCase)
+              const updatedUser = {
+                id: payload.new.id,
+                userId: payload.new.user_id,
+                name: payload.new.name,
+                email: payload.new.email,
+                role: payload.new.role,
+                phone: payload.new.phone,
+                avatarUrl: payload.new.avatar_url,
+                managerId: payload.new.manager_id,
+                accessRights: payload.new.access_rights, // ⚠️ IMPORTANT pour les droits d'accès
+                createdAt: payload.new.created_at,
+                updatedAt: payload.new.updated_at,
+              };
+              
+              console.log('🔥 Mise à jour activeAdminUser avec nouveaux accessRights:', updatedUser.accessRights);
+              setActiveAdminUser(updatedUser);
+            }
+          )
+          .subscribe((status) => {
+            console.log('📡 Status subscription admin user:', status);
+          });
+
+        return () => {
+          console.log('🔌 Admin real-time : Désinscription');
+          supabase.removeChannel(channel);
+        };
+      }, [activeAdminUser?.id, setActiveAdminUser]);
 
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
