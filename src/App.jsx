@@ -535,7 +535,7 @@ function App() {
       localStorage.setItem(GLOBAL_PIPELINE_STORAGE_KEY, JSON.stringify(defaults));
     }
 
-    hasHydratedFormContactConfig.current = true;
+    // hasHydratedFormContactConfig n'est plus nécessaire (géré par Supabase)
     hasHydratedGlobalPipelineSteps.current = true;
   }, []);
   
