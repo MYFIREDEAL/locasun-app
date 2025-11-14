@@ -89,19 +89,23 @@ export const useSupabaseCompanySettings = () => {
    */
   const updateLogo = async (logoData) => {
     try {
-      console.log('🔧 Updating company logo...');
+      console.log('🔧 Updating company logo...', {
+        dataLength: logoData?.length,
+        isBase64: logoData?.startsWith('data:'),
+      });
 
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('company_settings')
         .update({ 
           logo_url: logoData,
           updated_at: new Date().toISOString()
         })
-        .eq('id', COMPANY_SETTINGS_ID)
-        .select()
-        .single();
+        .eq('id', COMPANY_SETTINGS_ID);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Supabase update error details:', updateError);
+        throw updateError;
+      }
 
       console.log('✅ Logo updated in DB, waiting for real-time sync...');
 
@@ -111,7 +115,8 @@ export const useSupabaseCompanySettings = () => {
         className: "bg-green-500 text-white",
       });
 
-      return data;
+      // Pas besoin de retourner les données, le real-time s'en charge
+      return true;
     } catch (err) {
       console.error('❌ Erreur update logo:', err);
       toast({
@@ -130,27 +135,29 @@ export const useSupabaseCompanySettings = () => {
     try {
       console.log('🔧 Removing company logo...');
 
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('company_settings')
         .update({ 
           logo_url: null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', COMPANY_SETTINGS_ID)
-        .select()
-        .single();
+        .eq('id', COMPANY_SETTINGS_ID);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Supabase remove error details:', updateError);
+        throw updateError;
+      }
 
       console.log('✅ Logo removed, waiting for real-time sync...');
 
       toast({
         title: "Logo supprimé",
-        description: "Le logo de l'entreprise a été supprimé.",
-        className: "bg-orange-500 text-white",
+        description: "Le logo de l'entreprise a été retiré.",
+        className: "bg-blue-500 text-white",
       });
 
-      return data;
+      // Pas besoin de retourner les données, le real-time s'en charge
+      return true;
     } catch (err) {
       console.error('❌ Erreur suppression logo:', err);
       toast({
@@ -170,21 +177,23 @@ export const useSupabaseCompanySettings = () => {
     try {
       console.log('🔧 Updating company settings...');
 
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('company_settings')
         .update({ 
           settings: newSettings,
           updated_at: new Date().toISOString()
         })
-        .eq('id', COMPANY_SETTINGS_ID)
-        .select()
-        .single();
+        .eq('id', COMPANY_SETTINGS_ID);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Supabase settings update error details:', updateError);
+        throw updateError;
+      }
 
       console.log('✅ Settings updated, waiting for real-time sync...');
 
-      return data;
+      // Pas besoin de retourner les données, le real-time s'en charge
+      return true;
     } catch (err) {
       console.error('❌ Erreur update settings:', err);
       toast({
