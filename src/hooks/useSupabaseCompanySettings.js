@@ -75,14 +75,9 @@ export const useSupabaseCompanySettings = () => {
               return prev;
             }
             
-            // Afficher le toast uniquement si c'est un changement externe (pas nous)
-            if (prev !== null && !isLocalUpdate.current) {
-              toast({
-                title: "Logo synchronisé",
-                description: "Un autre admin a modifié le logo de l'entreprise.",
-                className: "bg-blue-500 text-white",
-              });
-            }
+            // Pas de toast : le logo se met à jour silencieusement via real-time
+            // (Évite la confusion entre modifications locales et distantes)
+            console.log('🔄 Logo mis à jour via real-time');
             
             // Reset le flag après traitement
             isLocalUpdate.current = false;
