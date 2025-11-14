@@ -64,12 +64,24 @@ export const useSupabaseCompanySettings = () => {
         },
         (payload) => {
           console.log('🔥 Real-time company settings change detected:', payload.new);
-          setCompanySettings(payload.new);
           
-          toast({
-            title: "Paramètres mis à jour",
-            description: "Les paramètres de l'entreprise ont été synchronisés.",
-            className: "bg-blue-500 text-white",
+          // Mettre à jour l'état seulement si les données ont vraiment changé
+          setCompanySettings(prev => {
+            // Éviter les mises à jour inutiles
+            if (JSON.stringify(prev) === JSON.stringify(payload.new)) {
+              return prev;
+            }
+            
+            // Afficher le toast uniquement si c'est un vrai changement (pas le chargement initial)
+            if (prev !== null) {
+              toast({
+                title: "Paramètres synchronisés",
+                description: "Un autre admin a modifié les paramètres.",
+                className: "bg-blue-500 text-white",
+              });
+            }
+            
+            return payload.new;
           });
         }
       )

@@ -188,6 +188,15 @@ function App() {
   // Exposer le logo pour le contexte (compatibilité avec le code existant)
   const companyLogo = companySettings?.logo_url || '';
   const setCompanyLogo = updateLogo;
+  
+  // Debug: Logger les changements de logo
+  useEffect(() => {
+    console.log('📸 Company Logo changed:', {
+      logoUrl: companySettings?.logo_url,
+      logoLength: companySettings?.logo_url?.length,
+      isValid: companySettings?.logo_url ? (companySettings.logo_url.startsWith('data:') || companySettings.logo_url.startsWith('http')) : false
+    });
+  }, [companySettings?.logo_url]);
 
   // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
   // ⚠️ IMPORTANT: Ne s'applique QUE aux ADMINS (table users), pas aux CLIENTS (table prospects)
