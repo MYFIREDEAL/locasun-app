@@ -2,15 +2,14 @@ import React, { useMemo } from 'react';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
-    import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 
     const STATUS_COMPLETED = 'completed';
 
-    const ProjectCard = ({ project, onSelectProject, index }) => {
+    const ProjectCard = ({ project, projectStepsStatus, onSelectProject, index }) => {
       const { currentUser, getProjectSteps } = useAppContext();
       
-      // 🔥 PRIORITÉ: Charger depuis Supabase
-      const { projectStepsStatus } = useSupabaseProjectStepsStatus(currentUser?.id);
+      // 🔥 PRIORITÉ: Recevoir projectStepsStatus en props (partagé par toutes les cartes via Dashboard)
+      // Pas besoin d'appeler le hook ici, ça évite les subscriptions multiples
       
       // Récupérer les steps pour ce projet spécifique (useMemo pour forcer re-render)
       const steps = useMemo(() => {

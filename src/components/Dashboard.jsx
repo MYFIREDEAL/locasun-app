@@ -4,10 +4,14 @@ import React from 'react';
     import ProjectCard from '@/components/ProjectCard';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
+    import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 
     const Dashboard = ({ projects = [], onProjectClick, onAddProject }) => {
       const { currentUser } = useAppContext();
       const totalProjects = projects.length;
+      
+      // 🔥 Charger les steps UNE SEULE FOIS au niveau Dashboard (pas dans chaque carte)
+      const { projectStepsStatus } = useSupabaseProjectStepsStatus(currentUser?.id);
       
       // Note: La progression est maintenant calculée dans ProjectCard via Supabase
       // On affiche juste le nombre total de projets
@@ -67,6 +71,7 @@ import React from 'react';
                   <ProjectCard 
                     key={project.id} 
                     project={project} 
+                    projectStepsStatus={projectStepsStatus}
                     onSelectProject={() => onProjectClick(project)} 
                     index={index}
                   />
