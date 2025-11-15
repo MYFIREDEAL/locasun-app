@@ -172,47 +172,55 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     }
   };
 
-  const handleSelectPrompt = (prompt) => {
+  const handleSelectPrompt = async (prompt) => {
+    console.log('🤖 Prompt sélectionné:', prompt);
+    console.log('📍 Étape actuelle:', currentStepIndex);
+    console.log('👤 Prospect ID:', prospectId);
+    console.log('🏷️ Project Type:', projectType);
+    
     const stepConfig = prompt.stepsConfig?.[currentStepIndex];
+    console.log('⚙️ Step config:', stepConfig);
+    
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
       const existingMessages = getChatMessages(prospectId, projectType);
-      stepConfig.actions.forEach(action => {
+      console.log('📨 Messages existants:', existingMessages.length);
+      
+      // Traiter les actions séquentiellement avec await
+      // ✅ On n'empêche plus l'envoi de doublons côté UI, c'est géré par le backend
+      for (const action of stepConfig.actions) {
         if (action.message) {
-          const alreadySent = existingMessages.some(msg =>
-            msg.sender === 'pro' &&
-            msg.promptId === prompt.id &&
-            msg.stepIndex === currentStepIndex &&
-            msg.text === action.message
-          );
-          if (alreadySent) {
-            return;
-          }
           const message = {
             sender: 'pro',
             text: action.message,
             promptId: prompt.id,
             stepIndex: currentStepIndex,
           };
-          addChatMessage(prospectId, projectType, message);
+          console.log('📤 Envoi message prompt:', message);
+          await addChatMessage(prospectId, projectType, message);
         }
         if (action.type === 'show_form' && action.formId) {
-          const alreadyQueued = existingMessages.some(msg =>
-            msg.sender === 'pro' &&
-            msg.promptId === prompt.id &&
-            msg.stepIndex === currentStepIndex &&
-            msg.formId === action.formId
-          );
-          if (alreadyQueued) {
-            return;
-          }
           const formMessage = {
             sender: 'pro',
             formId: action.formId,
             promptId: prompt.id,
             stepIndex: currentStepIndex,
           };
-          addChatMessage(prospectId, projectType, formMessage);
+          console.log('📋 Envoi formulaire:', formMessage);
+          await addChatMessage(prospectId, projectType, formMessage);
         }
+      }
+      
+      toast({
+        title: "Prompt envoyé !",
+        description: `Le message a été envoyé au client.`,
+        className: "bg-green-500 text-white"
+      });
+    } else {
+      console.log('❌ Pas d\'actions configurées pour cette étape');
+      toast({
+        title: "Erreur",
+        description: "Ce prompt n'a pas d'actions configurées pour cette étape.",
+        variant: "destructive"
       });
     }
     setPopoverOpen(false);

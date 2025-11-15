@@ -28,6 +28,7 @@ import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
+import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
 const GLOBAL_PIPELINE_COLOR_PALETTE = [
@@ -167,7 +168,7 @@ function App() {
   const [tasks, setTasks] = useState([]);
   // ❌ SUPPRIMÉ: users localStorage - Maintenant géré par useSupabaseUsers() et useSupabaseUsersCRUD()
   // const [users, setUsers] = useState({});
-  const [chatMessages, setChatMessages] = useState({});
+  // ✅ chatMessages maintenant géré par useSupabaseChatMessages (plus de localStorage)
   const [notifications, setNotifications] = useState([]);
   const [clientNotifications, setClientNotifications] = useState([]);
   const [forms, setForms] = useState({});
@@ -210,6 +211,16 @@ function App() {
     deleteTemplate,
     getPublicTemplates
   } = useSupabaseProjectTemplates();
+
+  // 🔥 Charger les messages de chat depuis Supabase avec real-time
+  const {
+    messages: supabaseChatMessages,
+    loading: chatLoading,
+    getChatMessages: getSupabaseChatMessages,
+    addChatMessage: addSupabaseChatMessage,
+    markConversationAsRead,
+    getUnreadCount
+  } = useSupabaseChatMessages();
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
@@ -484,8 +495,9 @@ function App() {
     }
     // Note: activeAdminUser sera chargé via HomePage.jsx après authentification
     
-    const storedChatMessages = localStorage.getItem('evatime_chat_messages');
-    setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
+    // ✅ SUPPRIMÉ: Chat messages maintenant gérés par useSupabaseChatMessages (real-time)
+    // const storedChatMessages = localStorage.getItem('evatime_chat_messages');
+    // setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
 
     const storedNotifications = localStorage.getItem('evatime_notifications');
     setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
@@ -768,49 +780,95 @@ function App() {
     }
   }, []);
 
-  const addChatMessage = (prospectId, projectType, message) => {
-    const chatKey = `chat_${prospectId}_${projectType}`;
-    const newMessage = { ...message, timestamp: new Date().toISOString() };
+  // ✅ Utiliser le hook Supabase pour ajouter un message
+  const addChatMessage = async (prospectId, projectType, message) => {
+    console.log('📨 [addChatMessage] Appel avec:', { prospectId, projectType, message });
+    
+    const existingMessages = getSupabaseChatMessages(prospectId, projectType);
+    console.log('📊 [addChatMessage] Messages existants:', existingMessages.length);
 
-    setChatMessages(prev => {
-      const newMessages = { ...prev };
-      if (!newMessages[chatKey]) {
-        newMessages[chatKey] = [];
+    // 🔥 Vérifier si le message existe déjà (formulaire déjà complété)
+    if (message.completedFormId && message.sender === 'client') {
+      const alreadyCompleted = existingMessages.some(msg =>
+        msg.sender === 'client' &&
+        msg.completedFormId === message.completedFormId &&
+        (msg.relatedMessageTimestamp || '') === (message.relatedMessageTimestamp || '')
+      );
+      if (alreadyCompleted) {
+        console.log('⚠️ Message déjà envoyé (formulaire complété)');
+        return { success: false, reason: 'duplicate_form' };
       }
-      const existingMessages = newMessages[chatKey];
+    }
 
-      if (
-        newMessage.completedFormId &&
-        newMessage.sender === 'client'
-      ) {
-        const alreadyCompleted = existingMessages.some(msg =>
-          msg.sender === 'client' &&
-          msg.completedFormId === newMessage.completedFormId &&
-          (msg.relatedMessageTimestamp || '') === (newMessage.relatedMessageTimestamp || '')
-        );
-        if (alreadyCompleted) {
+    // 🔥 Vérifier si le message prompt existe déjà
+    if (message.promptId) {
+      console.log('🔍 [addChatMessage] Vérification doublon prompt...');
+      const alreadySentFromPrompt = existingMessages.some(msg =>
+        msg.sender === message.sender &&
+        msg.promptId === message.promptId &&
+        (msg.stepIndex || 0) === (message.stepIndex || 0) &&
+        (msg.text || '') === (message.text || '') &&
+        (msg.formId || null) === (message.formId || null)
+      );
+      if (alreadySentFromPrompt) {
+        console.log('⚠️ Message prompt déjà présent dans le chat');
+        // ✅ On autorise quand même l'envoi (l'admin peut vouloir renvoyer le prompt)
+        // return { success: false, reason: 'duplicate_prompt' };
+      } else {
+        console.log('✅ [addChatMessage] Pas de doublon, envoi...');
+      }
+    }
+
+    // 🔥 Envoyer le message via Supabase
+    console.log('📤 [addChatMessage] Envoi vers Supabase...');
+    const result = await addSupabaseChatMessage(prospectId, projectType, message);
+    console.log('📥 [addChatMessage] Résultat Supabase:', result);
+
+    if (!result.success) {
+      console.error('❌ Échec envoi message:', result.error);
+      return { success: false, error: result.error };
+    }
+    
+    console.log('✅ [addChatMessage] Message envoyé avec succès!');
+
+    // 🔥 Si c'est un formulaire envoyé par l'admin/pro, l'enregistrer pour le client
+    if (message.formId && (message.sender === 'admin' || message.sender === 'pro')) {
+      console.log('📋 [addChatMessage] Enregistrement du formulaire pour le panneau client...');
+      console.log('📋 [addChatMessage] formId:', message.formId);
+      console.log('📋 [addChatMessage] Forms disponibles:', Object.keys(forms));
+      console.log('📋 [addChatMessage] Formulaire existe?', forms[message.formId] ? 'OUI' : 'NON');
+      
+      const formPayload = {
+        prospectId: prospectId,
+        projectType: projectType,
+        formId: message.formId,
+        messageTimestamp: result.data?.timestamp || new Date().toISOString(),
+        status: 'pending'
+      };
+      
+      // Ajouter le formulaire au panneau client directement
+      setClientFormPanels(prev => {
+        const panelId = formPayload.messageTimestamp || `${formPayload.prospectId}_${formPayload.projectType}_${formPayload.formId}`;
+        const normalized = {
+          ...formPayload,
+          panelId,
+          createdAt: formPayload.messageTimestamp ? new Date(formPayload.messageTimestamp).getTime() : Date.now(),
+          userOverride: null,
+        };
+        
+        // Vérifier si le formulaire existe déjà
+        const existingIndex = prev.findIndex(item => item.panelId === panelId);
+        if (existingIndex !== -1) {
+          console.log('⚠️ Formulaire déjà dans le panneau, skip');
           return prev;
         }
-      }
+        
+        console.log('✅ Formulaire ajouté au panneau:', normalized);
+        return [normalized, ...prev];
+      });
+    }
 
-      if (newMessage.promptId) {
-        const alreadySentFromPrompt = existingMessages.some(msg =>
-          msg.sender === newMessage.sender &&
-          msg.promptId === newMessage.promptId &&
-          (msg.stepIndex || 0) === (newMessage.stepIndex || 0) &&
-          (msg.text || '') === (newMessage.text || '') &&
-          (msg.formId || null) === (newMessage.formId || null)
-        );
-        if (alreadySentFromPrompt) {
-          return prev;
-        }
-      }
-
-      newMessages[chatKey].push(newMessage);
-      localStorage.setItem('evatime_chat_messages', JSON.stringify(newMessages));
-      return newMessages;
-    });
-
+    // 🔥 Gérer le fichier RIB pour les clients
     if (message.file && message.sender === 'client') {
       updateProjectInfo(prospectId, projectType, (prev) => {
         if (projectType === 'ACC' && !prev?.ribFile) {
@@ -820,7 +878,7 @@ function App() {
       });
     }
 
-    // Notification admin quand un client envoie un message (groupée par projet)
+    // 🔥 Notification admin quand un client envoie un message (groupée par projet)
     if (message.sender === 'client') {
       const prospect = prospects.find(p => p.id === prospectId);
       if (prospect) {
@@ -896,6 +954,9 @@ function App() {
         return updated;
       });
     }
+    
+    // Retourner le succès
+    return { success: true, data: result.data };
   };
 
   const markNotificationAsRead = (notificationId) => {
@@ -914,9 +975,9 @@ function App() {
     });
   };
 
+  // ✅ Utiliser le hook Supabase pour récupérer les messages
   const getChatMessages = (prospectId, projectType) => {
-    const key = `chat_${prospectId}_${projectType}`;
-    return chatMessages[key] || [];
+    return getSupabaseChatMessages(prospectId, projectType);
   };
 
   const getSharedAppointments = (contactId, projectType, stepName) => {
@@ -1249,7 +1310,11 @@ function App() {
     calls, addCall, updateCall, deleteCall,
     tasks, addTask, updateTask, deleteTask,
     // ❌ SUPPRIMÉ: users, updateUsers, deleteUser, getAdminById - Utiliser useSupabaseUsers() ou useSupabaseUsersCRUD()
-    chatMessages, addChatMessage, getChatMessages,
+    // ✅ Chat Messages: Maintenant géré par Supabase avec real-time
+    addChatMessage, 
+    getChatMessages,
+    markConversationAsRead, // Nouvelle fonction pour marquer toute la conversation comme lue
+    getUnreadCount, // Nouvelle fonction pour compter les messages non lus
     notifications, markNotificationAsRead,
     clientNotifications, markClientNotificationAsRead,
     forms, setForms: handleSetForms,
