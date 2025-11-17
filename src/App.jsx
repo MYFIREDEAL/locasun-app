@@ -428,15 +428,31 @@ function App() {
       localStorage.setItem('evatime_prospects', JSON.stringify(defaultProspects));
     }
 
-    const storedUser = localStorage.getItem('currentUser');
-    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
-    setCurrentUser(parsedUser);
+    // 🔥 Charger currentUser depuis Supabase Auth au lieu de localStorage
+    const loadCurrentUserFromAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Vérifier si c'est un client (prospect)
+        const { data: prospectData } = await supabase
+          .from('prospects')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (prospectData) {
+          setCurrentUser(prospectData);
+          localStorage.setItem('currentUser', JSON.stringify(prospectData));
+          
+          // Synchroniser userProjects avec les tags
+          if (prospectData.tags && Array.isArray(prospectData.tags)) {
+            setUserProjects(prospectData.tags);
+            localStorage.setItem('userProjects', JSON.stringify(prospectData.tags));
+          }
+        }
+      }
+    };
     
-    // Synchroniser userProjects avec les tags du currentUser au chargement
-    if (parsedUser && parsedUser.tags && Array.isArray(parsedUser.tags)) {
-      setUserProjects(parsedUser.tags);
-      localStorage.setItem('userProjects', JSON.stringify(parsedUser.tags));
-    }
+    loadCurrentUserFromAuth();
     
     const storedAppointments = localStorage.getItem('evatime_appointments');
     if (storedAppointments) {
