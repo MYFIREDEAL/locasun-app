@@ -484,6 +484,8 @@ const FinalPipeline = () => {
 
   useEffect(() => {
     const urlProspectId = searchParams.get('prospect');
+    const urlProjectType = searchParams.get('project');
+    
     if (!urlProspectId) {
       if (selectedProspect !== null) {
         setSelectedProspect(null);
@@ -492,11 +494,23 @@ const FinalPipeline = () => {
     }
 
     const prospectFromList = prospects.find(p => p.id === urlProspectId) || null;
-    if (prospectFromList?.id === selectedProspect?.id || (!prospectFromList && selectedProspect === null)) {
-      return;
+    
+    // Si le prospect est le même mais qu'on a un projectType dans l'URL, mettre à jour quand même
+    // pour forcer l'ouverture du bon projet dans le panneau de détail
+    if (prospectFromList) {
+      // Ajouter le projectType au prospect pour que le panneau de détail l'utilise
+      const prospectWithProject = urlProjectType 
+        ? { ...prospectFromList, _selectedProjectType: urlProjectType }
+        : prospectFromList;
+      
+      setSelectedProspect(prospectWithProject);
+      console.log('✅ Prospect selected from notification:', {
+        prospectId: urlProspectId,
+        projectType: urlProjectType,
+        prospectName: prospectFromList.name
+      });
     }
-    setSelectedProspect(prospectFromList);
-  }, [searchParams, prospects, selectedProspect]);
+  }, [searchParams, prospects]);
 
   const handleTagToggle = (tag) => {
     setSelectedTags(prev => 
