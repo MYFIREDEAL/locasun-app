@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
+import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -51,10 +52,11 @@ const AppointmentCard = ({ appointment, onClick }) => {
 };
 
 const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
-  const { getChatMessages, addChatMessage, currentUser, forms } = useAppContext();
+  const { addChatMessage, currentUser, forms } = useAppContext();
+  // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
+  const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
-  const messages = getChatMessages(prospectId, projectType);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -306,10 +308,11 @@ const ProjectDetails = ({ project, onBack }) => {
     getProjectSteps,
     updateProjectSteps,
     getSharedAppointments,
-    getChatMessages,
     registerClientForm,
     clearClientFormsFor,
   } = useAppContext();
+  // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
+  const { messages, loading: messagesLoading } = useSupabaseChatMessages(currentUser?.id, project.type);
   const [progress, setProgress] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [stepsFromSupabase, setStepsFromSupabase] = useState(null);
@@ -337,7 +340,7 @@ const ProjectDetails = ({ project, onBack }) => {
   const sharedAppointments = currentUser && currentStep ? 
     getSharedAppointments(currentUser.id, project.type, currentStep.name) : [];
 
-  const messages = currentUser ? getChatMessages(currentUser.id, project.type) : [];
+  // ✅ messages récupérés via hook useSupabaseChatMessages (déclaré ligne 315)
 
   const formMessages = useMemo(() => {
     if (!messages.length) return [];

@@ -30,6 +30,7 @@ import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
+import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
 const GLOBAL_PIPELINE_COLOR_PALETTE = [
@@ -169,7 +170,8 @@ function App() {
   const [tasks, setTasks] = useState([]);
   // ❌ SUPPRIMÉ: users localStorage - Maintenant géré par useSupabaseUsers() et useSupabaseUsersCRUD()
   // const [users, setUsers] = useState({});
-  const [chatMessages, setChatMessages] = useState({});
+  // ❌ SUPPRIMÉ: chatMessages localStorage - Maintenant géré par Supabase real-time (useSupabaseChatMessages dans composants)
+  // const [chatMessages, setChatMessages] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [clientNotifications, setClientNotifications] = useState([]);
   // 🔥 forms maintenant synchronisé depuis Supabase (useSupabaseForms) - Pas de localStorage
@@ -515,8 +517,10 @@ function App() {
     }
     // Note: activeAdminUser sera chargé via HomePage.jsx après authentification
     
-    const storedChatMessages = localStorage.getItem('evatime_chat_messages');
-    setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
+    // ❌ SUPPRIMÉ: chat_messages localStorage - Maintenant géré par Supabase real-time dans les composants
+    // Les messages sont chargés via le hook useSupabaseChatMessages dans chaque composant
+    // const storedChatMessages = localStorage.getItem('evatime_chat_messages');
+    // setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
 
     const storedNotifications = localStorage.getItem('evatime_notifications');
     setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
@@ -806,66 +810,126 @@ function App() {
     }
   }, []);
 
-  const addChatMessage = (prospectId, projectType, message) => {
-    const chatKey = `chat_${prospectId}_${projectType}`;
-    const newMessage = { ...message, timestamp: new Date().toISOString() };
+  // ✅ Migration Supabase: addChatMessage maintenant envoie directement à Supabase
+  // Le real-time synchronise automatiquement tous les clients/admins connectés
+  const addChatMessage = async (prospectId, projectType, message) => {
+    try {
+      // Vérification des doublons pour les formulaires complétés
+      if (message.completedFormId && message.sender === 'client') {
+        const { data: existingMessages } = await supabaseClient
+          .from('chat_messages')
+          .select('id')
+          .eq('prospect_id', prospectId)
+          .eq('project_type', projectType)
+          .eq('sender', 'client')
+          .eq('completed_form_id', message.completedFormId)
+          .eq('related_message_timestamp', message.relatedMessageTimestamp || '');
 
-    setChatMessages(prev => {
-      const newMessages = { ...prev };
-      if (!newMessages[chatKey]) {
-        newMessages[chatKey] = [];
-      }
-      const existingMessages = newMessages[chatKey];
-
-      if (
-        newMessage.completedFormId &&
-        newMessage.sender === 'client'
-      ) {
-        const alreadyCompleted = existingMessages.some(msg =>
-          msg.sender === 'client' &&
-          msg.completedFormId === newMessage.completedFormId &&
-          (msg.relatedMessageTimestamp || '') === (newMessage.relatedMessageTimestamp || '')
-        );
-        if (alreadyCompleted) {
-          return prev;
+        if (existingMessages && existingMessages.length > 0) {
+          console.log('⏭️ Message formulaire déjà soumis, ignoré');
+          return;
         }
       }
 
-      if (newMessage.promptId) {
-        const alreadySentFromPrompt = existingMessages.some(msg =>
-          msg.sender === newMessage.sender &&
-          msg.promptId === newMessage.promptId &&
-          (msg.stepIndex || 0) === (newMessage.stepIndex || 0) &&
-          (msg.text || '') === (newMessage.text || '') &&
-          (msg.formId || null) === (newMessage.formId || null)
-        );
-        if (alreadySentFromPrompt) {
-          return prev;
+      // Vérification des doublons pour les prompts
+      if (message.promptId) {
+        const { data: existingMessages } = await supabaseClient
+          .from('chat_messages')
+          .select('id')
+          .eq('prospect_id', prospectId)
+          .eq('project_type', projectType)
+          .eq('sender', message.sender)
+          .eq('prompt_id', message.promptId)
+          .eq('step_index', message.stepIndex || 0)
+          .eq('text', message.text || '');
+
+        if (existingMessages && existingMessages.length > 0) {
+          console.log('⏭️ Message prompt déjà envoyé, ignoré');
+          return;
         }
       }
 
-      newMessages[chatKey].push(newMessage);
-      localStorage.setItem('evatime_chat_messages', JSON.stringify(newMessages));
-      return newMessages;
-    });
+      // Insérer le message dans Supabase
+      const dbPayload = {
+        prospect_id: prospectId,
+        project_type: projectType,
+        sender: message.sender,
+        text: message.text || null,
+        file: message.file || null,
+        form_id: message.formId || null,
+        completed_form_id: message.completedFormId || null,
+        prompt_id: message.promptId || null,
+        step_index: message.stepIndex !== undefined ? message.stepIndex : null,
+        related_message_timestamp: message.relatedMessageTimestamp || null,
+        read: false,
+      };
 
-    if (message.file && message.sender === 'client') {
-      updateProjectInfo(prospectId, projectType, (prev) => {
-        if (projectType === 'ACC' && !prev?.ribFile) {
-          return { ...prev, ribFile: message.file.name };
+      const { data, error } = await supabaseClient
+        .from('chat_messages')
+        .insert([dbPayload])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Message envoyé à Supabase:', data);
+
+      // Gestion du fichier RIB pour projet ACC
+      if (message.file && message.sender === 'client') {
+        updateProjectInfo(prospectId, projectType, (prev) => {
+          if (projectType === 'ACC' && !prev?.ribFile) {
+            return { ...prev, ribFile: message.file.name };
+          }
+          return prev || {};
+        });
+      }
+
+      // Notification admin quand un client envoie un message (groupée par projet)
+      if (message.sender === 'client') {
+        const prospect = prospects.find(p => p.id === prospectId);
+        if (prospect) {
+          setNotifications(prev => {
+            // Chercher si une notification existe déjà pour ce prospect + projet
+            const existingIndex = prev.findIndex(
+              n => n.prospectId === prospectId && n.projectType === projectType && !n.read
+            );
+
+            let updated;
+            if (existingIndex !== -1) {
+              // Notification existe déjà : incrémenter le compteur
+              updated = [...prev];
+              updated[existingIndex] = {
+                ...updated[existingIndex],
+                count: (updated[existingIndex].count || 1) + 1,
+                timestamp: new Date().toISOString(),
+              };
+            } else {
+              // Créer une nouvelle notification avec count = 1
+              const newNotification = {
+                id: Date.now(),
+                prospectId,
+                projectType,
+                prospectName: prospect.name,
+                projectName: projectsData[projectType]?.title || projectType,
+                count: 1,
+                read: false,
+                timestamp: new Date().toISOString(),
+              };
+              updated = [newNotification, ...prev];
+            }
+            
+            localStorage.setItem('evatime_notifications', JSON.stringify(updated));
+            return updated;
+          });
         }
-        return prev || {};
-      });
-    }
+      }
 
-    // Notification admin quand un client envoie un message (groupée par projet)
-    if (message.sender === 'client') {
-      const prospect = prospects.find(p => p.id === prospectId);
-      if (prospect) {
-        setNotifications(prev => {
-          // Chercher si une notification existe déjà pour ce prospect + projet
+      // Notification client quand l'admin/pro répond (groupée par projet)
+      if (message.sender === 'admin' || message.sender === 'pro') {
+        setClientNotifications(prev => {
+          // Chercher si une notification existe déjà pour ce projet
           const existingIndex = prev.findIndex(
-            n => n.prospectId === prospectId && n.projectType === projectType && !n.read
+            n => n.projectType === projectType && !n.read
           );
 
           let updated;
@@ -875,63 +939,33 @@ function App() {
             updated[existingIndex] = {
               ...updated[existingIndex],
               count: (updated[existingIndex].count || 1) + 1,
-              timestamp: new Date().toISOString(), // Mettre à jour le timestamp
+              message: message.text?.substring(0, 50) || 'Nouveau message',
+              timestamp: new Date().toISOString(),
             };
           } else {
             // Créer une nouvelle notification avec count = 1
-            const newNotification = {
+            const newClientNotification = {
               id: Date.now(),
-              prospectId,
               projectType,
-              prospectName: prospect.name,
               projectName: projectsData[projectType]?.title || projectType,
+              message: message.text?.substring(0, 50) || 'Nouveau message',
               count: 1,
               read: false,
               timestamp: new Date().toISOString(),
             };
-            updated = [newNotification, ...prev];
+            updated = [newClientNotification, ...prev];
           }
           
-          localStorage.setItem('evatime_notifications', JSON.stringify(updated));
+          localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
           return updated;
         });
       }
-    }
-
-    // Notification client quand l'admin/pro répond (groupée par projet)
-    if (message.sender === 'admin' || message.sender === 'pro') {
-      setClientNotifications(prev => {
-        // Chercher si une notification existe déjà pour ce projet
-        const existingIndex = prev.findIndex(
-          n => n.projectType === projectType && !n.read
-        );
-
-        let updated;
-        if (existingIndex !== -1) {
-          // Notification existe déjà : incrémenter le compteur
-          updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            count: (updated[existingIndex].count || 1) + 1,
-            message: message.text?.substring(0, 50) || 'Nouveau message',
-            timestamp: new Date().toISOString(), // Mettre à jour le timestamp
-          };
-        } else {
-          // Créer une nouvelle notification avec count = 1
-          const newClientNotification = {
-            id: Date.now(),
-            projectType,
-            projectName: projectsData[projectType]?.title || projectType,
-            message: message.text?.substring(0, 50) || 'Nouveau message',
-            count: 1,
-            read: false,
-            timestamp: new Date().toISOString(),
-          };
-          updated = [newClientNotification, ...prev];
-        }
-        
-        localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
-        return updated;
+    } catch (err) {
+      console.error('❌ Erreur lors de l\'envoi du message:', err);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message. Vérifiez votre connexion.",
+        variant: "destructive",
       });
     }
   };
@@ -952,10 +986,12 @@ function App() {
     });
   };
 
-  const getChatMessages = (prospectId, projectType) => {
-    const key = `chat_${prospectId}_${projectType}`;
-    return chatMessages[key] || [];
-  };
+  // ❌ OBSOLÈTE: getChatMessages - Remplacé par useSupabaseChatMessages() dans les composants
+  // Les messages sont maintenant récupérés via le hook dans chaque composant (ProspectDetailsAdmin, ProjectDetails)
+  // const getChatMessages = (prospectId, projectType) => {
+  //   const key = `chat_${prospectId}_${projectType}`;
+  //   return chatMessages[key] || [];
+  // };
 
   const getSharedAppointments = (contactId, projectType, stepName) => {
     return appointments.filter(appointment => 
@@ -1287,7 +1323,8 @@ function App() {
     calls, addCall, updateCall, deleteCall,
     tasks, addTask, updateTask, deleteTask,
     // ❌ SUPPRIMÉ: users, updateUsers, deleteUser, getAdminById - Utiliser useSupabaseUsers() ou useSupabaseUsersCRUD()
-    chatMessages, addChatMessage, getChatMessages,
+    // ❌ SUPPRIMÉ: chatMessages, getChatMessages - Utiliser useSupabaseChatMessages() dans les composants
+    addChatMessage, // ✅ Conservé pour compatibilité - Envoie maintenant vers Supabase
     notifications, markNotificationAsRead,
     clientNotifications, markClientNotificationAsRead,
     // 🔥 forms synchronisé depuis Supabase (read-only pour chat, édition via useSupabaseForms dans ProfilePage)

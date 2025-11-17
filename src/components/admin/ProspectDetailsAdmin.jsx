@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
+import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -84,11 +85,12 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
 };
 
 const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
-  const { getChatMessages, addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed } = useAppContext();
+  const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
+  // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
+  const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
-  const messages = getChatMessages(prospectId, projectType);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -175,7 +177,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const handleSelectPrompt = (prompt) => {
     const stepConfig = prompt.stepsConfig?.[currentStepIndex];
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
-      const existingMessages = getChatMessages(prospectId, projectType);
+      // ✅ Utiliser messages du hook Supabase
+      const existingMessages = messages;
       stepConfig.actions.forEach(action => {
         if (action.message) {
           const alreadySent = existingMessages.some(msg =>
