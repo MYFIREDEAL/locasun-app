@@ -918,14 +918,21 @@ function App() {
 
       // 🔥 Notification admin quand un client envoie un message (Supabase)
       if (message.sender === 'client') {
-        const prospect = prospects.find(p => p.id === prospectId);
-        if (prospect) {
+        // Charger le prospect depuis Supabase (car prospects[] est vide côté client)
+        const { data: prospectData } = await supabaseClient
+          .from('prospects')
+          .select('name, owner_id')
+          .eq('id', prospectId)
+          .single();
+
+        if (prospectData) {
           await createOrUpdateNotification({
             prospectId,
             projectType,
-            prospectName: prospect.name,
+            prospectName: prospectData.name,
             projectName: projectsData[projectType]?.title || projectType
           });
+          console.log('✅ Notification admin créée pour:', prospectData.name);
         }
       }
 
