@@ -105,7 +105,7 @@ SELECT
     cfp.status,
     cfp.created_at,
     f.name as form_name,
-    f.description as form_description
+    f.fields as form_fields
 FROM client_form_panels cfp
 LEFT JOIN forms f ON f.form_id = cfp.form_id
 WHERE cfp.prospect_id = (SELECT id FROM prospects WHERE email = 'georges@yopmail.com')
