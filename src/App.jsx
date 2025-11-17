@@ -30,6 +30,8 @@ import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
+import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
+import { useSupabaseClientNotifications } from '@/hooks/useSupabaseClientNotifications';
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -172,8 +174,9 @@ function App() {
   // const [users, setUsers] = useState({});
   // ❌ SUPPRIMÉ: chatMessages localStorage - Maintenant géré par Supabase real-time (useSupabaseChatMessages dans composants)
   // const [chatMessages, setChatMessages] = useState({});
-  const [notifications, setNotifications] = useState([]);
-  const [clientNotifications, setClientNotifications] = useState([]);
+  // ❌ SUPPRIMÉ: notifications localStorage - Maintenant géré par Supabase real-time (useSupabaseNotifications)
+  // const [notifications, setNotifications] = useState([]);
+  // const [clientNotifications, setClientNotifications] = useState([]);
   // 🔥 forms maintenant synchronisé depuis Supabase (useSupabaseForms) - Pas de localStorage
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
@@ -243,6 +246,21 @@ function App() {
       console.log('✅ Prompts synchronized from Supabase:', Object.keys(supabasePrompts).length);
     }
   }, [supabasePrompts, promptsLoading]);
+
+  // 🔥 Charger les notifications admin depuis Supabase avec real-time
+  const {
+    notifications,
+    createOrUpdateNotification,
+    markAsRead: markAdminNotificationAsRead
+  } = useSupabaseNotifications(activeAdminUser?.user_id);
+
+  // 🔥 Charger les notifications client depuis Supabase avec real-time
+  // Note: currentUser.id est le prospect_id dans la table prospects
+  const {
+    notifications: clientNotifications,
+    createOrUpdateNotification: createOrUpdateClientNotification,
+    markAsRead: markClientNotificationAsRead
+  } = useSupabaseClientNotifications(currentUser?.id);
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
@@ -522,11 +540,11 @@ function App() {
     // const storedChatMessages = localStorage.getItem('evatime_chat_messages');
     // setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
 
-    const storedNotifications = localStorage.getItem('evatime_notifications');
-    setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
-    
-    const storedClientNotifications = localStorage.getItem('evatime_client_notifications');
-    setClientNotifications(storedClientNotifications ? JSON.parse(storedClientNotifications) : []);
+    // ❌ SUPPRIMÉ: notifications localStorage - Maintenant géré par useSupabaseNotifications/useSupabaseClientNotifications
+    // const storedNotifications = localStorage.getItem('evatime_notifications');
+    // setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
+    // const storedClientNotifications = localStorage.getItem('evatime_client_notifications');
+    // setClientNotifications(storedClientNotifications ? JSON.parse(storedClientNotifications) : []);
 
     // ❌ SUPPRIMÉ: forms localStorage - Maintenant géré par useSupabaseForms() dans ProfilePage
     // const storedForms = localStorage.getItem('evatime_forms');
@@ -884,80 +902,26 @@ function App() {
         });
       }
 
-      // Notification admin quand un client envoie un message (groupée par projet)
+      // 🔥 Notification admin quand un client envoie un message (Supabase)
       if (message.sender === 'client') {
         const prospect = prospects.find(p => p.id === prospectId);
         if (prospect) {
-          setNotifications(prev => {
-            // Chercher si une notification existe déjà pour ce prospect + projet
-            const existingIndex = prev.findIndex(
-              n => n.prospectId === prospectId && n.projectType === projectType && !n.read
-            );
-
-            let updated;
-            if (existingIndex !== -1) {
-              // Notification existe déjà : incrémenter le compteur
-              updated = [...prev];
-              updated[existingIndex] = {
-                ...updated[existingIndex],
-                count: (updated[existingIndex].count || 1) + 1,
-                timestamp: new Date().toISOString(),
-              };
-            } else {
-              // Créer une nouvelle notification avec count = 1
-              const newNotification = {
-                id: Date.now(),
-                prospectId,
-                projectType,
-                prospectName: prospect.name,
-                projectName: projectsData[projectType]?.title || projectType,
-                count: 1,
-                read: false,
-                timestamp: new Date().toISOString(),
-              };
-              updated = [newNotification, ...prev];
-            }
-            
-            localStorage.setItem('evatime_notifications', JSON.stringify(updated));
-            return updated;
+          await createOrUpdateNotification({
+            prospectId,
+            projectType,
+            prospectName: prospect.name,
+            projectName: projectsData[projectType]?.title || projectType
           });
         }
       }
 
-      // Notification client quand l'admin/pro répond (groupée par projet)
+      // 🔥 Notification client quand l'admin/pro répond (Supabase)
       if (message.sender === 'admin' || message.sender === 'pro') {
-        setClientNotifications(prev => {
-          // Chercher si une notification existe déjà pour ce projet
-          const existingIndex = prev.findIndex(
-            n => n.projectType === projectType && !n.read
-          );
-
-          let updated;
-          if (existingIndex !== -1) {
-            // Notification existe déjà : incrémenter le compteur
-            updated = [...prev];
-            updated[existingIndex] = {
-              ...updated[existingIndex],
-              count: (updated[existingIndex].count || 1) + 1,
-              message: message.text?.substring(0, 50) || 'Nouveau message',
-              timestamp: new Date().toISOString(),
-            };
-          } else {
-            // Créer une nouvelle notification avec count = 1
-            const newClientNotification = {
-              id: Date.now(),
-              projectType,
-              projectName: projectsData[projectType]?.title || projectType,
-              message: message.text?.substring(0, 50) || 'Nouveau message',
-              count: 1,
-              read: false,
-              timestamp: new Date().toISOString(),
-            };
-            updated = [newClientNotification, ...prev];
-          }
-          
-          localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
-          return updated;
+        await createOrUpdateClientNotification({
+          prospectId,
+          projectType,
+          projectName: projectsData[projectType]?.title || projectType,
+          message: message.text?.substring(0, 50) || 'Nouveau message'
         });
       }
     } catch (err) {
@@ -970,20 +934,13 @@ function App() {
     }
   };
 
-  const markNotificationAsRead = (notificationId) => {
-    setNotifications(prev => {
-      const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n);
-      localStorage.setItem('evatime_notifications', JSON.stringify(updated));
-      return updated;
-    });
-  };
+  // ❌ SUPPRIMÉ: markNotificationAsRead et markClientNotificationAsRead localStorage
+  // Maintenant géré par les hooks Supabase (markAdminNotificationAsRead, markClientNotificationAsRead)
+  // Les fonctions sont fournies par useSupabaseNotifications et useSupabaseClientNotifications
 
-  const markClientNotificationAsRead = (notificationId) => {
-    setClientNotifications(prev => {
-      const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n);
-      localStorage.setItem('evatime_client_notifications', JSON.stringify(updated));
-      return updated;
-    });
+  // Wrapper pour markNotificationAsRead (admin) pour compatibilité avec le contexte existant
+  const markNotificationAsRead = (notificationId) => {
+    markAdminNotificationAsRead(notificationId);
   };
 
   // ✅ getChatMessages - Version Supabase (requête synchrone pour compatibilité)
