@@ -343,6 +343,11 @@ const ProjectDetails = ({ project, onBack }) => {
   // ✅ messages récupérés via hook useSupabaseChatMessages (déclaré ligne 315)
 
   const formMessages = useMemo(() => {
+    console.log('🔍 [ProjectDetails] formMessages recalcul:', { 
+      totalMessages: messages.length,
+      messagesWithForm: messages.filter(m => m.formId).length 
+    });
+    
     if (!messages.length) return [];
 
     const completionMap = new Map();
@@ -353,19 +358,33 @@ const ProjectDetails = ({ project, onBack }) => {
       }
     });
 
-    return messages
-      .filter(msg => msg.sender === 'pro' && msg.formId)
+    const filtered = messages
+      .filter(msg => {
+        const isMatch = msg.sender === 'pro' && msg.formId;
+        if (msg.formId) {
+          console.log('📋 Message avec formId:', { 
+            sender: msg.sender, 
+            formId: msg.formId, 
+            timestamp: msg.timestamp,
+            isMatch 
+          });
+        }
+        return isMatch;
+      })
       .map(msg => {
-        const key = `${msg.formId}_${msg.timestamp || ''}`;
+        const key = `${msg.formId}_${msg.timestamp || msg.createdAt || ''}`;
         const completion = completionMap.get(key);
         return {
           formId: msg.formId,
-          messageTimestamp: msg.timestamp || '',
+          messageTimestamp: msg.timestamp || msg.createdAt || '',
           promptId: msg.promptId || null,
           currentStepIndex: typeof msg.stepIndex === 'number' ? msg.stepIndex : effectiveStepIndex,
           status: completion ? 'submitted' : 'pending',
         };
       });
+
+    console.log('✅ [ProjectDetails] formMessages résultat:', filtered);
+    return filtered;
   }, [messages, effectiveStepIndex]);
 
   useEffect(() => {
