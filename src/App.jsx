@@ -916,8 +916,28 @@ function App() {
         });
       }
 
-      // ✅ Notifications gérées automatiquement par triggers PostgreSQL
-      // Voir: create_notification_trigger.sql et create_client_notification_trigger.sql
+      // 🔥 Notification admin quand un client envoie un message (Supabase)
+      if (message.sender === 'client') {
+        const prospect = prospects.find(p => p.id === prospectId);
+        if (prospect) {
+          await createOrUpdateNotification({
+            prospectId,
+            projectType,
+            prospectName: prospect.name,
+            projectName: projectsData[projectType]?.title || projectType
+          });
+        }
+      }
+
+      // 🔥 Notification client quand l'admin/pro répond (Supabase)
+      if (message.sender === 'admin' || message.sender === 'pro') {
+        await createOrUpdateClientNotification({
+          prospectId,
+          projectType,
+          projectName: projectsData[projectType]?.title || projectType,
+          message: message.text?.substring(0, 50) || 'Nouveau message'
+        });
+      }
     } catch (err) {
       console.error('❌ Erreur lors de l\'envoi du message:', err);
       toast({
