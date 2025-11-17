@@ -940,6 +940,7 @@ function App() {
         if (prospectData) {
           console.log('🚀 Calling createOrUpdateNotification with:', {
             prospectId,
+            ownerId: prospectData.owner_id, // 🔥 OBLIGATOIRE pour real-time
             projectType,
             prospectName: prospectData.name,
             projectName: projectsData[projectType]?.title || projectType
@@ -947,6 +948,7 @@ function App() {
 
           await createOrUpdateNotification({
             prospectId,
+            ownerId: prospectData.owner_id, // 🔥 CRITICAL pour le filter real-time
             projectType,
             prospectName: prospectData.name,
             projectName: projectsData[projectType]?.title || projectType

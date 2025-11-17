@@ -78,6 +78,7 @@ const FinalPipeline = () => {
   const [isTagMenuOpen, setTagMenuOpen] = useState(false);
   const tagMenuRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const lastProcessedUrl = useRef(null); // 🔥 Pour éviter de retraiter la même URL
 
   // ✅ Real-time pour le prospect sélectionné (détail)
   useEffect(() => {
@@ -485,33 +486,38 @@ const FinalPipeline = () => {
   useEffect(() => {
     const urlProspectId = searchParams.get('prospect');
     const urlProjectType = searchParams.get('project');
+    const currentUrl = `${urlProspectId}-${urlProjectType}`;
+    
+    // Si on a déjà traité cette URL, ne rien faire
+    if (lastProcessedUrl.current === currentUrl) {
+      return;
+    }
     
     if (!urlProspectId) {
       if (selectedProspect !== null) {
         setSelectedProspect(null);
+        lastProcessedUrl.current = null;
       }
       return;
     }
 
     const prospectFromList = prospects.find(p => p.id === urlProspectId) || null;
     
-    // Ne mettre à jour que si le prospect change ou si le projectType change
-    if (prospectFromList && 
-        (selectedProspect?.id !== prospectFromList.id || 
-         selectedProspect?._selectedProjectType !== urlProjectType)) {
+    if (prospectFromList) {
       // Ajouter le projectType au prospect pour que le panneau de détail l'utilise
       const prospectWithProject = urlProjectType 
         ? { ...prospectFromList, _selectedProjectType: urlProjectType }
         : prospectFromList;
       
       setSelectedProspect(prospectWithProject);
+      lastProcessedUrl.current = currentUrl; // 🔥 Marquer cette URL comme traitée
       console.log('✅ Prospect selected from notification:', {
         prospectId: urlProspectId,
         projectType: urlProjectType,
         prospectName: prospectFromList.name
       });
     }
-  }, [searchParams, prospects, selectedProspect]);
+  }, [searchParams, prospects]);
 
   const handleTagToggle = (tag) => {
     setSelectedTags(prev => 
