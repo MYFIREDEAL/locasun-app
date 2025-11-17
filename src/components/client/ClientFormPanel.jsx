@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useAppContext } from '@/App';
 import { toast } from '@/components/ui/use-toast';
 
-const ClientFormPanel = ({ isDesktop }) => {
+const ClientFormPanel = ({ isDesktop, projectType }) => {
   const {
     clientFormPanels,
     updateClientFormPanel,
@@ -22,9 +22,17 @@ const ClientFormPanel = ({ isDesktop }) => {
     if (!currentUser) return [];
     
     return clientFormPanels
-      .filter(panel => panel.prospectId === currentUser.id)
+      .filter(panel => {
+        // Filtre par prospect
+        if (panel.prospectId !== currentUser.id) return false;
+        
+        // ✅ NOUVEAU: Filtre par projet spécifique si projectType fourni
+        if (projectType && panel.projectType !== projectType) return false;
+        
+        return true;
+      })
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [clientFormPanels, currentUser]);
+  }, [clientFormPanels, currentUser, projectType]);
 
   // ✅ Client: currentUser EST le prospect, pas besoin de chercher dans prospects
   const prospect = currentUser;

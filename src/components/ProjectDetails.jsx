@@ -9,6 +9,8 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
+import ClientFormPanel from '@/components/client/ClientFormPanel';
+import useWindowSize from '@/hooks/useWindowSize';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -310,13 +312,21 @@ const ProjectDetails = ({ project, onBack }) => {
     getSharedAppointments,
     registerClientForm,
     clearClientFormsFor,
+    clientFormPanels,
   } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(currentUser?.id, project.type);
+  const { width } = useWindowSize();
+  const isDesktop = width >= 1024;
   const [progress, setProgress] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [stepsFromSupabase, setStepsFromSupabase] = useState(null);
   const [stepsLoading, setStepsLoading] = useState(true);
+  
+  // ✅ Vérifier si ce projet a des formulaires
+  const hasProjectForms = currentUser ? clientFormPanels.some(
+    panel => panel.prospectId === currentUser.id && panel.projectType === project.type
+  ) : false;
   
   // ✅ PRIORITÉ ABSOLUE : Toujours utiliser Supabase, jamais le fallback localStorage
   // Si pas encore chargé, afficher le template par défaut avec status initial
@@ -505,10 +515,14 @@ const ProjectDetails = ({ project, onBack }) => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl shadow-card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Progression globale</h2>
+      <div className={`flex flex-col ${isDesktop && hasProjectForms ? 'lg:flex-row' : ''} gap-8`}>
+        {/* Colonne principale (gauche) */}
+        <div className="flex-1 space-y-8">
+          {/* Timeline et Chat en 2 colonnes sur desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 space-y-6">
+              <div className="bg-white rounded-2xl shadow-card p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Progression globale</h2>
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">Avancement</span>
               <span className="text-lg font-bold text-green-600">{progress}%</span>
@@ -606,6 +620,22 @@ const ProjectDetails = ({ project, onBack }) => {
             </motion.div>
           )}
         </div>
+          </div>
+        </div>
+
+        {/* Colonne formulaires (droite) - uniquement sur desktop si formulaires */}
+        {isDesktop && hasProjectForms && (
+          <div className="w-[320px] flex-shrink-0">
+            <ClientFormPanel isDesktop projectType={project.type} />
+          </div>
+        )}
+
+        {/* Formulaires en bas sur mobile */}
+        {!isDesktop && hasProjectForms && (
+          <div className="w-full">
+            <ClientFormPanel isDesktop={false} projectType={project.type} />
+          </div>
+        )}
       </div>
       
       {/* Modal des détails de RDV */}
