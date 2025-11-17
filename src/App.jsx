@@ -918,14 +918,33 @@ function App() {
 
       // 🔥 Notification admin quand un client envoie un message (Supabase)
       if (message.sender === 'client') {
+        console.log('🔔 Client message detected, creating admin notification...');
+        console.log('🔍 prospectId:', prospectId);
+        console.log('🔍 projectType:', projectType);
+        console.log('🔍 createOrUpdateNotification function exists?', typeof createOrUpdateNotification);
+        
         // Charger le prospect depuis Supabase (car prospects[] est vide côté client)
-        const { data: prospectData } = await supabaseClient
+        const { data: prospectData, error: prospectError } = await supabaseClient
           .from('prospects')
           .select('name, owner_id')
           .eq('id', prospectId)
           .single();
 
+        if (prospectError) {
+          console.error('❌ Error loading prospect:', prospectError);
+          return;
+        }
+
+        console.log('✅ Prospect loaded:', prospectData);
+
         if (prospectData) {
+          console.log('🚀 Calling createOrUpdateNotification with:', {
+            prospectId,
+            projectType,
+            prospectName: prospectData.name,
+            projectName: projectsData[projectType]?.title || projectType
+          });
+
           await createOrUpdateNotification({
             prospectId,
             projectType,
@@ -933,6 +952,8 @@ function App() {
             projectName: projectsData[projectType]?.title || projectType
           });
           console.log('✅ Notification admin créée pour:', prospectData.name);
+        } else {
+          console.warn('⚠️ No prospect data found');
         }
       }
 
