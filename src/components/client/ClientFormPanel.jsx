@@ -21,10 +21,21 @@ const ClientFormPanel = ({ isDesktop }) => {
   } = useAppContext();
 
   const relevantForms = useMemo(() => {
+    console.log('📋 [ClientFormPanel] Recalcul relevantForms:', {
+      hasUser: !!currentUser,
+      userId: currentUser?.id,
+      totalPanels: clientFormPanels.length,
+      panels: clientFormPanels
+    });
+    
     if (!currentUser) return [];
-    return clientFormPanels
+    
+    const filtered = clientFormPanels
       .filter(panel => panel.prospectId === currentUser.id)
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    
+    console.log('✅ [ClientFormPanel] Formulaires filtrés:', filtered);
+    return filtered;
   }, [clientFormPanels, currentUser]);
 
   const prospect = useMemo(() => {
@@ -62,8 +73,11 @@ const ClientFormPanel = ({ isDesktop }) => {
   }, [relevantForms, forms, prospect]);
 
   if (!relevantForms.length) {
+    console.log('⚠️ [ClientFormPanel] Aucun formulaire à afficher - Composant masqué');
     return null;
   }
+  
+  console.log('📝 [ClientFormPanel] Affichage de', relevantForms.length, 'formulaire(s)');
 
   const handleFieldChange = (panelId, fieldId, value) => {
     setFormDrafts(prev => ({
