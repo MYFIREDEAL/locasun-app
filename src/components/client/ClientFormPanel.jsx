@@ -98,21 +98,13 @@ const ClientFormPanel = ({ isDesktop }) => {
     const updatedFormData = { ...(currentUser.formData || {}), ...draft };
     updateProspect({ ...currentUser, formData: updatedFormData });
 
-    const existingCompletion = getChatMessages(prospectId, projectType).some(
-      (msg) =>
-        msg.sender === 'client' &&
-        msg.completedFormId === formId &&
-        (msg.relatedMessageTimestamp || '') === (messageTimestamp || ''),
-    );
-
-    if (!existingCompletion) {
-      addChatMessage(prospectId, projectType, {
-        sender: 'client',
-        text: `A complété le formulaire : ${formDefinition?.name || 'Formulaire'}.`,
-        completedFormId: formId,
-        relatedMessageTimestamp: messageTimestamp,
-      });
-    }
+    // ✅ Envoyer le message de complétion (déduplication gérée par Supabase)
+    addChatMessage(prospectId, projectType, {
+      sender: 'client',
+      text: `A complété le formulaire : ${formDefinition?.name || 'Formulaire'}.`,
+      completedFormId: formId,
+      relatedMessageTimestamp: messageTimestamp,
+    });
 
     const relatedPrompt = promptId
       ? prompts[promptId]
