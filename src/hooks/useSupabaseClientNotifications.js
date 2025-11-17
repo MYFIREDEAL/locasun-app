@@ -14,6 +14,7 @@ export function useSupabaseClientNotifications(prospectId) {
     
     if (!prospectId) {
       console.log('⚠️ No prospectId, skipping client notifications loading');
+      setNotifications([]) // Vider les notifications si pas de prospectId
       setLoading(false)
       return
     }
@@ -104,10 +105,11 @@ export function useSupabaseClientNotifications(prospectId) {
         .eq('prospect_id', prospectId)
         .eq('project_type', projectType)
         .eq('read', false)
-        .single()
+        .maybeSingle() // maybeSingle() accepte 0 ligne sans erreur 406
 
-      if (selectError && selectError.code !== 'PGRST116') {
+      if (selectError) {
         console.error('❌ Error checking existing notification:', selectError);
+        return;
       }
 
       if (existing) {
