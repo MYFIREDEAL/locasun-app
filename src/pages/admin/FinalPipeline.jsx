@@ -495,9 +495,10 @@ const FinalPipeline = () => {
 
     const prospectFromList = prospects.find(p => p.id === urlProspectId) || null;
     
-    // Si le prospect est le même mais qu'on a un projectType dans l'URL, mettre à jour quand même
-    // pour forcer l'ouverture du bon projet dans le panneau de détail
-    if (prospectFromList) {
+    // Ne mettre à jour que si le prospect change ou si le projectType change
+    if (prospectFromList && 
+        (selectedProspect?.id !== prospectFromList.id || 
+         selectedProspect?._selectedProjectType !== urlProjectType)) {
       // Ajouter le projectType au prospect pour que le panneau de détail l'utilise
       const prospectWithProject = urlProjectType 
         ? { ...prospectFromList, _selectedProjectType: urlProjectType }
@@ -510,7 +511,7 @@ const FinalPipeline = () => {
         prospectName: prospectFromList.name
       });
     }
-  }, [searchParams, prospects]);
+  }, [searchParams, prospects, selectedProspect]);
 
   const handleTagToggle = (tag) => {
     setSelectedTags(prev => 
