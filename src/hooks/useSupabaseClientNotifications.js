@@ -88,10 +88,17 @@ export function useSupabaseClientNotifications(prospectId) {
    */
   async function createOrUpdateNotification(notificationData) {
     try {
+      console.log('🔔 createOrUpdateNotification called with:', notificationData);
       const { prospectId, projectType, projectName, message } = notificationData
 
+      if (!prospectId || !projectType) {
+        console.error('❌ Missing required fields:', { prospectId, projectType });
+        return;
+      }
+
       // Vérifier si notification existe déjà (non lue) pour ce projet
-      const { data: existing } = await supabase
+      console.log('🔍 Checking existing notification for:', { prospectId, projectType });
+      const { data: existing, error: selectError } = await supabase
         .from('client_notifications')
         .select('*')
         .eq('prospect_id', prospectId)
@@ -99,8 +106,13 @@ export function useSupabaseClientNotifications(prospectId) {
         .eq('read', false)
         .single()
 
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('❌ Error checking existing notification:', selectError);
+      }
+
       if (existing) {
         // Incrémenter le count
+        console.log('✅ Existing notification found, updating count:', existing);
         const { error } = await supabase
           .from('client_notifications')
           .update({ 
@@ -110,10 +122,22 @@ export function useSupabaseClientNotifications(prospectId) {
           })
           .eq('id', existing.id)
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error updating notification:', error);
+          throw error;
+        }
+        console.log('✅ Notification updated successfully');
       } else {
         // Créer nouvelle notification
-        const { error } = await supabase
+        console.log('➕ Creating new notification:', {
+          prospect_id: prospectId,
+          project_type: projectType,
+          project_name: projectName,
+          message: message,
+          count: 1,
+          read: false
+        });
+        const { data, error } = await supabase
           .from('client_notifications')
           .insert({
             prospect_id: prospectId,
@@ -123,11 +147,16 @@ export function useSupabaseClientNotifications(prospectId) {
             count: 1,
             read: false
           })
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error inserting notification:', error);
+          throw error;
+        }
+        console.log('✅ Notification created successfully:', data);
       }
     } catch (error) {
-      console.error('Error creating/updating client notification:', error)
+      console.error('❌ Error creating/updating client notification:', error)
     }
   }
 
