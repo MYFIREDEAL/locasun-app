@@ -898,15 +898,13 @@ function App() {
         read: false,
       };
 
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from('chat_messages')
-        .insert([dbPayload])
-        .select('id, prospect_id, project_type, sender, text, created_at')
-        .single();
+        .insert([dbPayload]);
 
       if (error) throw error;
 
-      console.log('✅ Message envoyé à Supabase:', data);
+      console.log('✅ Message envoyé à Supabase');
 
       // Gestion du fichier RIB pour projet ACC
       if (message.file && message.sender === 'client') {
