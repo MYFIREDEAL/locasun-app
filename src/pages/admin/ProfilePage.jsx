@@ -18,6 +18,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { supabase } from '@/lib/supabase';
 
 const normalizePipelineStepLabel = (label) => (label || '').toString().trim().toUpperCase();
@@ -992,8 +993,7 @@ const ProfilePage = () => {
   const {
     projectsData,
     setProjectsData,
-    prompts,
-    setPrompts,
+    prompts: promptsFromContext,
     formContactConfig,
     setFormContactConfig,
     globalPipelineSteps = [],
@@ -1018,6 +1018,20 @@ const ProfilePage = () => {
     console.log('🔄 ProfilePage - Forms mis à jour:', Object.keys(supabaseForms).length, 'formulaires');
     return supabaseForms;
   }, [supabaseForms]);
+
+  // 🔥 Hook Supabase pour la gestion des prompts (remplace Context)
+  const {
+    prompts: supabasePrompts,
+    loading: promptsLoading,
+    savePrompt: savePromptToSupabase,
+    deletePrompt: deletePromptFromSupabase
+  } = useSupabasePrompts();
+
+  // 🔥 Forcer React à re-render quand supabasePrompts change
+  const prompts = useMemo(() => {
+    console.log('🔄 ProfilePage - Prompts mis à jour:', Object.keys(supabasePrompts).length, 'prompts');
+    return supabasePrompts;
+  }, [supabasePrompts]);
 
   // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
   const {
@@ -1691,29 +1705,51 @@ const ProfilePage = () => {
       });
     }
   };
-  const handleSavePrompt = promptToSave => {
-    setPrompts({
-      ...prompts,
-      [promptToSave.id]: promptToSave
+  const handleSavePrompt = async (promptToSave) => {
+    // Générer un ID unique si nouveau prompt
+    const promptId = promptToSave.id || `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    
+    const result = await savePromptToSupabase(promptId, {
+      name: promptToSave.name,
+      tone: promptToSave.tone,
+      projectId: promptToSave.projectId,
+      stepsConfig: promptToSave.stepsConfig || {},
     });
-    toast({
-      title: "Prompt enregistré !",
-      description: `Le prompt "${promptToSave.name}" a été sauvegardé.`,
-      className: "bg-green-500 text-white"
-    });
-    setEditingPrompt(null);
-    setIsPromptCreatorOpen(false);
+
+    if (result.success) {
+      toast({
+        title: "✅ Prompt enregistré !",
+        description: `Le prompt "${promptToSave.name}" a été sauvegardé dans Supabase.`,
+        className: "bg-green-500 text-white"
+      });
+      
+      // 🔥 Fermer immédiatement - le real-time mettra à jour la liste
+      setEditingPrompt(null);
+      setIsPromptCreatorOpen(false);
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible d'enregistrer le prompt : ${result.error}`,
+        variant: "destructive"
+      });
+    }
   };
-  const handleDeletePrompt = promptId => {
-    const {
-      [promptId]: _,
-      ...remainingPrompts
-    } = prompts;
-    setPrompts(remainingPrompts);
-    toast({
-      title: "Prompt supprimé !",
-      className: "bg-green-500 text-white"
-    });
+  const handleDeletePrompt = async (promptId) => {
+    const result = await deletePromptFromSupabase(promptId);
+
+    if (result.success) {
+      toast({
+        title: "✅ Prompt supprimé !",
+        description: "Le prompt a été supprimé de Supabase.",
+        className: "bg-green-500 text-white"
+      });
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible de supprimer le prompt : ${result.error}`,
+        variant: "destructive"
+      });
+    }
   };
   const openPromptCreator = prompt => {
     setEditingPrompt(prompt);

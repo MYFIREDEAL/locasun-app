@@ -29,6 +29,7 @@ import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
 const GLOBAL_PIPELINE_COLOR_PALETTE = [
@@ -226,6 +227,20 @@ function App() {
       console.log('✅ Forms synchronized from Supabase:', Object.keys(supabaseForms).length);
     }
   }, [supabaseForms, formsLoading]);
+
+  // 🔥 Charger les prompts depuis Supabase avec real-time (pour Charly AI)
+  const {
+    prompts: supabasePrompts,
+    loading: promptsLoading
+  } = useSupabasePrompts();
+
+  // Synchroniser prompts dans le state pour compatibilité avec le code existant
+  useEffect(() => {
+    if (!promptsLoading) {
+      setPrompts(supabasePrompts);
+      console.log('✅ Prompts synchronized from Supabase:', Object.keys(supabasePrompts).length);
+    }
+  }, [supabasePrompts, promptsLoading]);
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
@@ -513,8 +528,9 @@ function App() {
     // const storedForms = localStorage.getItem('evatime_forms');
     // setForms(storedForms ? JSON.parse(storedForms) : {});
 
-    const storedPrompts = localStorage.getItem('evatime_prompts');
-    setPrompts(storedPrompts ? JSON.parse(storedPrompts) : {});
+    // ❌ SUPPRIMÉ: prompts localStorage - Maintenant géré par useSupabasePrompts() dans ProfilePage
+    // const storedPrompts = localStorage.getItem('evatime_prompts');
+    // setPrompts(storedPrompts ? JSON.parse(storedPrompts) : {});
 
     let initialProjectInfos = {};
     const storedProjectInfos = localStorage.getItem(PROJECT_INFO_STORAGE_KEY);
@@ -612,10 +628,11 @@ function App() {
   //   localStorage.setItem('evatime_forms', JSON.stringify(newForms));
   // };
   
-  const handleSetPrompts = (newPrompts) => {
-    setPrompts(newPrompts);
-    localStorage.setItem('evatime_prompts', JSON.stringify(newPrompts));
-  };
+  // ❌ SUPPRIMÉ: handleSetPrompts - Maintenant géré par useSupabasePrompts() dans ProfilePage
+  // const handleSetPrompts = (newPrompts) => {
+  //   setPrompts(newPrompts);
+  //   localStorage.setItem('evatime_prompts', JSON.stringify(newPrompts));
+  // };
 
   const handleSetFormContactConfig = async (updater) => {
     // Récupérer la config actuelle depuis Supabase
@@ -1275,7 +1292,8 @@ function App() {
     clientNotifications, markClientNotificationAsRead,
     // 🔥 forms synchronisé depuis Supabase (read-only pour chat, édition via useSupabaseForms dans ProfilePage)
     forms,
-    prompts, setPrompts: handleSetPrompts,
+    // 🔥 prompts synchronisé depuis Supabase (read-only pour Charly AI, édition via useSupabasePrompts dans ProfilePage)
+    prompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
