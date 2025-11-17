@@ -22,12 +22,12 @@ ORDER BY COUNT(*) DESC;
 -- ═══════════════════════════════════════════════════════════════
 -- 🟩 PHASE 2 : Créer les formulaires manquants (méthode propre)
 -- ═══════════════════════════════════════════════════════════════
-INSERT INTO forms (form_id, name, description, fields, created_at, updated_at)
+INSERT INTO forms (form_id, name, fields, project_ids, created_at, updated_at)
 SELECT DISTINCT
     cm.form_id,
     CONCAT('Formulaire migré ', cm.form_id) as name,
-    'Formulaire créé automatiquement lors de la migration depuis chat_messages. Champs à compléter ultérieurement.' as description,
     '[]'::jsonb as fields,
+    ARRAY[]::TEXT[] as project_ids,
     MIN(cm.created_at) as created_at,
     NOW() as updated_at
 FROM chat_messages cm
