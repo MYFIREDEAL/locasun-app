@@ -901,7 +901,7 @@ function App() {
       const { data, error } = await supabaseClient
         .from('chat_messages')
         .insert([dbPayload])
-        .select()
+        .select('id, prospect_id, project_type, sender, text, created_at')
         .single();
 
       if (error) throw error;
