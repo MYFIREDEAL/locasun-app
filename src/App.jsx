@@ -1006,9 +1006,7 @@ function App() {
   };
 
   const registerClientForm = useCallback((formPayload) => {
-    console.log('📋 [App] registerClientForm called with:', formPayload);
     setClientFormPanels(prev => {
-      console.log('📊 [App] Current clientFormPanels:', prev);
       const panelId = formPayload.messageTimestamp || `${formPayload.prospectId}_${formPayload.projectType}_${formPayload.formId}`;
       const normalized = {
         status: formPayload.status || 'pending',
@@ -1017,10 +1015,8 @@ function App() {
         panelId,
         userOverride: typeof formPayload.userOverride !== 'undefined' ? formPayload.userOverride : null,
       };
-      console.log('✨ [App] Normalized panel:', normalized);
       const existingIndex = prev.findIndex(item => item.panelId === panelId);
       if (existingIndex !== -1) {
-        console.log('🔄 [App] Updating existing panel at index:', existingIndex);
         const updated = [...prev];
         const existingItem = updated[existingIndex];
         const merged = {
@@ -1035,13 +1031,9 @@ function App() {
           : (normalized.status || existingItem.status);
         merged.status = nextStatus;
         updated[existingIndex] = merged;
-        console.log('✅ [App] Panel updated:', merged);
         return updated;
       }
-      console.log('➕ [App] Adding new panel');
-      const newPanels = [normalized, ...prev];
-      console.log('✅ [App] New clientFormPanels count:', newPanels.length);
-      return newPanels;
+      return [normalized, ...prev];
     });
   }, []);
 

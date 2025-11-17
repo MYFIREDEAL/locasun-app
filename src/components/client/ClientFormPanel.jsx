@@ -10,38 +10,24 @@ const ClientFormPanel = ({ isDesktop }) => {
     clientFormPanels,
     updateClientFormPanel,
     forms,
-    prospects,
     currentUser,
     updateProspect,
     addChatMessage,
-    getChatMessages,
     prompts,
     completeStepAndProceed,
     projectsData,
   } = useAppContext();
 
   const relevantForms = useMemo(() => {
-    console.log('📋 [ClientFormPanel] Recalcul relevantForms:', {
-      hasUser: !!currentUser,
-      userId: currentUser?.id,
-      totalPanels: clientFormPanels.length,
-      panels: clientFormPanels
-    });
-    
     if (!currentUser) return [];
     
-    const filtered = clientFormPanels
+    return clientFormPanels
       .filter(panel => panel.prospectId === currentUser.id)
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    
-    console.log('✅ [ClientFormPanel] Formulaires filtrés:', filtered);
-    return filtered;
   }, [clientFormPanels, currentUser]);
 
-  const prospect = useMemo(() => {
-    if (!currentUser) return null;
-    return prospects.find(p => p.id === currentUser.id) || null;
-  }, [prospects, currentUser]);
+  // ✅ Client: currentUser EST le prospect, pas besoin de chercher dans prospects
+  const prospect = currentUser;
 
   const [formDrafts, setFormDrafts] = useState({});
 
@@ -73,11 +59,8 @@ const ClientFormPanel = ({ isDesktop }) => {
   }, [relevantForms, forms, prospect]);
 
   if (!relevantForms.length) {
-    console.log('⚠️ [ClientFormPanel] Aucun formulaire à afficher - Composant masqué');
     return null;
   }
-  
-  console.log('📝 [ClientFormPanel] Affichage de', relevantForms.length, 'formulaire(s)');
 
   const handleFieldChange = (panelId, fieldId, value) => {
     setFormDrafts(prev => ({
@@ -100,11 +83,11 @@ const ClientFormPanel = ({ isDesktop }) => {
       messageTimestamp,
     } = panel;
 
-    const currentProspect = prospects.find(p => p.id === prospectId);
-    if (!currentProspect) {
+    // ✅ Client: Utiliser currentUser au lieu de prospects (qui est pour les admins)
+    if (!currentUser || currentUser.id !== prospectId) {
       toast({
-        title: 'Prospect introuvable',
-        description: 'Impossible de soumettre le formulaire pour le moment.',
+        title: 'Erreur de session',
+        description: 'Impossible de soumettre le formulaire. Veuillez vous reconnecter.',
         variant: 'destructive',
       });
       return;
@@ -112,8 +95,8 @@ const ClientFormPanel = ({ isDesktop }) => {
 
     const formDefinition = forms[formId];
     const draft = formDrafts[panelId] || {};
-    const updatedFormData = { ...(currentProspect.formData || {}), ...draft };
-    updateProspect({ ...currentProspect, formData: updatedFormData });
+    const updatedFormData = { ...(currentUser.formData || {}), ...draft };
+    updateProspect({ ...currentUser, formData: updatedFormData });
 
     const existingCompletion = getChatMessages(prospectId, projectType).some(
       (msg) =>
@@ -173,13 +156,13 @@ const ClientFormPanel = ({ isDesktop }) => {
   };
 
   const handleEdit = (panel) => {
-    const { panelId, formId, prospectId } = panel;
-    const currentProspect = prospects.find(p => p.id === prospectId);
+    const { panelId, formId } = panel;
+    // ✅ Client: Utiliser currentUser au lieu de prospects
     const formDefinition = forms[formId];
     const hydrated = {};
     formDefinition?.fields?.forEach(field => {
-      if (currentProspect?.formData && currentProspect.formData[field.id]) {
-        hydrated[field.id] = currentProspect.formData[field.id];
+      if (currentUser?.formData && currentUser.formData[field.id]) {
+        hydrated[field.id] = currentUser.formData[field.id];
       }
     });
     setFormDrafts(prev => ({ ...prev, [panelId]: hydrated }));

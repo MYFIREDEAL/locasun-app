@@ -343,11 +343,6 @@ const ProjectDetails = ({ project, onBack }) => {
   // ✅ messages récupérés via hook useSupabaseChatMessages (déclaré ligne 315)
 
   const formMessages = useMemo(() => {
-    console.log('🔍 [ProjectDetails] formMessages recalcul:', { 
-      totalMessages: messages.length,
-      messagesWithForm: messages.filter(m => m.formId).length 
-    });
-    
     if (!messages.length) return [];
 
     const completionMap = new Map();
@@ -358,19 +353,8 @@ const ProjectDetails = ({ project, onBack }) => {
       }
     });
 
-    const filtered = messages
-      .filter(msg => {
-        const isMatch = msg.sender === 'pro' && msg.formId;
-        if (msg.formId) {
-          console.log('📋 Message avec formId:', { 
-            sender: msg.sender, 
-            formId: msg.formId, 
-            timestamp: msg.timestamp,
-            isMatch 
-          });
-        }
-        return isMatch;
-      })
+    return messages
+      .filter(msg => msg.sender === 'pro' && msg.formId)
       .map(msg => {
         const key = `${msg.formId}_${msg.timestamp || msg.createdAt || ''}`;
         const completion = completionMap.get(key);
@@ -382,22 +366,12 @@ const ProjectDetails = ({ project, onBack }) => {
           status: completion ? 'submitted' : 'pending',
         };
       });
-
-    console.log('✅ [ProjectDetails] formMessages résultat:', filtered);
-    return filtered;
   }, [messages, effectiveStepIndex]);
 
   useEffect(() => {
-    console.log('📋 [ProjectDetails] useEffect registerClientForm', {
-      hasUser: !!currentUser,
-      formMessagesCount: formMessages.length,
-      projectType: project.type
-    });
-    
     if (!currentUser) return;
 
     formMessages.forEach(formMsg => {
-      console.log('📝 [ProjectDetails] Registering form:', formMsg);
       registerClientForm({
         ...formMsg,
         prospectId: currentUser.id,
