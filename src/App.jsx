@@ -28,6 +28,7 @@ import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
 const GLOBAL_PIPELINE_COLOR_PALETTE = [
@@ -170,6 +171,7 @@ function App() {
   const [chatMessages, setChatMessages] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [clientNotifications, setClientNotifications] = useState([]);
+  // 🔥 forms maintenant synchronisé depuis Supabase (useSupabaseForms) - Pas de localStorage
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
   // formContactConfig est maintenant géré par useSupabaseCompanySettings (plus besoin de useState)
@@ -210,6 +212,20 @@ function App() {
     deleteTemplate,
     getPublicTemplates
   } = useSupabaseProjectTemplates();
+
+  // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
+  const {
+    forms: supabaseForms,
+    loading: formsLoading
+  } = useSupabaseForms();
+
+  // Synchroniser forms dans le state pour compatibilité avec le code existant (chat)
+  useEffect(() => {
+    if (!formsLoading) {
+      setForms(supabaseForms);
+      console.log('✅ Forms synchronized from Supabase:', Object.keys(supabaseForms).length);
+    }
+  }, [supabaseForms, formsLoading]);
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
@@ -493,8 +509,9 @@ function App() {
     const storedClientNotifications = localStorage.getItem('evatime_client_notifications');
     setClientNotifications(storedClientNotifications ? JSON.parse(storedClientNotifications) : []);
 
-    const storedForms = localStorage.getItem('evatime_forms');
-    setForms(storedForms ? JSON.parse(storedForms) : {});
+    // ❌ SUPPRIMÉ: forms localStorage - Maintenant géré par useSupabaseForms() dans ProfilePage
+    // const storedForms = localStorage.getItem('evatime_forms');
+    // setForms(storedForms ? JSON.parse(storedForms) : {});
 
     const storedPrompts = localStorage.getItem('evatime_prompts');
     setPrompts(storedPrompts ? JSON.parse(storedPrompts) : {});
@@ -586,10 +603,11 @@ function App() {
     }
   };
 
-  const handleSetForms = (newForms) => {
-    setForms(newForms);
-    localStorage.setItem('evatime_forms', JSON.stringify(newForms));
-  };
+  // ❌ SUPPRIMÉ: handleSetForms - Maintenant géré par useSupabaseForms() dans ProfilePage
+  // const handleSetForms = (newForms) => {
+  //   setForms(newForms);
+  //   localStorage.setItem('evatime_forms', JSON.stringify(newForms));
+  // };
   
   const handleSetPrompts = (newPrompts) => {
     setPrompts(newPrompts);
@@ -1252,7 +1270,8 @@ function App() {
     chatMessages, addChatMessage, getChatMessages,
     notifications, markNotificationAsRead,
     clientNotifications, markClientNotificationAsRead,
-    forms, setForms: handleSetForms,
+    // 🔥 forms synchronisé depuis Supabase (read-only pour chat, édition via useSupabaseForms dans ProfilePage)
+    forms,
     prompts, setPrompts: handleSetPrompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,

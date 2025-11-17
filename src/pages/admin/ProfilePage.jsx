@@ -17,6 +17,7 @@ import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { supabase } from '@/lib/supabase';
 
 const normalizePipelineStepLabel = (label) => (label || '').toString().trim().toUpperCase();
@@ -207,6 +208,13 @@ const FormEditor = ({
     label: p.title
   })), [projectsData]);
   const selectedProjects = useMemo(() => (editedForm.projectIds || []).map(id => projectOptions.find(opt => opt.value === id)).filter(Boolean), [editedForm.projectIds, projectOptions]);
+
+  // 🔥 Synchroniser avec les changements real-time du formulaire
+  useEffect(() => {
+    if (form) {
+      setEditedForm(JSON.parse(JSON.stringify(form)));
+    }
+  }, [form]);
   const handleFieldChange = (index, property, value) => {
     const newFields = [...editedForm.fields];
     newFields[index] = {
@@ -984,8 +992,6 @@ const ProfilePage = () => {
   const {
     projectsData,
     setProjectsData,
-    forms,
-    setForms,
     prompts,
     setPrompts,
     formContactConfig,
@@ -998,6 +1004,20 @@ const ProfilePage = () => {
     setCompanyLogo,
     removeLogo
   } = useAppContext();
+
+  // 🔥 Hook Supabase pour la gestion des formulaires (remplace Context)
+  const {
+    forms: supabaseForms,
+    loading: formsLoading,
+    saveForm: saveFormToSupabase,
+    deleteForm: deleteFormFromSupabase
+  } = useSupabaseForms();
+
+  // 🔥 Forcer React à re-render quand supabaseForms change en créant un nouveau memo
+  const forms = useMemo(() => {
+    console.log('🔄 ProfilePage - Forms mis à jour:', Object.keys(supabaseForms).length, 'formulaires');
+    return supabaseForms;
+  }, [supabaseForms]);
 
   // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
   const {
@@ -1101,6 +1121,19 @@ const ProfilePage = () => {
         });
     }
   }, [activeAdminUser]);
+
+  // 🔥 Synchroniser editingForm avec les changements real-time
+  useEffect(() => {
+    if (editingForm?.id && forms[editingForm.id]) {
+      const currentForm = forms[editingForm.id];
+      
+      // Vérifier si le formulaire a vraiment changé (comparer les updatedAt)
+      if (currentForm.updatedAt !== editingForm.updatedAt) {
+        console.log('🔄 Mise à jour real-time du formulaire en édition:', currentForm.name);
+        setEditingForm(currentForm);
+      }
+    }
+  }, [forms]);
 
   const handleFormFieldsDragEnd = (result) => {
     if (!result.destination) return;
@@ -1614,29 +1647,49 @@ const ProfilePage = () => {
       console.error('Error removing logo:', error);
     }
   };
-  const handleSaveForm = formToSave => {
-    const newForms = {
-      ...forms,
-      [formToSave.id]: formToSave
-    };
-    setForms(newForms);
-    toast({
-      title: "Formulaire enregistré !",
-      description: `Le formulaire "${formToSave.name}" a été sauvegardé.`,
-      className: "bg-green-500 text-white"
+  const handleSaveForm = async (formToSave) => {
+    // Générer un ID unique si nouveau formulaire
+    const formId = formToSave.id || `form-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    
+    const result = await saveFormToSupabase(formId, {
+      name: formToSave.name,
+      fields: formToSave.fields || [],
+      projectIds: formToSave.projectIds || [],
     });
-    setEditingForm(null);
+
+    if (result.success) {
+      toast({
+        title: "✅ Formulaire enregistré !",
+        description: `Le formulaire "${formToSave.name}" a été sauvegardé dans Supabase.`,
+        className: "bg-green-500 text-white"
+      });
+      
+      // 🔥 Fermer immédiatement - le real-time mettra à jour la liste
+      setEditingForm(null);
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible d'enregistrer le formulaire : ${result.error}`,
+        variant: "destructive"
+      });
+    }
   };
-  const handleDeleteForm = formId => {
-    const {
-      [formId]: _,
-      ...remainingForms
-    } = forms;
-    setForms(remainingForms);
-    toast({
-      title: "Formulaire supprimé !",
-      className: "bg-green-500 text-white"
-    });
+  const handleDeleteForm = async (formId) => {
+    const result = await deleteFormFromSupabase(formId);
+
+    if (result.success) {
+      toast({
+        title: "✅ Formulaire supprimé !",
+        description: "Le formulaire a été supprimé de Supabase.",
+        className: "bg-green-500 text-white"
+      });
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible de supprimer le formulaire : ${result.error}`,
+        variant: "destructive"
+      });
+    }
   };
   const handleSavePrompt = promptToSave => {
     setPrompts({
@@ -2251,7 +2304,7 @@ const ProfilePage = () => {
                         </Button>
                     </div>
                     <div className="space-y-3">
-                        {Object.values(forms).map(f => <div key={f.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        {Object.values(forms).map(f => <div key={`${f.id}-${f.name}-${f.updatedAt || f.createdAt}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <FileText className="h-5 w-5 text-gray-500" />
                                     <span className="font-medium">{f.name}</span>

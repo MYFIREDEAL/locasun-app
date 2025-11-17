@@ -1,0 +1,192 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+
+/**
+ * Hook pour gérer les formulaires envoyés aux clients via Supabase
+ * Table: client_form_panels
+ */
+export function useSupabaseClientFormPanels(prospectId = null) {
+  const [formPanels, setFormPanels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Transformation Supabase → App
+  const transformFromDB = (dbPanel) => ({
+    panelId: dbPanel.panel_id,
+    prospectId: dbPanel.prospect_id,
+    projectType: dbPanel.project_type,
+    formId: dbPanel.form_id,
+    messageTimestamp: dbPanel.message_timestamp,
+    status: dbPanel.status,
+    userOverride: dbPanel.user_override,
+    createdAt: new Date(dbPanel.created_at).getTime(),
+    updatedAt: new Date(dbPanel.updated_at).getTime(),
+    // Pas de submission_data ni currentStepIndex dans la table actuellement
+  });
+
+  // Transformation App → Supabase
+  const transformToDB = (appPanel) => ({
+    prospect_id: appPanel.prospectId,
+    project_type: appPanel.projectType,
+    form_id: appPanel.formId,
+    message_timestamp: appPanel.messageTimestamp,
+    status: appPanel.status,
+    user_override: appPanel.userOverride || null,
+  });
+
+  // Charger les formulaires
+  useEffect(() => {
+    // ⚠️ Ne pas charger si pas de prospectId (évite de charger tous les formulaires)
+    if (!prospectId) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchFormPanels = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('client_form_panels')
+          .select('*')
+          .eq('prospect_id', prospectId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        console.log('📋 [useSupabaseClientFormPanels] Raw data from Supabase:', data);
+        const transformed = (data || []).map(transformFromDB);
+        console.log('📋 [useSupabaseClientFormPanels] Transformed:', transformed);
+        setFormPanels(transformed);
+        setError(null);
+      } catch (err) {
+        console.error('Erreur chargement form panels:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFormPanels();
+
+    // Real-time subscription (seulement si prospectId fourni)
+    if (!prospectId) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(`client-form-panels-${prospectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'client_form_panels',
+          filter: `prospect_id=eq.${prospectId}`,
+        },
+        (payload) => {
+          console.log('🔔 Real-time client_form_panels:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newPanel = transformFromDB(payload.new);
+            setFormPanels((prev) => {
+              // Éviter les doublons
+              if (prev.some(p => p.panelId === newPanel.panelId)) {
+                return prev;
+              }
+              return [newPanel, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedPanel = transformFromDB(payload.new);
+            setFormPanels((prev) =>
+              prev.map((p) => (p.panelId === updatedPanel.panelId ? updatedPanel : p))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setFormPanels((prev) =>
+              prev.filter((p) => p.panelId !== payload.old.panel_id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [prospectId]);
+
+  // Mettre à jour un formulaire
+  const updateFormPanel = async (panelId, updates) => {
+    try {
+      const dbUpdates = {};
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.userOverride !== undefined) dbUpdates.user_override = updates.userOverride;
+      // Note: submission_data n'existe pas encore dans la table
+
+      const { data, error } = await supabase
+        .from('client_form_panels')
+        .update(dbUpdates)
+        .eq('panel_id', panelId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Form panel mis à jour:', data);
+      return { success: true, data: transformFromDB(data) };
+    } catch (err) {
+      console.error('❌ Erreur mise à jour form panel:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Supprimer un formulaire
+  const deleteFormPanel = async (panelId) => {
+    try {
+      const { error } = await supabase
+        .from('client_form_panels')
+        .delete()
+        .eq('panel_id', panelId);
+
+      if (error) throw error;
+
+      console.log('✅ Form panel supprimé:', panelId);
+      return { success: true };
+    } catch (err) {
+      console.error('❌ Erreur suppression form panel:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Supprimer tous les formulaires d'un prospect/projet
+  const deleteFormPanelsByProspect = async (prospectId, projectType) => {
+    try {
+      let query = supabase
+        .from('client_form_panels')
+        .delete()
+        .eq('prospect_id', prospectId);
+
+      if (projectType) {
+        query = query.eq('project_type', projectType);
+      }
+
+      const { error } = await query;
+
+      if (error) throw error;
+
+      console.log('✅ Form panels supprimés pour:', { prospectId, projectType });
+      return { success: true };
+    } catch (err) {
+      console.error('❌ Erreur suppression form panels:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  return {
+    formPanels,
+    loading,
+    error,
+    updateFormPanel,
+    deleteFormPanel,
+    deleteFormPanelsByProspect,
+  };
+}

@@ -95,6 +95,12 @@ const FinalPipeline = () => {
       }, (payload) => {
         console.log('🔥 Real-time update received for selected prospect:', payload.new);
         
+        // ✅ NE PAS mettre à jour si l'utilisateur est en train d'éditer (évite le scroll)
+        if (isEditingProspect) {
+          console.log('⏸️ Édition en cours - real-time update ignoré pour éviter le scroll');
+          return;
+        }
+        
         // Transformation Supabase → App (snake_case → camelCase)
         const transformedData = {
           id: payload.new.id,
@@ -110,7 +116,8 @@ const FinalPipeline = () => {
           createdAt: payload.new.created_at,
           updatedAt: payload.new.updated_at,
           notes: payload.new.notes,
-          status: payload.new.status
+          status: payload.new.status,
+          formData: payload.new.form_data || {} // 🔥 Synchroniser les formulaires
         };
 
         setSelectedProspect(transformedData);
@@ -128,6 +135,9 @@ const FinalPipeline = () => {
       supabase.removeChannel(channel);
     };
   }, [selectedProspect?.id]);
+
+  // ✅ BLOQUER le real-time update pendant l'édition pour éviter le scroll
+  const [isEditingProspect, setIsEditingProspect] = useState(false);
   
   if (!contextData) {
     return (
@@ -572,6 +582,7 @@ const FinalPipeline = () => {
           prospect={selectedProspect} 
           onBack={handleBack}
           onUpdate={handleUpdateProspect}
+          onEditingChange={setIsEditingProspect}
         />
       </motion.div>
     );

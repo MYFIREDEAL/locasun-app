@@ -47,6 +47,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         tags: prospect.tags || [],
         hasAppointment: prospect.has_appointment || false,
         affiliateName: prospect.affiliate_name,
+        formData: prospect.form_data || {}, // 🔥 Réponses aux formulaires
         // Ajouter les champs manquants si nécessaire
         createdAt: prospect.created_at,
         updatedAt: prospect.updated_at,
@@ -77,7 +78,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       console.warn('⚠️ No activeAdminUser, skipping fetchProspects');
       setLoading(false);
     }
-  }, [activeAdminUser]);
+  }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
 
   // 🔥 REAL-TIME : Écouter les changements en temps réel
   useEffect(() => {
@@ -86,7 +87,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
     console.log('🔥 Setting up real-time subscription for prospects...');
 
     const channel = supabase
-      .channel('prospects-changes')
+      .channel(`prospects-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -111,6 +112,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
               tags: payload.new.tags || [],
               hasAppointment: payload.new.has_appointment || false,
               affiliateName: payload.new.affiliate_name,
+              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at,
             };
@@ -135,6 +137,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
               tags: payload.new.tags || [],
               hasAppointment: payload.new.has_appointment || false,
               affiliateName: payload.new.affiliate_name,
+              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at,
             };
@@ -154,15 +157,15 @@ export const useSupabaseProspects = (activeAdminUser) => {
         }
       )
       .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
+        console.log('📡 Prospects subscription status:', status);
       });
 
     // Cleanup : se désabonner quand le composant unmount
     return () => {
-      console.log('🔌 Unsubscribing from real-time...');
+      console.log('🔌 Unsubscribing from prospects real-time...');
       supabase.removeChannel(channel);
     };
-  }, [activeAdminUser]);
+  }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
 
   // Ajouter un prospect
   const addProspect = async (prospectData) => {
@@ -223,6 +226,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         tags: data.tags || [],
         hasAppointment: data.has_appointment || false,
         affiliateName: data.affiliate_name,
+        formData: data.form_data || {}, // 🔥 Réponses aux formulaires
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
@@ -356,6 +360,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
       if (updates.hasAppointment !== undefined) dbUpdates.has_appointment = updates.hasAppointment;
       if (updates.affiliateName !== undefined) dbUpdates.affiliate_name = updates.affiliateName;
+      if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 Réponses aux formulaires
 
       const { data, error: updateError } = await supabase
         .from('prospects')

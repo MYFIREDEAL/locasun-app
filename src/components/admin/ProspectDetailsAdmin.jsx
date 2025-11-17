@@ -500,7 +500,8 @@ const getFieldIcon = (field) => {
 const ProspectDetailsAdmin = ({
   prospect,
   onBack,
-  onUpdate
+  onUpdate,
+  onEditingChange
 }) => {
   const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
@@ -512,9 +513,11 @@ const ProspectDetailsAdmin = ({
 
   const [activeProjectTag, setActiveProjectTag] = useState(initialProject || (prospect.tags && prospect.tags.length > 0 ? prospect.tags[0] : null));
   const [isEditing, setIsEditing] = useState(false);
-  const [editableProspect, setEditableProspect] = useState({
-    ...prospect
-  });
+  
+  // ✅ Utiliser un ref pour éditer SANS re-render à chaque caractère
+  const editableProspectRef = useRef({...prospect});
+  const [, forceUpdate] = useState({}); // Pour forcer un re-render uniquement quand on veut
+  
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
 
   const projectInfo = useMemo(() => {
@@ -569,9 +572,10 @@ const ProspectDetailsAdmin = ({
   }, [notificationId, markNotificationAsRead, setSearchParams, searchParams]);
 
   useEffect(() => {
-    setEditableProspect({
+    // ✅ Mettre à jour le ref sans re-render
+    editableProspectRef.current = {
       ...prospect
-    });
+    };
   }, [prospect]);
 
   useEffect(() => {
@@ -582,21 +586,15 @@ const ProspectDetailsAdmin = ({
     }
   }, [savedAmount, activeProjectTag]);
 
-  // Bloquer le scroll automatique pendant le mode édition
+  // ✅ Notifier le parent quand le mode édition change (pour bloquer le real-time)
   useEffect(() => {
-    if (!isEditing) return;
+    if (onEditingChange) {
+      onEditingChange(isEditing);
+    }
+  }, [isEditing, onEditingChange]);
 
-    const scrollY = window.scrollY;
-    
-    // Utiliser scrollTo avec behavior: 'instant' une seule fois
-    const timer = setTimeout(() => {
-      window.scrollTo({ top: scrollY, behavior: 'instant' });
-    }, 0);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [isEditing, editableProspect]);
+  // ❌ SUPPRIMÉ : Tous les systèmes de blocage de scroll causent plus de problèmes qu'ils n'en résolvent
+  // Le vrai problème est le re-render trop fréquent du composant
   
   const handleProjectClick = (tag) => {
     setActiveProjectTag(tag);
@@ -786,16 +784,33 @@ const ProspectDetailsAdmin = ({
         });
     }
   };
+  
+  // ✅ Gérer le passage en mode édition SANS scroll
+  const handleStartEditing = () => {
+    // Sauvegarder la position actuelle
+    const currentScrollY = window.scrollY;
+    
+    // Passer en mode édition
+    setIsEditing(true);
+    
+    // Restaurer la position après le re-render (double RAF pour Safari)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: currentScrollY, behavior: 'instant' });
+      });
+    });
+  };
+  
   const handleSave = () => {
     console.log('🔵 CLICK BOUTON SAUVEGARDER !');
     console.log('💾 Sauvegarde prospect:', {
-      id: editableProspect.id,
-      name: editableProspect.name,
-      ownerId: editableProspect.ownerId
+      id: editableProspectRef.current.id,
+      name: editableProspectRef.current.name,
+      ownerId: editableProspectRef.current.ownerId
     });
     
     try {
-      onUpdate(editableProspect);
+      onUpdate(editableProspectRef.current);
       setIsEditing(false);
       toast({
         title: "✅ Prospect mis à jour",
@@ -811,10 +826,12 @@ const ProspectDetailsAdmin = ({
     }
   };
   const handleInputChange = (fieldId, value) => {
-    setEditableProspect(prev => ({
-      ...prev,
+    // ✅ Modifier directement le ref SANS déclencher de re-render
+    editableProspectRef.current = {
+      ...editableProspectRef.current,
       [fieldId]: value
-    }));
+    };
+    // Ne PAS appeler forceUpdate() ici → pas de re-render !
   };
 
   const handleOwnerChange = (ownerId) => {
@@ -836,32 +853,59 @@ const ProspectDetailsAdmin = ({
     
     console.log('✅ editableProspect.ownerId mis à jour:', finalOwnerId);
     
-    setEditableProspect(prev => {
-      const updated = {
-        ...prev,
-        ownerId: finalOwnerId,
-      };
-      console.log('📝 Nouvel editableProspect:', updated);
-      return updated;
-    });
+    // ✅ Modifier le ref sans re-render
+    editableProspectRef.current = {
+      ...editableProspectRef.current,
+      ownerId: finalOwnerId,
+    };
+    console.log('📝 Nouvel editableProspectRef:', editableProspectRef.current);
   };
 
   const activeProjectData = projectsData[activeProjectTag];
+  // ✅ Désactiver COMPLÈTEMENT le scroll automatique du navigateur
+  useEffect(() => {
+    // Désactiver le scroll automatique vers les éléments focusés
+    const style = document.createElement('style');
+    style.id = 'disable-auto-scroll';
+    style.textContent = `
+      * {
+        scroll-margin: 0 !important;
+        scroll-padding: 0 !important;
+      }
+      input:focus, textarea:focus, select:focus {
+        scroll-margin-block: 0 !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const existingStyle = document.getElementById('disable-auto-scroll');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
   return (
     <>
-      <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} className="space-y-6">
+      <motion.div 
+        initial={{
+          opacity: 0,
+          y: 20
+        }} 
+        animate={{
+          opacity: 1,
+          y: 0
+        }} 
+        className="space-y-6"
+      >
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full hover:bg-gray-100">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              {isEditing ? <Input name="name" value={editableProspect.name} onChange={(e) => handleInputChange('name', e.target.value)} className="text-2xl font-bold h-auto p-0 border-0 focus-visible:ring-0" autoFocus={false} /> : <h1 className="text-2xl font-bold text-gray-900">{prospect.name}</h1>}
+              {/* ✅ Toujours en lecture seule - éditable uniquement dans le bloc "Information Prospect" */}
+              <h1 className="text-2xl font-bold text-gray-900">{prospect.name}</h1>
             </div>
           </div>
 
@@ -921,7 +965,7 @@ const ProspectDetailsAdmin = ({
                     {isEditing ? <div className="flex items-center space-x-2">
                         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={handleSave}><Save className="h-4 w-4" /></Button>
                         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={() => setIsEditing(false)}><X className="h-4 w-4" /></Button>
-                      </div> : <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>}
+                      </div> : <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={handleStartEditing}><Edit className="h-4 w-4" /></Button>}
                  </div>
                 <div className="space-y-3 text-sm">
                   {formContactConfig.map(field => (
@@ -934,7 +978,7 @@ const ProspectDetailsAdmin = ({
                             id={field.id}
                             name={field.id}
                             type={field.type}
-                            value={editableProspect[field.id] || ''}
+                            defaultValue={editableProspectRef.current[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             className="h-8 text-sm"
                             placeholder={field.placeholder}
@@ -953,7 +997,7 @@ const ProspectDetailsAdmin = ({
                       {isEditing ? (
                         <SearchableSelect
                           options={userOptions}
-                          value={editableProspect.ownerId || 'unassigned'}
+                          value={editableProspectRef.current.ownerId || 'unassigned'}
                           onSelect={handleOwnerChange}
                           placeholder="Sélectionner un utilisateur"
                           searchPlaceholder="Rechercher..."
@@ -1788,4 +1832,8 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
 
 
 
-export default ProspectDetailsAdmin;
+// ✅ Mémoïser le composant pour éviter les re-renders inutiles
+export default React.memo(ProspectDetailsAdmin, (prevProps, nextProps) => {
+  // Ne re-render QUE si le prospect.id change (pas les autres props)
+  return prevProps.prospect.id === nextProps.prospect.id;
+});
