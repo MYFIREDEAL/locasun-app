@@ -181,10 +181,37 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     }
   };
 
+  // 🔥 AJOUT : Créer un nouveau formulaire dans Supabase
+  const createFormPanel = async (panelData) => {
+    try {
+      console.log('➕ [createFormPanel] Création formulaire:', panelData);
+      
+      const { error } = await supabase
+        .from('client_form_panels')
+        .insert({
+          panel_id: panelData.panelId || `panel-${panelData.prospectId}-${panelData.projectType}-${panelData.formId}-${Date.now()}`,
+          prospect_id: panelData.prospectId,
+          project_type: panelData.projectType,
+          form_id: panelData.formId,
+          message_timestamp: panelData.messageTimestamp,
+          status: panelData.status || 'pending',
+        });
+
+      if (error) throw error;
+      
+      console.log('✅ [createFormPanel] Formulaire créé avec succès');
+      return { success: true };
+    } catch (err) {
+      console.error('❌ [createFormPanel] Erreur insertion:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
   return {
     formPanels,
     loading,
     error,
+    createFormPanel, // 🔥 AJOUT ICI
     updateFormPanel,
     deleteFormPanel,
     deleteFormPanelsByProspect,

@@ -85,7 +85,7 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
 };
 
 const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
-  const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed } = useAppContext();
+  const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed, registerClientForm } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
@@ -215,6 +215,17 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             stepIndex: currentStepIndex,
           };
           addChatMessage(prospectId, projectType, formMessage);
+          
+          // 🔥 Enregistrer le formulaire dans clientFormPanels pour le panneau latéral
+          registerClientForm({
+            prospectId: prospectId,
+            projectType: projectType,
+            formId: action.formId,
+            currentStepIndex: currentStepIndex,
+            promptId: prompt.id,
+            messageTimestamp: Date.now(),
+            status: 'pending'
+          });
         }
       });
     }

@@ -32,6 +32,7 @@ import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
 import { useSupabaseClientNotifications } from '@/hooks/useSupabaseClientNotifications';
+import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels'; // 🔥 AJOUT
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -184,11 +185,19 @@ function App() {
   const [projectInfos, setProjectInfos] = useState({});
   // ✅ globalPipelineSteps maintenant géré par useSupabaseGlobalPipeline (plus de localStorage)
   const [activeAdminUser, setActiveAdminUser] = useState(null);
-  const [clientFormPanels, setClientFormPanels] = useState([]);
+  // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
   const { users: supabaseUsers } = useSupabaseUsers();
+  
+  // 🔥 Charger les panneaux de formulaires clients depuis Supabase avec real-time
+  const {
+    formPanels: clientFormPanels,
+    createFormPanel: registerClientForm,
+    updateFormPanel: updateClientFormPanel,
+    deleteFormPanelsByProspect: clearClientFormsFor
+  } = useSupabaseClientFormPanels(currentUser?.id);
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   const { 
@@ -1006,45 +1015,8 @@ function App() {
     );
   };
 
-  const registerClientForm = useCallback((formPayload) => {
-    setClientFormPanels(prev => {
-      const panelId = formPayload.messageTimestamp || `${formPayload.prospectId}_${formPayload.projectType}_${formPayload.formId}`;
-      const normalized = {
-        status: formPayload.status || 'pending',
-        createdAt: formPayload.messageTimestamp ? new Date(formPayload.messageTimestamp).getTime() : Date.now(),
-        ...formPayload,
-        panelId,
-        userOverride: typeof formPayload.userOverride !== 'undefined' ? formPayload.userOverride : null,
-      };
-      const existingIndex = prev.findIndex(item => item.panelId === panelId);
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        const existingItem = updated[existingIndex];
-        const merged = {
-          ...existingItem,
-          ...normalized,
-        };
-        if (typeof formPayload.userOverride === 'undefined') {
-          merged.userOverride = existingItem.userOverride || null;
-        }
-        const nextStatus = merged.userOverride
-          ? merged.userOverride
-          : (normalized.status || existingItem.status);
-        merged.status = nextStatus;
-        updated[existingIndex] = merged;
-        return updated;
-      }
-      return [normalized, ...prev];
-    });
-  }, []);
-
-  const updateClientFormPanel = useCallback((panelId, updates) => {
-    setClientFormPanels(prev => prev.map(item => item.panelId === panelId ? { ...item, ...updates } : item));
-  }, []);
-
-  const clearClientFormsFor = useCallback((prospectId, projectType) => {
-    setClientFormPanels(prev => prev.filter(item => !(item.prospectId === prospectId && item.projectType === projectType)));
-  }, []);
+  // ❌ SUPPRIMÉ: registerClientForm, updateClientFormPanel, clearClientFormsFor
+  // ✅ Maintenant géré par useSupabaseClientFormPanels() hook avec real-time sync
 
   // ❌ SUPPRIMÉ: updateUsers() et deleteUser() - Maintenant dans useSupabaseUsersCRUD()
   // Utiliser le hook useSupabaseUsersCRUD() pour toutes les opérations CRUD sur les utilisateurs
