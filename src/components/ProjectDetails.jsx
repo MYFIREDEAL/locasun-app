@@ -310,8 +310,6 @@ const ProjectDetails = ({ project, onBack }) => {
     getProjectSteps,
     updateProjectSteps,
     getSharedAppointments,
-    registerClientForm,
-    clearClientFormsFor,
     clientFormPanels,
   } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
@@ -350,58 +348,9 @@ const ProjectDetails = ({ project, onBack }) => {
   const sharedAppointments = currentUser && currentStep ? 
     getSharedAppointments(currentUser.id, project.type, currentStep.name) : [];
 
-  // ✅ messages récupérés via hook useSupabaseChatMessages (déclaré ligne 315)
-
-  const formMessages = useMemo(() => {
-    if (!messages.length) return [];
-
-    const completionMap = new Map();
-    messages.forEach(msg => {
-      if (msg.completedFormId) {
-        const key = `${msg.completedFormId}_${msg.relatedMessageTimestamp || ''}`;
-        completionMap.set(key, msg);
-      }
-    });
-
-    return messages
-      .filter(msg => msg.sender === 'pro' && msg.formId)
-      .map(msg => {
-        const key = `${msg.formId}_${msg.timestamp || msg.createdAt || ''}`;
-        const completion = completionMap.get(key);
-        return {
-          formId: msg.formId,
-          messageTimestamp: msg.timestamp || msg.createdAt || '',
-          promptId: msg.promptId || null,
-          currentStepIndex: typeof msg.stepIndex === 'number' ? msg.stepIndex : effectiveStepIndex,
-          status: completion ? 'submitted' : 'pending',
-        };
-      });
-  }, [messages, effectiveStepIndex]);
-
-  useEffect(() => {
-    if (!currentUser) return;
-
-    formMessages.forEach(formMsg => {
-      registerClientForm({
-        ...formMsg,
-        prospectId: currentUser.id,
-        projectType: project.type,
-      });
-    });
-  }, [
-    formMessages,
-    currentUser,
-    project.type,
-    registerClientForm,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      if (currentUser) {
-        clearClientFormsFor(currentUser.id, project.type);
-      }
-    };
-  }, [clearClientFormsFor, currentUser, project.type]);
+  // ✅ Les formulaires viennent directement de Supabase via useSupabaseClientFormPanels (App.jsx)
+  // L'admin crée les panneaux via registerClientForm() dans ProspectDetailsAdmin.jsx
+  // Le client les voit automatiquement grâce au real-time Supabase
 
   // 🔥 REAL-TIME : Écouter les changements de steps depuis Supabase
   useEffect(() => {
