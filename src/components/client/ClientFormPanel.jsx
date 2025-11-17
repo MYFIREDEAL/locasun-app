@@ -198,7 +198,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                 <div>
                   <h3 className="text-base font-semibold text-gray-900">{formDefinition.name}</h3>
                   <p className="text-xs text-gray-500 mt-1">
-                    Étape : {projectsData[panel.projectType]?.steps?.[panel.currentStepIndex]?.name || 'Suivi du projet'}
+                    Étape : {panel.stepName || 'Suivi du projet'}
                   </p>
                 </div>
                 <span

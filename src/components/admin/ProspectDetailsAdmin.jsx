@@ -419,80 +419,78 @@ const ProjectTimeline = ({
 };
 
 const ProspectForms = ({ prospect, projectType, onUpdate }) => {
-    const { forms } = useAppContext();
-    const [formData, setFormData] = useState(prospect.formData || {});
-    const [isEditing, setIsEditing] = useState(false);
+    const { forms, clientFormPanels } = useAppContext();
 
-    const relevantForms = useMemo(() => 
-        Object.values(forms).filter(form => form.projectIds?.includes(projectType)),
-        [forms, projectType]
-    );
+    // ✅ Filtrer les formulaires pour ce prospect et ce projet
+    const relevantPanels = useMemo(() => {
+        return clientFormPanels.filter(panel => 
+            panel.prospectId === prospect.id && 
+            panel.projectType === projectType
+        ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }, [clientFormPanels, prospect.id, projectType]);
 
-    useEffect(() => {
-        setFormData(prospect.formData || {});
-    }, [prospect.formData, projectType]);
-
-    const handleInputChange = (fieldId, value) => {
-        setFormData(prev => ({ ...prev, [fieldId]: value }));
-    };
-
-    const handleSave = () => {
-        onUpdate({ ...prospect, formData });
-        setIsEditing(false);
-        toast({
-            title: "✅ Formulaires enregistrés",
-            description: "Les informations ont été sauvegardées pour ce prospect."
-        });
-    };
-
-    const handleCancel = () => {
-        setFormData(prospect.formData || {});
-        setIsEditing(false);
-    };
-
-    if (relevantForms.length === 0) {
+    if (relevantPanels.length === 0) {
         return null;
     }
 
     return (
         <div className="bg-white rounded-2xl shadow-card p-6">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Formulaires</h2>
-                {isEditing ? (
-                    <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={handleSave}><Save className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100" onClick={handleCancel}><X className="h-4 w-4" /></Button>
-                    </div>
-                ) : (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>
-                )}
+                <h2 className="text-lg font-semibold text-gray-900">Formulaires soumis</h2>
+                <span className="text-xs text-gray-500">{relevantPanels.length} formulaire(s)</span>
             </div>
-            <div className="space-y-6 flex flex-col">
-                {relevantForms.map(form => (
-                    <div key={form.id}>
-                        <h3 className="font-medium text-gray-800 mb-3 border-b pb-2">{form.name}</h3>
-                        <div className="space-y-4">
-                            {(form.fields || []).map(field => (
-                                <div key={field.id}>
-                                    <Label htmlFor={field.id}>{field.label}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            id={field.id}
-                                            type={field.type}
-                                            value={formData[field.id] || ''}
-                                            onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                            placeholder={field.placeholder || ''}
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-gray-700 mt-1 p-2 bg-gray-50 rounded-md min-h-[2.5rem]">
-                                            {formData[field.id] || <span className="text-gray-400">Non renseigné</span>}
-                                        </p>
-                                    )}
+            <div className="space-y-4">
+                {relevantPanels.map(panel => {
+                    const formDefinition = forms[panel.formId];
+                    const formData = prospect.formData || {};
+                    
+                    if (!formDefinition) return null;
+
+                    return (
+                        <div key={panel.panelId} className="border border-gray-200 rounded-xl p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">{formDefinition.name}</h3>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Étape : {panel.stepName || 'Non spécifiée'}
+                                    </p>
                                 </div>
-                            ))}
+                                <span
+                                    className={`text-xs px-2 py-1 rounded-full ${
+                                        panel.status === 'submitted' ? 'bg-green-100 text-green-700' :
+                                        panel.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                                        panel.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                        'bg-gray-100 text-gray-600'
+                                    }`}
+                                >
+                                    {panel.status === 'submitted' ? 'Envoyé' :
+                                     panel.status === 'approved' ? 'Approuvé' :
+                                     panel.status === 'rejected' ? 'Rejeté' :
+                                     'En attente'}
+                                </span>
+                            </div>
+
+                            {panel.status === 'submitted' && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                                    <p className="text-sm text-green-700">
+                                        ✅ Client a soumis ce formulaire
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3 pt-2">
+                                {(formDefinition.fields || []).map(field => (
+                                    <div key={field.id} className="flex items-start space-x-2">
+                                        <span className="text-sm font-medium text-gray-600 min-w-[120px]">{field.label}:</span>
+                                        <span className="text-sm text-gray-900">
+                                            {formData[field.id] || <span className="text-gray-400 italic">Non renseigné</span>}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

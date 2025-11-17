@@ -19,9 +19,9 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     messageTimestamp: dbPanel.message_timestamp,
     status: dbPanel.status,
     userOverride: dbPanel.user_override,
+    stepName: dbPanel.step_name, // 🔥 AJOUT: Nom de l'étape du pipeline
     createdAt: new Date(dbPanel.created_at).getTime(),
     updatedAt: new Date(dbPanel.updated_at).getTime(),
-    // Pas de submission_data ni currentStepIndex dans la table actuellement
   });
 
   // Transformation App → Supabase
