@@ -10,7 +10,10 @@ export function useSupabaseClientNotifications(prospectId) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('🔔 useSupabaseClientNotifications - prospectId:', prospectId);
+    
     if (!prospectId) {
+      console.log('⚠️ No prospectId, skipping client notifications loading');
       setLoading(false)
       return
     }
@@ -59,6 +62,7 @@ export function useSupabaseClientNotifications(prospectId) {
   async function loadNotifications() {
     try {
       setLoading(true)
+      console.log('📥 Loading client notifications for prospect:', prospectId);
 
       const { data, error } = await supabase
         .from('client_notifications')
@@ -69,9 +73,10 @@ export function useSupabaseClientNotifications(prospectId) {
       if (error) throw error
 
       const transformed = (data || []).map(transformFromDb)
+      console.log('✅ Client notifications loaded:', transformed.length, transformed);
       setNotifications(transformed)
     } catch (error) {
-      console.error('Error loading client notifications:', error)
+      console.error('❌ Error loading client notifications:', error)
     } finally {
       setLoading(false)
     }

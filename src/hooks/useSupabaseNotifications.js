@@ -10,7 +10,10 @@ export function useSupabaseNotifications(userId) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log('🔔 useSupabaseNotifications - userId:', userId);
+    
     if (!userId) {
+      console.log('⚠️ No userId, skipping admin notifications loading');
       setLoading(false)
       return
     }
@@ -59,6 +62,7 @@ export function useSupabaseNotifications(userId) {
   async function loadNotifications() {
     try {
       setLoading(true)
+      console.log('📥 Loading admin notifications for user:', userId);
 
       // Récupérer les notifications des prospects de l'utilisateur
       const { data, error } = await supabase
@@ -73,9 +77,10 @@ export function useSupabaseNotifications(userId) {
       if (error) throw error
 
       const transformed = (data || []).map(transformFromDb)
+      console.log('✅ Admin notifications loaded:', transformed.length, transformed);
       setNotifications(transformed)
     } catch (error) {
-      console.error('Error loading notifications:', error)
+      console.error('❌ Error loading admin notifications:', error)
     } finally {
       setLoading(false)
     }
