@@ -986,12 +986,15 @@ function App() {
     });
   };
 
-  // ❌ OBSOLÈTE: getChatMessages - Remplacé par useSupabaseChatMessages() dans les composants
-  // Les messages sont maintenant récupérés via le hook dans chaque composant (ProspectDetailsAdmin, ProjectDetails)
-  // const getChatMessages = (prospectId, projectType) => {
-  //   const key = `chat_${prospectId}_${projectType}`;
-  //   return chatMessages[key] || [];
-  // };
+  // ✅ getChatMessages - Version Supabase (requête synchrone pour compatibilité)
+  // Note: Préférer useSupabaseChatMessages() pour real-time dans les composants chat
+  // Cette fonction est gardée pour les composants qui ont besoin d'une vérification rapide (ClientFormPanel)
+  const getChatMessages = (prospectId, projectType) => {
+    // Retour vide pour l'instant - le composant ClientFormPanel devra être refactorisé
+    // pour utiliser le hook useSupabaseChatMessages ou une méthode async
+    console.warn('⚠️ getChatMessages appelé mais obsolète - Utiliser useSupabaseChatMessages() pour real-time');
+    return [];
+  };
 
   const getSharedAppointments = (contactId, projectType, stepName) => {
     return appointments.filter(appointment => 
@@ -1323,8 +1326,9 @@ function App() {
     calls, addCall, updateCall, deleteCall,
     tasks, addTask, updateTask, deleteTask,
     // ❌ SUPPRIMÉ: users, updateUsers, deleteUser, getAdminById - Utiliser useSupabaseUsers() ou useSupabaseUsersCRUD()
-    // ❌ SUPPRIMÉ: chatMessages, getChatMessages - Utiliser useSupabaseChatMessages() dans les composants
+    // ⚠️ LEGACY: chatMessages supprimé - getChatMessages gardé temporairement pour ClientFormPanel
     addChatMessage, // ✅ Conservé pour compatibilité - Envoie maintenant vers Supabase
+    getChatMessages, // ⚠️ Version stub - À remplacer par useSupabaseChatMessages() dans les composants
     notifications, markNotificationAsRead,
     clientNotifications, markClientNotificationAsRead,
     // 🔥 forms synchronisé depuis Supabase (read-only pour chat, édition via useSupabaseForms dans ProfilePage)

@@ -388,9 +388,16 @@ const ProjectDetails = ({ project, onBack }) => {
   }, [messages, effectiveStepIndex]);
 
   useEffect(() => {
+    console.log('📋 [ProjectDetails] useEffect registerClientForm', {
+      hasUser: !!currentUser,
+      formMessagesCount: formMessages.length,
+      projectType: project.type
+    });
+    
     if (!currentUser) return;
 
     formMessages.forEach(formMsg => {
+      console.log('📝 [ProjectDetails] Registering form:', formMsg);
       registerClientForm({
         ...formMsg,
         prospectId: currentUser.id,
