@@ -581,7 +581,10 @@ function App() {
           icon: templateData.icon,
           color: templateData.color,
           steps: templateData.steps,
-          is_public: templateData.isPublic !== undefined ? templateData.isPublic : templateData.is_public
+          is_public: templateData.isPublic !== undefined ? templateData.isPublic : templateData.is_public,
+          image_url: templateData.coverImage || templateData.image_url,
+          client_description: templateData.clientDescription || templateData.client_description,
+          cta_text: templateData.ctaText || templateData.cta_text
         };
         
         if (existingTemplate) {

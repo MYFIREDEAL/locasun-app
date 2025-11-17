@@ -51,7 +51,10 @@ export function useSupabaseProjectTemplates() {
           const transformTemplate = (t) => ({
             ...t,
             clientTitle: t.client_title,
-            isPublic: t.is_public
+            isPublic: t.is_public,
+            coverImage: t.image_url,
+            clientDescription: t.client_description,
+            ctaText: t.cta_text
           });
 
           if (payload.eventType === 'INSERT') {
@@ -99,7 +102,10 @@ export function useSupabaseProjectTemplates() {
       const transformedData = (data || []).map(template => ({
         ...template,
         clientTitle: template.client_title,
-        isPublic: template.is_public
+        isPublic: template.is_public,
+        coverImage: template.image_url,
+        clientDescription: template.client_description,
+        ctaText: template.cta_text
       }));
 
       setProjectTemplates(transformedData);
@@ -132,7 +138,10 @@ export function useSupabaseProjectTemplates() {
       const transformedData = {
         ...data,
         clientTitle: data.client_title,
-        isPublic: data.is_public
+        isPublic: data.is_public,
+        coverImage: data.image_url,
+        clientDescription: data.client_description,
+        ctaText: data.cta_text
       };
       
       setProjectTemplates(prev => [...prev, transformedData]);
@@ -166,7 +175,10 @@ export function useSupabaseProjectTemplates() {
       const transformedData = {
         ...data,
         clientTitle: data.client_title,
-        isPublic: data.is_public
+        isPublic: data.is_public,
+        coverImage: data.image_url,
+        clientDescription: data.client_description,
+        ctaText: data.cta_text
       };
       
       setProjectTemplates(prev =>
