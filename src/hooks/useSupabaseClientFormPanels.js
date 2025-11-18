@@ -36,24 +36,24 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
   // Charger les formulaires
   useEffect(() => {
-    // ⚠️ Ne pas charger si pas de prospectId (évite de charger tous les formulaires)
-    if (!prospectId) {
-      setLoading(false);
-      return;
-    }
-
     const fetchFormPanels = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // 🔥 Si prospectId === null, charger TOUS les formulaires (pour admin)
+        let query = supabase
           .from('client_form_panels')
-          .select('*')
-          .eq('prospect_id', prospectId)
-          .order('created_at', { ascending: false });
+          .select('*');
+        
+        if (prospectId) {
+          query = query.eq('prospect_id', prospectId);
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        console.log('📋 [useSupabaseClientFormPanels] Raw data from Supabase:', data);
+        console.log(`📋 [useSupabaseClientFormPanels] Raw data from Supabase (prospectId: ${prospectId || 'ALL'}):`, data);
         const transformed = (data || []).map(transformFromDB);
         console.log('📋 [useSupabaseClientFormPanels] Transformed:', transformed);
         setFormPanels(transformed);
@@ -68,20 +68,17 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
     fetchFormPanels();
 
-    // Real-time subscription (seulement si prospectId fourni)
-    if (!prospectId) {
-      return;
-    }
-
+    // Real-time subscription
+    const channelName = prospectId ? `client-form-panels-${prospectId}` : 'client-form-panels-all';
     const channel = supabase
-      .channel(`client-form-panels-${prospectId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'client_form_panels',
-          filter: `prospect_id=eq.${prospectId}`,
+          ...(prospectId && { filter: `prospect_id=eq.${prospectId}` }), // 🔥 Filtre uniquement si prospectId fourni
         },
         (payload) => {
           console.log('🔔 Real-time client_form_panels:', payload);

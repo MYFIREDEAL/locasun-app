@@ -192,12 +192,13 @@ function App() {
   const { users: supabaseUsers } = useSupabaseUsers();
   
   // 🔥 Charger les panneaux de formulaires clients depuis Supabase avec real-time
+  // ⚠️ Si client: charger ses formulaires. Si admin: charger TOUS les formulaires (null = tous)
   const {
     formPanels: clientFormPanels,
     createFormPanel: registerClientForm,
     updateFormPanel: updateClientFormPanel,
     deleteFormPanelsByProspect: clearClientFormsFor
-  } = useSupabaseClientFormPanels(currentUser?.id);
+  } = useSupabaseClientFormPanels(isClient ? currentUser?.id : null); // 🔥 Admin voit tout !
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   const { 
