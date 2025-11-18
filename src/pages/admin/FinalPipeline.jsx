@@ -84,8 +84,6 @@ const FinalPipeline = () => {
   useEffect(() => {
     if (!selectedProspect?.id) return;
 
-    console.log('🔔 Setting up real-time subscription for prospect:', selectedProspect.id);
-
     const channel = supabase
       .channel(`pipeline-prospect-detail-${selectedProspect.id}`)
       .on('postgres_changes', {
@@ -94,11 +92,8 @@ const FinalPipeline = () => {
         table: 'prospects',
         filter: `id=eq.${selectedProspect.id}`
       }, (payload) => {
-        console.log('🔥 Real-time update received for selected prospect:', payload.new);
-        
         // ✅ NE PAS mettre à jour si l'utilisateur est en train d'éditer (évite le scroll)
         if (isEditingProspect) {
-          console.log('⏸️ Édition en cours - real-time update ignoré pour éviter le scroll');
           return;
         }
         
@@ -132,7 +127,6 @@ const FinalPipeline = () => {
       .subscribe();
 
     return () => {
-      console.log('🔌 Cleaning up real-time subscription for prospect:', selectedProspect.id);
       supabase.removeChannel(channel);
     };
   }, [selectedProspect?.id]);
@@ -381,12 +375,6 @@ const FinalPipeline = () => {
         const projectSteps = allProjectSteps[supabaseKey] || (typeof getProjectSteps === 'function' ? getProjectSteps(prospect.id, projectType) : []) || [];
         const projectDefaultSteps = projectsData[projectType]?.steps || [];
 
-        console.log(`🔍 [Pipeline] Steps for ${prospect.name} - ${projectType}:`, {
-          supabaseKey,
-          hasSupabaseSteps: !!allProjectSteps[supabaseKey],
-          steps: projectSteps
-        });
-
         if (!projectSteps.length) {
           entries.push({ stageId: fallbackStageId, prospect, projectType });
           return;
@@ -511,11 +499,6 @@ const FinalPipeline = () => {
       
       setSelectedProspect(prospectWithProject);
       lastProcessedUrl.current = currentUrl; // 🔥 Marquer cette URL comme traitée
-      console.log('✅ Prospect selected from notification:', {
-        prospectId: urlProspectId,
-        projectType: urlProjectType,
-        prospectName: prospectFromList.name
-      });
     }
   }, [searchParams, prospects]);
 
