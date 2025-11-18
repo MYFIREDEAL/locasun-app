@@ -431,15 +431,12 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
 
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
-        console.log('🔍 ProspectForms - clientFormPanels:', clientFormPanels?.length || 0, 'pour prospect:', prospect.id, 'projet:', projectType);
         if (!clientFormPanels) return [];
         return clientFormPanels.filter(panel => 
             panel.prospectId === prospect.id && 
             panel.projectType === projectType
         ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }, [clientFormPanels, prospect.id, projectType]);
-
-    console.log('📋 ProspectForms - relevantPanels:', relevantPanels.length);
 
     if (relevantPanels.length === 0) {
         return (
@@ -644,22 +641,12 @@ const ProspectDetailsAdmin = ({
   const projectSteps = useMemo(() => {
     if (!activeProjectTag) return [];
     
-    console.log('🔍 [ProspectDetailsAdmin] Loading steps:', {
-      prospectId: prospect.id,
-      prospectName: prospect.name,
-      activeProjectTag,
-      supabaseSteps,
-      hasSupabaseSteps: !!supabaseSteps[activeProjectTag]
-    });
-    
     // Si on a des steps depuis Supabase, les utiliser
     if (supabaseSteps[activeProjectTag]) {
-      console.log('✅ Using Supabase steps:', supabaseSteps[activeProjectTag]);
       return supabaseSteps[activeProjectTag];
     }
     
     // Sinon fallback sur l'ancienne méthode
-    console.log('⚠️ Fallback to getProjectSteps (no Supabase data)');
     return getProjectSteps(prospect.id, activeProjectTag);
   }, [activeProjectTag, supabaseSteps, prospect.id, getProjectSteps]);
 
@@ -778,7 +765,6 @@ const ProspectDetailsAdmin = ({
       // Si l'étape suivante a un globalStepId, déplacer le prospect dans cette colonne
       if (nextStepIndex < newSteps.length && newSteps[nextStepIndex].globalStepId) {
         const globalStepId = newSteps[nextStepIndex].globalStepId;
-        console.log('🔄 Déplacement du prospect vers la colonne:', globalStepId);
         
         const updatedProspect = {
           ...prospect,
@@ -806,8 +792,6 @@ const ProspectDetailsAdmin = ({
       // 🔥 MISE À JOUR DU PIPELINE GLOBAL si l'étape en cours a un globalStepId
       const currentStep = updatedSteps[clickedIndex];
       if (currentStep.globalStepId && newStatus === 'in_progress') {
-        console.log('🔄 Déplacement du prospect vers la colonne:', currentStep.globalStepId);
-        
         const updatedProspect = {
           ...prospect,
           status: currentStep.globalStepId
@@ -906,13 +890,6 @@ const ProspectDetailsAdmin = ({
   };
   
   const handleSave = () => {
-    console.log('🔵 CLICK BOUTON SAUVEGARDER !');
-    console.log('💾 Sauvegarde prospect:', {
-      id: editableProspectRef.current.id,
-      name: editableProspectRef.current.name,
-      ownerId: editableProspectRef.current.ownerId
-    });
-    
     try {
       onUpdate(editableProspectRef.current);
       setIsEditing(false);
@@ -939,30 +916,21 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleOwnerChange = (ownerId) => {
-    console.log('👤 handleOwnerChange appelé avec:', ownerId);
-    
     // 🔧 Convertir l'ID local en UUID Supabase si c'est l'utilisateur connecté
     let finalOwnerId = ownerId;
     
     if (ownerId === 'unassigned') {
       finalOwnerId = null;
-      console.log('→ Non assigné (null)');
     } else if (ownerId === 'user-1' && supabaseUserId) {
       // Si on essaie d'assigner à "user-1" (ID local), utiliser l'UUID Supabase réel
       finalOwnerId = supabaseUserId;
-      console.log('🔧 Conversion user-1 → UUID Supabase:', supabaseUserId);
-    } else {
-      console.log('→ UUID direct:', finalOwnerId);
     }
-    
-    console.log('✅ editableProspect.ownerId mis à jour:', finalOwnerId);
     
     // ✅ Modifier le ref sans re-render
     editableProspectRef.current = {
       ...editableProspectRef.current,
       ownerId: finalOwnerId,
     };
-    console.log('📝 Nouvel editableProspectRef:', editableProspectRef.current);
   };
 
   const activeProjectData = projectsData[activeProjectTag];
