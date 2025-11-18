@@ -34,13 +34,6 @@ export const useSupabaseUser = () => {
         if (userError) throw userError;
         if (!userData) throw new Error("User introuvable dans public.users");
 
-        console.log('✅ useSupabaseUser:', {
-          authUserId: user.id,
-          publicUserId: userData.id,
-          email: userData.email,
-          name: userData.name
-        });
-
         setSupabaseUserId(userData.id);
       } catch (err) {
         console.error('❌ Erreur useSupabaseUser:', err);
