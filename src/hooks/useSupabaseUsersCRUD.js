@@ -30,7 +30,6 @@ export const useSupabaseUsersCRUD = () => {
 
       if (fetchError) throw fetchError;
 
-      console.log('✅ Utilisateurs CRUD chargés:', data?.length || 0);
       setUsers(data || []);
       setError(null);
     } catch (err) {
@@ -52,8 +51,6 @@ export const useSupabaseUsersCRUD = () => {
 
   // 🔥 REAL-TIME : Écouter les changements en temps réel
   useEffect(() => {
-    console.log('🔥 Setting up real-time subscription for users...');
-
     const channel = supabase
       .channel('users-crud-changes')
       .on(
@@ -64,8 +61,6 @@ export const useSupabaseUsersCRUD = () => {
           table: 'users'
         },
         (payload) => {
-          console.log('🔥 Real-time user change detected:', payload);
-
           if (payload.eventType === 'INSERT') {
             // Nouvel utilisateur ajouté
             setUsers(prev => [...prev, payload.new]);
@@ -82,7 +77,6 @@ export const useSupabaseUsersCRUD = () => {
                 ? { ...u, ...payload.new } // Merge au lieu de remplacement total
                 : u
             ));
-            console.log('📝 User updated:', payload.new.name);
           } else if (payload.eventType === 'DELETE') {
             // Utilisateur supprimé
             setUsers(prev => prev.filter(u => u.id !== payload.old.id));
@@ -93,12 +87,9 @@ export const useSupabaseUsersCRUD = () => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Users CRUD subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 Unsubscribing from users CRUD real-time...');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -121,8 +112,6 @@ export const useSupabaseUsersCRUD = () => {
    */
   const addUser = async (userData) => {
     try {
-      console.log('🔧 Adding user:', userData);
-
       // 1️⃣ Créer l'utilisateur dans auth.users (Supabase Auth)
       // Note: signUp() envoie un email de confirmation par défaut
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -138,8 +127,6 @@ export const useSupabaseUsersCRUD = () => {
 
       if (authError) throw new Error(`Auth error: ${authError.message}`);
       if (!authData?.user) throw new Error('Échec de création du compte utilisateur');
-
-      console.log('✅ Auth user created:', authData.user.id);
 
       // 2️⃣ Trouver l'ID du manager si spécifié
       let managerId = null;
@@ -178,15 +165,8 @@ export const useSupabaseUsersCRUD = () => {
         throw new Error(`Public user error: ${publicUserError.message}`);
       }
 
-      console.log('✅ Public user created:', publicUserData);
-
       // 🔥 Ajouter manuellement à la liste (le real-time devrait le faire, mais on force au cas où)
-      setUsers(prev => {
-        console.log('📝 Adding user manually to list. Current users:', prev.length);
-        const newList = [...prev, publicUserData];
-        console.log('📝 New users list:', newList.length);
-        return newList;
-      });
+      setUsers(prev => [...prev, publicUserData]);
 
       // ✅ Le real-time va automatiquement ajouter l'utilisateur à la liste
       toast({
@@ -216,8 +196,6 @@ export const useSupabaseUsersCRUD = () => {
    */
   const updateUser = async (userId, updates) => {
     try {
-      console.log('🔧 Updating user:', userId, updates);
-
       // Préparer les données pour Supabase (snake_case)
       const dbUpdates = {};
       
@@ -248,20 +226,11 @@ export const useSupabaseUsersCRUD = () => {
       // Ajouter updated_at
       dbUpdates.updated_at = new Date().toISOString();
 
-      // Vérifier la session active
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔍 DEBUG - Current session:', session ? 'LOGGED IN' : 'NOT LOGGED IN');
-      console.log('🔍 DEBUG - Auth user ID:', session?.user?.id);
-      console.log('🔍 DEBUG - Updating user with data:', dbUpdates);
-      console.log('🔍 DEBUG - Target user ID:', userId);
-
       const { data, error: updateError } = await supabase
         .from('users')
         .update(dbUpdates)
         .eq('id', userId)
         .select();
-
-      console.log('🔍 DEBUG - Update result:', { data, error: updateError });
 
       if (updateError) throw updateError;
       
@@ -269,8 +238,6 @@ export const useSupabaseUsersCRUD = () => {
       const updatedUser = Array.isArray(data) ? data[0] : data;
 
       // ✅ Le real-time va automatiquement mettre à jour la liste
-      console.log('✅ User updated in DB, waiting for real-time sync...');
-
       toast({
         title: "Succès !",
         description: "Utilisateur modifié avec succès.",
@@ -297,8 +264,6 @@ export const useSupabaseUsersCRUD = () => {
    */
   const deleteUser = async (userId) => {
     try {
-      console.log('🔧 Deleting user:', userId);
-
       // 1️⃣ Récupérer les infos de l'utilisateur à supprimer
       const { data: userToDelete, error: fetchError } = await supabase
         .from('users')
@@ -309,15 +274,12 @@ export const useSupabaseUsersCRUD = () => {
       if (fetchError) throw fetchError;
       if (!userToDelete) throw new Error('Utilisateur introuvable');
 
-      console.log('👤 User to delete:', userToDelete.name);
-
       // 2️⃣ Déterminer le nouvel owner_id pour réassigner les prospects
       let newOwnerId = null;
 
       if (userToDelete.manager_id) {
         // Réassigner au manager
         newOwnerId = userToDelete.manager_id;
-        console.log('📦 Reassigning prospects to manager:', userToDelete.manager?.name);
       } else {
         // Trouver un Global Admin ou Manager comme fallback
         const { data: fallbackUser } = await supabase
@@ -329,7 +291,6 @@ export const useSupabaseUsersCRUD = () => {
 
         if (fallbackUser) {
           newOwnerId = fallbackUser.id;
-          console.log('📦 Reassigning prospects to fallback admin/manager');
         }
       }
 
@@ -342,8 +303,6 @@ export const useSupabaseUsersCRUD = () => {
 
         if (updateProspectsError) {
           console.error('⚠️ Erreur réassignation prospects:', updateProspectsError);
-        } else {
-          console.log('✅ Prospects reassigned successfully');
         }
       }
 
@@ -357,8 +316,6 @@ export const useSupabaseUsersCRUD = () => {
       if (deleteError) throw deleteError;
 
       // ✅ Le real-time va automatiquement retirer l'utilisateur de la liste
-      console.log('✅ User deleted, waiting for real-time sync...');
-
       toast({
         title: "Succès !",
         description: `${userToDelete.name} a été supprimé et ses prospects réassignés.`,
