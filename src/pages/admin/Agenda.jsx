@@ -1286,14 +1286,12 @@ const Agenda = () => {
   }, [activeAdminUser, supabaseUsers]);
 
   const userOptions = useMemo(() => {
-    console.log('👥 userOptions générés:', allowedUsers.length, 'utilisateurs');
     return allowedUsers.map(user => ({ value: user.id, label: user.name }));
   }, [allowedUsers]);
 
   // 🔧 Mettre à jour selectedUserId quand supabaseUserId est chargé
   useEffect(() => {
     if (supabaseUserId) {
-      console.log('🔧 Mise à jour selectedUserId avec supabaseUserId:', supabaseUserId);
       setSelectedUserId(supabaseUserId);
     } else if (activeAdminUser) {
       if (!allowedUsers.some(u => u.id === selectedUserId)) {
@@ -1452,18 +1450,10 @@ const Agenda = () => {
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
       : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-      
-    console.log('🔍 Filtrage appointments:', {
-      total: normalizedAppointments.length,
-      selectedUserId,
-      activeAdminUserId: activeAdminUser?.id,
-      premier_apt: normalizedAppointments[0]
-    });
     
     return normalizedAppointments.filter(app => {
       const isVisible = allowedIds ? allowedIds.includes(app.assignedUserId) : true;
       const match = app.assignedUserId === selectedUserId;
-      console.log(`🔍 Appointment ${app.id}: assignedUserId=${app.assignedUserId}, selectedUserId=${selectedUserId}, match=${match}`);
       return isVisible && match;
     });
   }, [normalizedAppointments, selectedUserId, activeAdminUser]);
