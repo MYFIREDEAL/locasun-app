@@ -19,9 +19,9 @@ const ProjectCenterPanel = ({
   statusConfig 
 }) => {
   return (
-    <div className="space-y-6 w-full flex flex-col">
+    <div className="flex flex-col gap-4 w-full">
       {/* Bloc Chat (existant) */}
-      <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
+      <div className="bg-white rounded-2xl shadow-card p-6">
         {currentStep && (
           <motion.div
             key={currentStep.name}
