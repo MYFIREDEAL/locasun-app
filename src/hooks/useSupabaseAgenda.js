@@ -25,9 +25,6 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
       if (fetchError) throw fetchError;
 
-      console.log('🔍 Appointments chargés depuis Supabase:', data?.length || 0);
-      console.log('📋 Premier appointment:', data?.[0]);
-
       // Transformer vers le format attendu par l'app
       const transformed = (data || []).map(apt => ({
         id: apt.id,
@@ -47,9 +44,6 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         createdAt: apt.created_at,
         updatedAt: apt.updated_at,
       }));
-
-      console.log('✅ Appointments transformés:', transformed.length);
-      console.log('📅 Premier transformé:', transformed[0]);
       
       setAppointments(transformed);
       return transformed;
@@ -151,8 +145,6 @@ export const useSupabaseAgenda = (activeAdminUser) => {
   useEffect(() => {
     if (!activeAdminUser) return;
 
-    console.log('🔥 Setting up real-time for agenda (appointments, calls, tasks)...');
-
     // Créer un canal unique pour l'agenda
     const channel = supabase
       .channel('agenda-changes')
@@ -164,8 +156,6 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           table: 'appointments'
         },
         (payload) => {
-          console.log('📡 Real-time appointments:', payload);
-          
           if (payload.eventType === 'INSERT') {
             const newApt = {
               id: payload.new.id,
@@ -217,15 +207,12 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Agenda subscription status:', status);
-      });
+      .subscribe();
 
     setRealtimeChannel(channel);
 
     // Cleanup
     return () => {
-      console.log('🔌 Unsubscribing from agenda real-time');
       supabase.removeChannel(channel);
     };
   }, [activeAdminUser]);
@@ -255,14 +242,6 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       // 🔧 Valeurs par défaut pour colonnes NOT NULL
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-
-      console.log('📤 Tentative d\'insertion RDV:', {
-        title: appointmentData.title || 'Rendez-vous',
-        startTime: appointmentData.startTime,
-        endTime: appointmentData.endTime,
-        contactId: contactId,
-        userId: userData.id
-      });
 
       const { data, error: insertError } = await supabase
         .from('appointments')
