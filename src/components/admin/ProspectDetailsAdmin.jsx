@@ -425,13 +425,14 @@ const ProjectTimeline = ({
 const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     const { forms } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
-    const { clientFormPanels } = useSupabaseClientFormPanels(null);
+    const { clientFormPanels = [], loading } = useSupabaseClientFormPanels(null);
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
 
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
-        console.log('🔍 ProspectForms - clientFormPanels:', clientFormPanels.length, 'pour prospect:', prospect.id, 'projet:', projectType);
+        console.log('🔍 ProspectForms - clientFormPanels:', clientFormPanels?.length || 0, 'pour prospect:', prospect.id, 'projet:', projectType);
+        if (!clientFormPanels) return [];
         return clientFormPanels.filter(panel => 
             panel.prospectId === prospect.id && 
             panel.projectType === projectType
