@@ -21,6 +21,7 @@ import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
+import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -422,20 +423,33 @@ const ProjectTimeline = ({
 };
 
 const ProspectForms = ({ prospect, projectType, onUpdate }) => {
-    const { forms, clientFormPanels } = useAppContext();
+    const { forms } = useAppContext();
+    // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
+    const { clientFormPanels } = useSupabaseClientFormPanels(null);
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
 
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
+        console.log('🔍 ProspectForms - clientFormPanels:', clientFormPanels.length, 'pour prospect:', prospect.id, 'projet:', projectType);
         return clientFormPanels.filter(panel => 
             panel.prospectId === prospect.id && 
             panel.projectType === projectType
         ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }, [clientFormPanels, prospect.id, projectType]);
 
+    console.log('📋 ProspectForms - relevantPanels:', relevantPanels.length);
+
     if (relevantPanels.length === 0) {
-        return null;
+        return (
+            <div className="bg-white rounded-2xl shadow-card p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Formulaires soumis</h2>
+                    <span className="text-xs text-gray-500">0 formulaire</span>
+                </div>
+                <p className="text-sm text-gray-500">Aucun formulaire soumis pour ce projet.</p>
+            </div>
+        );
     }
 
     const handleEdit = (panelId) => {
