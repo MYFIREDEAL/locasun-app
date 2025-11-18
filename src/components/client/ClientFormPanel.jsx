@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppContext } from '@/App';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase'; // 🔥 Import Supabase
 
 const ClientFormPanel = ({ isDesktop, projectType }) => {
   const {
@@ -106,7 +107,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     const updatedFormData = { ...(currentUser.formData || {}), ...draft };
     
     // 🔥 CORRECTION: Mettre à jour dans Supabase directement
-    const { supabase } = await import('@/lib/supabase');
+    console.log('📝 Mise à jour form_data dans Supabase:', { prospectId, updatedFormData });
     const { error: updateError } = await supabase
       .from('prospects')
       .update({ form_data: updatedFormData })
@@ -121,6 +122,8 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       });
       return;
     }
+    
+    console.log('✅ form_data mis à jour dans Supabase avec succès !');
     
     // Mettre à jour aussi le localStorage pour cohérence UI
     updateProspect({ ...currentUser, formData: updatedFormData });
