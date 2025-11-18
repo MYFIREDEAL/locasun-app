@@ -26,7 +26,14 @@ WITH CHECK (
 );
 
 -- ✅ ÉTAPE 2: Vérifier que Real-time est activé sur chat_messages
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+-- Note: Ignorer l'erreur si déjà présent
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Table chat_messages déjà dans supabase_realtime';
+END $$;
 
 -- =====================================================
 -- VÉRIFICATION
