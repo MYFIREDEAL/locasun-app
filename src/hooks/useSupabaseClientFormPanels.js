@@ -195,6 +195,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           form_id: panelData.formId,
           message_timestamp: panelData.messageTimestamp,
           status: panelData.status || 'pending',
+          step_name: panelData.stepName || null, // 🔥 AJOUT: Nom de l'étape du pipeline
         });
 
       if (error) throw error;

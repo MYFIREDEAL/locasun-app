@@ -217,6 +217,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
           addChatMessage(prospectId, projectType, formMessage);
           
           // 🔥 Enregistrer le formulaire dans clientFormPanels pour le panneau latéral
+          const stepName = projectsData[projectType]?.steps?.[currentStepIndex]?.name || 'Étape inconnue';
           registerClientForm({
             prospectId: prospectId,
             projectType: projectType,
@@ -224,7 +225,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             currentStepIndex: currentStepIndex,
             promptId: prompt.id,
             messageTimestamp: Date.now(),
-            status: 'pending'
+            status: 'pending',
+            stepName: stepName, // 🔥 AJOUT: Nom de l'étape du pipeline
           });
         }
       });
