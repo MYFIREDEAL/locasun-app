@@ -291,57 +291,94 @@ function App() {
     ? getFormContactConfig() 
     : defaultFormContactConfig;
 
-  // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
-  // ⚠️ IMPORTANT: Ne s'applique QUE aux ADMINS (table users), pas aux CLIENTS (table prospects)
+  // 🔥 CHARGER L'UTILISATEUR AUTH SUPABASE AU MONTAGE + ÉCOUTER LES CHANGEMENTS
   useEffect(() => {
-    const syncActiveAdmin = async () => {
+    const loadAuthUser = async () => {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
           setActiveAdminUser(null);
+          setCurrentUser(null);
           try {
             localStorage.removeItem('activeAdminUser');
+            localStorage.removeItem('currentUser');
           } catch (e) {
             console.warn('⚠️ localStorage blocked:', e);
           }
           return;
         }
 
-        // 🔥 VÉRIFIER SI L'UTILISATEUR EST UN ADMIN (dans table users)
-        // Si c'est un client (dans table prospects), ne rien faire
-        const matchedUser = supabaseUsers.find(u => u.user_id === user.id);
-        
-        if (matchedUser) {
-          // C'est un ADMIN → synchroniser activeAdminUser
-          const dataChanged = !activeAdminUser || 
-                             activeAdminUser.id !== matchedUser.id || 
-                             activeAdminUser.phone !== matchedUser.phone ||
-                             activeAdminUser.email !== matchedUser.email ||
-                             activeAdminUser.name !== matchedUser.name;
+        // 1️⃣ Vérifier si c'est un ADMIN (table users)
+        const { data: adminData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (adminData) {
+          // C'est un ADMIN → charger activeAdminUser
+          setActiveAdminUser(adminData);
+          try {
+            localStorage.setItem('activeAdminUser', JSON.stringify(adminData));
+          } catch (e) {
+            console.warn('⚠️ localStorage write blocked:', e);
+          }
+          return;
+        }
+
+        // 2️⃣ Sinon, vérifier si c'est un CLIENT (table prospects)
+        const { data: clientData } = await supabase
+          .from('prospects')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (clientData) {
+          // C'est un CLIENT → charger currentUser
+          setCurrentUser(clientData);
+          try {
+            localStorage.setItem('currentUser', JSON.stringify(clientData));
+          } catch (e) {
+            console.warn('⚠️ localStorage write blocked:', e);
+          }
           
-          if (dataChanged) {
-            setActiveAdminUser(matchedUser);
+          // Synchroniser userProjects avec les tags du prospect
+          if (clientData.tags && Array.isArray(clientData.tags)) {
+            setUserProjects(clientData.tags);
             try {
-              localStorage.setItem('activeAdminUser', JSON.stringify(matchedUser));
+              localStorage.setItem('userProjects', JSON.stringify(clientData.tags));
             } catch (e) {
               console.warn('⚠️ localStorage write blocked:', e);
             }
           }
-        } else {
-          // Pas trouvé dans users → C'est probablement un CLIENT
-          // Ne rien faire, activeAdminUser reste null pour les clients
         }
       } catch (error) {
-        console.error('❌ Error syncing activeAdminUser:', error);
+        console.error('❌ Error loading auth user:', error);
       }
     };
 
-    // Synchroniser dès que supabaseUsers est chargé ou modifié
-    if (supabaseUsers.length > 0) {
-      syncActiveAdmin();
-    }
-  }, [supabaseUsers]);
+    // Charger l'utilisateur au montage
+    loadAuthUser();
+
+    // Écouter les changements d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadAuthUser();
+      } else {
+        setActiveAdminUser(null);
+        setCurrentUser(null);
+        try {
+          localStorage.removeItem('activeAdminUser');
+          localStorage.removeItem('currentUser');
+        } catch (e) {
+          console.warn('⚠️ localStorage blocked:', e);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []); // ✅ Ne dépend de rien, s'exécute une seule fois au montage
 
   // ✅ projectsData est maintenant chargé en temps réel depuis Supabase (project_templates table)
   // Plus besoin de localStorage pour evatime_projects_data
@@ -421,31 +458,7 @@ function App() {
       localStorage.setItem('evatime_prospects', JSON.stringify(defaultProspects));
     }
 
-    // 🔥 Charger currentUser depuis Supabase Auth au lieu de localStorage
-    const loadCurrentUserFromAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Vérifier si c'est un client (prospect)
-        const { data: prospectData } = await supabase
-          .from('prospects')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (prospectData) {
-          setCurrentUser(prospectData);
-          localStorage.setItem('currentUser', JSON.stringify(prospectData));
-          
-          // Synchroniser userProjects avec les tags
-          if (prospectData.tags && Array.isArray(prospectData.tags)) {
-            setUserProjects(prospectData.tags);
-            localStorage.setItem('userProjects', JSON.stringify(prospectData.tags));
-          }
-        }
-      }
-    };
-    
-    loadCurrentUserFromAuth();
+    // ✅ currentUser et activeAdminUser sont maintenant chargés dans le useEffect principal ci-dessus
     
     const storedAppointments = localStorage.getItem('evatime_appointments');
     if (storedAppointments) {
@@ -534,15 +547,8 @@ function App() {
       localStorage.setItem('evatime_tasks', JSON.stringify(defaultTasks));
     }
 
-    // ❌ SUPPRIMÉ: Chargement users localStorage - Maintenant géré par useSupabaseUsers()
-    // Les utilisateurs sont stockés dans Supabase (auth.users + public.users)
-    // Utiliser useSupabaseUsers() pour lecture ou useSupabaseUsersCRUD() pour CRUD
-
-    const storedActiveAdminUser = localStorage.getItem('activeAdminUser');
-    if (storedActiveAdminUser) {
-        setActiveAdminUser(JSON.parse(storedActiveAdminUser));
-    }
-    // Note: activeAdminUser sera chargé via HomePage.jsx après authentification
+    // ✅ activeAdminUser et currentUser sont maintenant chargés depuis Supabase Auth uniquement
+    // Pas de localStorage loading au montage, tout est géré par le useEffect Auth ci-dessus
     
     // ❌ SUPPRIMÉ: chat_messages localStorage - Maintenant géré par Supabase real-time dans les composants
     // Les messages sont chargés via le hook useSupabaseChatMessages dans chaque composant
