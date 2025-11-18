@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../lib/supabase";
 
 export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true }) {
   const [notes, setNotes] = useState([]);
