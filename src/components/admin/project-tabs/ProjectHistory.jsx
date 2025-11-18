@@ -1,129 +1,71 @@
 import React from 'react';
-import { CheckCircle, Calendar, FileText, GitBranch, Tag, User } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
-const ProjectHistory = ({ prospectId, projectType }) => {
-  // TODO: Récupérer l'historique réel depuis Supabase
-  // Sources possibles:
-  // - project_steps_status (changements d'étapes)
-  // - client_form_panels (formulaires complétés)
-  // - appointments (rdv ajoutés/passés)
-  // - tasks (tâches terminées)
-  // - project_notes (notes ajoutées)
-  
-  // Mock data pour l'instant
-  const historyEvents = [
-    {
-      id: '1',
-      type: 'step_change',
-      title: 'Étape complétée',
-      description: 'Passage à l\'étape "Visite technique"',
-      timestamp: new Date(2025, 10, 18, 14, 30),
-      user: 'Jack LUC',
-      icon: GitBranch,
-      color: 'text-green-600 bg-green-50',
-    },
-    {
-      id: '2',
-      type: 'form_completed',
-      title: 'Formulaire complété',
-      description: 'Le client a rempli le formulaire "Questionnaire technique"',
-      timestamp: new Date(2025, 10, 17, 10, 15),
-      user: 'Client (Sophie Martin)',
-      icon: FileText,
-      color: 'text-blue-600 bg-blue-50',
-    },
-    {
-      id: '3',
-      type: 'appointment_added',
-      title: 'Rendez-vous planifié',
-      description: 'RDV de suivi prévu le 20 nov. à 14h00',
-      timestamp: new Date(2025, 10, 16, 16, 45),
-      user: 'Jack LUC',
-      icon: Calendar,
-      color: 'text-purple-600 bg-purple-50',
-    },
-    {
-      id: '4',
-      type: 'task_completed',
-      title: 'Tâche terminée',
-      description: 'Envoyer le devis au client',
-      timestamp: new Date(2025, 10, 15, 9, 0),
-      user: 'Jack LUC',
-      icon: CheckCircle,
-      color: 'text-green-600 bg-green-50',
-    },
-    {
-      id: '5',
-      type: 'project_tag_added',
-      title: 'Type de projet modifié',
-      description: 'Ajout du tag "ACC"',
-      timestamp: new Date(2025, 10, 10, 11, 20),
-      user: 'Jack LUC',
-      icon: Tag,
-      color: 'text-orange-600 bg-orange-50',
-    },
-  ];
+const ProjectHistory = ({ projectId, prospectId }) => {
+  const {
+    history,
+    loading,
+    error,
+  } = useSupabaseProjectHistory({
+    projectId,
+    prospectId,
+    enabled: !!projectId,
+  });
+
+  if (!projectId) {
+    return (
+      <div className="bg-white border rounded-xl p-4">
+        <p className="text-sm text-gray-400">Sélectionnez un projet</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Historique du projet
-        </h3>
-        <span className="text-xs text-gray-500">
-          {historyEvents.length} événement{historyEvents.length > 1 ? 's' : ''}
-        </span>
-      </div>
+    <div className="bg-white border rounded-xl p-4">
+      <h3 className="font-semibold text-sm mb-4">Historique du projet</h3>
 
-      <div className="relative">
-        {/* Timeline line */}
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+      {loading && (
+        <p className="text-xs text-gray-400">Chargement de l'historique…</p>
+      )}
 
-        {/* Timeline events */}
-        <div className="space-y-6">
-          {historyEvents.map((event, index) => {
-            const IconComponent = event.icon;
+      {error && (
+        <p className="text-xs text-red-500">Erreur : {error}</p>
+      )}
+
+      {!loading && history.length === 0 && (
+        <p className="text-xs text-gray-400">Aucun événement pour ce projet.</p>
+      )}
+
+      <div className="flex flex-col gap-6">
+        {history.map((event) => (
+          <div key={event.id} className="relative pl-6">
             
-            return (
-              <div key={event.id} className="relative flex items-start space-x-4">
-                {/* Icon */}
-                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ${event.color}`}>
-                  <IconComponent className="h-4 w-4" />
-                </div>
+            {/* Pastille */}
+            <div className="absolute left-0 top-1.5 w-3 h-3 rounded-full bg-indigo-600"></div>
 
-                {/* Content */}
-                <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-1">
-                    <h4 className="text-sm font-semibold text-gray-900">
-                      {event.title}
-                    </h4>
-                    <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                      {format(event.timestamp, 'd MMM, HH:mm', { locale: fr })}
-                    </span>
-                  </div>
-                  
-                  <p className="text-sm text-gray-600 mb-2">
-                    {event.description}
-                  </p>
-                  
-                  <div className="flex items-center space-x-2 text-xs text-gray-500">
-                    <User className="h-3 w-3" />
-                    <span>{event.user}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+            {/* Contenu */}
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-gray-800">
+                {event.title || event.event_type}
+              </p>
 
-      <div className="text-center py-4 text-sm text-gray-400 border-t border-gray-100">
-        <p>L'historique sera alimenté depuis plusieurs tables Supabase :</p>
-        <p className="text-xs mt-1">
-          project_steps_status, client_form_panels, appointments, tasks, project_notes
-        </p>
+              {event.description && (
+                <p className="text-xs text-gray-600">{event.description}</p>
+              )}
+
+              <p className="text-[10px] text-gray-400">
+                {new Date(event.created_at).toLocaleString("fr-FR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+
+          </div>
+        ))}
       </div>
     </div>
   );
