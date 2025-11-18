@@ -80,7 +80,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     }));
   };
 
-  const handleSubmit = (panel) => {
+  const handleSubmit = async (panel) => {
     const {
       panelId,
       prospectId,
@@ -104,6 +104,25 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     const formDefinition = forms[formId];
     const draft = formDrafts[panelId] || {};
     const updatedFormData = { ...(currentUser.formData || {}), ...draft };
+    
+    // 🔥 CORRECTION: Mettre à jour dans Supabase directement
+    const { supabase } = await import('@/lib/supabase');
+    const { error: updateError } = await supabase
+      .from('prospects')
+      .update({ form_data: updatedFormData })
+      .eq('id', prospectId);
+    
+    if (updateError) {
+      console.error('❌ Erreur update form_data:', updateError);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de sauvegarder vos données.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Mettre à jour aussi le localStorage pour cohérence UI
     updateProspect({ ...currentUser, formData: updatedFormData });
 
     // ✅ Envoyer le message de complétion (déduplication gérée par Supabase)
