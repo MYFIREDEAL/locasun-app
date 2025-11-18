@@ -22,6 +22,7 @@ import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
+import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -609,6 +610,11 @@ const ProspectDetailsAdmin = ({
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
+  const { addHistoryEvent } = useSupabaseProjectHistory({
+    projectId: activeProjectTag,
+    prospectId: prospect.id,
+    enabled: !!activeProjectTag && !!prospect.id,
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
   const notificationId = searchParams.get('notificationId');
@@ -749,6 +755,9 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleUpdateStatus = async (clickedIndex, newStatus) => {
+    // Capturer l'étape avant modification pour l'historique
+    const previousStep = projectSteps[clickedIndex];
+    
     if (newStatus === STATUS_COMPLETED) {
       // Compléter et passer à l'étape suivante
       const newSteps = JSON.parse(JSON.stringify(projectSteps));
@@ -761,6 +770,28 @@ const ProspectDetailsAdmin = ({
       
       // Utiliser le hook Supabase (real-time)
       await updateSupabaseSteps(activeProjectTag, newSteps);
+      
+      // 🔥 AJOUTER UN ÉVÉNEMENT DANS L'HISTORIQUE
+      if (addHistoryEvent) {
+        const nextStep = nextStepIndex < newSteps.length ? newSteps[nextStepIndex] : null;
+        await addHistoryEvent({
+          event_type: "pipeline",
+          title: "Étape du pipeline mise à jour",
+          description: previousStep && nextStep
+            ? `Étape « ${previousStep.name} » complétée → passage à « ${nextStep.name} »`
+            : `Étape « ${previousStep.name} » complétée`,
+          metadata: {
+            previous_step_id: previousStep?.id || null,
+            previous_step_name: previousStep?.name || null,
+            previous_step_status: previousStep?.status || null,
+            new_step_id: nextStep?.id || null,
+            new_step_name: nextStep?.name || null,
+            new_step_status: 'in_progress',
+            project_type: activeProjectTag,
+          },
+          createdBy: supabaseUserId,
+        });
+      }
       
       // 🔥 MISE À JOUR DU PIPELINE GLOBAL
       // Si l'étape suivante a un globalStepId, déplacer le prospect dans cette colonne
@@ -789,6 +820,24 @@ const ProspectDetailsAdmin = ({
       
       // Utiliser le hook Supabase (real-time)
       await updateSupabaseSteps(activeProjectTag, updatedSteps);
+      
+      // 🔥 AJOUTER UN ÉVÉNEMENT DANS L'HISTORIQUE
+      if (addHistoryEvent) {
+        const newStep = updatedSteps[clickedIndex];
+        await addHistoryEvent({
+          event_type: "pipeline",
+          title: "Étape du pipeline mise à jour",
+          description: `Étape « ${newStep.name} » passée de « ${previousStep.status === 'pending' ? 'À venir' : previousStep.status === 'in_progress' ? 'En cours' : 'Terminé'} » à « ${newStatus === 'pending' ? 'À venir' : newStatus === 'in_progress' ? 'En cours' : 'Terminé'} »`,
+          metadata: {
+            step_id: newStep?.id || null,
+            step_name: newStep?.name || null,
+            previous_status: previousStep?.status || null,
+            new_status: newStatus,
+            project_type: activeProjectTag,
+          },
+          createdBy: supabaseUserId,
+        });
+      }
       
       // 🔥 MISE À JOUR DU PIPELINE GLOBAL si l'étape en cours a un globalStepId
       const currentStep = updatedSteps[clickedIndex];
