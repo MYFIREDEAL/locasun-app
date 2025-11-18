@@ -10,10 +10,7 @@ export function useSupabaseNotifications(userId) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log('🔔 useSupabaseNotifications - userId:', userId);
-    
     if (!userId) {
-      console.log('⚠️ No userId, skipping admin notifications loading');
       setLoading(false)
       return
     }
@@ -24,7 +21,6 @@ export function useSupabaseNotifications(userId) {
     // 🔥 CRITICAL: Realtime ne supporte PAS les RLS avec EXISTS/JOIN
     // On DOIT utiliser un filter simple sur owner_id
     const channelName = `notifications-${userId}-${Date.now()}`
-    console.log('🎧 Subscribing to Admin notifications channel:', channelName);
     
     const channel = supabase
       .channel(channelName)
@@ -37,37 +33,29 @@ export function useSupabaseNotifications(userId) {
           filter: `owner_id=eq.${userId}` // 🔥 FILTER OBLIGATOIRE pour Realtime
         },
         (payload) => {
-          console.log('🔔 [ADMIN] Real-time notification event:', payload.eventType, payload);
-          
           if (payload.eventType === 'INSERT') {
             const newNotif = transformFromDb(payload.new)
             setNotifications(prev => {
               // Vérifier si notification existe déjà
               const exists = prev.find(n => n.id === newNotif.id)
               if (exists) {
-                console.log('⚠️ Notification already exists, skipping');
                 return prev
               }
-              console.log('➕ Adding new notification to admin:', newNotif);
               return [newNotif, ...prev]
             })
           } else if (payload.eventType === 'UPDATE') {
             const updatedNotif = transformFromDb(payload.new)
-            console.log('🔄 Updating notification:', updatedNotif);
             setNotifications(prev => 
               prev.map(n => n.id === updatedNotif.id ? updatedNotif : n)
             )
           } else if (payload.eventType === 'DELETE') {
-            console.log('🗑️ Deleting notification:', payload.old.id);
             setNotifications(prev => 
               prev.filter(n => n.id !== payload.old.id)
             )
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 [ADMIN] Notification channel status:', status);
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
@@ -77,7 +65,6 @@ export function useSupabaseNotifications(userId) {
   async function loadNotifications() {
     try {
       setLoading(true)
-      console.log('📥 Loading admin notifications for user:', userId);
 
       // Récupérer les notifications des prospects de l'utilisateur
       const { data, error } = await supabase
@@ -92,7 +79,6 @@ export function useSupabaseNotifications(userId) {
       if (error) throw error
 
       const transformed = (data || []).map(transformFromDb)
-      console.log('✅ Admin notifications loaded:', transformed.length, transformed);
       setNotifications(transformed)
     } catch (error) {
       console.error('❌ Error loading admin notifications:', error)
