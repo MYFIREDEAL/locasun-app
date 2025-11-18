@@ -185,6 +185,7 @@ function App() {
   const [projectInfos, setProjectInfos] = useState({});
   // ✅ globalPipelineSteps maintenant géré par useSupabaseGlobalPipeline (plus de localStorage)
   const [activeAdminUser, setActiveAdminUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true); // 🔥 État de chargement auth
   // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
@@ -295,6 +296,7 @@ function App() {
   useEffect(() => {
     const loadAuthUser = async () => {
       try {
+        setAuthLoading(true); // 🔥 Début du chargement
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -306,6 +308,7 @@ function App() {
           } catch (e) {
             console.warn('⚠️ localStorage blocked:', e);
           }
+          setAuthLoading(false); // 🔥 Fin du chargement
           return;
         }
 
@@ -324,6 +327,7 @@ function App() {
           } catch (e) {
             console.warn('⚠️ localStorage write blocked:', e);
           }
+          setAuthLoading(false); // 🔥 Fin du chargement
           return;
         }
 
@@ -352,9 +356,14 @@ function App() {
               console.warn('⚠️ localStorage write blocked:', e);
             }
           }
+          setAuthLoading(false); // 🔥 Fin du chargement
+        } else {
+          // Ni admin ni client trouvé
+          setAuthLoading(false); // 🔥 Fin du chargement
         }
       } catch (error) {
         console.error('❌ Error loading auth user:', error);
+        setAuthLoading(false); // 🔥 Fin du chargement même en cas d'erreur
       }
     };
 
@@ -1270,6 +1279,7 @@ function App() {
     projectInfos, getProjectInfo, updateProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     activeAdminUser, setActiveAdminUser, switchActiveAdminUser,
+    authLoading, // 🔥 Exposer l'état de chargement auth
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
     companyLogo, setCompanyLogo, removeLogo,
   };
