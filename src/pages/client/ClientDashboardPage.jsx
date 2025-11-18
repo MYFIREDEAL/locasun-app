@@ -13,9 +13,6 @@ function ClientDashboardPage() {
   const [displayedProjects, setDisplayedProjects] = useState([]);
 
   useEffect(() => {
-    console.log('🔄 ClientDashboardPage: currentUser changed', currentUser);
-    console.log('🔄 ProjectsData keys:', Object.keys(projectsData));
-    
     if (!currentUser) {
       // Pas de client connecté → on ne peut pas afficher de projets
       setDisplayedProjects([]);
@@ -24,7 +21,6 @@ function ClientDashboardPage() {
     
     // ⚠️ IMPORTANT: Attendre que projectsData soit chargé depuis Supabase
     if (Object.keys(projectsData).length === 0) {
-      console.log('⏳ projectsData not loaded yet, waiting...');
       setDisplayedProjects([]);
       return;
     }
@@ -32,8 +28,6 @@ function ClientDashboardPage() {
     // 🔥 IMPORTANT: Utiliser currentUser.tags directement depuis Supabase (prospects.tags)
     // Pas de localStorage, la source de vérité est la base de données
     const clientTags = currentUser.tags || [];
-    
-    console.log('📦 Tags du client:', clientTags);
     
     if (clientTags.length === 0) {
       // Client sans projets assignés
@@ -46,9 +40,6 @@ function ClientDashboardPage() {
       .map(tag => projectsData[tag])
       .filter(Boolean); // Filtrer les projets qui n'existent pas
     
-    console.log('✅ Projets à afficher:', projectsToDisplay.map(p => p?.type || 'UNDEFINED'));
-    console.log('🔍 ProjectsData keys:', Object.keys(projectsData));
-    console.log('🔍 Full projects:', projectsToDisplay);
     setDisplayedProjects(projectsToDisplay);
 
   }, [currentUser, projectsData, navigate]);
