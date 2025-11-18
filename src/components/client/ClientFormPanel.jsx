@@ -177,16 +177,38 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     });
   };
 
-  const handleEdit = (panel) => {
+  const handleEdit = async (panel) => {
     const { panelId, formId } = panel;
-    // ✅ Client: Utiliser currentUser au lieu de prospects
+    
+    // 🔥 CORRECTION: Recharger les données DEPUIS SUPABASE avant d'éditer
+    console.log('🔄 Rechargement form_data depuis Supabase...');
+    const { data: freshProspectData, error } = await supabase
+      .from('prospects')
+      .select('form_data')
+      .eq('id', currentUser.id)
+      .single();
+    
+    if (error) {
+      console.error('❌ Erreur rechargement form_data:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger les dernières données.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    console.log('✅ form_data rechargé depuis Supabase:', freshProspectData.form_data);
+    
+    // Hydrater avec les données fraîches depuis Supabase
     const formDefinition = forms[formId];
     const hydrated = {};
     formDefinition?.fields?.forEach(field => {
-      if (currentUser?.formData && currentUser.formData[field.id]) {
-        hydrated[field.id] = currentUser.formData[field.id];
+      if (freshProspectData.form_data && freshProspectData.form_data[field.id]) {
+        hydrated[field.id] = freshProspectData.form_data[field.id];
       }
     });
+    
     setFormDrafts(prev => ({ ...prev, [panelId]: hydrated }));
     updateClientFormPanel(panelId, { status: 'pending', userOverride: 'pending' });
   };
