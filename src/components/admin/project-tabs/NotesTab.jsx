@@ -29,6 +29,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
       const newNote = await addNote({
         content: noteContent,
         createdBy: currentUser?.id,
+        createdByName: currentUser?.email || currentUser?.full_name,
       });
 
       if (newNote && addHistoryEvent) {
@@ -40,6 +41,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
             source: "notes_tab",
           },
           createdBy: currentUser?.id,
+          createdByName: currentUser?.email || currentUser?.full_name,
         });
       }
 

@@ -606,22 +606,10 @@ const ProspectDetailsAdmin = ({
   onUpdate,
   onEditingChange
 }) => {
-  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, authLoading, activeAdminUser } = useAppContext();
+  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, activeAdminUser } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
-  
-  // 🔥 Bloquer le rendu si l'auth n'est pas complète
-  if (authLoading || (!activeAdminUser && !currentUser)) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement de l'utilisateur...</p>
-        </div>
-      </div>
-    );
-  }
   
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
@@ -805,6 +793,7 @@ const ProspectDetailsAdmin = ({
             project_type: activeProjectTag,
           },
           createdBy: supabaseUserId,
+          createdByName: activeAdminUser?.email || activeAdminUser?.name,
         });
       }
       
@@ -851,6 +840,7 @@ const ProspectDetailsAdmin = ({
             project_type: activeProjectTag,
           },
           createdBy: supabaseUserId,
+          createdByName: activeAdminUser?.email || activeAdminUser?.name,
         });
       }
       

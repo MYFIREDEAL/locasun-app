@@ -64,7 +64,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
 
 
   const addHistoryEvent = useCallback(
-    async ({ event_type, title, description, metadata, createdBy }) => {
+    async ({ event_type, title, description, metadata, createdBy, createdByName }) => {
       if (!projectType || !event_type) return;
 
       try {
@@ -82,6 +82,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
               description,
               metadata,
               created_by: createdBy || null,
+              created_by_name: createdByName || null,
             },
           ])
           .select()

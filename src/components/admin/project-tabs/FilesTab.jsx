@@ -50,6 +50,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
             storage_path: uploaded.storage_path,
           },
           createdBy: currentUser?.id,
+          createdByName: currentUser?.email || currentUser?.full_name,
         });
       }
 

@@ -53,15 +53,23 @@ const ProjectHistory = ({ projectType, prospectId }) => {
                 <p className="text-xs text-gray-600">{event.description}</p>
               )}
 
-              <p className="text-[10px] text-gray-400">
-                {new Date(event.created_at).toLocaleString("fr-FR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+              <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                <span>
+                  {new Date(event.created_at).toLocaleString("fr-FR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                {(event.created_by_name || event.created_by) && (
+                  <>
+                    <span>•</span>
+                    <span>Par {event.created_by_name || event.created_by}</span>
+                  </>
+                )}
+              </div>
             </div>
 
           </div>
