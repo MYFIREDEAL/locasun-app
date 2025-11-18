@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 
-export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true }) {
+export function useSupabaseProjectFiles({ projectType, prospectId, enabled = true }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -10,7 +10,7 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
   const [error, setError] = useState(null);
 
   const fetchFiles = useCallback(async () => {
-    if (!projectId || !enabled) return;
+    if (!projectType || !enabled) return;
 
     try {
       setLoading(true);
@@ -19,7 +19,7 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
       let query = supabase
         .from("project_files")
         .select("*")
-        .eq("project_id", projectId)
+        .eq("project_type", projectType)
         .order("created_at", { ascending: false });
 
       if (prospectId) {
@@ -36,22 +36,22 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
     } finally {
       setLoading(false);
     }
-  }, [projectId, prospectId, enabled]);
+  }, [projectType, prospectId, enabled]);
 
   useEffect(() => {
-    if (!projectId || !enabled) return;
+    if (!projectType || !enabled) return;
 
     fetchFiles();
 
     const channel = supabase
-      .channel(`project-files-${projectId}`)
+      .channel(`project-files-${projectType}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "project_files",
-          filter: `project_id=eq.${projectId}`,
+          filter: `project_type=eq.${projectType}`,
         },
         (payload) => {
           setFiles((current) => {
@@ -68,13 +68,13 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, enabled, fetchFiles]);
+  }, [projectType, enabled, fetchFiles]);
 
 
   // Upload
   const uploadFile = useCallback(
     async ({ file, uploadedBy }) => {
-      if (!file || !projectId) return;
+      if (!file || !projectType) return;
 
       try {
         setUploading(true);
@@ -82,7 +82,7 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
 
         const ext = file.name.split(".").pop();
         const newName = `${uuidv4()}.${ext}`;
-        const storagePath = `${projectId}/${newName}`;
+        const storagePath = `${projectType}/${newName}`;
 
         // 1. Upload dans Storage
         const { error: uploadError } = await supabase.storage
@@ -96,7 +96,7 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
           .from("project_files")
           .insert([
             {
-              project_id: projectId,
+              project_type: projectType,
               prospect_id: prospectId || null,
               file_name: file.name,
               file_type: file.type,
@@ -119,7 +119,7 @@ export function useSupabaseProjectFiles({ projectId, prospectId, enabled = true 
         setUploading(false);
       }
     },
-    [projectId, prospectId]
+    [projectType, prospectId]
   );
 
 

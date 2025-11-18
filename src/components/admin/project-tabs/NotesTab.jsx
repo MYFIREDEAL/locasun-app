@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
 import { useSupabaseProjectHistory } from "@/hooks/useSupabaseProjectHistory";
 
-export default function NotesTab({ projectId, prospectId, currentUser }) {
+export default function NotesTab({ projectType, prospectId, currentUser }) {
   const [noteContent, setNoteContent] = useState("");
 
   const {
@@ -12,15 +12,15 @@ export default function NotesTab({ projectId, prospectId, currentUser }) {
     error,
     addNote,
   } = useSupabaseProjectNotes({
-    projectId,
+    projectType,
     prospectId,
-    enabled: !!projectId,
+    enabled: !!projectType,
   });
 
   const { addHistoryEvent } = useSupabaseProjectHistory({
-    projectId,
+    projectType,
     prospectId,
-    enabled: !!projectId,
+    enabled: !!projectType,
   });
 
   const handleSave = async () => {
@@ -54,25 +54,23 @@ export default function NotesTab({ projectId, prospectId, currentUser }) {
       
       {/* Bloc d'édition */}
       <div className="bg-white rounded-xl border p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm">
-            Notes internes du projet
-          </h3>
-          <span className="text-xs text-gray-400">
-            {projectId ? `Projet #${projectId}` : "Aucun projet sélectionné"}
-          </span>
-        </div>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">
+              Notes internes du projet
+            </h3>
+            <span className="text-xs text-gray-400">
+              {projectType ? `Projet ${projectType}` : "Aucun projet sélectionné"}
+            </span>
+          </div>
 
-        <textarea
-          className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          rows={4}
-          placeholder="Ajoute une note interne liée à ce projet…"
-          value={noteContent}
-          onChange={(e) => setNoteContent(e.target.value)}
-          disabled={!projectId || saving}
-        />
-
-        <div className="flex items-center justify-between">
+          <textarea
+            className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            rows={4}
+            placeholder="Ajoute une note interne liée à ce projet…"
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            disabled={!projectType || saving}
+          />        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <button type="button" className="flex items-center gap-1 hover:text-gray-700">
               <span>🖼️</span>
@@ -87,7 +85,7 @@ export default function NotesTab({ projectId, prospectId, currentUser }) {
           <button
             type="button"
             onClick={handleSave}
-            disabled={!noteContent.trim() || !projectId || saving}
+            disabled={!noteContent.trim() || !projectType || saving}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Enregistrement…" : "Enregistrer la note"}

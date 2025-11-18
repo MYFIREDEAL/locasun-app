@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
-const FilesTab = ({ projectId, prospectId, currentUser }) => {
+const FilesTab = ({ projectType, prospectId, currentUser }) => {
   const [selectedFile, setSelectedFile] = useState(null);
 
   const {
@@ -16,15 +16,15 @@ const FilesTab = ({ projectId, prospectId, currentUser }) => {
     uploadFile,
     deleteFile,
   } = useSupabaseProjectFiles({
-    projectId,
+    projectType,
     prospectId,
-    enabled: !!projectId,
+    enabled: !!projectType,
   });
 
   const { addHistoryEvent } = useSupabaseProjectHistory({
-    projectId,
+    projectType,
     prospectId,
-    enabled: !!projectId,
+    enabled: !!projectType,
   });
 
   const handleFileUpload = async (event) => {
@@ -114,7 +114,7 @@ const FilesTab = ({ projectId, prospectId, currentUser }) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
   };
 
-  if (!projectId) {
+  if (!projectType) {
     return (
       <div className="text-center py-8 text-gray-400">
         <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />

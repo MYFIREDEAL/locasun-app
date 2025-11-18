@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const ActivityTab = ({ prospectId, projectId }) => {
+const ActivityTab = ({ prospectId, projectType }) => {
   const [showAddActivity, setShowAddActivity] = useState(false);
 
   // TODO: Récupérer les vraies activités depuis useSupabaseAgenda

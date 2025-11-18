@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 
-export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true }) {
+export function useSupabaseProjectNotes({ projectType, prospectId, enabled = true }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchNotes = useCallback(async () => {
-    if (!projectId || !enabled) return;
+    if (!projectType || !enabled) return;
 
     try {
       setLoading(true);
@@ -17,7 +17,7 @@ export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true 
       let query = supabase
         .from("project_notes")
         .select("*")
-        .eq("project_id", projectId)
+        .eq("project_type", projectType)
         .order("created_at", { ascending: false });
 
       if (prospectId) {
@@ -34,22 +34,22 @@ export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true 
     } finally {
       setLoading(false);
     }
-  }, [projectId, prospectId, enabled]);
+  }, [projectType, prospectId, enabled]);
 
   useEffect(() => {
-    if (!projectId || !enabled) return;
+    if (!projectType || !enabled) return;
 
     fetchNotes();
 
     const channel = supabase
-      .channel(`project-notes-${projectId}`)
+      .channel(`project-notes-${projectType}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "project_notes",
-          filter: `project_id=eq.${projectId}`,
+          filter: `project_type=eq.${projectType}`,
         },
         (payload) => {
           setNotes((current) => {
@@ -78,11 +78,11 @@ export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, enabled, fetchNotes]);
+  }, [projectType, enabled, fetchNotes]);
 
   const addNote = useCallback(
     async ({ content, createdBy }) => {
-      if (!projectId || !content?.trim()) return;
+      if (!projectType || !content?.trim()) return;
 
       try {
         setSaving(true);
@@ -92,7 +92,7 @@ export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true 
           .from("project_notes")
           .insert([
             {
-              project_id: projectId,
+              project_type: projectType,
               prospect_id: prospectId || null,
               content: content.trim(),
               created_by: createdBy || null,
@@ -112,7 +112,7 @@ export function useSupabaseProjectNotes({ projectId, prospectId, enabled = true 
         setSaving(false);
       }
     },
-    [projectId, prospectId]
+    [projectType, prospectId]
   );
 
   const updateNote = useCallback(async (id, { content }) => {

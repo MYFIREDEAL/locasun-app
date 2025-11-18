@@ -5,7 +5,7 @@ import ActivityTab from './ActivityTab';
 import FilesTab from './FilesTab';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 
-const ProjectTabs = ({ prospectId, projectId }) => {
+const ProjectTabs = ({ prospectId, projectType }) => {
   const [activeTab, setActiveTab] = useState('notes');
   const { supabaseUserId } = useSupabaseUser();
 
@@ -43,9 +43,9 @@ const ProjectTabs = ({ prospectId, projectId }) => {
 
       {/* Tabs Content */}
       <div className="min-h-[200px]">
-        {activeTab === 'notes' && <NotesTab prospectId={prospectId} projectId={projectId} currentUser={{ id: supabaseUserId }} />}
-        {activeTab === 'activity' && <ActivityTab prospectId={prospectId} projectId={projectId} />}
-        {activeTab === 'files' && <FilesTab prospectId={prospectId} projectId={projectId} currentUser={{ id: supabaseUserId }} />}
+        {activeTab === 'notes' && <NotesTab prospectId={prospectId} projectType={projectType} currentUser={{ id: supabaseUserId }} />}
+        {activeTab === 'activity' && <ActivityTab prospectId={prospectId} projectType={projectType} />}
+        {activeTab === 'files' && <FilesTab prospectId={prospectId} projectType={projectType} currentUser={{ id: supabaseUserId }} />}
       </div>
     </div>
   );

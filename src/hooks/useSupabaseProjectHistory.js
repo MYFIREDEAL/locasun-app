@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 
-export function useSupabaseProjectHistory({ projectId, prospectId, enabled = true }) {
+export function useSupabaseProjectHistory({ projectType, prospectId, enabled = true }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchHistory = useCallback(async () => {
-    if (!projectId || !enabled) return;
+    if (!projectType || !enabled) return;
 
     try {
       setLoading(true);
@@ -17,7 +17,7 @@ export function useSupabaseProjectHistory({ projectId, prospectId, enabled = tru
       let query = supabase
         .from("project_history")
         .select("*")
-        .eq("project_id", projectId)
+        .eq("project_type", projectType)
         .order("created_at", { ascending: false });
 
       if (prospectId) {
@@ -34,22 +34,22 @@ export function useSupabaseProjectHistory({ projectId, prospectId, enabled = tru
     } finally {
       setLoading(false);
     }
-  }, [projectId, prospectId, enabled]);
+  }, [projectType, prospectId, enabled]);
 
   useEffect(() => {
-    if (!projectId || !enabled) return;
+    if (!projectType || !enabled) return;
 
     fetchHistory();
 
     const channel = supabase
-      .channel(`project-history-${projectId}`)
+      .channel(`project-history-${projectType}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "project_history",
-          filter: `project_id=eq.${projectId}`,
+          filter: `project_type=eq.${projectType}`,
         },
         (payload) => {
           setHistory((current) => [payload.new, ...current]);
@@ -60,12 +60,12 @@ export function useSupabaseProjectHistory({ projectId, prospectId, enabled = tru
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, enabled, fetchHistory]);
+  }, [projectType, enabled, fetchHistory]);
 
 
   const addHistoryEvent = useCallback(
     async ({ event_type, title, description, metadata, createdBy }) => {
-      if (!projectId || !event_type) return;
+      if (!projectType || !event_type) return;
 
       try {
         setSaving(true);
@@ -75,7 +75,7 @@ export function useSupabaseProjectHistory({ projectId, prospectId, enabled = tru
           .from("project_history")
           .insert([
             {
-              project_id: projectId,
+              project_type: projectType,
               prospect_id: prospectId || null,
               event_type,
               title,
@@ -98,7 +98,7 @@ export function useSupabaseProjectHistory({ projectId, prospectId, enabled = tru
         setSaving(false);
       }
     },
-    [projectId, prospectId]
+    [projectType, prospectId]
   );
 
   return {

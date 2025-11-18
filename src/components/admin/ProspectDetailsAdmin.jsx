@@ -619,7 +619,7 @@ const ProspectDetailsAdmin = ({
   
   // ✅ Hook appelé APRÈS la définition de activeProjectTag
   const { addHistoryEvent } = useSupabaseProjectHistory({
-    projectId: activeProjectTag,
+    projectType: activeProjectTag,
     prospectId: prospect.id,
     enabled: !!activeProjectTag && !!prospect.id,
   });

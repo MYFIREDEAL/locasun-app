@@ -1,18 +1,18 @@
 import React from 'react';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
-const ProjectHistory = ({ projectId, prospectId }) => {
+const ProjectHistory = ({ projectType, prospectId }) => {
   const {
     history,
     loading,
     error,
   } = useSupabaseProjectHistory({
-    projectId,
+    projectType,
     prospectId,
-    enabled: !!projectId,
+    enabled: !!projectType,
   });
 
-  if (!projectId) {
+  if (!projectType) {
     return (
       <div className="bg-white border rounded-xl p-4">
         <p className="text-sm text-gray-400">Sélectionnez un projet</p>
