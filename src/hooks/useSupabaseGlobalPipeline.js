@@ -46,8 +46,6 @@ export function useSupabaseGlobalPipeline() {
             return;
           }
 
-          console.log('🔄 Real-time global pipeline change:', payload);
-
           if (payload.eventType === 'INSERT') {
             setGlobalPipelineSteps(prev => {
               const exists = prev.find(s => s.id === payload.new.id);
@@ -132,8 +130,6 @@ export function useSupabaseGlobalPipeline() {
 
       if (insertError) throw insertError;
 
-      console.log('✅ Colonne pipeline créée:', data);
-
       // Mise à jour immédiate du state local
       setGlobalPipelineSteps(prev => [...prev, data].sort((a, b) => a.position - b.position));
 
@@ -164,8 +160,6 @@ export function useSupabaseGlobalPipeline() {
 
       if (updateError) throw updateError;
 
-      console.log('✅ Colonne pipeline modifiée:', data);
-
       // Mise à jour immédiate du state local
       setGlobalPipelineSteps(prev =>
         prev.map(step => (step.id === id ? data : step)).sort((a, b) => a.position - b.position)
@@ -194,8 +188,6 @@ export function useSupabaseGlobalPipeline() {
         .eq('id', id);
 
       if (deleteError) throw deleteError;
-
-      console.log('✅ Colonne pipeline supprimée:', id);
 
       // Mise à jour immédiate du state local
       setGlobalPipelineSteps(prev => prev.filter(step => step.id !== id));
@@ -230,8 +222,6 @@ export function useSupabaseGlobalPipeline() {
 
         if (updateError) throw updateError;
       }
-
-      console.log('✅ Colonnes pipeline réorganisées');
 
       // Mise à jour immédiate du state local
       setGlobalPipelineSteps(newOrder);
