@@ -39,7 +39,6 @@ export function useSupabaseForms() {
         if (error) throw error;
 
         const transformed = transformFromDB(data || []);
-        console.log('✅ Forms loaded from Supabase:', Object.keys(transformed).length);
         setForms(transformed);
         setError(null);
       } catch (err) {
@@ -53,7 +52,6 @@ export function useSupabaseForms() {
     fetchForms();
 
     // Real-time subscription
-    console.log('🔥 Setting up real-time subscription for forms...');
     const channel = supabase
       .channel(`forms-changes-${Math.random().toString(36).slice(2)}`)
       .on(
@@ -64,8 +62,6 @@ export function useSupabaseForms() {
           table: 'forms',
         },
         (payload) => {
-          console.log('🔔 Real-time forms EVENT:', payload.eventType, payload);
-
           if (payload.eventType === 'INSERT') {
             const newForm = payload.new;
             setForms((prev) => ({
@@ -101,12 +97,9 @@ export function useSupabaseForms() {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Forms subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 Unsubscribing from forms real-time...');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -129,7 +122,6 @@ export function useSupabaseForms() {
 
       if (error) throw error;
 
-      console.log('✅ Form saved to Supabase:', data);
       return { success: true, data };
     } catch (err) {
       console.error('❌ Error saving form:', err);
@@ -147,7 +139,6 @@ export function useSupabaseForms() {
 
       if (error) throw error;
 
-      console.log('✅ Form deleted from Supabase:', formId);
       return { success: true };
     } catch (err) {
       console.error('❌ Error deleting form:', err);
