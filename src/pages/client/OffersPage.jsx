@@ -39,10 +39,6 @@ const OfferCard = ({ project }) => {
       // Ajouter le nouveau tag au prospect dans Supabase
       const updatedTags = [...(currentUser.tags || []), project.type];
       
-      console.log('🔄 Ajout du projet:', project.type);
-      console.log('📦 Anciens tags:', currentUser.tags);
-      console.log('📦 Nouveaux tags:', updatedTags);
-      
       await updateProspect({
         id: currentUser.id,
         tags: updatedTags,
