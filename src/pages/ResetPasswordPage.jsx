@@ -21,11 +21,6 @@ const ResetPasswordPage = () => {
     // On doit gérer les deux cas
     
     const handleAuthCallback = async () => {
-      // DEBUG COMPLET
-      console.log('🔍 FULL URL:', window.location.href);
-      console.log('🔍 HASH:', window.location.hash);
-      console.log('🔍 SEARCH:', window.location.search);
-      
       // Vérifier si on a un hash fragment
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const hashAccessToken = hashParams.get('access_token');
@@ -36,18 +31,6 @@ const ResetPasswordPage = () => {
       // Vérifier si on a des query params
       const token = searchParams.get('token');
       const type = searchParams.get('type');
-      
-      console.log('🔍 Reset password - Hash params:', {
-        access_token: hashAccessToken ? '✅ PRESENT' : '❌ ABSENT',
-        type: hashType,
-        error: hashError,
-        error_description: hashErrorDescription,
-        full_hash: window.location.hash
-      });
-      console.log('🔍 Reset password - Query params:', {
-        token,
-        type
-      });
       
       // Si on a une erreur dans le hash
       if (hashError) {
@@ -63,14 +46,12 @@ const ResetPasswordPage = () => {
       
       // Si on a un access_token dans le hash, c'est que Supabase a déjà géré l'auth
       if (hashAccessToken) {
-        console.log('✅ Token de récupération détecté dans le hash - type:', hashType);
         // L'utilisateur est déjà authentifié, on peut procéder
         return;
       }
       
       // Si on a un token classique en query param
       if (token && type === 'recovery') {
-        console.log('✅ Token de récupération détecté en query param');
         return;
       }
       
