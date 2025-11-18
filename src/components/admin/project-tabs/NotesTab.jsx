@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
+import { useSupabaseProjectHistory } from "@/hooks/useSupabaseProjectHistory";
 
 export default function NotesTab({ projectId, prospectId, currentUser }) {
   const [noteContent, setNoteContent] = useState("");
@@ -16,13 +17,32 @@ export default function NotesTab({ projectId, prospectId, currentUser }) {
     enabled: !!projectId,
   });
 
+  const { addHistoryEvent } = useSupabaseProjectHistory({
+    projectId,
+    prospectId,
+    enabled: !!projectId,
+  });
+
   const handleSave = async () => {
     if (!noteContent.trim()) return;
     try {
-      await addNote({
+      const newNote = await addNote({
         content: noteContent,
         createdBy: currentUser?.id,
       });
+
+      if (newNote && addHistoryEvent) {
+        await addHistoryEvent({
+          event_type: "note",
+          title: "Note ajoutée",
+          description: newNote.content || noteContent.trim(),
+          metadata: {
+            source: "notes_tab",
+          },
+          createdBy: currentUser?.id,
+        });
+      }
+
       setNoteContent("");
     } catch (err) {
       console.error(err);
