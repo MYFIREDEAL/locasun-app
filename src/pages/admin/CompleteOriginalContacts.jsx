@@ -270,8 +270,6 @@ const CompleteOriginalContacts = () => {
         table: 'prospects',
         filter: `id=eq.${selectedProspect.id}`
       }, (payload) => {
-        console.log('Real-time update for selected prospect:', payload.new);
-        
         // Transformation Supabase → App (snake_case → camelCase)
         const transformedData = {
           id: payload.new.id,
@@ -302,20 +300,13 @@ const CompleteOriginalContacts = () => {
   const allowedUsers = useMemo(() => {
     if (!activeAdminUser || !supabaseUsers) return [];
     
-    console.log('🔍 DEBUG allowedUsers - activeAdminUser:', activeAdminUser);
-    console.log('🔍 DEBUG allowedUsers - supabaseUsers count:', supabaseUsers.length);
-    console.log('🔍 DEBUG allowedUsers - activeAdminUser.accessRights:', activeAdminUser.accessRights);
-    
     if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
-      console.log('✅ Admin/Global Admin - showing all users:', supabaseUsers.length);
       return supabaseUsers;
     }
     
     const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-    console.log('🔍 DEBUG allowedIds:', allowedIds);
     
     const filtered = supabaseUsers.filter(u => allowedIds.includes(u.id));
-    console.log('✅ Filtered users for this user:', filtered.length, filtered.map(u => u.name));
     
     return filtered;
   }, [activeAdminUser, supabaseUsers]);
