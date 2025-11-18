@@ -3,9 +3,11 @@ import { FileText, Activity, FolderOpen } from 'lucide-react';
 import NotesTab from './NotesTab';
 import ActivityTab from './ActivityTab';
 import FilesTab from './FilesTab';
+import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 
-const ProjectTabs = ({ prospectId, projectType }) => {
+const ProjectTabs = ({ prospectId, projectId }) => {
   const [activeTab, setActiveTab] = useState('notes');
+  const { supabaseUserId } = useSupabaseUser();
 
   const tabs = [
     { id: 'notes', label: 'Notes', icon: FileText },
@@ -41,9 +43,9 @@ const ProjectTabs = ({ prospectId, projectType }) => {
 
       {/* Tabs Content */}
       <div className="min-h-[200px]">
-        {activeTab === 'notes' && <NotesTab prospectId={prospectId} projectType={projectType} />}
-        {activeTab === 'activity' && <ActivityTab prospectId={prospectId} projectType={projectType} />}
-        {activeTab === 'files' && <FilesTab prospectId={prospectId} projectType={projectType} />}
+        {activeTab === 'notes' && <NotesTab prospectId={prospectId} projectId={projectId} currentUser={{ id: supabaseUserId }} />}
+        {activeTab === 'activity' && <ActivityTab prospectId={prospectId} projectId={projectId} />}
+        {activeTab === 'files' && <FilesTab prospectId={prospectId} projectId={projectId} currentUser={{ id: supabaseUserId }} />}
       </div>
     </div>
   );

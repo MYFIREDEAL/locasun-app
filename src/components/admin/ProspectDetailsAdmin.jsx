@@ -610,16 +610,19 @@ const ProspectDetailsAdmin = ({
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
-  const { addHistoryEvent } = useSupabaseProjectHistory({
-    projectId: activeProjectTag,
-    prospectId: prospect.id,
-    enabled: !!activeProjectTag && !!prospect.id,
-  });
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
   const notificationId = searchParams.get('notificationId');
 
   const [activeProjectTag, setActiveProjectTag] = useState(initialProject || (prospect.tags && prospect.tags.length > 0 ? prospect.tags[0] : null));
+  
+  // ✅ Hook appelé APRÈS la définition de activeProjectTag
+  const { addHistoryEvent } = useSupabaseProjectHistory({
+    projectId: activeProjectTag,
+    prospectId: prospect.id,
+    enabled: !!activeProjectTag && !!prospect.id,
+  });
   const [isEditing, setIsEditing] = useState(false);
   
   // ✅ Utiliser un ref pour éditer SANS re-render à chaque caractère

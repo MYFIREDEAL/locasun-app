@@ -62,7 +62,7 @@ const ProjectCenterPanel = ({
           {/* Tabs: Notes / Activité / Fichiers */}
           <ProjectTabs 
             prospectId={prospectId} 
-            projectType={projectType} 
+            projectId={projectType} 
           />
 
           {/* Séparateur */}
@@ -71,7 +71,7 @@ const ProjectCenterPanel = ({
           {/* Historique (toujours visible) */}
           <ProjectHistory 
             prospectId={prospectId} 
-            projectType={projectType} 
+            projectId={projectType} 
           />
         </div>
       )}
