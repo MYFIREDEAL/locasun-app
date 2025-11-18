@@ -55,15 +55,11 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
       // Vérifier si c'est un user PRO ou un CLIENT
       if (loginType === 'pro') {
         // Récupérer les données du user PRO depuis public.users
-        console.log('🔍 Recherche user PRO avec user_id:', authData.user.id);
-        
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
           .eq('user_id', authData.user.id)
           .single();
-
-        console.log('📊 Résultat query users:', { userData, userError });
 
         if (userError || !userData) {
           console.error('❌ Erreur détaillée:', userError);
@@ -97,8 +93,6 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
           createdAt: userData.created_at,
           updatedAt: userData.updated_at,
         };
-        
-        console.log('🔐 Transformed admin user data:', transformedUserData);
         
         // ✅ Définir activeAdminUser pour les PRO (pas currentUser)
         setActiveAdminUser(transformedUserData);
