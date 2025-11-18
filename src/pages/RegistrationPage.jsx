@@ -86,7 +86,6 @@ const RegistrationPage = () => {
       const finalProjects = [...new Set(selectedProjects)];
 
       // 🔥 ÉTAPE 1: Créer le compte dans Supabase Auth (ESPACE CLIENT, pas admin!)
-      console.log('📝 Création du compte client dans Supabase Auth...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -119,15 +118,11 @@ const RegistrationPage = () => {
         return;
       }
 
-      console.log('✅ Compte Auth créé:', authData.user.id);
-      console.log('✅ Session établie:', authData.session ? 'OUI' : 'NON');
-
       // 🔥 IMPORTANT : Attendre que la session soit bien établie
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // 🔥 ÉTAPE 2: Créer le prospect dans public.prospects avec user_id
       // La session est maintenant active, donc auth.uid() retournera le bon user_id
-      console.log('📝 Création du prospect CLIENT dans Supabase (prospects table)...');
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
         .insert([{
@@ -157,8 +152,6 @@ const RegistrationPage = () => {
         });
         return;
       }
-
-      console.log('✅ Prospect CLIENT créé dans Supabase:', prospectData);
 
       // 🔥 ÉTAPE 3: Définir currentUser dans le contexte (format app)
       const clientUserData = {
@@ -198,8 +191,6 @@ const RegistrationPage = () => {
     }
   };
 
-  // DEBUG: Affiche les infos d'affiliation récupérées
-  console.log('Affiliation DEBUG:', { affiliateInfo });
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <motion.div 
