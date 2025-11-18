@@ -53,9 +53,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
         if (error) throw error;
 
-        console.log(`📋 [useSupabaseClientFormPanels] Raw data from Supabase (prospectId: ${prospectId || 'ALL'}):`, data);
         const transformed = (data || []).map(transformFromDB);
-        console.log('📋 [useSupabaseClientFormPanels] Transformed:', transformed);
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
@@ -81,8 +79,6 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           ...(prospectId && { filter: `prospect_id=eq.${prospectId}` }), // 🔥 Filtre uniquement si prospectId fourni
         },
         (payload) => {
-          console.log('🔔 Real-time client_form_panels:', payload);
-
           if (payload.eventType === 'INSERT') {
             const newPanel = transformFromDB(payload.new);
             setFormPanels((prev) => {
@@ -128,7 +124,6 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       if (error) throw error;
 
-      console.log('✅ Form panel mis à jour:', data);
       return { success: true, data: transformFromDB(data) };
     } catch (err) {
       console.error('❌ Erreur mise à jour form panel:', err);
@@ -146,7 +141,6 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       if (error) throw error;
 
-      console.log('✅ Form panel supprimé:', panelId);
       return { success: true };
     } catch (err) {
       console.error('❌ Erreur suppression form panel:', err);
@@ -170,7 +164,6 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       if (error) throw error;
 
-      console.log('✅ Form panels supprimés pour:', { prospectId, projectType });
       return { success: true };
     } catch (err) {
       console.error('❌ Erreur suppression form panels:', err);
@@ -181,8 +174,6 @@ export function useSupabaseClientFormPanels(prospectId = null) {
   // 🔥 AJOUT : Créer un nouveau formulaire dans Supabase
   const createFormPanel = async (panelData) => {
     try {
-      console.log('➕ [createFormPanel] Création formulaire:', panelData);
-      
       const { error } = await supabase
         .from('client_form_panels')
         .insert({
@@ -197,7 +188,6 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       if (error) throw error;
       
-      console.log('✅ [createFormPanel] Formulaire créé avec succès');
       return { success: true };
     } catch (err) {
       console.error('❌ [createFormPanel] Erreur insertion:', err);
