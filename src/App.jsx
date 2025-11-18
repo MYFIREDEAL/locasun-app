@@ -1236,22 +1236,22 @@ function App() {
   };
 
   const updateProspect = (updatedProspect) => {
-    setProspects(prevProspects => {
-      const updatedProspects = prevProspects.map(p => p.id === updatedProspect.id ? updatedProspect : p);
-      localStorage.setItem('evatime_prospects', JSON.stringify(updatedProspects));
-      return updatedProspects;
-    });
+    // ✅ Met à jour le state local uniquement
+    // Real-time Supabase se charge de la synchronisation automatique
+    setProspects(prevProspects => 
+      prevProspects.map(p => p.id === updatedProspect.id ? updatedProspect : p)
+    );
 
     if (currentUser && currentUser.id === updatedProspect.id) {
       setCurrentUser(updatedProspect);
-      localStorage.setItem('currentUser', JSON.stringify(updatedProspect));
       
       // Synchroniser userProjects avec les tags du prospect
       if (updatedProspect.tags) {
         setUserProjects(updatedProspect.tags);
-        localStorage.setItem('userProjects', JSON.stringify(updatedProspect.tags));
       }
     }
+    
+    // ℹ️ localStorage supprimé - Données synchronisées via Supabase Real-time
   };
 
   const handleSetCurrentUser = (user, affiliateName) => {

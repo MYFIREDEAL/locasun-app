@@ -471,7 +471,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             className: 'bg-green-500 text-white',
         });
 
-        onUpdate({ ...prospect, formData: editedData });
+        // ℹ️ onUpdate() supprimé - Real-time Supabase synchronise automatiquement
         setEditingPanelId(null);
         setEditedData({});
     };

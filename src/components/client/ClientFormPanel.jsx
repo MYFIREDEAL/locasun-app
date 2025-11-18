@@ -104,7 +104,21 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
 
     const formDefinition = forms[formId];
     const draft = formDrafts[panelId] || {};
-    const updatedFormData = { ...(currentUser.formData || {}), ...draft };
+    
+    // 🔥 AMÉLIORATION: Recharger les données DEPUIS Supabase avant le merge
+    console.log('🔄 Rechargement form_data depuis Supabase avant soumission...');
+    const { data: currentData, error: fetchError } = await supabase
+      .from('prospects')
+      .select('form_data')
+      .eq('id', prospectId)
+      .single();
+    
+    if (fetchError) {
+      console.error('❌ Erreur rechargement form_data:', fetchError);
+      // Continuer avec currentUser.formData en fallback
+    }
+    
+    const updatedFormData = { ...(currentData?.form_data || currentUser.formData || {}), ...draft };
     
     // 🔥 CORRECTION: Mettre à jour dans Supabase directement
     console.log('📝 Mise à jour form_data dans Supabase:', { prospectId, updatedFormData });
@@ -125,8 +139,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     
     console.log('✅ form_data mis à jour dans Supabase avec succès !');
     
-    // Mettre à jour aussi le localStorage pour cohérence UI
-    updateProspect({ ...currentUser, formData: updatedFormData });
+    // ℹ️ updateProspect() supprimé - Real-time Supabase synchronise automatiquement
 
     // ✅ Envoyer le message de complétion (déduplication gérée par Supabase)
     addChatMessage(prospectId, projectType, {
