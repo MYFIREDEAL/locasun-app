@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
+import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -422,6 +423,8 @@ const ProjectTimeline = ({
 
 const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     const { forms, clientFormPanels } = useAppContext();
+    const [editingPanelId, setEditingPanelId] = useState(null);
+    const [editedData, setEditedData] = useState({});
 
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
@@ -434,6 +437,48 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     if (relevantPanels.length === 0) {
         return null;
     }
+
+    const handleEdit = (panelId) => {
+        setEditingPanelId(panelId);
+        setEditedData({ ...prospect.formData });
+    };
+
+    const handleCancel = () => {
+        setEditingPanelId(null);
+        setEditedData({});
+    };
+
+    const handleSave = async () => {
+        // Mettre à jour dans Supabase
+        const { error } = await supabase
+            .from('prospects')
+            .update({ form_data: editedData })
+            .eq('id', prospect.id);
+
+        if (error) {
+            console.error('❌ Erreur sauvegarde formulaire:', error);
+            toast({
+                title: 'Erreur',
+                description: 'Impossible de sauvegarder les modifications.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        toast({
+            title: '✅ Sauvegardé',
+            description: 'Les modifications ont été enregistrées.',
+            className: 'bg-green-500 text-white',
+        });
+
+        onUpdate({ ...prospect, formData: editedData });
+        setEditingPanelId(null);
+        setEditedData({});
+    };
+
+    const handleFieldChange = (fieldId, value) => {
+        setEditedData(prev => ({ ...prev, [fieldId]: value }));
+    };
 
     return (
         <div className="bg-white rounded-2xl shadow-card p-6">
@@ -482,13 +527,43 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
 
                             <div className="space-y-3 pt-2">
                                 {(formDefinition.fields || []).map(field => (
-                                    <div key={field.id} className="flex items-start space-x-2">
-                                        <span className="text-sm font-medium text-gray-600 min-w-[120px]">{field.label}:</span>
-                                        <span className="text-sm text-gray-900">
-                                            {formData[field.id] || <span className="text-gray-400 italic">Non renseigné</span>}
-                                        </span>
+                                    <div key={field.id} className="space-y-1">
+                                        <Label className="text-sm font-medium text-gray-600">{field.label}</Label>
+                                        {editingPanelId === panel.panelId ? (
+                                            <Input
+                                                type={field.type || 'text'}
+                                                value={editedData[field.id] || ''}
+                                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                                placeholder={field.placeholder || ''}
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center">
+                                                {formData[field.id] || <span className="text-gray-400 italic">Non renseigné</span>}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Boutons d'action admin */}
+                            <div className="flex items-center justify-end space-x-2 pt-2 border-t">
+                                {editingPanelId === panel.panelId ? (
+                                    <>
+                                        <Button variant="outline" size="sm" onClick={handleCancel}>
+                                            <X className="h-4 w-4 mr-1" />
+                                            Annuler
+                                        </Button>
+                                        <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                                            <Save className="h-4 w-4 mr-1" />
+                                            Sauvegarder
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button variant="outline" size="sm" onClick={() => handleEdit(panel.panelId)}>
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Modifier
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     );
