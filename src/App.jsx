@@ -240,7 +240,6 @@ function App() {
   useEffect(() => {
     if (!formsLoading) {
       setForms(supabaseForms);
-      console.log('✅ Forms synchronized from Supabase:', Object.keys(supabaseForms).length);
     }
   }, [supabaseForms, formsLoading]);
 
@@ -254,7 +253,6 @@ function App() {
   useEffect(() => {
     if (!promptsLoading) {
       setPrompts(supabasePrompts);
-      console.log('✅ Prompts synchronized from Supabase:', Object.keys(supabasePrompts).length);
     }
   }, [supabasePrompts, promptsLoading]);
 
@@ -281,11 +279,6 @@ function App() {
       acc[template.type] = template;
       return acc;
     }, {});
-    console.log('🔧 projectsData rebuilt:', {
-      templatesCount: projectTemplates.length,
-      keys: Object.keys(result),
-      isEmpty: Object.keys(result).length === 0
-    });
     return result;
   }, [projectTemplates]);
   
@@ -297,15 +290,6 @@ function App() {
   const formContactConfig = getFormContactConfig().length > 0 
     ? getFormContactConfig() 
     : defaultFormContactConfig;
-  
-  // Debug: Logger les changements de logo
-  useEffect(() => {
-    console.log('📸 Company Logo changed:', {
-      logoUrl: companySettings?.logo_url,
-      logoLength: companySettings?.logo_url?.length,
-      isValid: companySettings?.logo_url ? (companySettings.logo_url.startsWith('data:') || companySettings.logo_url.startsWith('http')) : false
-    });
-  }, [companySettings?.logo_url]);
 
   // 🔥 Synchroniser activeAdminUser avec l'utilisateur Supabase connecté
   // ⚠️ IMPORTANT: Ne s'applique QUE aux ADMINS (table users), pas aux CLIENTS (table prospects)
@@ -337,7 +321,6 @@ function App() {
                              activeAdminUser.name !== matchedUser.name;
           
           if (dataChanged) {
-            console.log('✅ activeAdminUser synchronized:', matchedUser.name);
             setActiveAdminUser(matchedUser);
             try {
               localStorage.setItem('activeAdminUser', JSON.stringify(matchedUser));
@@ -348,7 +331,6 @@ function App() {
         } else {
           // Pas trouvé dans users → C'est probablement un CLIENT
           // Ne rien faire, activeAdminUser reste null pour les clients
-          console.log('ℹ️ User not in admin users table (probably a client)');
         }
       } catch (error) {
         console.error('❌ Error syncing activeAdminUser:', error);
@@ -655,14 +637,12 @@ function App() {
         if (existingTemplate) {
           // Mise à jour du template existant
           await updateTemplate(existingTemplate.id, supabaseData);
-          console.log('✅ Template mis à jour:', type, supabaseData);
         } else {
           // Ajout d'un nouveau template
           await addTemplate({
             type: type,
             ...supabaseData
           });
-          console.log('✅ Nouveau template créé:', type, supabaseData);
         }
       }
     } catch (error) {
@@ -701,7 +681,6 @@ function App() {
     // Mettre à jour dans Supabase (avec real-time automatique)
     try {
       await updateFormContactConfig(nextConfig);
-      console.log('✅ Form contact config updated');
     } catch (error) {
       console.error('❌ Error updating form contact config:', error);
     }
@@ -804,8 +783,6 @@ function App() {
           });
         }
       }
-
-      console.log('✅ Pipeline steps updated in Supabase');
     } catch (error) {
       console.error('❌ Error updating pipeline steps:', error);
       toast({
@@ -827,13 +804,11 @@ function App() {
         
         // Si Supabase est vide mais localStorage a des données, migrer
         if (!currentConfig || currentConfig.length === 0) {
-          console.log('🧹 Migration: localStorage → Supabase (form contact config)');
           await updateFormContactConfig(parsedConfig);
           // Nettoyer le localStorage après migration
           localStorage.removeItem('evatime_form_contact_config');
         } else {
           // Supabase a déjà des données, supprimer localStorage
-          console.log('🧹 Nettoyage: Suppression localStorage (form contact config)');
           localStorage.removeItem('evatime_form_contact_config');
         }
       }
@@ -850,7 +825,6 @@ function App() {
   useEffect(() => {
     const oldLogo = localStorage.getItem('evatime_company_logo');
     if (oldLogo) {
-      console.log('🧹 Migration: Suppression ancien logo localStorage');
       localStorage.removeItem('evatime_company_logo');
     }
   }, []);
@@ -871,7 +845,6 @@ function App() {
           .eq('related_message_timestamp', message.relatedMessageTimestamp || '');
 
         if (existingMessages && existingMessages.length > 0) {
-          console.log('⏭️ Message formulaire déjà soumis, ignoré');
           return;
         }
       }
@@ -889,7 +862,6 @@ function App() {
           .eq('text', message.text || '');
 
         if (existingMessages && existingMessages.length > 0) {
-          console.log('⏭️ Message prompt déjà envoyé, ignoré');
           return;
         }
       }
@@ -915,8 +887,6 @@ function App() {
 
       if (error) throw error;
 
-      console.log('✅ Message envoyé à Supabase');
-
       // Gestion du fichier RIB pour projet ACC
       if (message.file && message.sender === 'client') {
         updateProjectInfo(prospectId, projectType, (prev) => {
@@ -929,11 +899,6 @@ function App() {
 
       // 🔥 Notification admin quand un client envoie un message (Supabase)
       if (message.sender === 'client') {
-        console.log('🔔 Client message detected, creating admin notification...');
-        console.log('🔍 prospectId:', prospectId);
-        console.log('🔍 projectType:', projectType);
-        console.log('🔍 createOrUpdateNotification function exists?', typeof createOrUpdateNotification);
-        
         // Charger le prospect depuis Supabase (car prospects[] est vide côté client)
         const { data: prospectData, error: prospectError } = await supabaseClient
           .from('prospects')
@@ -946,17 +911,7 @@ function App() {
           return;
         }
 
-        console.log('✅ Prospect loaded:', prospectData);
-
         if (prospectData) {
-          console.log('🚀 Calling createOrUpdateNotification with:', {
-            prospectId,
-            ownerId: prospectData.owner_id, // 🔥 OBLIGATOIRE pour real-time
-            projectType,
-            prospectName: prospectData.name,
-            projectName: projectsData[projectType]?.title || projectType
-          });
-
           await createOrUpdateNotification({
             prospectId,
             ownerId: prospectData.owner_id, // 🔥 CRITICAL pour le filter real-time
@@ -964,7 +919,6 @@ function App() {
             prospectName: prospectData.name,
             projectName: projectsData[projectType]?.title || projectType
           });
-          console.log('✅ Notification admin créée pour:', prospectData.name);
         } else {
           console.warn('⚠️ No prospect data found');
         }
@@ -1110,8 +1064,6 @@ function App() {
 
     // 2️⃣ Sauvegarder dans Supabase (real-time sync)
     try {
-      console.log('💾 Saving project steps to Supabase...', { prospectId, projectType, newSteps });
-      
       const { data, error } = await supabase
         .from('project_steps_status')
         .upsert(
@@ -1137,8 +1089,6 @@ function App() {
         });
         throw error;
       }
-
-      console.log('✅ Project steps saved to Supabase:', data);
     } catch (err) {
       console.error('❌ Failed to save project steps:', err);
     }
