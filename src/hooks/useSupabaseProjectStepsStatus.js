@@ -50,8 +50,6 @@ export function useSupabaseProjectStepsStatus(prospectId) {
             return;
           }
 
-          console.log('🔄 Real-time project steps change:', payload);
-
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             setProjectStepsStatus(prev => ({
               ...prev,
@@ -94,7 +92,6 @@ export function useSupabaseProjectStepsStatus(prospectId) {
       }, {});
 
       setProjectStepsStatus(stepsMap);
-      console.log('✅ Project steps loaded for prospect:', prospectId, stepsMap);
     } catch (err) {
       console.error('❌ Erreur fetch project steps:', err);
       setError(err.message);
@@ -129,8 +126,6 @@ export function useSupabaseProjectStepsStatus(prospectId) {
 
       if (upsertError) throw upsertError;
 
-      console.log('✅ Project steps updated:', projectType, steps);
-      
       setProjectStepsStatus(prev => ({
         ...prev,
         [projectType]: steps
@@ -158,8 +153,6 @@ export function useSupabaseProjectStepsStatus(prospectId) {
         .eq('project_type', projectType);
 
       if (deleteError) throw deleteError;
-
-      console.log('✅ Project steps deleted:', projectType);
 
       setProjectStepsStatus(prev => {
         const { [projectType]: _, ...rest } = prev;
