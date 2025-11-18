@@ -30,12 +30,6 @@ const ActivationPage = () => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        console.log('🔑 Hash params:', { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken,
-          fullHash: hash 
-        });
-
         if (!accessToken) {
           console.error('❌ Pas d\'access_token dans le fragment');
           setStatus('error');
@@ -56,8 +50,6 @@ const ActivationPage = () => {
           return;
         }
 
-        console.log('✅ Session établie:', sessionData.user?.email);
-
         // 3) NETTOYER L'URL pour enlever le fragment
         window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
 
@@ -68,8 +60,6 @@ const ActivationPage = () => {
           setMessage('Erreur: utilisateur non trouvé après authentification.');
           return;
         }
-
-        console.log('👤 Utilisateur authentifié:', user.id, user.email);
 
         // Chercher le prospect avec cet email (qui n'a pas encore de user_id)
         const { data: prospects, error: prospectError } = await supabase
@@ -95,7 +85,6 @@ const ActivationPage = () => {
 
           if (existingProspect) {
             // Le prospect est deja active, on le connecte directement
-            console.log('Prospect deja active, connexion...');
             const clientData = {
               id: existingProspect.id,
               userId: existingProspect.user_id,
@@ -128,7 +117,6 @@ const ActivationPage = () => {
 
         // On a trouve un prospect sans user_id, on le lie
         const prospect = prospects[0];
-        console.log('Prospect trouve, liaison du user_id:', prospect.id);
 
         // Mettre a jour le prospect avec le user_id
         const { data: updatedProspect, error: updateError } = await supabase
@@ -142,8 +130,6 @@ const ActivationPage = () => {
           console.error('Erreur mise a jour prospect:', updateError);
           throw updateError;
         }
-
-        console.log('Prospect active avec succes !');
 
         // Creer l'objet client pour le contexte
         const clientData = {
