@@ -425,7 +425,7 @@ const ProjectTimeline = ({
 const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     const { forms } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
-    const { clientFormPanels = [], loading } = useSupabaseClientFormPanels(null);
+    const { formPanels: clientFormPanels = [], loading } = useSupabaseClientFormPanels(null);
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
 
