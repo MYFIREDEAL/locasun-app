@@ -106,7 +106,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     const draft = formDrafts[panelId] || {};
     
     // 🔥 AMÉLIORATION: Recharger les données DEPUIS Supabase avant le merge
-    console.log('🔄 Rechargement form_data depuis Supabase avant soumission...');
     const { data: currentData, error: fetchError } = await supabase
       .from('prospects')
       .select('form_data')
@@ -121,7 +120,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     const updatedFormData = { ...(currentData?.form_data || currentUser.formData || {}), ...draft };
     
     // 🔥 CORRECTION: Mettre à jour dans Supabase directement
-    console.log('📝 Mise à jour form_data dans Supabase:', { prospectId, updatedFormData });
     const { error: updateError } = await supabase
       .from('prospects')
       .update({ form_data: updatedFormData })
@@ -136,8 +134,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       });
       return;
     }
-    
-    console.log('✅ form_data mis à jour dans Supabase avec succès !');
     
     // ℹ️ updateProspect() supprimé - Real-time Supabase synchronise automatiquement
 
@@ -194,7 +190,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     const { panelId, formId } = panel;
     
     // 🔥 CORRECTION: Recharger les données DEPUIS SUPABASE avant d'éditer
-    console.log('🔄 Rechargement form_data depuis Supabase...');
     const { data: freshProspectData, error } = await supabase
       .from('prospects')
       .select('form_data')
@@ -210,8 +205,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       });
       return;
     }
-    
-    console.log('✅ form_data rechargé depuis Supabase:', freshProspectData.form_data);
     
     // Hydrater avec les données fraîches depuis Supabase
     const formDefinition = forms[formId];

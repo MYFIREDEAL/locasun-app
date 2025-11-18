@@ -45,8 +45,6 @@ export function useSupabaseProjectTemplates() {
             return;
           }
 
-          console.log('🔄 Real-time project template change:', payload);
-
           // ✅ Transformer snake_case → camelCase
           const transformTemplate = (t) => ({
             ...t,
@@ -131,8 +129,6 @@ export function useSupabaseProjectTemplates() {
         .single();
 
       if (insertError) throw insertError;
-
-      console.log('✅ Template créé:', data);
       
       // ✅ Transformer snake_case → camelCase
       const transformedData = {
@@ -168,8 +164,6 @@ export function useSupabaseProjectTemplates() {
         .single();
 
       if (updateError) throw updateError;
-
-      console.log('✅ Template modifié:', data);
       
       // ✅ Transformer snake_case → camelCase
       const transformedData = {
@@ -206,7 +200,6 @@ export function useSupabaseProjectTemplates() {
 
       if (deleteError) throw deleteError;
 
-      console.log('✅ Template supprimé:', id);
       setProjectTemplates(prev => prev.filter(template => template.id !== id));
     } catch (err) {
       console.error('❌ Erreur suppression template:', err);

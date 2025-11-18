@@ -330,16 +330,6 @@ const ProjectDetails = ({ project, onBack }) => {
   // Si pas encore chargé, afficher le template par défaut avec status initial
   const steps = stepsFromSupabase || project.steps;
   
-  // 🐛 DEBUG: Logger les steps utilisés
-  useEffect(() => {
-    console.log('🔍 [ProjectDetails] Steps source:', {
-      fromSupabase: !!stepsFromSupabase,
-      stepsUsed: steps,
-      projectType: project.type,
-      currentUserId: currentUser?.id
-    });
-  }, [stepsFromSupabase, steps, project.type, currentUser?.id]);
-  
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
   const effectiveStepIndex = currentStepIndex !== -1 ? currentStepIndex : 0;
@@ -356,11 +346,6 @@ const ProjectDetails = ({ project, onBack }) => {
   useEffect(() => {
     if (!currentUser?.id || !project.type) return;
 
-    console.log('🔥 [ProjectDetails] Setting up real-time listener for project steps...', {
-      prospectId: currentUser.id,
-      projectType: project.type
-    });
-
     // Charger les steps initiaux depuis Supabase
     const fetchInitialSteps = async () => {
       try {
@@ -375,14 +360,12 @@ const ProjectDetails = ({ project, onBack }) => {
 
         if (error) {
           console.warn('⚠️ No steps found in Supabase for this project, using template default');
-          console.log('Error details:', error);
           // Ne pas utiliser localStorage, rester sur le template par défaut
           setStepsFromSupabase(null);
           return;
         }
 
         if (data?.steps) {
-          console.log('✅ [ProjectDetails] Initial steps loaded from Supabase:', data.steps);
           setStepsFromSupabase(data.steps);
         }
       } catch (err) {
@@ -406,10 +389,7 @@ const ProjectDetails = ({ project, onBack }) => {
           filter: `prospect_id=eq.${currentUser.id}`
         },
         (payload) => {
-          console.log('🔥 [ProjectDetails] Real-time steps update:', payload);
-
           if (payload.new?.project_type === project.type && payload.new?.steps) {
-            console.log('✅ [ProjectDetails] Updating steps from real-time:', payload.new.steps);
             setStepsFromSupabase(payload.new.steps);
             
             toast({
@@ -420,12 +400,9 @@ const ProjectDetails = ({ project, onBack }) => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 [ProjectDetails] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 [ProjectDetails] Unsubscribing from real-time...');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, project.type]);

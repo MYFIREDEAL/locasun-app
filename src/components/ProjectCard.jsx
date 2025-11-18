@@ -18,13 +18,6 @@ import React, { useMemo } from 'react';
           : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
       }, [projectStepsStatus, project.type, currentUser, getProjectSteps]);
       
-      console.log('🔍 [ProjectCard] Steps for', project.type, ':', {
-        projectStepsStatusExists: !!projectStepsStatus,
-        hasSupabaseSteps: !!(projectStepsStatus && projectStepsStatus[project.type]),
-        stepsCount: steps?.length || 0,
-        source: (projectStepsStatus && projectStepsStatus[project.type]) ? 'SUPABASE' : 'FALLBACK'
-      });
-      
       const completedStepsCount = steps.filter(step => step.status === STATUS_COMPLETED).length;
       const totalSteps = steps.length;
       const progress = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;

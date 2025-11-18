@@ -10,16 +10,9 @@ const ClientLayout = () => {
   const isDesktop = width >= 1024;
   const { currentUser, setCurrentUser, companyLogo } = useAppContext();
   
-  // Force re-render quand le logo change (pour que ClientHeader se mette à jour)
-  useEffect(() => {
-    console.log('🎨 Client: Logo changed, re-rendering header');
-  }, [companyLogo]);
-
   // 🔥 Real-time : Écouter les modifications du prospect connecté
   useEffect(() => {
     if (!currentUser?.id) return;
-
-    console.log('🔥 Client real-time : Écoute des changements pour prospect', currentUser.id);
 
     const channel = supabase
       .channel(`prospect-${currentUser.id}`)
@@ -32,10 +25,6 @@ const ClientLayout = () => {
           filter: `id=eq.${currentUser.id}`
         },
         (payload) => {
-          console.log('🔥 Client real-time : Prospect modifié', payload.new);
-          console.log('🔥 Anciens tags:', currentUser.tags);
-          console.log('🔥 Nouveaux tags:', payload.new.tags);
-          
           // Mettre à jour currentUser avec les nouvelles données
           const updatedProspect = {
             id: payload.new.id,
@@ -52,16 +41,12 @@ const ClientLayout = () => {
             affiliateName: payload.new.affiliate_name,
           };
           
-          console.log('🔥 Appel de setCurrentUser avec:', updatedProspect);
           setCurrentUser(updatedProspect);
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Status subscription:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 Client real-time : Désinscription');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, setCurrentUser]);

@@ -26,7 +26,6 @@ export function useSupabaseAllProjectSteps() {
         });
 
         setAllProjectSteps(stepsMap);
-        console.log('✅ All project steps loaded:', Object.keys(stepsMap).length);
       } catch (err) {
         console.error('❌ Error loading all project steps:', err);
       } finally {
@@ -44,8 +43,6 @@ export function useSupabaseAllProjectSteps() {
         schema: 'public',
         table: 'project_steps_status'
       }, (payload) => {
-        console.log('🔥 Project steps changed:', payload);
-        
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           const key = `${payload.new.prospect_id}-${payload.new.project_type}`;
           setAllProjectSteps(prev => ({
