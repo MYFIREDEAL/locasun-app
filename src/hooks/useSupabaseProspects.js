@@ -11,24 +11,19 @@ export const useSupabaseProspects = (activeAdminUser) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  console.log('🔧 useSupabaseProspects - activeAdminUser:', activeAdminUser?.name || 'UNDEFINED');
-
   // Charger les prospects depuis Supabase
   const fetchProspects = async () => {
     try {
-      console.log('📊 Starting fetchProspects...');
       setLoading(true);
       
       // Vérifier la session Supabase
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔐 Safari - Session check:', session ? 'OK' : 'NO SESSION', sessionError);
       
       const { data, error: fetchError } = await supabase
         .from('prospects')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('📊 Prospects fetched:', data?.length || 0, 'prospects');
       if (fetchError) {
         console.error('❌ Fetch error:', fetchError);
         throw fetchError;
@@ -70,9 +65,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
   // Charger au montage et quand l'utilisateur change
   useEffect(() => {
-    console.log('🔄 useEffect fetchProspects - activeAdminUser:', activeAdminUser?.name);
     if (activeAdminUser) {
-      console.log('✅ Calling fetchProspects...');
       fetchProspects();
     } else {
       console.warn('⚠️ No activeAdminUser, skipping fetchProspects');
@@ -84,8 +77,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
   useEffect(() => {
     if (!activeAdminUser) return;
 
-    console.log('🔥 Setting up real-time subscription for prospects...');
-
     const channel = supabase
       .channel(`prospects-changes-${Math.random().toString(36).slice(2)}`)
       .on(
@@ -96,8 +87,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
           table: 'prospects'
         },
         (payload) => {
-          console.log('🔥 Real-time change detected:', payload);
-
           if (payload.eventType === 'INSERT') {
             // Nouveau prospect ajouté
             const newProspect = {
@@ -124,7 +113,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
             });
           } else if (payload.eventType === 'UPDATE') {
             // Prospect modifié
-            console.log('📝 Updating prospect:', payload.new.id, payload.new.name);
             const updatedProspect = {
               id: payload.new.id,
               name: payload.new.name,
@@ -141,11 +129,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at,
             };
-            setProspects(prev => {
-              const newProspects = prev.map(p => p.id === payload.new.id ? updatedProspect : p);
-              console.log('✅ Prospects updated, new count:', newProspects.length);
-              return newProspects;
-            });
+            setProspects(prev => prev.map(p => p.id === payload.new.id ? updatedProspect : p));
           } else if (payload.eventType === 'DELETE') {
             // Prospect supprimé
             setProspects(prev => prev.filter(p => p.id !== payload.old.id));
@@ -156,13 +140,10 @@ export const useSupabaseProspects = (activeAdminUser) => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Prospects subscription status:', status);
-      });
+      .subscribe();
 
     // Cleanup : se désabonner quand le composant unmount
     return () => {
-      console.log('🔌 Unsubscribing from prospects real-time...');
       supabase.removeChannel(channel);
     };
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
@@ -172,8 +153,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
     try {
       // Récupérer l'UUID réel du user depuis Supabase
       const { data: { user } } = await supabase.auth.getUser();
-      
-      console.log('🔍 DEBUG auth.getUser():', { user_id: user?.id, email: user?.email });
       
       if (!user) {
         throw new Error("Utilisateur non authentifié");
@@ -186,13 +165,9 @@ export const useSupabaseProspects = (activeAdminUser) => {
         .eq('user_id', user.id)
         .single();
 
-      console.log('🔍 DEBUG userData query:', { userData, userError, searching_for: user.id });
-
       if (userError || !userData) {
         throw new Error("Impossible de récupérer les informations utilisateur");
       }
-
-      console.log('👤 Assignation du prospect à:', userData.id);
 
       const { data, error: insertError } = await supabase
         .from('prospects')
@@ -232,12 +207,9 @@ export const useSupabaseProspects = (activeAdminUser) => {
       };
 
       // Ne pas ajouter localement, laisser le real-time s'en charger
-      console.log('Prospect created in DB, waiting for real-time sync...');
 
       // ENVOYER UN EMAIL D'INVITATION AU PROSPECT
       try {
-        console.log('📧 Envoi invitation prospect:', data.email);
-        
         // STRATÉGIE : 
         // 1. Créer un user temporaire dans auth.users avec un mot de passe aléatoire
         // 2. Envoyer un email de réinitialisation de mot de passe
@@ -261,8 +233,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
           
           // Si l'user existe déjà, envoyer juste un reset password
           if (signUpError.message.includes('already registered')) {
-            console.log('User existe déjà, envoi reset password...');
-            
             const redirectUrl = import.meta.env.DEV 
               ? `${window.location.origin}/reset-password`
               : 'https://evatime.vercel.app/reset-password';
@@ -275,7 +245,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
               throw resetError;
             }
             
-            console.log('✅ Email de réinitialisation envoyé');
             toast({
               title: "Prospect créé",
               description: `Un email d'activation a été envoyé à ${data.email}`,
@@ -285,8 +254,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
             throw signUpError;
           }
         } else {
-          console.log('✅ User auth créé:', authData.user?.id);
-          
           // Lier immédiatement le user_id au prospect
           const { error: updateError } = await supabase
             .from('prospects')
@@ -310,7 +277,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
             console.error('⚠️ Erreur envoi email:', resetError);
           }
           
-          console.log('✅ Email d\'activation envoyé');
           toast({
             title: "Succès",
             description: `Prospect ajouté ! Un email d'activation a été envoyé à ${data.email}`,
@@ -373,7 +339,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       // ✅ Ne pas mettre à jour localement, laisser le real-time s'en charger
       // Le real-time va recevoir l'événement UPDATE et mettre à jour automatiquement
-      console.log('✅ Prospect updated in DB, waiting for real-time sync...');
 
       return data;
     } catch (err) {
