@@ -19,7 +19,7 @@ const ProjectCenterPanel = ({
   statusConfig 
 }) => {
   return (
-    <div className="space-y-6 xl:max-w-[520px] w-full flex flex-col xl:ml-[5%]">
+    <div className="space-y-6 w-full flex flex-col">
       {/* Bloc Chat (existant) */}
       <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
         {currentStep && (
