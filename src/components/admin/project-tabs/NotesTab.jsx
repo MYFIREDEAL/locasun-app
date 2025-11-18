@@ -1,109 +1,123 @@
-import React, { useState } from 'react';
-import { Send, AtSign, Paperclip } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
+import { useState } from "react";
+import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
 
-const NotesTab = ({ prospectId, projectType }) => {
-  const [noteContent, setNoteContent] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+export default function NotesTab({ projectId, prospectId, currentUser }) {
+  const [noteContent, setNoteContent] = useState("");
 
-  const handleSaveNote = async () => {
-    if (!noteContent.trim()) {
-      toast({
-        title: 'Note vide',
-        description: 'Veuillez saisir du contenu avant d\'enregistrer.',
-        variant: 'destructive',
+  const {
+    notes,
+    loading,
+    saving,
+    error,
+    addNote,
+  } = useSupabaseProjectNotes({
+    projectId,
+    prospectId,
+    enabled: !!projectId,
+  });
+
+  const handleSave = async () => {
+    if (!noteContent.trim()) return;
+    try {
+      await addNote({
+        content: noteContent,
+        createdBy: currentUser?.id,
       });
-      return;
+      setNoteContent("");
+    } catch (err) {
+      console.error(err);
     }
-
-    setIsSaving(true);
-    
-    // TODO: Intégration Supabase pour sauvegarder la note
-    // await supabase.from('project_notes').insert({...})
-    
-    // Mock pour l'instant
-    setTimeout(() => {
-      toast({
-        title: '✅ Note enregistrée',
-        description: 'Votre note a été ajoutée au projet.',
-        className: 'bg-green-500 text-white',
-      });
-      setNoteContent('');
-      setIsSaving(false);
-    }, 500);
   };
 
   return (
-    <div className="space-y-4">
-      {/* Éditeur de note */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="flex flex-col gap-4 h-full">
+      
+      {/* Bloc d'édition */}
+      <div className="bg-white rounded-xl border p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm">
+            Notes internes du projet
+          </h3>
+          <span className="text-xs text-gray-400">
+            {projectId ? `Projet #${projectId}` : "Aucun projet sélectionné"}
+          </span>
+        </div>
+
         <textarea
+          className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          rows={4}
+          placeholder="Ajoute une note interne liée à ce projet…"
           value={noteContent}
           onChange={(e) => setNoteContent(e.target.value)}
-          placeholder="Écrivez une note interne sur ce projet..."
-          className="w-full px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-          rows={5}
+          disabled={!projectId || saving}
         />
-        
-        {/* Barre d'outils */}
-        <div className="bg-gray-50 px-4 py-2 flex items-center justify-between border-t border-gray-200">
-          <div className="flex items-center space-x-2">
-            <button
-              className="p-1.5 hover:bg-gray-200 rounded text-gray-600 transition-colors"
-              title="Mentionner un utilisateur"
-            >
-              <AtSign className="h-4 w-4" />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <button type="button" className="flex items-center gap-1 hover:text-gray-700">
+              <span>🖼️</span>
+              <span>Image</span>
             </button>
-            <button
-              className="p-1.5 hover:bg-gray-200 rounded text-gray-600 transition-colors"
-              title="Joindre un fichier"
-            >
-              <Paperclip className="h-4 w-4" />
+            <button type="button" className="flex items-center gap-1 hover:text-gray-700">
+              <span>@</span>
+              <span>Mention</span>
             </button>
           </div>
-          
-          <Button
-            onClick={handleSaveNote}
-            disabled={isSaving || !noteContent.trim()}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!noteContent.trim() || !projectId || saving}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="h-4 w-4 mr-2" />
-            Enregistrer
-          </Button>
+            {saving ? "Enregistrement…" : "Enregistrer la note"}
+          </button>
         </div>
+
+        {error && (
+          <p className="text-xs text-red-500 mt-1">Erreur : {error}</p>
+        )}
       </div>
 
-      {/* Liste des notes existantes (mock pour l'instant) */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700">Notes précédentes</h3>
-        
-        {/* Exemple de note mockée */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                JL
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Jack LUC</p>
-                <p className="text-xs text-gray-500">Il y a 2 heures</p>
-              </div>
-            </div>
-          </div>
-          <p className="text-sm text-gray-700">
-            Client très intéressé par le projet ACC. À recontacter en début de semaine prochaine pour finaliser le devis.
-          </p>
-        </div>
+      {/* Liste des notes */}
+      <div className="bg-white rounded-xl border p-4 flex-1 overflow-y-auto">
+        <h4 className="font-semibold text-sm mb-3">Notes précédentes</h4>
 
-        <div className="text-center py-6 text-sm text-gray-400">
-          <p>Les notes seront chargées depuis Supabase</p>
-          <p className="text-xs mt-1">(table: project_notes)</p>
+        {loading && (
+          <p className="text-xs text-gray-400">Chargement des notes…</p>
+        )}
+
+        {!loading && notes?.length === 0 && (
+          <p className="text-xs text-gray-400">
+            Aucune note pour ce projet pour l'instant.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3">
+          {notes?.map((note) => (
+            <div key={note.id} className="border rounded-lg p-3 text-sm bg-gray-50">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-600">
+                  {note.created_by ? `Par ${note.created_by}` : "Note interne"}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  {note.created_at &&
+                    new Date(note.created_at).toLocaleString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                </span>
+              </div>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                {note.content}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
-};
-
-export default NotesTab;
+}
