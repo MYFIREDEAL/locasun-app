@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Download, Trash2, FileText, Image, File } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
+import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
 const FilesTab = ({ projectId, prospectId, currentUser }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -20,6 +21,12 @@ const FilesTab = ({ projectId, prospectId, currentUser }) => {
     enabled: !!projectId,
   });
 
+  const { addHistoryEvent } = useSupabaseProjectHistory({
+    projectId,
+    prospectId,
+    enabled: !!projectId,
+  });
+
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -27,10 +34,25 @@ const FilesTab = ({ projectId, prospectId, currentUser }) => {
     setSelectedFile(file);
     
     try {
-      await uploadFile({
+      const uploaded = await uploadFile({
         file,
         uploadedBy: currentUser?.id,
       });
+
+      if (uploaded && addHistoryEvent) {
+        await addHistoryEvent({
+          event_type: "file",
+          title: "Fichier ajouté",
+          description: uploaded.file_name,
+          metadata: {
+            size: uploaded.file_size,
+            type: uploaded.file_type,
+            storage_path: uploaded.storage_path,
+          },
+          createdBy: currentUser?.id,
+        });
+      }
+
       setSelectedFile(null);
       // Reset input
       event.target.value = '';
