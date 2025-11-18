@@ -120,7 +120,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
             <div key={note.id} className="border rounded-lg p-3 text-sm bg-gray-50">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-gray-600">
-                  {note.created_by ? `Par ${note.created_by}` : "Note interne"}
+                  {note.created_by_name || note.created_by ? `Par ${note.created_by_name || note.created_by}` : "Note interne"}
                 </span>
                 <span className="text-[10px] text-gray-400">
                   {note.created_at &&

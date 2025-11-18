@@ -81,7 +81,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
   }, [projectType, enabled, fetchNotes]);
 
   const addNote = useCallback(
-    async ({ content, createdBy }) => {
+    async ({ content, createdBy, createdByName }) => {
       if (!projectType || !content?.trim()) return;
 
       try {
@@ -96,6 +96,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
               prospect_id: prospectId || null,
               content: content.trim(),
               created_by: createdBy || null,
+              created_by_name: createdByName || null,
             },
           ])
           .select()
