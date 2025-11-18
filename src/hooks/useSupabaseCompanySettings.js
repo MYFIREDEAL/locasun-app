@@ -36,7 +36,6 @@ export const useSupabaseCompanySettings = () => {
 
       if (fetchError) throw fetchError;
 
-      console.log('✅ Company settings chargés:', data);
       setCompanySettings(data);
       setError(null);
     } catch (err) {
@@ -53,8 +52,6 @@ export const useSupabaseCompanySettings = () => {
 
   // 🔥 REAL-TIME : Écouter les changements en temps réel
   useEffect(() => {
-    console.log('🔥 Setting up real-time subscription for company_settings...');
-
     const channel = supabase
       .channel('company-settings-changes')
       .on(
@@ -66,8 +63,6 @@ export const useSupabaseCompanySettings = () => {
           filter: `id=eq.${COMPANY_SETTINGS_ID}`
         },
         (payload) => {
-          console.log('🔥 Real-time company settings change detected:', payload.new);
-          
           // Mettre à jour l'état seulement si les données ont vraiment changé
           setCompanySettings(prev => {
             // Éviter les mises à jour inutiles
@@ -77,7 +72,6 @@ export const useSupabaseCompanySettings = () => {
             
             // Pas de toast : le logo se met à jour silencieusement via real-time
             // (Évite la confusion entre modifications locales et distantes)
-            console.log('🔄 Logo mis à jour via real-time');
             
             // Reset le flag après traitement
             isLocalUpdate.current = false;
@@ -86,12 +80,9 @@ export const useSupabaseCompanySettings = () => {
           });
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Company settings subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 Unsubscribing from company settings real-time...');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -102,11 +93,6 @@ export const useSupabaseCompanySettings = () => {
    */
   const updateLogo = async (logoData) => {
     try {
-      console.log('🔧 Updating company logo...', {
-        dataLength: logoData?.length,
-        isBase64: logoData?.startsWith('data:'),
-      });
-      
       // Marquer comme mise à jour locale (pour ne pas afficher le toast)
       isLocalUpdate.current = true;
 
@@ -123,8 +109,6 @@ export const useSupabaseCompanySettings = () => {
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
-
-      console.log('✅ Logo updated in DB');
       
       // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
       setCompanySettings(prev => ({
@@ -157,8 +141,6 @@ export const useSupabaseCompanySettings = () => {
    */
   const removeLogo = async () => {
     try {
-      console.log('🔧 Removing company logo...');
-      
       // Marquer comme mise à jour locale (pour ne pas afficher le toast)
       isLocalUpdate.current = true;
 
@@ -175,8 +157,6 @@ export const useSupabaseCompanySettings = () => {
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
-
-      console.log('✅ Logo removed from Supabase');
       
       // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
       setCompanySettings(prev => ({
@@ -210,8 +190,6 @@ export const useSupabaseCompanySettings = () => {
    */
   const updateSettings = async (newSettings) => {
     try {
-      console.log('🔧 Updating company settings...');
-      
       // Marquer comme mise à jour locale (pour ne pas afficher le toast)
       isLocalUpdate.current = true;
 
@@ -228,8 +206,6 @@ export const useSupabaseCompanySettings = () => {
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
-
-      console.log('✅ Settings updated in Supabase');
       
       // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
       setCompanySettings(prev => ({
@@ -257,8 +233,6 @@ export const useSupabaseCompanySettings = () => {
    */
   const updateFormContactConfig = async (formContactConfig) => {
     try {
-      console.log('🔧 Updating form contact config...', formContactConfig);
-      
       // Marquer comme mise à jour locale
       isLocalUpdate.current = true;
 
@@ -282,8 +256,6 @@ export const useSupabaseCompanySettings = () => {
         isLocalUpdate.current = false;
         throw updateError;
       }
-
-      console.log('✅ Form contact config updated in Supabase');
       
       // Mise à jour immédiate de l'état local
       setCompanySettings(prev => ({
@@ -319,8 +291,6 @@ export const useSupabaseCompanySettings = () => {
    */
   const updateGlobalPipelineSteps = async (globalPipelineSteps) => {
     try {
-      console.log('🔧 Updating global pipeline steps...', globalPipelineSteps);
-      
       // Marquer comme mise à jour locale
       isLocalUpdate.current = true;
 
@@ -344,8 +314,6 @@ export const useSupabaseCompanySettings = () => {
         isLocalUpdate.current = false;
         throw updateError;
       }
-
-      console.log('✅ Global pipeline steps updated in Supabase');
       
       // Mise à jour immédiate de l'état local
       setCompanySettings(prev => ({
