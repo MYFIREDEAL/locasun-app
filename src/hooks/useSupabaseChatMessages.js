@@ -47,7 +47,6 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
         if (error) throw error;
 
         const transformed = (data || []).map(transformFromDB);
-        console.log('✅ Chat messages loaded from Supabase:', transformed.length);
         setMessages(transformed);
         setError(null);
       } catch (err) {
@@ -61,7 +60,6 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
     fetchMessages();
 
     // Real-time subscription
-    console.log('🔥 Setting up real-time subscription for chat messages...', { prospectId, projectType });
     const channel = supabase
       .channel(`chat-${prospectId}-${projectType}-${Math.random().toString(36).slice(2)}`)
       .on(
@@ -73,11 +71,8 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
           filter: `prospect_id=eq.${prospectId}`,
         },
         (payload) => {
-          console.log('🔔 Real-time chat EVENT:', payload.eventType, payload);
-
           // Filtrer par project_type (le filter Supabase ne supporte qu'un seul filtre)
           if (payload.new && payload.new.project_type !== projectType) {
-            console.log('⏭️ Ignoring message for different project type:', payload.new.project_type);
             return;
           }
 
@@ -102,12 +97,9 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Chat subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('🔌 Unsubscribing from chat real-time...');
       supabase.removeChannel(channel);
     };
   }, [prospectId, projectType]);
@@ -137,7 +129,6 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
       });
 
       if (isDuplicate) {
-        console.log('⏭️ Message déjà envoyé, ignoré');
         return { success: true, duplicate: true };
       }
 
@@ -163,7 +154,6 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
 
       if (error) throw error;
 
-      console.log('✅ Message sent to Supabase:', data);
       return { success: true, data: transformFromDB(data) };
     } catch (err) {
       console.error('❌ Error sending message:', err);
@@ -181,7 +171,6 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
 
       if (error) throw error;
 
-      console.log('✅ Messages marked as read:', messageIds.length);
       return { success: true };
     } catch (err) {
       console.error('❌ Error marking messages as read:', err);
