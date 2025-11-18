@@ -1015,7 +1015,6 @@ const ProfilePage = () => {
 
   // 🔥 Forcer React à re-render quand supabaseForms change en créant un nouveau memo
   const forms = useMemo(() => {
-    console.log('🔄 ProfilePage - Forms mis à jour:', Object.keys(supabaseForms).length, 'formulaires');
     return supabaseForms;
   }, [supabaseForms]);
 
@@ -1029,7 +1028,6 @@ const ProfilePage = () => {
 
   // 🔥 Forcer React à re-render quand supabasePrompts change
   const prompts = useMemo(() => {
-    console.log('🔄 ProfilePage - Prompts mis à jour:', Object.keys(supabasePrompts).length, 'prompts');
     return supabasePrompts;
   }, [supabasePrompts]);
 
@@ -1143,7 +1141,6 @@ const ProfilePage = () => {
       
       // Vérifier si le formulaire a vraiment changé (comparer les updatedAt)
       if (currentForm.updatedAt !== editingForm.updatedAt) {
-        console.log('🔄 Mise à jour real-time du formulaire en édition:', currentForm.name);
         setEditingForm(currentForm);
       }
     }
