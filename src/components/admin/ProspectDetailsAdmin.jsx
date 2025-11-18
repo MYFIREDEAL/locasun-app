@@ -793,7 +793,7 @@ const ProspectDetailsAdmin = ({
             project_type: activeProjectTag,
           },
           createdBy: supabaseUserId,
-          createdByName: activeAdminUser?.email || activeAdminUser?.name,
+          createdByName: activeAdminUser?.name || activeAdminUser?.email,
         });
       }
       
@@ -840,7 +840,7 @@ const ProspectDetailsAdmin = ({
             project_type: activeProjectTag,
           },
           createdBy: supabaseUserId,
-          createdByName: activeAdminUser?.email || activeAdminUser?.name,
+          createdByName: activeAdminUser?.name || activeAdminUser?.email,
         });
       }
       

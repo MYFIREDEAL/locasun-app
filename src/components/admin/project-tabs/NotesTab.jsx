@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
 import { useSupabaseProjectHistory } from "@/hooks/useSupabaseProjectHistory";
+import { useAppContext } from "@/App";
 
 export default function NotesTab({ projectType, prospectId, currentUser }) {
+  const { activeAdminUser } = useAppContext();
   const [noteContent, setNoteContent] = useState("");
 
   const {
@@ -28,8 +30,8 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
     try {
       const newNote = await addNote({
         content: noteContent,
-        createdBy: currentUser?.id,
-        createdByName: currentUser?.email || currentUser?.full_name,
+        createdBy: activeAdminUser?.id || currentUser?.id,
+        createdByName: activeAdminUser?.name || activeAdminUser?.email || currentUser?.full_name || currentUser?.email,
       });
 
       if (newNote && addHistoryEvent) {
@@ -40,8 +42,8 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
           metadata: {
             source: "notes_tab",
           },
-          createdBy: currentUser?.id,
-          createdByName: currentUser?.email || currentUser?.full_name,
+          createdBy: activeAdminUser?.id || currentUser?.id,
+          createdByName: activeAdminUser?.name || activeAdminUser?.email || currentUser?.full_name || currentUser?.email,
         });
       }
 

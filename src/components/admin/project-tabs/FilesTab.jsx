@@ -3,8 +3,10 @@ import { Upload, Download, Trash2, FileText, Image, File } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
+import { useAppContext } from '@/App';
 
 const FilesTab = ({ projectType, prospectId, currentUser }) => {
+  const { activeAdminUser } = useAppContext();
   const [selectedFile, setSelectedFile] = useState(null);
 
   const {
@@ -49,8 +51,8 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
             type: uploaded.file_type,
             storage_path: uploaded.storage_path,
           },
-          createdBy: currentUser?.id,
-          createdByName: currentUser?.email || currentUser?.full_name,
+          createdBy: activeAdminUser?.id || currentUser?.id,
+          createdByName: activeAdminUser?.name || activeAdminUser?.email || currentUser?.full_name || currentUser?.email,
         });
       }
 
