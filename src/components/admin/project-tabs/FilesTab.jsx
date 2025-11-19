@@ -75,14 +75,23 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
         return;
       }
       
-      // Créer un élément <a> invisible pour forcer le téléchargement
+      // Télécharger le fichier via fetch pour contourner CORS
+      const response = await fetch(data.signedUrl);
+      const blob = await response.blob();
+      
+      // Créer une URL locale pour le blob
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Créer un lien pour télécharger
       const link = document.createElement('a');
-      link.href = data.signedUrl;
-      link.download = file.file_name; // Force le nom du fichier
-      link.target = '_blank';
+      link.href = blobUrl;
+      link.download = file.file_name;
       document.body.appendChild(link);
       link.click();
+      
+      // Nettoyer
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Error downloading file:', err);
     }
