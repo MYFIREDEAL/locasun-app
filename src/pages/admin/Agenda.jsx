@@ -333,7 +333,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
 
   return (
     <Dialog open={!!activity} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md p-0">
+      <DialogContent className="sm:max-w-md p-0 max-h-[90vh] overflow-y-auto">
         <div className="p-6 space-y-4">
           <DialogHeader className="p-0 text-left space-y-1">
             <DialogTitle className="text-2xl font-bold text-gray-900">{title}</DialogTitle>
@@ -436,9 +436,9 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
                 </div>
               </>
             )}
-             <div className="flex justify-between">
+             <div className="flex flex-col space-y-2">
               <span className="text-gray-500">Note</span>
-              <span className="font-medium text-gray-800 text-right">{activity.notes || 'Aucune'}</span>
+              <p className="font-medium text-gray-800 whitespace-pre-wrap break-words">{activity.notes || 'Aucune'}</p>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Interlocuteur</span>
