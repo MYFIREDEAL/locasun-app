@@ -188,12 +188,6 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         assignedUserId = userData.id;
       }
 
-      console.log('🔍 addAppointment - Using users.id (PK):', {
-        authUserId: user.id,
-        assignedUserId,
-        fromAppointmentData: appointmentData.assignedUserId
-      });
-
       // 🔧 Valeurs par défaut pour colonnes NOT NULL
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);

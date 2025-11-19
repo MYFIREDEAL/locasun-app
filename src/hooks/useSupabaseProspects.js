@@ -161,11 +161,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
       // 🔥 IMPORTANT: La FK prospects.owner_id référence users.user_id (auth UUID)
       // et PAS users.id (UUID PK de la table users)
       // Donc on utilise directement user.id (auth UUID) sans query supplémentaire
-      
-      console.log('🔍 addProspect - Using auth UUID directly:', {
-        authUserId: user.id,
-        willBeUsedAsOwnerId: user.id
-      });
 
       const { data, error: insertError } = await supabase
         .from('prospects')

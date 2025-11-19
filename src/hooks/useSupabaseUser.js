@@ -39,12 +39,6 @@ export const useSupabaseUser = () => {
         if (!userData) throw new Error("User introuvable dans public.users");
 
         setSupabaseUserId(userData.id); // 🔥 UUID PK (pour appointments.assigned_user_id)
-        
-        console.log('🔍 useSupabaseUser loaded:', {
-          authUserId: user.id,
-          supabaseUserId: userData.id,
-          note: 'appointments FK uses supabaseUserId, prospects FK uses authUserId'
-        });
       } catch (err) {
         console.error('❌ Erreur useSupabaseUser:', err);
         setError(err.message);
