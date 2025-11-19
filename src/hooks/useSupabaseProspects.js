@@ -158,24 +158,14 @@ export const useSupabaseProspects = (activeAdminUser) => {
         throw new Error("Utilisateur non authentifié");
       }
 
-      // Récupérer l'ID du user dans public.users
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      console.log('🔍 addProspect DEBUG:', {
+      // 🔥 IMPORTANT: La FK prospects.owner_id référence users.user_id (auth UUID)
+      // et PAS users.id (UUID PK de la table users)
+      // Donc on utilise directement user.id (auth UUID) sans query supplémentaire
+      
+      console.log('🔍 addProspect - Using auth UUID directly:', {
         authUserId: user.id,
-        userDataFromQuery: userData,
-        userDataId: userData?.id,
-        userError
+        willBeUsedAsOwnerId: user.id
       });
-
-      if (userError || !userData) {
-        console.error('❌ Impossible de récupérer les informations utilisateur:', userError);
-        throw new Error("Impossible de récupérer les informations utilisateur");
-      }
 
       const { data, error: insertError } = await supabase
         .from('prospects')
@@ -185,7 +175,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
           phone: prospectData.phone,
           company_name: prospectData.company,
           address: prospectData.address || '',
-          owner_id: userData.id, // Utiliser l'UUID réel du user connecté
+          owner_id: user.id, // 🔥 Auth UUID - correspond à users.user_id (FK)
           status: prospectData.status || 'Intéressé',
           tags: prospectData.tags || [],
           has_appointment: prospectData.hasAppointment || false,

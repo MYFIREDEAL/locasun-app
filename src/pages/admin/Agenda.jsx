@@ -1463,7 +1463,7 @@ const Agenda = () => {
   }, [activeAdminUser, supabaseUsers]);
 
   const userOptions = useMemo(() => {
-    return allowedUsers.map(user => ({ value: user.user_id, label: user.name }));
+    return allowedUsers.map(user => ({ value: user.id, label: user.name }));
   }, [allowedUsers]);
 
   // 🔧 Mettre à jour selectedUserId quand supabaseUserId est chargé
@@ -1679,7 +1679,7 @@ const Agenda = () => {
                       className="w-[180px] justify-between"
                     >
                         <Users className="mr-2 h-4 w-4" />
-                        {selectedUserId ? (supabaseUsers.find(u => u.user_id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
+                        {selectedUserId ? (supabaseUsers.find(u => u.id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>

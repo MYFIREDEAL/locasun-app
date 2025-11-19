@@ -159,40 +159,28 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
   const addAppointment = async (appointmentData) => {
     try {
-      // Récupérer l'UUID du user
+      // Récupérer l'UUID du user authentifié
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!userData) throw new Error("User introuvable");
-
+      // 🔥 IMPORTANT: La FK appointments.assigned_user_id référence users.user_id (auth UUID)
+      // Donc on utilise directement user.id (auth UUID) sans query supplémentaire
+      
       // Valider que contact_id est un UUID valide ou null
       const contactId = appointmentData.contactId && 
                        appointmentData.contactId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
                        ? appointmentData.contactId 
                        : null;
 
-      // 🔧 Convertir assignedUserId (auth.users.id) vers users.id
-      // appointmentData.assignedUserId est un UUID auth.users, mais la FK référence users.id
-      let assignedUserInternalId = userData.id; // Default: user connecté
-      
-      if (appointmentData.assignedUserId && appointmentData.assignedUserId !== user.id) {
-        // L'utilisateur a sélectionné un autre user dans le modal
-        const { data: targetUserData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('user_id', appointmentData.assignedUserId)
-          .single();
-        
-        if (targetUserData) {
-          assignedUserInternalId = targetUserData.id;
-        }
-      }
+      // � appointmentData.assignedUserId est un auth UUID (users.user_id)
+      // Si non fourni, utiliser user.id (user connecté)
+      const assignedUserId = appointmentData.assignedUserId || user.id;
+
+      console.log('🔍 addAppointment - Using auth UUID:', {
+        authUserId: user.id,
+        assignedUserId,
+        fromAppointmentData: appointmentData.assignedUserId
+      });
 
       // 🔧 Valeurs par défaut pour colonnes NOT NULL
       const now = new Date();
@@ -205,7 +193,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           start_time: appointmentData.startTime || now.toISOString(),  // 🔧 Défaut: maintenant
           end_time: appointmentData.endTime || oneHourLater.toISOString(),  // 🔧 Défaut: +1h
           contact_id: contactId,
-          assigned_user_id: assignedUserInternalId,  // 🔧 UUID users.id (NOT auth.users.id)
+          assigned_user_id: assignedUserId,  // � Auth UUID - correspond à users.user_id (FK)
           project_id: appointmentData.projectId || null,
           step: appointmentData.step || null,
           type: appointmentData.type || 'physical',
@@ -265,20 +253,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
       if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
       if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId;
-      
-      // 🔧 Convertir assignedUserId (auth.users.id) vers users.id
-      if (updates.assignedUserId !== undefined) {
-        const { data: targetUserData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('user_id', updates.assignedUserId)
-          .single();
-        
-        if (targetUserData) {
-          dbUpdates.assigned_user_id = targetUserData.id;
-        }
-      }
-      
+      // � updates.assignedUserId est un auth UUID (users.user_id) - pas de conversion nécessaire
+      if (updates.assignedUserId !== undefined) dbUpdates.assigned_user_id = updates.assignedUserId;
       if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
       if (updates.step !== undefined) dbUpdates.step = updates.step;
       if (updates.type !== undefined) dbUpdates.type = updates.type;
