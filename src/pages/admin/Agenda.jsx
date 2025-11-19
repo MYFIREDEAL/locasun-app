@@ -609,6 +609,9 @@ const AgendaSidebar = ({
   const prospects = prospectsProp || [];
   const updateTask = updateTaskProp;
   
+  const [showFutureCalls, setShowFutureCalls] = useState(false);
+  const [showFutureTasks, setShowFutureTasks] = useState(false);
+  
   const visibleCalls = useMemo(() => {
     if (!activeAdminUser) return [];
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
@@ -617,7 +620,32 @@ const AgendaSidebar = ({
     
     return calls.filter(call => {
       const isVisible = allowedIds ? allowedIds.includes(call.assignedUserId) : true;
-      return isVisible && isSameDay(new Date(call.date), currentDate) && call.assignedUserId === selectedUserId;
+      const callStart = call.start instanceof Date ? call.start : new Date(call.start);
+      return isVisible && isSameDay(callStart, currentDate) && call.assignedUserId === selectedUserId;
+    });
+  }, [calls, currentDate, selectedUserId, activeAdminUser]);
+
+  const futureCalls = useMemo(() => {
+    if (!activeAdminUser) return [];
+    const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
+      ? null 
+      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+    
+    const endOfToday = new Date(currentDate);
+    endOfToday.setHours(23, 59, 59, 999);
+    
+    return calls.filter(call => {
+      const isVisible = allowedIds ? allowedIds.includes(call.assignedUserId) : true;
+      const callStart = call.start instanceof Date ? call.start : new Date(call.start);
+      return isVisible && 
+             callStart > endOfToday && 
+             call.assignedUserId === selectedUserId &&
+             call.status !== 'effectue' &&
+             call.status !== 'annule';
+    }).sort((a, b) => {
+      const dateA = a.start instanceof Date ? a.start : new Date(a.start);
+      const dateB = b.start instanceof Date ? b.start : new Date(b.start);
+      return dateA - dateB;
     });
   }, [calls, currentDate, selectedUserId, activeAdminUser]);
 
@@ -629,7 +657,31 @@ const AgendaSidebar = ({
       
     return tasks.filter(task => {
       const isVisible = allowedIds ? allowedIds.includes(task.assignedUserId) : true;
-      return isVisible && isSameDay(new Date(task.date), currentDate) && task.assignedUserId === selectedUserId;
+      const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
+      return isVisible && isSameDay(taskStart, currentDate) && task.assignedUserId === selectedUserId;
+    });
+  }, [tasks, currentDate, selectedUserId, activeAdminUser]);
+
+  const futureTasks = useMemo(() => {
+    if (!activeAdminUser) return [];
+    const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
+      ? null 
+      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+    
+    const endOfToday = new Date(currentDate);
+    endOfToday.setHours(23, 59, 59, 999);
+    
+    return tasks.filter(task => {
+      const isVisible = allowedIds ? allowedIds.includes(task.assignedUserId) : true;
+      const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
+      return isVisible && 
+             taskStart > endOfToday && 
+             task.assignedUserId === selectedUserId &&
+             task.status !== 'effectue';
+    }).sort((a, b) => {
+      const dateA = a.start instanceof Date ? a.start : new Date(a.start);
+      const dateB = b.start instanceof Date ? b.start : new Date(b.start);
+      return dateA - dateB;
     });
   }, [tasks, currentDate, selectedUserId, activeAdminUser]);
 
@@ -809,6 +861,7 @@ const AgendaSidebar = ({
         </div>
       </summary>
       <div className="space-y-2 pt-3 pl-2">
+        {/* Appels du jour */}
         {visibleCalls.length > 0 ? visibleCalls.map(call => {
           const callStart = call.start instanceof Date ? call.start : new Date(call.start);
           const callTime = format(callStart, 'HH:mm');
@@ -822,6 +875,42 @@ const AgendaSidebar = ({
             </div>
           );
         }) : <p className="text-sm text-gray-500 px-2">Aucun appel aujourd'hui.</p>}
+        
+        {/* Bouton "Voir les appels à venir" */}
+        {futureCalls.length > 0 && (
+          <>
+            <button
+              onClick={() => setShowFutureCalls(!showFutureCalls)}
+              className="w-full flex items-center justify-between text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-2 hover:bg-blue-50 rounded transition-colors"
+            >
+              <span>Appels à venir ({futureCalls.length})</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${showFutureCalls ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Appels futurs (conditionnellement affichés) */}
+            {showFutureCalls && (
+              <div className="space-y-2 border-l-2 border-blue-200 pl-3 ml-2">
+                {futureCalls.map(call => {
+                  const callStart = call.start instanceof Date ? call.start : new Date(call.start);
+                  const callTime = format(callStart, 'HH:mm');
+                  const callDate = format(callStart, 'EEE dd MMM', { locale: fr });
+                  
+                  return (
+                    <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-blue-50 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-blue-100 border border-blue-200">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-800 truncate">
+                          {call.title || 'Appel'}
+                        </p>
+                        <p className="text-xs text-gray-500">{callDate}</p>
+                      </div>
+                      <span className="text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-1 rounded-full ml-2">{callTime}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </details>
 
@@ -840,6 +929,7 @@ const AgendaSidebar = ({
         </div>
       </summary>
       <div className="space-y-2 pt-3 pl-2">
+        {/* Tâches du jour */}
         {visibleTasks.length > 0 ? visibleTasks.map(task => {
           const isDone = task.status === 'effectue';
           
@@ -856,6 +946,46 @@ const AgendaSidebar = ({
             </div>
           );
         }) : <p className="text-sm text-gray-500 px-2">Aucune tâche aujourd'hui.</p>}
+        
+        {/* Bouton "Voir les tâches à venir" */}
+        {futureTasks.length > 0 && (
+          <>
+            <button
+              onClick={() => setShowFutureTasks(!showFutureTasks)}
+              className="w-full flex items-center justify-between text-sm text-green-600 hover:text-green-800 font-medium px-2 py-2 hover:bg-green-50 rounded transition-colors"
+            >
+              <span>Tâches à venir ({futureTasks.length})</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${showFutureTasks ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Tâches futures (conditionnellement affichées) */}
+            {showFutureTasks && (
+              <div className="space-y-2 border-l-2 border-green-200 pl-3 ml-2">
+                {futureTasks.map(task => {
+                  const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
+                  const taskDate = format(taskStart, 'EEE dd MMM', { locale: fr });
+                  const isDone = task.status === 'effectue';
+                  
+                  return (
+                    <div 
+                      key={task.id} 
+                      onClick={() => onSelectActivity('task', task)}
+                      className="bg-green-50 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-green-100 border border-green-200"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : 'text-gray-800'} truncate`}>
+                          {task.title || 'Tâche'}
+                        </p>
+                        <p className="text-xs text-gray-500">{taskDate}</p>
+                      </div>
+                      {isDone && <Check className="h-5 w-5 text-green-500 ml-2" />}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </details>
   </aside>
