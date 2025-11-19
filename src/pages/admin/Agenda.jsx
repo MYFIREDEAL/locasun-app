@@ -1053,7 +1053,7 @@ const AddActivityModal = ({
 
     const userOptions = useMemo(() => {
       if (!users || !Array.isArray(users)) return [];
-      return users.map(user => ({ value: user.id, label: user.name }));
+      return users.map(user => ({ value: user.user_id, label: user.name }));
     }, [users]);
     
     useEffect(() => {
@@ -1322,7 +1322,7 @@ const AddActivityModal = ({
                                     <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-full justify-between">
-                                                {assignedUserId ? users.find(u => u.id === assignedUserId)?.name : "Sélectionner un utilisateur..."}
+                                                {assignedUserId ? users.find(u => u.user_id === assignedUserId)?.name : "Sélectionner un utilisateur..."}
                                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                         </PopoverTrigger>
@@ -1426,8 +1426,8 @@ const Agenda = () => {
   const [selectedOtherActivity, setSelectedOtherActivity] = useState({ type: null, data: null });
   const [isAddActivityModalOpen, setAddActivityModalOpen] = useState(false);
   const [activityModalData, setActivityModalData] = useState(null);
-  // 🔧 Utiliser supabaseUserId au lieu de activeAdminUser.id (qui est "user-1")
-  const [selectedUserId, setSelectedUserId] = useState(supabaseUserId || activeAdminUser?.id || 'user-1');
+  // 🔧 Utiliser supabaseUserId (UUID auth.users) - ne JAMAIS utiliser activeAdminUser.id (legacy "user-1")
+  const [selectedUserId, setSelectedUserId] = useState(supabaseUserId || null);
   const [userSearchOpen, setUserSearchOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
@@ -1463,19 +1463,15 @@ const Agenda = () => {
   }, [activeAdminUser, supabaseUsers]);
 
   const userOptions = useMemo(() => {
-    return allowedUsers.map(user => ({ value: user.id, label: user.name }));
+    return allowedUsers.map(user => ({ value: user.user_id, label: user.name }));
   }, [allowedUsers]);
 
   // 🔧 Mettre à jour selectedUserId quand supabaseUserId est chargé
   useEffect(() => {
-    if (supabaseUserId) {
+    if (supabaseUserId && selectedUserId !== supabaseUserId) {
       setSelectedUserId(supabaseUserId);
-    } else if (activeAdminUser) {
-      if (!allowedUsers.some(u => u.id === selectedUserId)) {
-        setSelectedUserId(activeAdminUser.id);
-      }
     }
-  }, [supabaseUserId, activeAdminUser, selectedUserId, allowedUsers]);
+  }, [supabaseUserId]);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
@@ -1675,7 +1671,12 @@ const Agenda = () => {
           <div className="flex items-center space-x-4">
             <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
                 <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-[180px] justify-between">
+                    <Button 
+                      variant="outline" 
+                      role="combobox" 
+                      aria-expanded={userSearchOpen} 
+                      className="w-[180px] justify-between"
+                    >
                         <Users className="mr-2 h-4 w-4" />
                         {selectedUserId ? (supabaseUsers.find(u => u.user_id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
