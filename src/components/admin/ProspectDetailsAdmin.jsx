@@ -644,7 +644,7 @@ const ProspectDetailsAdmin = ({
   // 🔥 Utiliser les utilisateurs Supabase pour le dropdown
   const userOptions = useMemo(() => [
     { value: 'unassigned', label: 'Non assigné' },
-    ...supabaseUsers.map(user => ({ value: user.id, label: user.name }))
+    ...supabaseUsers.map(user => ({ value: user.user_id, label: user.name }))
   ], [supabaseUsers]);
 
   // 🔥 PRIORITÉ: Steps depuis Supabase (real-time), sinon fallback sur getProjectSteps
