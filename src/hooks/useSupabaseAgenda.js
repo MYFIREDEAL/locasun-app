@@ -188,7 +188,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           start_time: appointmentData.startTime || now.toISOString(),  // 🔧 Défaut: maintenant
           end_time: appointmentData.endTime || oneHourLater.toISOString(),  // 🔧 Défaut: +1h
           contact_id: contactId,
-          assigned_user_id: userData.id,  // 🔧 Toujours présent via userData
+          assigned_user_id: appointmentData.assignedUserId || user.id,  // 🔧 Utiliser assignedUserId du modal, sinon user connecté
           project_id: appointmentData.projectId || null,
           step: appointmentData.step || null,
           type: appointmentData.type || 'physical',
@@ -248,6 +248,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
       if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
       if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId;
+      if (updates.assignedUserId !== undefined) dbUpdates.assigned_user_id = updates.assignedUserId;
       if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
       if (updates.step !== undefined) dbUpdates.step = updates.step;
       if (updates.type !== undefined) dbUpdates.type = updates.type;
