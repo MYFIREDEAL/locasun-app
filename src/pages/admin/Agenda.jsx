@@ -54,7 +54,9 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
   if (!event) return null;
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = supabaseUsers.find(u => u.user_id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
+  // 🔥 event.assignedUserId = users.id (UUID PK), donc chercher par u.id
+  // contact.ownerId = users.user_id (auth UUID), donc chercher par u.user_id
+  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -245,7 +247,9 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
   if (!activity) return null;
 
   const contact = prospects.find(p => p.id === activity.contactId);
-  const assignedUser = supabaseUsers.find(u => u.user_id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
+  // 🔥 activity.assignedUserId = users.id (UUID PK), donc chercher par u.id
+  // contact.ownerId = users.user_id (auth UUID), donc chercher par u.user_id
+  const assignedUser = supabaseUsers.find(u => u.id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
