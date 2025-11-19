@@ -3,10 +3,13 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * Hook pour charger les infos de l'utilisateur authentifié depuis Supabase
- * Retourne l'UUID de public.users (pas auth.users)
+ * 🔥 IMPORTANT: Retourne DEUX UUIDs différents :
+ *  - supabaseUserId = public.users.id (UUID PK) → Pour appointments.assigned_user_id FK
+ *  - authUserId = auth.users.id = public.users.user_id → Pour prospects.owner_id FK
  */
 export const useSupabaseUser = () => {
-  const [supabaseUserId, setSupabaseUserId] = useState(null);
+  const [supabaseUserId, setSupabaseUserId] = useState(null); // users.id (PK)
+  const [authUserId, setAuthUserId] = useState(null); // users.user_id (auth UUID)
   const [userEmail, setUserEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,8 +26,9 @@ export const useSupabaseUser = () => {
         if (!user) throw new Error("Non authentifié");
 
         setUserEmail(user.email);
+        setAuthUserId(user.id); // 🔥 Auth UUID (pour prospects.owner_id)
 
-        // 2. Récupérer l'UUID dans public.users
+        // 2. Récupérer l'UUID PK dans public.users
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('id, name, email')
@@ -34,7 +38,13 @@ export const useSupabaseUser = () => {
         if (userError) throw userError;
         if (!userData) throw new Error("User introuvable dans public.users");
 
-        setSupabaseUserId(userData.id);
+        setSupabaseUserId(userData.id); // 🔥 UUID PK (pour appointments.assigned_user_id)
+        
+        console.log('🔍 useSupabaseUser loaded:', {
+          authUserId: user.id,
+          supabaseUserId: userData.id,
+          note: 'appointments FK uses supabaseUserId, prospects FK uses authUserId'
+        });
       } catch (err) {
         console.error('❌ Erreur useSupabaseUser:', err);
         setError(err.message);
@@ -47,7 +57,8 @@ export const useSupabaseUser = () => {
   }, []);
 
   return {
-    supabaseUserId,
+    supabaseUserId, // users.id (UUID PK) - Pour appointments
+    authUserId,     // users.user_id (auth UUID) - Pour prospects
     userEmail,
     loading,
     error

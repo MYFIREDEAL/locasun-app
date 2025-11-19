@@ -1053,7 +1053,8 @@ const AddActivityModal = ({
 
     const userOptions = useMemo(() => {
       if (!users || !Array.isArray(users)) return [];
-      return users.map(user => ({ value: user.user_id, label: user.name }));
+      // 🔥 appointments.assigned_user_id référence users.id (UUID PK), pas user_id
+      return users.map(user => ({ value: user.id, label: user.name }));
     }, [users]);
     
     useEffect(() => {
@@ -1383,7 +1384,7 @@ const Agenda = () => {
   const { activeAdminUser } = useAppContext();
   
   // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
-  const { supabaseUserId, loading: userIdLoading } = useSupabaseUser();
+  const { supabaseUserId, authUserId, loading: userIdLoading } = useSupabaseUser();
   
   // 🔥 Charger TOUS les utilisateurs Supabase pour le dropdown
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();

@@ -163,8 +163,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // 🔥 IMPORTANT: La FK appointments.assigned_user_id référence users.user_id (auth UUID)
-      // Donc on utilise directement user.id (auth UUID) sans query supplémentaire
+      // 🔥 CRITICAL: appointments.assigned_user_id référence users.id (UUID PK), PAS users.user_id !
+      // Donc on doit convertir auth UUID → users.id (UUID PK)
       
       // Valider que contact_id est un UUID valide ou null
       const contactId = appointmentData.contactId && 
@@ -172,11 +172,23 @@ export const useSupabaseAgenda = (activeAdminUser) => {
                        ? appointmentData.contactId 
                        : null;
 
-      // � appointmentData.assignedUserId est un auth UUID (users.user_id)
-      // Si non fourni, utiliser user.id (user connecté)
-      const assignedUserId = appointmentData.assignedUserId || user.id;
+      // 🔥 Si assignedUserId fourni, c'est déjà users.id (UUID PK) du dropdown
+      // Sinon, récupérer users.id du user connecté
+      let assignedUserId = appointmentData.assignedUserId;
+      
+      if (!assignedUserId) {
+        // Récupérer users.id (UUID PK) du user connecté
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (!userData) throw new Error("User introuvable dans public.users");
+        assignedUserId = userData.id;
+      }
 
-      console.log('🔍 addAppointment - Using auth UUID:', {
+      console.log('🔍 addAppointment - Using users.id (PK):', {
         authUserId: user.id,
         assignedUserId,
         fromAppointmentData: appointmentData.assignedUserId
@@ -193,7 +205,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           start_time: appointmentData.startTime || now.toISOString(),  // 🔧 Défaut: maintenant
           end_time: appointmentData.endTime || oneHourLater.toISOString(),  // 🔧 Défaut: +1h
           contact_id: contactId,
-          assigned_user_id: assignedUserId,  // � Auth UUID - correspond à users.user_id (FK)
+          assigned_user_id: assignedUserId,  // 🔥 users.id (UUID PK) - FK vers users(id)
           project_id: appointmentData.projectId || null,
           step: appointmentData.step || null,
           type: appointmentData.type || 'physical',
