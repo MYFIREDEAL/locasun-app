@@ -956,42 +956,49 @@ const AddActivityModal = ({
         const activityDateTime = set(date, { hours, minutes, seconds: 0, milliseconds: 0 });
 
         if (activityType === 'call') {
-            const newCall = {
-                id: isEditing ? initialData.id : Date.now(),
-                name: selectedContact.name,
-                time: format(activityDateTime, 'HH:mm'),
-                date: activityDateTime.toISOString(),
-                details: details,
-                assignedUserId: assignedUserId,
+            // Calls sont maintenant stockés comme appointments avec type: 'call'
+            const endDateTime = add(activityDateTime, { minutes: 30 }); // Durée par défaut 30min
+            const callData = {
+                title: `📞 Appel avec ${selectedContact.name}`,
+                startTime: activityDateTime.toISOString(),
+                endTime: endDateTime.toISOString(),
                 contactId: selectedContact.id,
                 projectId: selectedProject, 
                 step: selectedStep,
+                assignedUserId: assignedUserId,
                 type: 'call',
+                status: isEditing ? initialData.status : 'pending',
+                notes: details,
+                location: null,
             };
             if (isEditing) {
-              updateCall(newCall);
+              updateCall(initialData.id, callData);
               toast({ title: `✅ Appel modifié !`, description: `Les changements ont été enregistrés.` });
             } else {
-              addCall(newCall);
+              addCall(callData);
               toast({ title: `✅ Appel ajouté !`, description: `Appel avec ${selectedContact.name} planifié.` });
             }
         } else if (activityType === 'task') {
-            const newTask = {
-                id: isEditing ? initialData.id : Date.now(),
-                text: details || `Tâche pour ${selectedContact.name}`,
-                done: isEditing ? initialData.done : false,
-                date: activityDateTime.toISOString(),
-                assignedUserId: assignedUserId,
+            // Tasks sont maintenant stockées comme appointments avec type: 'task'
+            const endOfDay = set(activityDateTime, { hours: 23, minutes: 59, seconds: 59 });
+            const taskData = {
+                title: details || `✅ Tâche pour ${selectedContact.name}`,
+                startTime: activityDateTime.toISOString(),
+                endTime: endOfDay.toISOString(),
                 contactId: selectedContact.id,
                 projectId: selectedProject,
                 step: selectedStep,
+                assignedUserId: assignedUserId,
                 type: 'task',
+                status: (isEditing && initialData.done) ? 'effectue' : 'pending',
+                notes: details,
+                location: null,
             };
             if (isEditing) {
-              updateTask(newTask);
+              updateTask(initialData.id, taskData);
               toast({ title: `✅ Tâche modifiée !`, description: `Les changements ont été enregistrés.` });
             } else {
-              addTask(newTask);
+              addTask(taskData);
               toast({ title: `✅ Tâche ajoutée !`, description: `Tâche planifiée pour ${selectedContact.name}.` });
             }
         } else { // RDV

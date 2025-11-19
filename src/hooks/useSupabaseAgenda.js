@@ -4,12 +4,13 @@ import { toast } from '@/components/ui/use-toast';
 
 /**
  * Hook personnalisé pour gérer l'agenda via Supabase
- * Gère les appointments, calls et tasks
+ * Tout est unifié dans la table appointments avec filtrage par type :
+ * - type: "physical" ou "virtual" → RDV affichés dans le calendrier
+ * - type: "call" → Appels affichés dans la sidebar uniquement
+ * - type: "task" → Tâches affichées dans la sidebar uniquement
  */
 export const useSupabaseAgenda = (activeAdminUser) => {
   const [appointments, setAppointments] = useState([]);
-  const [calls, setCalls] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [realtimeChannel, setRealtimeChannel] = useState(null);
@@ -53,74 +54,11 @@ export const useSupabaseAgenda = (activeAdminUser) => {
     }
   };
 
-  const fetchCalls = async () => {
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('calls')
-        .select('*')
-        .order('date', { ascending: true });
-
-      if (fetchError) throw fetchError;
-
-      const transformed = (data || []).map(call => ({
-        id: call.id,
-        name: call.name,
-        date: call.date,
-        time: call.time,
-        contactId: call.contact_id,
-        assignedUserId: call.assigned_user_id,
-        status: call.status,
-        notes: call.notes,
-        createdAt: call.created_at,
-        updatedAt: call.updated_at,
-      }));
-
-      setCalls(transformed);
-      return transformed;
-    } catch (err) {
-      console.error('Erreur chargement calls:', err);
-      throw err;
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('date', { ascending: true });
-
-      if (fetchError) throw fetchError;
-
-      const transformed = (data || []).map(task => ({
-        id: task.id,
-        text: task.text,
-        date: task.date,
-        contactId: task.contact_id,
-        assignedUserId: task.assigned_user_id,
-        done: task.done,
-        notes: task.notes,
-        createdAt: task.created_at,
-        updatedAt: task.updated_at,
-      }));
-
-      setTasks(transformed);
-      return transformed;
-    } catch (err) {
-      console.error('Erreur chargement tasks:', err);
-      throw err;
-    }
-  };
-
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
-      await Promise.all([
-        fetchAppointments(),
-        fetchCalls(),
-        fetchTasks(),
-      ]);
+      await fetchAppointments();
     } catch (err) {
       console.error('Erreur chargement agenda:', err);
       setError(err.message);
@@ -390,306 +328,31 @@ export const useSupabaseAgenda = (activeAdminUser) => {
     }
   };
 
-  // ==================== CALLS ====================
-
-  const addCall = async (callData) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!userData) throw new Error("User introuvable");
-
-      const { data, error: insertError } = await supabase
-        .from('calls')
-        .insert([{
-          name: callData.name,
-          date: callData.date,
-          time: callData.time,
-          contact_id: callData.contactId || null,
-          assigned_user_id: userData.id,
-          status: callData.status || 'pending',
-          notes: callData.notes || null,
-        }])
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      const transformed = {
-        id: data.id,
-        name: data.name,
-        date: data.date,
-        time: data.time,
-        contactId: data.contact_id,
-        assignedUserId: data.assigned_user_id,
-        status: data.status,
-        notes: data.notes,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-
-      setCalls(prev => [...prev, transformed]);
-
-      toast({
-        title: "Succès",
-        description: "Appel ajouté avec succès !",
-        className: "bg-green-500 text-white",
-      });
-
-      return transformed;
-    } catch (err) {
-      console.error('Erreur ajout call:', err);
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible d'ajouter l'appel.",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
-
-  const updateCall = async (id, updates) => {
-    try {
-      const dbUpdates = {};
-      if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.date !== undefined) dbUpdates.date = updates.date;
-      if (updates.time !== undefined) dbUpdates.time = updates.time;
-      if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-
-      const { data, error: updateError } = await supabase
-        .from('calls')
-        .update(dbUpdates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      setCalls(prev =>
-        prev.map(call =>
-          call.id === id
-            ? {
-                id: data.id,
-                name: data.name,
-                date: data.date,
-                time: data.time,
-                contactId: data.contact_id,
-                assignedUserId: data.assigned_user_id,
-                status: data.status,
-                notes: data.notes,
-                createdAt: data.created_at,
-                updatedAt: data.updated_at,
-              }
-            : call
-        )
-      );
-
-      return data;
-    } catch (err) {
-      console.error('Erreur update call:', err);
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible de modifier l'appel.",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
-
-  const deleteCall = async (id) => {
-    try {
-      const { error: deleteError } = await supabase
-        .from('calls')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
-
-      setCalls(prev => prev.filter(call => call.id !== id));
-
-      toast({
-        title: "Succès",
-        description: "Appel supprimé avec succès !",
-        className: "bg-green-500 text-white",
-      });
-    } catch (err) {
-      console.error('Erreur suppression call:', err);
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible de supprimer l'appel.",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
-
-  // ==================== TASKS ====================
-
-  const addTask = async (taskData) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!userData) throw new Error("User introuvable");
-
-      const { data, error: insertError } = await supabase
-        .from('tasks')
-        .insert([{
-          text: taskData.text,
-          date: taskData.date,
-          contact_id: taskData.contactId || null,
-          assigned_user_id: userData.id,
-          done: taskData.done || false,
-          notes: taskData.notes || null,
-        }])
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      const transformed = {
-        id: data.id,
-        text: data.text,
-        date: data.date,
-        contactId: data.contact_id,
-        assignedUserId: data.assigned_user_id,
-        done: data.done,
-        notes: data.notes,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-
-      setTasks(prev => [...prev, transformed]);
-
-      toast({
-        title: "Succès",
-        description: "Tâche ajoutée avec succès !",
-        className: "bg-green-500 text-white",
-      });
-
-      return transformed;
-    } catch (err) {
-      console.error('Erreur ajout task:', err);
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible d'ajouter la tâche.",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
-
-  const updateTask = async (id, updates) => {
-    try {
-      const dbUpdates = {};
-      if (updates.text !== undefined) dbUpdates.text = updates.text;
-      if (updates.date !== undefined) dbUpdates.date = updates.date;
-      if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId;
-      if (updates.done !== undefined) dbUpdates.done = updates.done;
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-
-      const { data, error: updateError } = await supabase
-        .from('tasks')
-        .update(dbUpdates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      setTasks(prev =>
-        prev.map(task =>
-          task.id === id
-            ? {
-                id: data.id,
-                text: data.text,
-                date: data.date,
-                contactId: data.contact_id,
-                assignedUserId: data.assigned_user_id,
-                done: data.done,
-                notes: data.notes,
-                createdAt: data.created_at,
-                updatedAt: data.updated_at,
-              }
-            : task
-        )
-      );
-
-      return data;
-    } catch (err) {
-      console.error('Erreur update task:', err);
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible de modifier la tâche.",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
-
-  const deleteTask = async (id) => {
-    try {
-      const { error: deleteError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
-
-      setTasks(prev => prev.filter(task => task.id !== id));
-
-      toast({
-        title: "Succès",
-        description: "Tâche supprimée avec succès !",
-        className: "bg-green-500 text-white",
-      });
-    } catch (err) {
-      console.error('Erreur suppression task:', err);
-      toast({
-        title: "Erreur",
-        description: err.message || "Impossible de supprimer la tâche.",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
+  // ==================== COMPUTED VALUES ====================
+  // Filtrer appointments par type pour retrocompatibilité
+  const calls = appointments.filter(apt => apt.type === 'call');
+  const tasks = appointments.filter(apt => apt.type === 'task');
 
   return {
     // Data
     appointments,
-    calls,
-    tasks,
+    calls, // Filtrés depuis appointments (type === 'call')
+    tasks, // Filtrés depuis appointments (type === 'task')
     loading,
     error,
     
-    // Appointments
+    // CRUD unifié via appointments
     addAppointment,
     updateAppointment,
     deleteAppointment,
     
-    // Calls
-    addCall,
-    updateCall,
-    deleteCall,
-    
-    // Tasks
-    addTask,
-    updateTask,
-    deleteTask,
+    // Aliases pour retrocompatibilité (utilisent addAppointment en interne)
+    addCall: addAppointment,
+    updateCall: updateAppointment,
+    deleteCall: deleteAppointment,
+    addTask: addAppointment,
+    updateTask: updateAppointment,
+    deleteTask: deleteAppointment,
     
     // Refetch
     refetchAll: fetchAllData,
