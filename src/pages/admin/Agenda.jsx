@@ -751,34 +751,45 @@ const AgendaSidebar = ({
           })}
           
           {/* Appels en retard */}
-          {overdueActivities.calls.map(call => (
-            <div key={`overdue-call-${call.id}`} onClick={() => onSelectActivity('call', call)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-red-500">
-              <div className="flex items-center">
-                <Phone className="mr-2 h-4 w-4 text-red-500" />
-                <p className="font-medium text-sm text-gray-800">{call.name}</p>
+          {overdueActivities.calls.map(call => {
+            const callStart = call.start instanceof Date ? call.start : new Date(call.start);
+            const callTime = format(callStart, 'HH:mm');
+            const callDate = format(callStart, 'dd/MM');
+            
+            return (
+              <div key={`overdue-call-${call.id}`} onClick={() => onSelectActivity('call', call)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-red-500">
+                <div className="flex items-center">
+                  <Phone className="mr-2 h-4 w-4 text-red-500" />
+                  <p className="font-medium text-sm text-gray-800">{call.title || 'Appel'}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full">
+                    {callDate} {callTime}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full">
-                  {format(new Date(call.date), 'dd/MM')} {call.time}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           
           {/* Tâches en retard */}
-          {overdueActivities.tasks.map(task => (
-            <div key={`overdue-task-${task.id}`} onClick={() => onSelectActivity('task', task)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-red-500">
-              <div className="flex items-center">
-                <Check className="mr-2 h-4 w-4 text-red-500" />
-                <p className="text-sm font-medium text-gray-800">{task.text}</p>
+          {overdueActivities.tasks.map(task => {
+            const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
+            const taskDate = format(taskStart, 'dd/MM');
+            
+            return (
+              <div key={`overdue-task-${task.id}`} onClick={() => onSelectActivity('task', task)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-red-500">
+                <div className="flex items-center">
+                  <Check className="mr-2 h-4 w-4 text-red-500" />
+                  <p className="text-sm font-medium text-gray-800">{task.title || 'Tâche'}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full">
+                    {taskDate}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full">
-                  {format(new Date(task.date), 'dd/MM')}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </details>
     )}
@@ -798,12 +809,19 @@ const AgendaSidebar = ({
         </div>
       </summary>
       <div className="space-y-2 pt-3 pl-2">
-        {visibleCalls.length > 0 ? visibleCalls.map(call => (
-          <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50">
-            <p className={`font-medium text-sm text-gray-800 ${call.status === 'effectue' || call.status === 'annule' ? 'line-through text-gray-400' : ''}`}>{call.name}</p>
-            <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">{call.time}</span>
-          </div>
-        )) : <p className="text-sm text-gray-500 px-2">Aucun appel aujourd'hui.</p>}
+        {visibleCalls.length > 0 ? visibleCalls.map(call => {
+          const callStart = call.start instanceof Date ? call.start : new Date(call.start);
+          const callTime = format(callStart, 'HH:mm');
+          
+          return (
+            <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50">
+              <p className={`font-medium text-sm text-gray-800 ${call.status === 'effectue' || call.status === 'annule' ? 'line-through text-gray-400' : ''}`}>
+                {call.title || 'Appel'}
+              </p>
+              <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">{callTime}</span>
+            </div>
+          );
+        }) : <p className="text-sm text-gray-500 px-2">Aucun appel aujourd'hui.</p>}
       </div>
     </details>
 
@@ -822,18 +840,22 @@ const AgendaSidebar = ({
         </div>
       </summary>
       <div className="space-y-2 pt-3 pl-2">
-        {visibleTasks.length > 0 ? visibleTasks.map(task => (
-          <div 
-            key={task.id} 
-            onClick={() => onSelectActivity('task', task)}
-            className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50"
-          >
-            <p className={`text-sm font-medium ${task.done ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-              {task.text}
-            </p>
-            {task.done && <Check className="h-5 w-5 text-green-500" />}
-          </div>
-        )) : <p className="text-sm text-gray-500 px-2">Aucune tâche aujourd'hui.</p>}
+        {visibleTasks.length > 0 ? visibleTasks.map(task => {
+          const isDone = task.status === 'effectue';
+          
+          return (
+            <div 
+              key={task.id} 
+              onClick={() => onSelectActivity('task', task)}
+              className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50"
+            >
+              <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                {task.title || 'Tâche'}
+              </p>
+              {isDone && <Check className="h-5 w-5 text-green-500" />}
+            </div>
+          );
+        }) : <p className="text-sm text-gray-500 px-2">Aucune tâche aujourd'hui.</p>}
       </div>
     </details>
   </aside>
@@ -1461,7 +1483,9 @@ const Agenda = () => {
     return normalizedAppointments.filter(app => {
       const isVisible = allowedIds ? allowedIds.includes(app.assignedUserId) : true;
       const match = app.assignedUserId === selectedUserId;
-      return isVisible && match;
+      // 🔥 IMPORTANT : Exclure les calls et tasks du calendrier (uniquement sidebar)
+      const isCalendarType = app.type === 'physical' || app.type === 'virtual';
+      return isVisible && match && isCalendarType;
     });
   }, [normalizedAppointments, selectedUserId, activeAdminUser]);
 
