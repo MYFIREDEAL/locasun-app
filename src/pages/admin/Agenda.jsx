@@ -1048,7 +1048,7 @@ const AddActivityModal = ({
     const [share, setShare] = useState(false);
     const [contactSearchOpen, setContactSearchOpen] = useState(false);
     const [userSearchOpen, setUserSearchOpen] = useState(false);
-    const [assignedUserId, setAssignedUserId] = useState(defaultAssignedUserId || 'user-1');
+    const [assignedUserId, setAssignedUserId] = useState(defaultAssignedUserId || null);
     const [isEditing, setIsEditing] = useState(false);
 
     const userOptions = useMemo(() => {
@@ -1071,7 +1071,7 @@ const AddActivityModal = ({
         
         setDate(initialStartDate);
         setTime(format(initialStartDate, 'HH:mm'));
-        setAssignedUserId(initialData.assignedUserId || defaultAssignedUserId || 'user-1');
+        setAssignedUserId(initialData.assignedUserId || defaultAssignedUserId || null);
         
         const type = initialData.type || (initialData.color?.includes('blue') ? 'physical' : 'virtual');
         setActivityType(type);
@@ -1104,7 +1104,7 @@ const AddActivityModal = ({
         setTime('14:30');
         setDetails('');
         setShare(false);
-        setAssignedUserId(defaultAssignedUserId || 'user-1');
+        setAssignedUserId(defaultAssignedUserId || null);
         setIsEditing(false);
     };
 
