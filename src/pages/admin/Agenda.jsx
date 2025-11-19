@@ -848,9 +848,9 @@ const AgendaSidebar = ({
 
     <details open className="group">
       <summary className="cursor-pointer">
-        <div className="bg-blue-500 text-white p-3 rounded-lg flex items-center justify-between shadow-md">
+        <div className="bg-yellow-500 text-white p-3 rounded-lg flex items-center justify-between shadow-md">
           <h3 className="flex items-center text-base font-semibold">
-            <Phone className="mr-2 h-5 w-5" /> Appels du jour
+            <Phone className="mr-2 h-5 w-5" /> Appels
             {overdueActivities.calls.length > 0 && (
               <span className="ml-2 text-xs font-bold bg-red-500 text-white px-2 py-1 rounded-full">
                 {overdueActivities.calls.length} en retard
@@ -867,11 +867,11 @@ const AgendaSidebar = ({
           const callTime = format(callStart, 'HH:mm');
           
           return (
-            <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50">
-              <p className={`font-medium text-sm text-gray-800 ${call.status === 'effectue' || call.status === 'annule' ? 'line-through text-gray-400' : ''}`}>
+            <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-yellow-200">
+              <p className={`font-medium text-sm ${call.status === 'effectue' || call.status === 'annule' ? 'line-through text-gray-400' : ''}`}>
                 {call.title || 'Appel'}
               </p>
-              <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">{callTime}</span>
+              <span className="text-xs font-semibold text-yellow-700 bg-yellow-200 px-2 py-1 rounded-full">{callTime}</span>
             </div>
           );
         }) : <p className="text-sm text-gray-500 px-2">Aucun appel aujourd'hui.</p>}
@@ -881,7 +881,7 @@ const AgendaSidebar = ({
           <>
             <button
               onClick={() => setShowFutureCalls(!showFutureCalls)}
-              className="w-full flex items-center justify-between text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-2 hover:bg-blue-50 rounded transition-colors"
+              className="w-full flex items-center justify-between text-sm text-yellow-600 hover:text-yellow-800 font-medium px-2 py-2 hover:bg-yellow-50 rounded transition-colors"
             >
               <span>Appels à venir ({futureCalls.length})</span>
               <ChevronDown className={`h-4 w-4 transition-transform ${showFutureCalls ? 'rotate-180' : ''}`} />
@@ -889,21 +889,21 @@ const AgendaSidebar = ({
             
             {/* Appels futurs (conditionnellement affichés) */}
             {showFutureCalls && (
-              <div className="space-y-2 border-l-2 border-blue-200 pl-3 ml-2">
+              <div className="space-y-2 border-l-2 border-yellow-200 pl-3 ml-2">
                 {futureCalls.map(call => {
                   const callStart = call.start instanceof Date ? call.start : new Date(call.start);
                   const callTime = format(callStart, 'HH:mm');
                   const callDate = format(callStart, 'EEE dd MMM', { locale: fr });
                   
                   return (
-                    <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-blue-50 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-blue-100 border border-blue-200">
+                    <div key={call.id} onClick={() => onSelectActivity('call', call)} className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-yellow-200">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-gray-800 truncate">
+                        <p className="font-medium text-sm truncate">
                           {call.title || 'Appel'}
                         </p>
                         <p className="text-xs text-gray-500">{callDate}</p>
                       </div>
-                      <span className="text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-1 rounded-full ml-2">{callTime}</span>
+                      <span className="text-xs font-semibold text-yellow-700 bg-yellow-200 px-2 py-1 rounded-full ml-2">{callTime}</span>
                     </div>
                   );
                 })}
@@ -937,12 +937,12 @@ const AgendaSidebar = ({
             <div 
               key={task.id} 
               onClick={() => onSelectActivity('task', task)}
-              className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50"
+              className="bg-green-100 border-l-4 border-green-500 text-green-800 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-green-200"
             >
-              <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+              <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''}`}>
                 {task.title || 'Tâche'}
               </p>
-              {isDone && <Check className="h-5 w-5 text-green-500" />}
+              {isDone && <Check className="h-5 w-5 text-green-600" />}
             </div>
           );
         }) : <p className="text-sm text-gray-500 px-2">Aucune tâche aujourd'hui.</p>}
@@ -970,15 +970,15 @@ const AgendaSidebar = ({
                     <div 
                       key={task.id} 
                       onClick={() => onSelectActivity('task', task)}
-                      className="bg-green-50 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-green-100 border border-green-200"
+                      className="bg-green-100 border-l-4 border-green-500 text-green-800 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-green-200"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : 'text-gray-800'} truncate`}>
+                        <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''} truncate`}>
                           {task.title || 'Tâche'}
                         </p>
                         <p className="text-xs text-gray-500">{taskDate}</p>
                       </div>
-                      {isDone && <Check className="h-5 w-5 text-green-500 ml-2" />}
+                      {isDone && <Check className="h-5 w-5 text-green-600 ml-2" />}
                     </div>
                   );
                 })}
