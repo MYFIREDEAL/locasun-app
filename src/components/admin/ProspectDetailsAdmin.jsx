@@ -981,11 +981,12 @@ const ProspectDetailsAdmin = ({
       finalOwnerId = supabaseUserId;
     }
     
-    // ✅ Modifier le ref sans re-render
+    // ✅ Modifier le ref ET forcer un re-render pour mettre à jour l'affichage
     editableProspectRef.current = {
       ...editableProspectRef.current,
       ownerId: finalOwnerId,
     };
+    forceUpdate({}); // 🔥 Forcer le re-render pour afficher le changement immédiatement
   };
 
   const activeProjectData = projectsData[activeProjectTag];
