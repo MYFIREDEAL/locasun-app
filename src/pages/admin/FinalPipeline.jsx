@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps';
 
 const COLUMN_COLORS = [
@@ -164,6 +165,9 @@ const FinalPipeline = () => {
 
   // 🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  
+  // 🔥 Get auth UUID for current user (for "mine" filter)
+  const { authUserId } = useSupabaseUser();
 
   // Transformer le array Supabase en objet { userId: userObject }
   const usersFromSupabase = useMemo(() => {
@@ -230,7 +234,8 @@ const FinalPipeline = () => {
   }, [activeAdminUser, usersFromSupabase]);
 
   const userOptions = useMemo(() => {
-    const options = allowedUsers.map(user => ({ value: user.id, label: user.name }));
+    // 🔥 prospects.owner_id référence users.user_id (auth UUID), pas users.id
+    const options = allowedUsers.map(user => ({ value: user.user_id, label: user.name }));
     // Ajouter "Tous les utilisateurs" seulement si accès à 2+ utilisateurs
     if (allowedUsers.length > 1) {
       return [{ value: 'all', label: 'Tous les utilisateurs' }, ...options];
@@ -245,7 +250,8 @@ const FinalPipeline = () => {
       if (allowedUsers.length > 1) {
         setSelectedUserId('all');
       } else if (allowedUsers.length === 1) {
-        setSelectedUserId(allowedUsers[0].id);
+        // 🔥 prospects.owner_id référence users.user_id (auth UUID)
+        setSelectedUserId(allowedUsers[0].user_id);
       }
     }
   }, [activeAdminUser, selectedUserId, allowedUsers]);
@@ -315,11 +321,12 @@ const FinalPipeline = () => {
     }
 
     // Puis filtrer par "Mes prospects" si nécessaire
-    if (filter === 'mine' && activeAdminUser?.id) {
-      return filtered.filter((prospect) => prospect.ownerId === activeAdminUser.id);
+    if (filter === 'mine' && authUserId) {
+      // 🔥 prospects.owner_id référence users.user_id (auth UUID)
+      return filtered.filter((prospect) => prospect.ownerId === authUserId);
     }
     return filtered;
-  }, [prospects, filter, activeAdminUser, selectedUserId, selectedTags, searchQuery]);
+  }, [prospects, filter, authUserId, selectedUserId, selectedTags, searchQuery]);
 
   const { stagesWithCounts, prospectsByStage } = useMemo(() => {
     const stageBuckets = stageDefinitions.reduce((acc, stage) => {
