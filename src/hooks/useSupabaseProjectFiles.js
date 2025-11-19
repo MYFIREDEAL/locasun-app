@@ -54,11 +54,25 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
           filter: `project_type=eq.${projectType}`,
         },
         (payload) => {
+          console.log("🔥 Realtime event:", payload.eventType, payload);
+          
           setFiles((current) => {
             const { eventType, new: newRow, old: oldRow } = payload;
 
-            if (eventType === "INSERT") return [newRow, ...current];
-            if (eventType === "DELETE") return current.filter((f) => f.id !== oldRow.id);
+            if (eventType === "INSERT") {
+              return [newRow, ...current];
+            }
+            
+            if (eventType === "DELETE") {
+              const idToDelete = oldRow?.id || payload.old?.id;
+              console.log("🗑️ Deleting file with id:", idToDelete);
+              return current.filter((f) => f.id !== idToDelete);
+            }
+            
+            if (eventType === "UPDATE") {
+              return current.map((f) => (f.id === newRow.id ? newRow : f));
+            }
+            
             return current;
           });
         }
