@@ -30,37 +30,44 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
   });
 
   const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
 
-    setSelectedFile(file);
-    
     try {
-      const uploaded = await uploadFile({
-        file,
-        uploadedBy: currentUser?.id,
+      // Uploader tous les fichiers en parallèle
+      const uploadPromises = files.map(async (file) => {
+        setSelectedFile(file);
+        
+        const uploaded = await uploadFile({
+          file,
+          uploadedBy: currentUser?.id,
+        });
+
+        if (uploaded && addHistoryEvent) {
+          await addHistoryEvent({
+            event_type: "file",
+            title: "Fichier ajouté",
+            description: uploaded.file_name,
+            metadata: {
+              size: uploaded.file_size,
+              type: uploaded.file_type,
+              storage_path: uploaded.storage_path,
+            },
+            createdBy: activeAdminUser?.id || currentUser?.id,
+            createdByName: activeAdminUser?.name || activeAdminUser?.email || currentUser?.full_name || currentUser?.email,
+          });
+        }
+
+        return uploaded;
       });
 
-      if (uploaded && addHistoryEvent) {
-        await addHistoryEvent({
-          event_type: "file",
-          title: "Fichier ajouté",
-          description: uploaded.file_name,
-          metadata: {
-            size: uploaded.file_size,
-            type: uploaded.file_type,
-            storage_path: uploaded.storage_path,
-          },
-          createdBy: activeAdminUser?.id || currentUser?.id,
-          createdByName: activeAdminUser?.name || activeAdminUser?.email || currentUser?.full_name || currentUser?.email,
-        });
-      }
-
+      await Promise.all(uploadPromises);
+      
       setSelectedFile(null);
-      // Reset input
       event.target.value = '';
     } catch (err) {
-      console.error('Error uploading file:', err);
+      console.error('Error uploading files:', err);
+      setSelectedFile(null);
     }
   };
 
@@ -152,7 +159,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
             {uploading ? 'Upload en cours...' : 'Cliquez pour ajouter des fichiers'}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            PDF, images, documents (max 10 MB)
+            PDF, images, documents • Sélection multiple possible • Max 10 MB par fichier
           </p>
           <input
             id="file-upload"
@@ -161,6 +168,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
             className="hidden"
             accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
             disabled={uploading}
+            multiple
           />
         </label>
       </div>
