@@ -232,12 +232,13 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
 
 const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects, supabaseUsers, updateCall, deleteCall, updateTask, deleteTask }) => {
   const [status, setStatus] = useState(activity?.status || 'pending');
-  const [done, setDone] = useState(activity?.done || false);
+  // 🔥 FIX: Tasks utilisent status 'effectue' maintenant au lieu de done boolean
+  const [done, setDone] = useState(activity?.status === 'effectue');
 
   useEffect(() => {
     if (activity) {
       if (type === 'call') setStatus(activity.status || 'pending');
-      if (type === 'task') setDone(activity.done || false);
+      if (type === 'task') setDone(activity.status === 'effectue');
     }
   }, [activity, type]);
 
@@ -248,18 +249,18 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    const updatedActivity = { ...activity, status: newStatus };
+    // 🔥 FIX: Passer ID + updates séparément (format attendu par useSupabaseAgenda)
     if (type === 'call') {
-      updateCall(updatedActivity);
+      updateCall(activity.id, { status: newStatus });
     }
     setTimeout(() => onClose(), 300);
   };
 
   const handleDoneChange = (newDone) => {
     setDone(newDone);
-    const updatedActivity = { ...activity, done: newDone };
+    // 🔥 FIX: Tasks utilisent status 'effectue' maintenant, pas done boolean
     if (type === 'task') {
-      updateTask(updatedActivity);
+      updateTask(activity.id, { status: newDone ? 'effectue' : 'pending' });
     }
     setTimeout(() => onClose(), 300);
   };
@@ -319,8 +320,10 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
   const isCall = type === 'call';
   const isTask = type === 'task';
 
-  const title = isCall ? `Appel: ${activity.name}` : `Tâche: ${activity.text}`;
-  const description = `Prévu le ${capitalizeFirstLetter(format(new Date(activity.date), "eeee d MMMM 'à' HH:mm", { locale: fr }))}`;
+  // 🔥 FIX: Utiliser les champs appointments (title, start) au lieu de (name/text, date)
+  const activityStart = activity.start instanceof Date ? activity.start : new Date(activity.start);
+  const title = isCall ? `Appel: ${activity.title || 'Sans titre'}` : `Tâche: ${activity.title || 'Sans titre'}`;
+  const description = `Prévu le ${capitalizeFirstLetter(format(activityStart, "eeee d MMMM 'à' HH:mm", { locale: fr }))}`;
 
   const callStatusConfig = {
     pending: { color: 'bg-blue-500', label: 'Qualifier votre activité' },
