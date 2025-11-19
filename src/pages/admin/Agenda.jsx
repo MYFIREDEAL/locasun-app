@@ -425,7 +425,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
                 <div className="flex justify-between">
                   <span className="text-gray-500">Projet</span>
                   <span className="font-medium text-gray-800">
-                    {projectsData[activity.projectId]?.title || 'Aucun'}
+                    {allProjectsData[activity.projectId]?.title || 'Aucun'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -438,7 +438,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
             )}
              <div className="flex justify-between">
               <span className="text-gray-500">Note</span>
-              <span className="font-medium text-gray-800 text-right">{activity.details || (isTask ? activity.text : 'Aucune')}</span>
+              <span className="font-medium text-gray-800 text-right">{activity.notes || 'Aucune'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Interlocuteur</span>
@@ -469,7 +469,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
            <Button 
               className={
                 (type === 'call' && activity?.status && activity.status !== 'pending') ||
-                (type === 'task' && activity?.done)
+                (type === 'task' && activity?.status === 'effectue')
                   ? "bg-gray-400 hover:bg-gray-500 text-gray-700" 
                   : "bg-blue-600 hover:bg-blue-700"
               }
