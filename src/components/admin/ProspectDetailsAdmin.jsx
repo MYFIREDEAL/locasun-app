@@ -1133,7 +1133,7 @@ const ProspectDetailsAdmin = ({
                         />
                       ) : (
                         <p className="text-gray-700">
-                          {supabaseUsers.find(u => u.user_id === prospect.ownerId)?.name || 'Non assigné'}
+                          {supabaseUsers.find(u => u.user_id === editableProspectRef.current.ownerId)?.name || 'Non assigné'}
                         </p>
                       )}
                     </div>
