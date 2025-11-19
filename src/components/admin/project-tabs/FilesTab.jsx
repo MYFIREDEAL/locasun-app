@@ -75,7 +75,14 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
         return;
       }
       
-      window.open(data.signedUrl, '_blank');
+      // Créer un élément <a> invisible pour forcer le téléchargement
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.download = file.file_name; // Force le nom du fichier
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error('Error downloading file:', err);
     }
