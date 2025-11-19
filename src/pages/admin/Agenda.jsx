@@ -54,7 +54,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
   if (!event) return null;
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
+  const assignedUser = supabaseUsers.find(u => u.user_id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -245,7 +245,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
   if (!activity) return null;
 
   const contact = prospects.find(p => p.id === activity.contactId);
-  const assignedUser = supabaseUsers.find(u => u.id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
+  const assignedUser = supabaseUsers.find(u => u.user_id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -1677,7 +1677,7 @@ const Agenda = () => {
                 <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-[180px] justify-between">
                         <Users className="mr-2 h-4 w-4" />
-                        {selectedUserId ? (supabaseUsers.find(u => u.id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
+                        {selectedUserId ? (supabaseUsers.find(u => u.user_id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>

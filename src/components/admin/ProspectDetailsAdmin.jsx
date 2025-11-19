@@ -1132,7 +1132,7 @@ const ProspectDetailsAdmin = ({
                         />
                       ) : (
                         <p className="text-gray-700">
-                          {supabaseUsers.find(u => u.id === prospect.ownerId)?.name || 'Non assigné'}
+                          {supabaseUsers.find(u => u.user_id === prospect.ownerId)?.name || 'Non assigné'}
                         </p>
                       )}
                     </div>
@@ -1502,7 +1502,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
   if (!activity) return null;
 
   const contact = prospects.find(p => p.id === activity.contactId);
-  const assignedUser = supabaseUsers.find(u => u.id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
+  const assignedUser = supabaseUsers.find(u => u.user_id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
   
   // Fonction pour capitaliser la première lettre
   const capitalizeFirstLetter = (string) => {
@@ -1759,7 +1759,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
   if (!event) return null;
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.id === contact.ownerId) : null);
+  const assignedUser = supabaseUsers.find(u => u.user_id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   // Fonction pour capitaliser la première lettre
   const capitalizeFirstLetter = (string) => {
