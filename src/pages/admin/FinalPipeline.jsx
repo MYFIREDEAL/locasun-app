@@ -169,11 +169,13 @@ const FinalPipeline = () => {
   // 🔥 Get auth UUID for current user (for "mine" filter)
   const { authUserId } = useSupabaseUser();
 
-  // Transformer le array Supabase en objet { userId: userObject }
+  // Transformer le array Supabase en objet { user_id: userObject }
+  // 🔥 Indexé par user.user_id (auth UUID) car prospects.owner_id référence users.user_id
   const usersFromSupabase = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
-      acc[user.id] = {
+      acc[user.user_id] = {
         id: user.id,
+        user_id: user.user_id,
         name: user.name,
         email: user.email,
         role: user.role,
