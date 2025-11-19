@@ -935,6 +935,7 @@ const AgendaSidebar = ({
         {/* Tâches du jour */}
         {visibleTasks.length > 0 ? visibleTasks.map(task => {
           const isDone = task.status === 'effectue';
+          const contact = prospects.find(p => p.id === task.contactId);
           
           return (
             <div 
@@ -942,10 +943,15 @@ const AgendaSidebar = ({
               onClick={() => onSelectActivity('task', task)}
               className="bg-green-100 border-l-4 border-green-500 text-green-800 rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-green-200"
             >
-              <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''}`}>
-                {task.title || 'Tâche'}
-              </p>
-              {isDone && <Check className="h-5 w-5 text-green-600" />}
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''} truncate`}>
+                  {task.title || 'Tâche'}
+                </p>
+                {contact && (
+                  <p className="text-xs text-green-600 font-medium mt-1">👤 {contact.name}</p>
+                )}
+              </div>
+              {isDone && <Check className="h-5 w-5 text-green-600 ml-2 flex-shrink-0" />}
             </div>
           );
         }) : <p className="text-sm text-gray-500 px-2">Aucune tâche aujourd'hui.</p>}
@@ -968,6 +974,7 @@ const AgendaSidebar = ({
                   const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
                   const taskDate = format(taskStart, 'EEE dd MMM', { locale: fr });
                   const isDone = task.status === 'effectue';
+                  const contact = prospects.find(p => p.id === task.contactId);
                   
                   return (
                     <div 
@@ -979,9 +986,17 @@ const AgendaSidebar = ({
                         <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''} truncate`}>
                           {task.title || 'Tâche'}
                         </p>
-                        <p className="text-xs text-gray-500">{taskDate}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-gray-500">{taskDate}</p>
+                          {contact && (
+                            <>
+                              <span className="text-xs text-gray-400">•</span>
+                              <p className="text-xs text-green-600 font-medium truncate">👤 {contact.name}</p>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      {isDone && <Check className="h-5 w-5 text-green-600 ml-2" />}
+                      {isDone && <Check className="h-5 w-5 text-green-600 ml-2 flex-shrink-0" />}
                     </div>
                   );
                 })}
