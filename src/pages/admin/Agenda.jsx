@@ -1468,10 +1468,10 @@ const Agenda = () => {
 
   // 🔧 Mettre à jour selectedUserId quand supabaseUserId est chargé
   useEffect(() => {
-    if (supabaseUserId && selectedUserId !== supabaseUserId) {
+    if (supabaseUserId && !selectedUserId) {
       setSelectedUserId(supabaseUserId);
     }
-  }, [supabaseUserId]);
+  }, [supabaseUserId, selectedUserId]);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
@@ -1626,7 +1626,8 @@ const Agenda = () => {
     
     return normalizedAppointments.filter(app => {
       const isVisible = allowedIds ? allowedIds.includes(app.assignedUserId) : true;
-      const match = app.assignedUserId === selectedUserId;
+      // 🔥 Si selectedUserId est défini, filtrer par cet utilisateur, sinon ne rien afficher
+      const match = selectedUserId ? (app.assignedUserId === selectedUserId) : false;
       // 🔥 IMPORTANT : Exclure les calls et tasks du calendrier (uniquement sidebar)
       const isCalendarType = app.type === 'physical' || app.type === 'virtual';
       return isVisible && match && isCalendarType;
