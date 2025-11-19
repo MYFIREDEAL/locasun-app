@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
 import { useSupabaseProjectHistory } from "@/hooks/useSupabaseProjectHistory";
 import { useAppContext } from "@/App";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function NotesTab({ projectType, prospectId, currentUser }) {
   const { activeAdminUser } = useAppContext();
   const [noteContent, setNoteContent] = useState("");
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   const {
     notes,
@@ -103,7 +105,27 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
 
       {/* Liste des notes */}
       <div className="bg-white rounded-xl border p-4 flex-1 overflow-y-auto">
-        <h4 className="font-semibold text-sm mb-3">Notes précédentes</h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-semibold text-sm">Notes précédentes</h4>
+          {notes && notes.length > 3 && (
+            <button
+              onClick={() => setShowAllNotes(!showAllNotes)}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+            >
+              {showAllNotes ? (
+                <>
+                  <span>Réduire</span>
+                  <ChevronUp className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <span>Voir tout ({notes.length})</span>
+                  <ChevronDown className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         {loading && (
           <p className="text-xs text-gray-400">Chargement des notes…</p>
@@ -116,7 +138,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
         )}
 
         <div className="flex flex-col gap-3">
-          {notes?.map((note) => (
+          {(showAllNotes ? notes : notes?.slice(0, 3))?.map((note) => (
             <div key={note.id} className="border rounded-lg p-3 text-sm bg-gray-50">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-gray-600">
