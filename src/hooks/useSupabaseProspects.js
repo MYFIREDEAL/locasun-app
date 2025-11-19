@@ -165,7 +165,15 @@ export const useSupabaseProspects = (activeAdminUser) => {
         .eq('user_id', user.id)
         .single();
 
+      console.log('🔍 addProspect DEBUG:', {
+        authUserId: user.id,
+        userDataFromQuery: userData,
+        userDataId: userData?.id,
+        userError
+      });
+
       if (userError || !userData) {
+        console.error('❌ Impossible de récupérer les informations utilisateur:', userError);
         throw new Error("Impossible de récupérer les informations utilisateur");
       }
 
