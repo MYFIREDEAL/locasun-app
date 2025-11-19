@@ -316,7 +316,7 @@ const CompleteOriginalContacts = () => {
       // Si un seul utilisateur autorisé, ne pas afficher "Tous les utilisateurs"
       return allowedUsers.length === 1 ? allowedUsers[0].name : 'Tous les utilisateurs';
     }
-    return allowedUsers.find(u => u.id === selectedUserId)?.name || 'Utilisateur inconnu';
+    return allowedUsers.find(u => u.user_id === selectedUserId)?.name || 'Utilisateur inconnu';
   }, [selectedUserId, allowedUsers]);
 
   // Initialiser selectedUserId selon le nombre d'utilisateurs autorisés
@@ -324,7 +324,7 @@ const CompleteOriginalContacts = () => {
     if (activeAdminUser && selectedUserId === null) {
       if (allowedUsers.length === 1) {
         // Un seul utilisateur : le sélectionner automatiquement
-        setSelectedUserId(allowedUsers[0].id);
+        setSelectedUserId(allowedUsers[0].user_id);
       } else if (allowedUsers.length > 1) {
         // Plusieurs utilisateurs : ne rien sélectionner (affichera "Tous")
         setSelectedUserId(null);
@@ -571,8 +571,8 @@ const CompleteOriginalContacts = () => {
                       <button
                         key={user.id}
                         type="button"
-                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedUserId === user.id ? 'bg-gray-50 font-medium' : ''}`}
-                        onClick={() => handleUserSelect(user.id)}
+                        className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${selectedUserId === user.user_id ? 'bg-gray-50 font-medium' : ''}`}
+                        onClick={() => handleUserSelect(user.user_id)}
                       >
                         {user.name}
                       </button>
