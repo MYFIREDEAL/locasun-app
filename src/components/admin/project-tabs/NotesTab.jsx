@@ -68,7 +68,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
           </div>
 
           <textarea
-            className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-yellow-50"
             rows={4}
             placeholder="Ajoute une note interne liée à ce projet…"
             value={noteContent}
