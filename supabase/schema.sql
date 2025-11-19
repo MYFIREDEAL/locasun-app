@@ -445,7 +445,7 @@ CREATE TABLE public.appointments (
   assigned_user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   project_id TEXT, -- Type de projet (ACC, Centrale, etc.)
   step TEXT, -- Étape du projet concernée
-  type TEXT DEFAULT 'physical' CHECK (type IN ('physical', 'virtual')), -- Type de RDV : physique ou visio
+  type TEXT DEFAULT 'physical' CHECK (type IN ('physical', 'virtual', 'call', 'task')), -- Type: physical/virtual (calendrier), call/task (sidebar uniquement)
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'effectue', 'annule', 'reporte')),
   rescheduled_from_id UUID REFERENCES public.appointments(id) ON DELETE SET NULL, -- Lien vers le RDV d'origine si c'est un report
   share BOOLEAN DEFAULT FALSE, -- Partager avec le client
