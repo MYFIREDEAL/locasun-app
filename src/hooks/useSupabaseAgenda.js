@@ -177,6 +177,23 @@ export const useSupabaseAgenda = (activeAdminUser) => {
                        ? appointmentData.contactId 
                        : null;
 
+      // 🔧 Convertir assignedUserId (auth.users.id) vers users.id
+      // appointmentData.assignedUserId est un UUID auth.users, mais la FK référence users.id
+      let assignedUserInternalId = userData.id; // Default: user connecté
+      
+      if (appointmentData.assignedUserId && appointmentData.assignedUserId !== user.id) {
+        // L'utilisateur a sélectionné un autre user dans le modal
+        const { data: targetUserData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('user_id', appointmentData.assignedUserId)
+          .single();
+        
+        if (targetUserData) {
+          assignedUserInternalId = targetUserData.id;
+        }
+      }
+
       // 🔧 Valeurs par défaut pour colonnes NOT NULL
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
@@ -188,7 +205,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           start_time: appointmentData.startTime || now.toISOString(),  // 🔧 Défaut: maintenant
           end_time: appointmentData.endTime || oneHourLater.toISOString(),  // 🔧 Défaut: +1h
           contact_id: contactId,
-          assigned_user_id: appointmentData.assignedUserId || user.id,  // 🔧 Utiliser assignedUserId du modal, sinon user connecté
+          assigned_user_id: assignedUserInternalId,  // 🔧 UUID users.id (NOT auth.users.id)
           project_id: appointmentData.projectId || null,
           step: appointmentData.step || null,
           type: appointmentData.type || 'physical',
@@ -248,7 +265,20 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
       if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
       if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId;
-      if (updates.assignedUserId !== undefined) dbUpdates.assigned_user_id = updates.assignedUserId;
+      
+      // 🔧 Convertir assignedUserId (auth.users.id) vers users.id
+      if (updates.assignedUserId !== undefined) {
+        const { data: targetUserData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('user_id', updates.assignedUserId)
+          .single();
+        
+        if (targetUserData) {
+          dbUpdates.assigned_user_id = targetUserData.id;
+        }
+      }
+      
       if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
       if (updates.step !== undefined) dbUpdates.step = updates.step;
       if (updates.type !== undefined) dbUpdates.type = updates.type;
