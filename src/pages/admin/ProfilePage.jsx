@@ -993,6 +993,7 @@ const ProfilePage = () => {
   const {
     projectsData,
     setProjectsData,
+    deleteProjectTemplate, // 🔥 Fonction de suppression directe depuis Supabase
     prompts: promptsFromContext,
     formContactConfig,
     setFormContactConfig,
@@ -1574,21 +1575,27 @@ const ProfilePage = () => {
     }
   };
   const handleDeleteProject = async projectType => {
-    const {
-      [projectType]: _,
-      ...remainingProjects
-    } = projectsData;
-    
     try {
-      await setProjectsData(remainingProjects);
+      // 🔥 Trouver le template par type pour obtenir son ID Supabase (UUID)
+      const template = projectsData[projectType];
+      
+      if (!template || !template.id) {
+        throw new Error('Template introuvable ou ID manquant');
+      }
+      
+      // 🔥 Appeler deleteTemplate avec l'UUID Supabase (pas le type string)
+      await deleteProjectTemplate(template.id);
+      
       toast({
         title: "Projet supprimé !",
+        description: `Le projet "${template.title}" a été supprimé de la base de données.`,
         className: "bg-green-500 text-white"
       });
     } catch (error) {
+      console.error('❌ Erreur suppression projet:', error);
       toast({
         title: "Erreur !",
-        description: "Impossible de supprimer le projet.",
+        description: error.message || "Impossible de supprimer le projet.",
         variant: "destructive"
       });
     }

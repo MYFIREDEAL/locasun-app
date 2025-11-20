@@ -1265,6 +1265,7 @@ function App() {
   const appState = { 
     userProjects, setUserProjects, addProject, 
     projectsData, setProjectsData: handleSetProjectsData,
+    deleteProjectTemplate: deleteTemplate, // 🔥 Exposer deleteTemplate pour suppression directe
     prospects, setProspects, addProspect, updateProspect, 
     currentUser, setCurrentUser: handleSetCurrentUser, 
     appointments, addAppointment, updateAppointment, deleteAppointment, getSharedAppointments,
