@@ -1574,6 +1574,23 @@ const ProfilePage = () => {
       });
     }
   };
+  const handleDeleteProjectClick = (projectType) => {
+    // 🔒 Protection UX : Empêcher la suppression des projets "En ligne"
+    const template = projectsData[projectType];
+    
+    if (template?.isPublic) {
+      toast({
+        title: "Impossible de supprimer",
+        description: "Désactivez ce projet avant de le supprimer.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Si le projet est hors ligne, procéder à la suppression
+    handleDeleteProject(projectType);
+  };
+
   const handleDeleteProject = async projectType => {
     try {
       // 🔥 Trouver le template par type pour obtenir son ID Supabase (UUID)
@@ -2323,7 +2340,7 @@ const ProfilePage = () => {
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteProject(p.type)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
+                                                <AlertDialogAction onClick={() => handleDeleteProjectClick(p.type)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
