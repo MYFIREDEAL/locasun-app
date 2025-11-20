@@ -3,3 +3,17 @@ node_modules
 dist/
 .env
 .env.local
+
+# Fichiers SQL temporaires avec mots de passe
+reset_*_password*.sql
+fix_*.sql
+*_password*.sql
+
+# Fichiers de diagnostic et debug temporaires
+DIAGNOSTIC_*.md
+check_*.sql
+diagnostic_*.sql
+verify_*.sql
+fix_*.html
+fix_*_rls.sql
+reset_*_password*.sql
