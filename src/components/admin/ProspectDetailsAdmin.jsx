@@ -178,12 +178,12 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     }
   };
 
-  const handleSelectPrompt = (prompt) => {
+  const handleSelectPrompt = async (prompt) => {
     const stepConfig = prompt.stepsConfig?.[currentStepIndex];
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
       // ✅ Utiliser messages du hook Supabase
       const existingMessages = messages;
-      stepConfig.actions.forEach(action => {
+      for (const action of stepConfig.actions) {
         if (action.message) {
           const alreadySent = existingMessages.some(msg =>
             msg.sender === 'pro' &&
@@ -192,7 +192,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             msg.text === action.message
           );
           if (alreadySent) {
-            return;
+            continue;
           }
           const message = {
             sender: 'pro',
@@ -210,7 +210,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             msg.formId === action.formId
           );
           if (alreadyQueued) {
-            return;
+            continue;
           }
           const formMessage = {
             sender: 'pro',
@@ -222,18 +222,51 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
           
           // 🔥 Enregistrer le formulaire dans clientFormPanels pour le panneau latéral
           const stepName = projectsData[projectType]?.steps?.[currentStepIndex]?.name || 'Étape inconnue';
-          registerClientForm({
-            prospectId: prospectId,
-            projectType: projectType,
-            formId: action.formId,
-            currentStepIndex: currentStepIndex,
-            promptId: prompt.id,
-            messageTimestamp: Date.now(),
-            status: 'pending',
-            stepName: stepName, // 🔥 AJOUT: Nom de l'étape du pipeline
-          });
+          try {
+            const result = await registerClientForm({
+              prospectId: prospectId,
+              projectType: projectType,
+              formId: action.formId,
+              currentStepIndex: currentStepIndex,
+              promptId: prompt.id,
+              messageTimestamp: Date.now(),
+              status: 'pending',
+              stepName: stepName,
+            });
+
+            if (!result.success) {
+              console.error('❌ Échec enregistrement formulaire:', result.error);
+              toast({
+                title: "Erreur",
+                description: "Le formulaire n'a pas pu être enregistré.",
+                variant: "destructive",
+              });
+            } else {
+              // ✅ Ajouter événement dans project_history
+              try {
+                const formName = forms[action.formId]?.name || action.formId;
+                await addProjectEvent({
+                  prospectId: prospectId,
+                  projectType: projectType,
+                  title: "Formulaire envoyé",
+                  description: `Le formulaire ${formName} a été envoyé à ${prospect.name}.`,
+                  createdBy: currentUser?.name || "Admin"
+                });
+              } catch (historyErr) {
+                // Ne pas bloquer si l'événement échoue
+                console.error('⚠️ Erreur ajout événement historique:', historyErr);
+              }
+            }
+          } catch (err) {
+            console.error('❌ Exception enregistrement formulaire:', err);
+            toast({
+              title: "Erreur",
+              description: "Le formulaire n'a pas pu être enregistré.",
+              variant: "destructive",
+            });
+          }
         }
-      });
+      }
     }
     setPopoverOpen(false);
   };
@@ -618,7 +651,7 @@ const ProspectDetailsAdmin = ({
   const [activeProjectTag, setActiveProjectTag] = useState(initialProject || (prospect.tags && prospect.tags.length > 0 ? prospect.tags[0] : null));
   
   // ✅ Hook appelé APRÈS la définition de activeProjectTag
-  const { addHistoryEvent } = useSupabaseProjectHistory({
+  const { addHistoryEvent, addProjectEvent } = useSupabaseProjectHistory({
     projectType: activeProjectTag,
     prospectId: prospect.id,
     enabled: !!activeProjectTag && !!prospect.id,

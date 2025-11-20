@@ -56,16 +56,20 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         
         const { data, error } = await query.order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [useSupabaseClientFormPanels] Erreur Supabase SELECT:', error.message);
+          throw error;
+        }
 
         console.log('📋 [useSupabaseClientFormPanels] Données brutes Supabase:', data?.length || 0, 'formulaires');
-        const transformed = (data || []).map(transformFromDB);
+        const transformed = Array.isArray(data) ? data.map(transformFromDB) : [];
         console.log('📋 [useSupabaseClientFormPanels] Données transformées:', transformed.length, 'formulaires');
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
-        console.error('❌ [useSupabaseClientFormPanels] Erreur chargement:', err);
-        setError(err.message);
+        console.error('❌ [useSupabaseClientFormPanels] Exception chargement:', err.message || err);
+        setFormPanels([]); // ✅ Garantir tableau vide en cas d'erreur
+        setError(err.message || 'Erreur inconnue');
       } finally {
         setLoading(false);
       }
@@ -86,24 +90,31 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           ...(prospectId && { filter: `prospect_id=eq.${prospectId}` }), // 🔥 Filtre uniquement si prospectId fourni
         },
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newPanel = transformFromDB(payload.new);
-            setFormPanels((prev) => {
-              // Éviter les doublons
-              if (prev.some(p => p.panelId === newPanel.panelId)) {
-                return prev;
-              }
-              return [newPanel, ...prev];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedPanel = transformFromDB(payload.new);
-            setFormPanels((prev) =>
-              prev.map((p) => (p.panelId === updatedPanel.panelId ? updatedPanel : p))
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setFormPanels((prev) =>
-              prev.filter((p) => p.panelId !== payload.old.panel_id)
-            );
+          try {
+            if (payload.eventType === 'INSERT') {
+              const newPanel = transformFromDB(payload.new);
+              setFormPanels((prev) => {
+                const currentPanels = Array.isArray(prev) ? prev : [];
+                // Éviter les doublons
+                if (currentPanels.some(p => p.panelId === newPanel.panelId)) {
+                  return currentPanels;
+                }
+                return [newPanel, ...currentPanels];
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedPanel = transformFromDB(payload.new);
+              setFormPanels((prev) => {
+                const currentPanels = Array.isArray(prev) ? prev : [];
+                return currentPanels.map((p) => (p.panelId === updatedPanel.panelId ? updatedPanel : p));
+              });
+            } else if (payload.eventType === 'DELETE') {
+              setFormPanels((prev) => {
+                const currentPanels = Array.isArray(prev) ? prev : [];
+                return currentPanels.filter((p) => p.panelId !== payload.old.panel_id);
+              });
+            }
+          } catch (err) {
+            console.error('❌ [useSupabaseClientFormPanels] Erreur real-time:', err);
           }
         }
       )
@@ -181,6 +192,14 @@ export function useSupabaseClientFormPanels(prospectId = null) {
   // 🔥 AJOUT : Créer un nouveau formulaire dans Supabase
   const createFormPanel = async (panelData) => {
     try {
+      console.log('➕ [createFormPanel] Création formulaire:', {
+        prospectId: panelData.prospectId,
+        projectType: panelData.projectType,
+        formId: panelData.formId,
+        status: panelData.status || 'pending',
+        stepName: panelData.stepName
+      });
+
       const { error } = await supabase
         .from('client_form_panels')
         .insert({
@@ -193,17 +212,21 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           step_name: panelData.stepName || null, // 🔥 AJOUT: Nom de l'étape du pipeline
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [createFormPanel] Erreur Supabase INSERT:', error.message);
+        throw error;
+      }
       
+      console.log('✅ [createFormPanel] Formulaire créé avec succès');
       return { success: true };
     } catch (err) {
-      console.error('❌ [createFormPanel] Erreur insertion:', err);
-      return { success: false, error: err.message };
+      console.error('❌ [createFormPanel] Exception insertion:', err.message || err);
+      return { success: false, error: err.message || 'Erreur inconnue' };
     }
   };
 
   return {
-    formPanels,
+    formPanels: Array.isArray(formPanels) ? formPanels : [], // ✅ Garantir tableau
     loading,
     error,
     createFormPanel, // 🔥 AJOUT ICI

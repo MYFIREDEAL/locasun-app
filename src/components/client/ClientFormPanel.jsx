@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useAppContext } from '@/App';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase'; // 🔥 Import Supabase
+import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory'; // 🔥 Import hook history
 
 const ClientFormPanel = ({ isDesktop, projectType }) => {
   const {
@@ -18,6 +19,13 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     completeStepAndProceed,
     projectsData,
   } = useAppContext();
+
+  // 🔥 Hook pour ajouter événements dans l'historique du projet
+  const { addProjectEvent } = useSupabaseProjectHistory({
+    projectType: projectType,
+    prospectId: currentUser?.id,
+    enabled: !!projectType && !!currentUser?.id,
+  });
 
   const relevantForms = useMemo(() => {
     console.log('🔍 [ClientFormPanel] currentUser:', currentUser?.id, currentUser?.name);
@@ -201,6 +209,21 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       lastSubmittedAt: new Date().toISOString(),
       userOverride: null,
     });
+
+    // ✅ Ajouter événement dans project_history
+    try {
+      const formName = formDefinition?.name || formId;
+      await addProjectEvent({
+        prospectId: currentUser.id,
+        projectType: projectType,
+        title: "Formulaire complété",
+        description: `${currentUser.name} a complété le formulaire ${formName}.`,
+        createdBy: currentUser.name
+      });
+    } catch (historyErr) {
+      // Ne pas bloquer si l'événement échoue
+      console.error('⚠️ Erreur ajout événement historique:', historyErr);
+    }
   };
 
   const handleEdit = async (panel) => {

@@ -102,12 +102,55 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
     [projectType, prospectId]
   );
 
+  // 🔥 AJOUT: Fonction simplifiée pour ajouter un événement projet
+  const addProjectEvent = useCallback(
+    async ({ prospectId, projectType, title, description, createdBy }) => {
+      if (!projectType || !prospectId) {
+        console.error('❌ [addProjectEvent] prospectId et projectType requis');
+        return { success: false, error: 'Paramètres manquants' };
+      }
+
+      try {
+        console.log('➕ [addProjectEvent] Ajout événement:', { prospectId, projectType, title });
+
+        const { data, error } = await supabase
+          .from("project_history")
+          .insert([
+            {
+              project_type: projectType,
+              prospect_id: prospectId,
+              event_type: 'form_event', // Type générique pour formulaires
+              title,
+              description,
+              created_by_name: createdBy || null,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ [addProjectEvent] Erreur Supabase:', error.message);
+          throw error;
+        }
+
+        console.log('✅ [addProjectEvent] Événement créé:', data.id);
+        return { success: true, data };
+
+      } catch (err) {
+        console.error('❌ [addProjectEvent] Exception:', err.message || err);
+        return { success: false, error: err.message || 'Erreur inconnue' };
+      }
+    },
+    []
+  );
+
   return {
     history,
     loading,
     saving,
     error,
     addHistoryEvent,
+    addProjectEvent, // 🔥 AJOUT: Nouvelle fonction simplifiée
     refetch: fetchHistory,
   };
 }
