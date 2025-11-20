@@ -195,12 +195,18 @@ function App() {
   // 🔥 Charger les panneaux de formulaires clients depuis Supabase avec real-time
   // ⚠️ Si client: charger ses formulaires. Si admin: charger TOUS les formulaires (null = tous)
   const isClientRoute = location.pathname.startsWith('/dashboard');
+  const prospectIdForForms = isClientRoute ? currentUser?.id : null;
+  
+  console.log('🔍 [App.jsx] isClientRoute:', isClientRoute);
+  console.log('🔍 [App.jsx] currentUser pour forms:', currentUser?.id, currentUser?.name);
+  console.log('🔍 [App.jsx] prospectIdForForms:', prospectIdForForms);
+  
   const {
     formPanels: clientFormPanels,
     createFormPanel: registerClientForm,
     updateFormPanel: updateClientFormPanel,
     deleteFormPanelsByProspect: clearClientFormsFor
-  } = useSupabaseClientFormPanels(isClientRoute ? currentUser?.id : null); // 🔥 Admin voit tout !
+  } = useSupabaseClientFormPanels(prospectIdForForms); // 🔥 Admin voit tout !
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   const { 

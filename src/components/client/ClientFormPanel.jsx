@@ -20,19 +20,36 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   } = useAppContext();
 
   const relevantForms = useMemo(() => {
-    if (!currentUser) return [];
+    console.log('🔍 [ClientFormPanel] currentUser:', currentUser?.id, currentUser?.name);
+    console.log('🔍 [ClientFormPanel] projectType:', projectType);
+    console.log('🔍 [ClientFormPanel] clientFormPanels total:', clientFormPanels?.length || 0);
     
-    return clientFormPanels
+    if (!currentUser) {
+      console.log('❌ [ClientFormPanel] Pas de currentUser');
+      return [];
+    }
+    
+    const filtered = clientFormPanels
       .filter(panel => {
         // Filtre par prospect
-        if (panel.prospectId !== currentUser.id) return false;
+        if (panel.prospectId !== currentUser.id) {
+          console.log('❌ [ClientFormPanel] Panel ignoré (mauvais prospect):', panel.prospectId, '!==', currentUser.id);
+          return false;
+        }
         
         // ✅ NOUVEAU: Filtre par projet spécifique si projectType fourni
-        if (projectType && panel.projectType !== projectType) return false;
+        if (projectType && panel.projectType !== projectType) {
+          console.log('❌ [ClientFormPanel] Panel ignoré (mauvais projet):', panel.projectType, '!==', projectType);
+          return false;
+        }
         
+        console.log('✅ [ClientFormPanel] Panel retenu:', panel.formId, panel.projectType);
         return true;
       })
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    
+    console.log('📋 [ClientFormPanel] relevantForms final:', filtered.length);
+    return filtered;
   }, [clientFormPanels, currentUser, projectType]);
 
   // ✅ Client: currentUser EST le prospect, pas besoin de chercher dans prospects

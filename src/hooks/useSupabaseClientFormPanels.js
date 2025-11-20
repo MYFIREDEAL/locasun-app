@@ -40,6 +40,8 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       try {
         setLoading(true);
         
+        console.log('🔍 [useSupabaseClientFormPanels] Chargement avec prospectId:', prospectId);
+        
         // 🔥 Si prospectId === null, charger TOUS les formulaires (pour admin)
         let query = supabase
           .from('client_form_panels')
@@ -47,17 +49,22 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         
         if (prospectId) {
           query = query.eq('prospect_id', prospectId);
+          console.log('🔍 [useSupabaseClientFormPanels] Filtre appliqué: prospect_id =', prospectId);
+        } else {
+          console.log('🔍 [useSupabaseClientFormPanels] Pas de filtre (mode admin)');
         }
         
         const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
 
+        console.log('📋 [useSupabaseClientFormPanels] Données brutes Supabase:', data?.length || 0, 'formulaires');
         const transformed = (data || []).map(transformFromDB);
+        console.log('📋 [useSupabaseClientFormPanels] Données transformées:', transformed.length, 'formulaires');
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
-        console.error('Erreur chargement form panels:', err);
+        console.error('❌ [useSupabaseClientFormPanels] Erreur chargement:', err);
         setError(err.message);
       } finally {
         setLoading(false);
