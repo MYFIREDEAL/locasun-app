@@ -30,6 +30,51 @@ const buildPipelineStep = (label, id, color) => ({
   color: typeof color === 'string' && color.trim() ? color : null,
 });
 
+// 🎨 Emojis utilisés dans l'application LOCASUN
+const EMOJI_COLLECTION = [
+  '🔌', '💡', '☀️', '💸', '🏭', '🆕', '✅', '⚡', '📝', '⏳',
+  '🌞', '➡️', '🔎', '🛠️', '✍️', '🏦', '📦', '👷', '📋', '⚡️',
+  '💶', '📈', '🔧',
+];
+
+// 🎯 Composant réutilisable : Emoji Picker avec bouton flèche
+const EmojiPickerButton = ({ value, onChange }) => (
+  <div className="flex items-center gap-2">
+    <Input 
+      value={value} 
+      onChange={(e) => onChange(e.target.value)}
+      className="w-16 text-center text-xl"
+    />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 w-10 p-0"
+          title="Choisir un emoji"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="start">
+        <div className="flex flex-wrap gap-1 max-h-96 overflow-y-auto">
+          {EMOJI_COLLECTION.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => onChange(emoji)}
+              className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  </div>
+);
+
 const COLOR_OPTIONS = [
   { value: 'bg-blue-100', label: 'Bleu pastel' },
   { value: 'bg-yellow-100', label: 'Jaune doux' },
@@ -189,18 +234,6 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
     </div>
   );
 };
-
-// 🎨 Emojis utilisés dans les projets et étapes
-const PROJECT_EMOJIS = ['🔌', '💡', '☀️', '💸', '🏭', '🆕'];
-const STEP_EMOJIS = ['✅', '⚡', '📝', '⏳', '🌞', '➡️', '🔎', '🛠️', '✍️', '🏦', '📦'];
-
-// 🎨 Collection étendue d'emojis pour le popover
-const EXTENDED_EMOJIS = [
-  '🔥', '⭐', '🎯', '🚀', '💎', '🎨', '🔑', '🏆', '📊', '💰',
-  '🌟', '✨', '🎁', '📌', '🎪', '🎭', '🎬', '🎤', '🎧', '🎵',
-  '📱', '💻', '⌨️', '🖥️', '🖨️', '☎️', '📞', '📟', '📠', '📡',
-  '🏠', '🏢', '🏗️', '🏭', '🏪', '🏬', '🏯', '🏰', '💒', '🗼',
-];
 
 const FormEditor = ({
   form,
@@ -530,92 +563,15 @@ const ProjectEditor = ({
         }))} />
                     </div>
                 </div>
-                 <div className="space-y-3">
-                    <div>
-                        <Label htmlFor="project-icon">Icône (Emoji)</Label>
-                        <div className="flex items-start gap-3">
-                          <Input 
-                            id="project-icon" 
-                            value={editedProject.icon} 
-                            onChange={e => setEditedProject(prev => ({
-                              ...prev,
-                              icon: e.target.value
-                            }))}
-                            className="w-32 text-center text-2xl"
-                          />
-                          <div className="flex-1 space-y-2">
-                            {/* Boutons de sélection rapide des emojis de projets */}
-                            <div className="flex flex-wrap gap-1">
-                              {PROJECT_EMOJIS.map((emoji) => (
-                                <button
-                                  key={emoji}
-                                  type="button"
-                                  onClick={() => setEditedProject(prev => ({
-                                    ...prev,
-                                    icon: emoji
-                                  }))}
-                                  className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-                                  title={`Sélectionner ${emoji}`}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                              {/* Popover pour emojis étendus */}
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-gray-100 rounded-lg border border-gray-300 border-dashed transition-colors"
-                                    title="Plus d'emojis..."
-                                  >
-                                    …
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-64 p-3" align="start">
-                                  <div className="space-y-2">
-                                    <p className="text-xs font-medium text-gray-500">Emojis d'étapes</p>
-                                    <div className="flex flex-wrap gap-1 pb-2 border-b">
-                                      {STEP_EMOJIS.map((emoji) => (
-                                        <button
-                                          key={emoji}
-                                          type="button"
-                                          onClick={() => {
-                                            setEditedProject(prev => ({
-                                              ...prev,
-                                              icon: emoji
-                                            }));
-                                          }}
-                                          className="w-9 h-9 flex items-center justify-center text-lg hover:bg-gray-100 rounded-md transition-colors"
-                                        >
-                                          {emoji}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    <p className="text-xs font-medium text-gray-500">Collection étendue</p>
-                                    <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
-                                      {EXTENDED_EMOJIS.map((emoji) => (
-                                        <button
-                                          key={emoji}
-                                          type="button"
-                                          onClick={() => {
-                                            setEditedProject(prev => ({
-                                              ...prev,
-                                              icon: emoji
-                                            }));
-                                          }}
-                                          className="w-9 h-9 flex items-center justify-center text-lg hover:bg-gray-100 rounded-md transition-colors"
-                                        >
-                                          {emoji}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                          </div>
-                        </div>
-                    </div>
+                 <div>
+                    <Label htmlFor="project-icon">Icône (Emoji)</Label>
+                    <EmojiPickerButton
+                      value={editedProject.icon}
+                      onChange={(newIcon) => setEditedProject(prev => ({
+                        ...prev,
+                        icon: newIcon
+                      }))}
+                    />
                 </div>
 
                 <h3 className="text-md font-semibold text-gray-700 pt-4 border-t">Étapes de la Timeline</h3>
@@ -647,15 +603,15 @@ const ProjectEditor = ({
                                                 >
                                                   <GripVertical className="h-5 w-5" />
                                                 </div>
-                                                <Input
+                                                <EmojiPickerButton
                                                   value={step.icon}
-                                                  onChange={e => handleStepChange(index, 'icon', e.target.value)}
-                                                  className="w-16 text-center"
+                                                  onChange={(newIcon) => handleStepChange(index, 'icon', newIcon)}
                                                 />
                                                 <Input
                                                   value={step.name}
                                                   onChange={e => handleStepChange(index, 'name', e.target.value)}
                                                   placeholder="Nom de l'étape"
+                                                  className="flex-1"
                                                 />
                                               </div>
                                               <div className="flex items-center gap-2 md:w-72">
@@ -687,8 +643,11 @@ const ProjectEditor = ({
                     <div className="flex-grow">
                         <Label>Ajouter une étape</Label>
                         <div className="flex gap-2">
-                           <Input value={newStepIcon} onChange={e => setNewStepIcon(e.target.value)} className="w-16 text-center" placeholder="➡️" />
-                           <Input value={newStepName} onChange={e => setNewStepName(e.target.value)} placeholder="Nom de la nouvelle étape" />
+                           <EmojiPickerButton
+                             value={newStepIcon}
+                             onChange={setNewStepIcon}
+                           />
+                           <Input value={newStepName} onChange={e => setNewStepName(e.target.value)} placeholder="Nom de la nouvelle étape" className="flex-1" />
                         </div>
                     </div>
                     <Button onClick={addStep}><Plus className="h-4 w-4" /></Button>
