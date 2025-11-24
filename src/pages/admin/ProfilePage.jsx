@@ -11,6 +11,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect';
 import MultiSelectSearch from '@/components/ui/MultiSelectSearch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
 import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut } from 'lucide-react';
 import { slugify } from '@/lib/utils';
@@ -188,6 +189,18 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
     </div>
   );
 };
+
+// 🎨 Emojis utilisés dans les projets et étapes
+const PROJECT_EMOJIS = ['🔌', '💡', '☀️', '💸', '🏭', '🆕'];
+const STEP_EMOJIS = ['✅', '⚡', '📝', '⏳', '🌞', '➡️', '🔎', '🛠️', '✍️', '🏦', '📦'];
+
+// 🎨 Collection étendue d'emojis pour le popover
+const EXTENDED_EMOJIS = [
+  '🔥', '⭐', '🎯', '🚀', '💎', '🎨', '🔑', '🏆', '📊', '💰',
+  '🌟', '✨', '🎁', '📌', '🎪', '🎭', '🎬', '🎤', '🎧', '🎵',
+  '📱', '💻', '⌨️', '🖥️', '🖨️', '☎️', '📞', '📟', '📠', '📡',
+  '🏠', '🏢', '🏗️', '🏭', '🏪', '🏬', '🏯', '🏰', '💒', '🗼',
+];
 
 const FormEditor = ({
   form,
@@ -517,13 +530,91 @@ const ProjectEditor = ({
         }))} />
                     </div>
                 </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-3">
                     <div>
                         <Label htmlFor="project-icon">Icône (Emoji)</Label>
-                        <Input id="project-icon" value={editedProject.icon} onChange={e => setEditedProject(prev => ({
-          ...prev,
-          icon: e.target.value
-        }))} />
+                        <div className="flex items-start gap-3">
+                          <Input 
+                            id="project-icon" 
+                            value={editedProject.icon} 
+                            onChange={e => setEditedProject(prev => ({
+                              ...prev,
+                              icon: e.target.value
+                            }))}
+                            className="w-32 text-center text-2xl"
+                          />
+                          <div className="flex-1 space-y-2">
+                            {/* Boutons de sélection rapide des emojis de projets */}
+                            <div className="flex flex-wrap gap-1">
+                              {PROJECT_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => setEditedProject(prev => ({
+                                    ...prev,
+                                    icon: emoji
+                                  }))}
+                                  className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                                  title={`Sélectionner ${emoji}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                              {/* Popover pour emojis étendus */}
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="w-10 h-10 flex items-center justify-center text-lg font-bold hover:bg-gray-100 rounded-lg border border-gray-300 border-dashed transition-colors"
+                                    title="Plus d'emojis..."
+                                  >
+                                    …
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-3" align="start">
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-medium text-gray-500">Emojis d'étapes</p>
+                                    <div className="flex flex-wrap gap-1 pb-2 border-b">
+                                      {STEP_EMOJIS.map((emoji) => (
+                                        <button
+                                          key={emoji}
+                                          type="button"
+                                          onClick={() => {
+                                            setEditedProject(prev => ({
+                                              ...prev,
+                                              icon: emoji
+                                            }));
+                                          }}
+                                          className="w-9 h-9 flex items-center justify-center text-lg hover:bg-gray-100 rounded-md transition-colors"
+                                        >
+                                          {emoji}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <p className="text-xs font-medium text-gray-500">Collection étendue</p>
+                                    <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
+                                      {EXTENDED_EMOJIS.map((emoji) => (
+                                        <button
+                                          key={emoji}
+                                          type="button"
+                                          onClick={() => {
+                                            setEditedProject(prev => ({
+                                              ...prev,
+                                              icon: emoji
+                                            }));
+                                          }}
+                                          className="w-9 h-9 flex items-center justify-center text-lg hover:bg-gray-100 rounded-md transition-colors"
+                                        >
+                                          {emoji}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          </div>
+                        </div>
                     </div>
                 </div>
 
