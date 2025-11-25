@@ -6,60 +6,8 @@ import ProjectDetails from '@/components/ProjectDetails';
 import { CheckCircle, RefreshCw, Pencil, Hourglass, HardHat } from 'lucide-react';
 import { useAppContext } from '@/App';
 
-const allProjectsData = {
-  ACC: {
-    id: 1, type: 'ACC', title: 'ACC (Consommateur)', icon: '🔌', color: 'gradient-blue', progress: 75, status: 'Installation',
-    steps: [
-      { name: 'Inscription', status: 'completed', icon: '✅' },
-      { name: 'Étude', status: 'completed', icon: '📝' },
-      { name: 'Contrat', status: 'completed', icon: '✍️' },
-      { name: 'Installation', status: 'current', icon: '👷' },
-      { name: 'Actif', status: 'pending', icon: '⚡️' },
-    ]
-  },
-  Producteur: {
-    id: 2, type: 'Producteur', title: 'Producteur', icon: '🌞', color: 'gradient-orange', progress: 50, status: 'Contrat',
-    steps: [
-      { name: 'Inscription', status: 'completed', icon: '✅' },
-      { name: 'Étude', status: 'completed', icon: '📝' },
-      { name: 'Contrat', status: 'current', icon: '✍️' },
-      { name: 'Installation', status: 'pending', icon: '👷' },
-      { name: 'Actif', status: 'pending', icon: '⚡️' },
-    ]
-  },
-  Solaire: {
-    id: 3, type: 'Solaire', title: 'Solaire Maison', icon: '🏠', color: 'gradient-green', progress: 100, status: 'Actif',
-    steps: [
-      { name: 'Inscription', status: 'completed', icon: '✅' },
-      { name: 'Étude', status: 'completed', icon: '📝' },
-      { name: 'Contrat', status: 'completed', icon: '✍️' },
-      { name: 'Installation', status: 'completed', icon: '👷' },
-      { name: 'Actif', status: 'completed', icon: '⚡️' },
-    ]
-  },
-  Batterie: {
-    id: 4, type: 'Batterie', title: 'Batterie', icon: '🔋', color: 'gradient-purple', progress: 25, status: 'Étude',
-    steps: [
-      { name: 'Inscription', status: 'completed', icon: '✅' },
-      { name: 'Étude', status: 'current', icon: '📝' },
-      { name: 'Contrat', status: 'pending', icon: '✍️' },
-      { name: 'Installation', status: 'pending', icon: '👷' },
-      { name: 'Actif', status: 'pending', icon: '⚡️' },
-    ]
-  },
-  Investisseur: {
-    id: 5, type: 'Investisseur', title: 'Investisseur', icon: '💰', color: 'gradient-teal', progress: 0, status: 'Inscription',
-    steps: [
-      { name: 'Inscription', status: 'current', icon: '✅' },
-      { name: 'Analyse', status: 'pending', icon: '📝' },
-      { name: 'Validation', status: 'pending', icon: '✍️' },
-      { name: 'Investi', status: 'pending', icon: '⚡️' }
-    ]
-  }
-};
-
 function ClientDashboardPage() {
-  const { userProjects } = useAppContext();
+  const { userProjects, projectsData } = useAppContext();
   const navigate = useNavigate();
   const [selectedProject, setSelectedProject] = useState(null);
   const [displayedProjects, setDisplayedProjects] = useState([]);
@@ -74,7 +22,7 @@ function ClientDashboardPage() {
       }
     }
     
-    const projectsToDisplay = userProjects.map(pId => allProjectsData[pId]).filter(Boolean);
+    const projectsToDisplay = userProjects.map(pId => projectsData[pId]).filter(Boolean);
     setDisplayedProjects(projectsToDisplay);
 
   }, [userProjects, navigate]);
