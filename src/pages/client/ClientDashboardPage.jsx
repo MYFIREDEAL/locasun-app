@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Dashboard from '@/components/Dashboard';
 import ProjectDetails from '@/components/ProjectDetails';
 import { useAppContext } from '@/App';
+import { supabase } from '@/lib/supabase';
 
 function ClientDashboardPage() {
   const { projectsData, currentUser } = useAppContext();
@@ -11,6 +12,30 @@ function ClientDashboardPage() {
   const location = useLocation();
   const [selectedProject, setSelectedProject] = useState(null);
   const [displayedProjects, setDisplayedProjects] = useState([]);
+  const [projectStatuses, setProjectStatuses] = useState({});
+
+  // Charger les statuts des projets du client
+  useEffect(() => {
+    const loadProjectStatuses = async () => {
+      if (!currentUser?.id || !currentUser?.tags || currentUser.tags.length === 0) return;
+      
+      const { data } = await supabase
+        .from('project_infos')
+        .select('project_type, status')
+        .eq('prospect_id', currentUser.id)
+        .in('project_type', currentUser.tags);
+      
+      if (data) {
+        const statusMap = {};
+        data.forEach(item => {
+          statusMap[item.project_type] = item.status || 'actif';
+        });
+        setProjectStatuses(statusMap);
+      }
+    };
+    
+    loadProjectStatuses();
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -35,14 +60,20 @@ function ClientDashboardPage() {
       return;
     }
     
-    // Mapper les tags du client vers les objets de projet complets
-    const projectsToDisplay = clientTags
+    // 🔥 FILTRER: Ne montrer que les projets ACTIFS (pas abandonnés/archivés)
+    const activeTags = clientTags.filter(tag => {
+      const status = projectStatuses[tag];
+      return !status || status === 'actif';
+    });
+    
+    // Mapper les tags actifs vers les objets de projet complets
+    const projectsToDisplay = activeTags
       .map(tag => projectsData[tag])
       .filter(Boolean); // Filtrer les projets qui n'existent pas
     
     setDisplayedProjects(projectsToDisplay);
 
-  }, [currentUser, projectsData, navigate]);
+  }, [currentUser, projectsData, projectStatuses, navigate]);
 
   const handleProjectClick = (project) => {
     setSelectedProject(project);

@@ -1,12 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { supabase } from '@/lib/supabase';
 
 const normalizeLabel = (label) => (label || '').toString().trim().toUpperCase();
 
 const ProspectCard = ({ prospect, onClick, sortableId }) => {
+  const [projectStatuses, setProjectStatuses] = useState({});
+
+  // Charger les statuts de tous les projets du prospect
+  useEffect(() => {
+    const loadProjectStatuses = async () => {
+      if (!prospect.id || !prospect.tags || prospect.tags.length === 0) return;
+      
+      const { data } = await supabase
+        .from('project_infos')
+        .select('project_type, status')
+        .eq('prospect_id', prospect.id)
+        .in('project_type', prospect.tags);
+      
+      if (data) {
+        const statusMap = {};
+        data.forEach(item => {
+          statusMap[item.project_type] = item.status || 'actif';
+        });
+        setProjectStatuses(statusMap);
+      }
+    };
+    
+    loadProjectStatuses();
+  }, [prospect.id, prospect.tags]);
+
+  // Filtrer les tags pour ne garder que ceux avec statut "actif"
+  const activeTags = (Array.isArray(prospect.tags) ? prospect.tags : [])
+    .filter(tag => {
+      const status = projectStatuses[tag];
+      // Si pas de statut encore chargé, on affiche (optimistic)
+      // Si statut chargé, ne garder que "actif" (ou undefined = actif par défaut)
+      return !status || status === 'actif';
+    });
   // 🎯 Contexte du projet pour CETTE carte spécifique
   const activeProjectLabel =
     prospect._projectContext?.projectTitle ||
@@ -54,8 +88,8 @@ const ProspectCard = ({ prospect, onClick, sortableId }) => {
           )}
         </div>
         <div className="flex flex-wrap gap-2 mt-3 items-center">
-          {/* 🎯 Afficher LE projet principal de cette carte */}
-          {activeProjectLabel && (
+          {/* 🎯 Afficher LE projet principal de cette carte - UNIQUEMENT SI ACTIF */}
+          {activeProjectLabel && activeTags.includes(prospect._projectContext?.projectType || activeProjectLabel) && (
             <span
               className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border-2 border-blue-400 font-semibold shadow-sm tracking-wide ${(() => {
                 const normalized = normalizeLabel(activeProjectLabel);
@@ -79,8 +113,8 @@ const ProspectCard = ({ prospect, onClick, sortableId }) => {
             </span>
           )}
           
-          {/* 📋 Afficher les autres tags en mode normal (non entourés) */}
-          {(Array.isArray(prospect.tags) ? prospect.tags : [])
+          {/* 📋 Afficher les autres tags en mode normal (non entourés) - UNIQUEMENT LES ACTIFS */}
+          {activeTags
             .filter(tag => normalizeLabel(tag) !== normalizedActiveLabel)
             .map(tag => {
               const normalizedTag = normalizeLabel(tag);

@@ -720,8 +720,11 @@ function App() {
     return projectInfos?.[prospectId]?.[projectType] || {};
   };
 
-  const updateProjectInfo = (prospectId, projectType, updater) => {
+  const updateProjectInfo = async (prospectId, projectType, updater) => {
     if (!prospectId || !projectType) return;
+    
+    // 1. Mettre à jour le state local
+    let finalInfo = null;
     setProjectInfosState(prev => {
       const prevForProspect = prev[prospectId] || {};
       const prevInfo = prevForProspect[projectType] || {};
@@ -729,6 +732,8 @@ function App() {
       const nextInfo = nextInfoRaw && typeof nextInfoRaw === 'object'
         ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
         : {};
+
+      finalInfo = nextInfo;
 
       if (Object.keys(nextInfo).length === 0) {
         const { [projectType]: _, ...restProjects } = prevForProspect;
@@ -756,6 +761,25 @@ function App() {
         },
       };
     });
+    
+    // 2. Sauvegarder dans Supabase
+    try {
+      const { error } = await supabase
+        .from('project_infos')
+        .upsert({
+          prospect_id: prospectId,
+          project_type: projectType,
+          data: finalInfo || {}
+        }, {
+          onConflict: 'prospect_id,project_type'
+        });
+      
+      if (error) {
+        console.error('Erreur sauvegarde project_infos:', error);
+      }
+    } catch (err) {
+      console.error('Erreur updateProjectInfo Supabase:', err);
+    }
   };
 
   // ✅ Fonction wrapper pour compatibilité avec le code existant
