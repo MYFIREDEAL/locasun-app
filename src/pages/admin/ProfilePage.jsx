@@ -1523,15 +1523,6 @@ const ProfilePage = () => {
       console.error('Erreur sauvegarde droits accès:', err);
     }
   };
-  const handleAccessModuleChange = (moduleName, checked) => {
-    setAccessRights(prev => {
-      const newModules = checked ? [...prev.modules, moduleName] : prev.modules.filter(m => m !== moduleName);
-      return {
-        ...prev,
-        modules: newModules
-      };
-    });
-  };
   const handleChangeRole = async () => {
     if (!editingUser) return;
     
@@ -2708,15 +2699,6 @@ const ProfilePage = () => {
                         {isEditingAdmin && <DialogDescription>Les administrateurs ont accès à tout par défaut.</DialogDescription>}
                     </DialogHeader>
                     <div className="space-y-6 p-6">
-                        <div>
-                            <Label className="font-semibold">Modules accessibles</Label>
-                            <div className="mt-2 space-y-2">
-                                {['Pipeline', 'Agenda', 'Contacts'].map(module => <div key={module} className="flex items-center space-x-2">
-                                        <Checkbox id={`module-${module}`} checked={(accessRights.modules || []).includes(module)} onCheckedChange={checked => handleAccessModuleChange(module, checked)} disabled={isEditingAdmin} />
-                                        <Label htmlFor={`module-${module}`} className={isEditingAdmin ? 'text-gray-500' : ''}>{module}</Label>
-                                    </div>)}
-                            </div>
-                        </div>
                         <div>
                             <Label className="font-semibold">Accès aux données d’autres utilisateurs</Label>
                             <MultiSelectSearch options={allUserOptionsForAccess} selected={accessRights.users} onChange={selected => setAccessRights(prev => ({
