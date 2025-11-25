@@ -794,6 +794,7 @@ const FinalPipeline = () => {
                         }
                         compact={true}
                         sortableId={sortableId}
+                        projectsData={projectsData}
                       />
                     </motion.div>
                   );

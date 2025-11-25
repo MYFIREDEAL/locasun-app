@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 
 const normalizeLabel = (label) => (label || '').toString().trim().toUpperCase();
 
-const ProspectCard = ({ prospect, onClick, sortableId }) => {
+const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
   const [projectStatuses, setProjectStatuses] = useState({});
 
   // Charger les statuts de tous les projets du prospect
@@ -117,12 +117,15 @@ const ProspectCard = ({ prospect, onClick, sortableId }) => {
           {activeTags
             .filter(tag => normalizeLabel(tag) !== normalizedActiveLabel)
             .map(tag => {
-              const normalizedTag = normalizeLabel(tag);
+              // 🔥 Utiliser le title du projet depuis Supabase au lieu du type brut
+              const projectTitle = projectsData[tag]?.title || tag;
+              const normalizedTag = normalizeLabel(projectTitle);
               const tagColorClass = (() => {
                 switch (normalizedTag) {
                   case 'ACC':
                     return 'bg-blue-100 text-blue-800';
                   case 'AUTONOMIE':
+                  case 'AUTONOME':
                     return 'bg-green-100 text-green-800';
                   case 'CENTRALE':
                     return 'bg-orange-100 text-orange-800';
@@ -140,7 +143,7 @@ const ProspectCard = ({ prospect, onClick, sortableId }) => {
                   key={tag}
                   className={`text-xs px-2 py-1 rounded-full ${tagColorClass}`}
                 >
-                  {tag}
+                  {projectTitle}
                 </span>
               );
             })}
