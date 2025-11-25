@@ -825,14 +825,23 @@ const ProspectDetailsAdmin = ({
         'archive': 'archivé'
       };
       
-      await addProjectEvent({
-        event_type: 'status',
-        description: `Projet ${statusLabels[newStatus] || newStatus}`,
-        metadata: {
-          old_status: oldStatus,
-          new_status: newStatus
-        }
-      });
+      // Insérer directement dans project_history
+      const { error: historyError } = await supabase
+        .from('project_history')
+        .insert({
+          prospect_id: prospect.id,
+          project_type: activeProjectTag,
+          event_type: 'status',
+          description: `Projet ${statusLabels[newStatus] || newStatus}`,
+          metadata: {
+            old_status: oldStatus,
+            new_status: newStatus
+          }
+        });
+      
+      if (historyError) {
+        console.error('Erreur historique:', historyError);
+      }
       
       // Mettre à jour projectInfo dans le context
       updateProjectInfo(prospect.id, activeProjectTag, (prevInfo = {}) => ({
