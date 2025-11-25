@@ -669,6 +669,12 @@ const ProspectDetailsAdmin = ({
     return getProjectInfo(prospect.id, activeProjectTag) || {};
   }, [activeProjectTag, getProjectInfo, prospect.id]);
 
+  // 🔥 ÉTAPE 2: État du statut projet (actif/abandon/archive)
+  const [projectStatus, setProjectStatus] = useState(projectInfo?.status || 'actif');
+  
+  // 🔥 ÉTAPE 5: État pour stocker les statuts de tous les projets
+  const [allProjectStatuses, setAllProjectStatuses] = useState({});
+
   const savedAmount = projectInfo?.amount;
   const euroFormatter = useMemo(() => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }), []);
   const [projectAmountInput, setProjectAmountInput] = useState('');
@@ -720,6 +726,53 @@ const ProspectDetailsAdmin = ({
     }
   }, [savedAmount, activeProjectTag]);
 
+  // 🔥 ÉTAPE 2: Charger le statut depuis projectInfo
+  useEffect(() => {
+    const loadProjectStatus = async () => {
+      if (!activeProjectTag || !prospect.id) return;
+      
+      // Récupérer le statut depuis Supabase
+      const { data, error } = await supabase
+        .from('project_infos')
+        .select('status')
+        .eq('prospect_id', prospect.id)
+        .eq('project_type', activeProjectTag)
+        .single();
+      
+      if (data) {
+        setProjectStatus(data.status || 'actif');
+      } else if (!error || error.code === 'PGRST116') {
+        // Si aucune ligne n'existe, créer une avec statut 'actif'
+        setProjectStatus('actif');
+      }
+    };
+    
+    loadProjectStatus();
+  }, [activeProjectTag, prospect.id]);
+
+  // 🔥 ÉTAPE 5: Charger les statuts de tous les projets associés
+  useEffect(() => {
+    const loadAllProjectStatuses = async () => {
+      if (!prospect.id || !prospect.tags || prospect.tags.length === 0) return;
+      
+      const { data, error } = await supabase
+        .from('project_infos')
+        .select('project_type, status')
+        .eq('prospect_id', prospect.id)
+        .in('project_type', prospect.tags);
+      
+      if (data) {
+        const statusMap = {};
+        data.forEach(item => {
+          statusMap[item.project_type] = item.status || 'actif';
+        });
+        setAllProjectStatuses(statusMap);
+      }
+    };
+    
+    loadAllProjectStatuses();
+  }, [prospect.id, prospect.tags]);
+
   // ✅ Notifier le parent quand le mode édition change (pour bloquer le real-time)
   useEffect(() => {
     if (onEditingChange) {
@@ -739,6 +792,75 @@ const ProspectDetailsAdmin = ({
       },
       { replace: true }
     );
+  };
+
+  // 🔥 ÉTAPE 4: Fonction de changement de statut
+  const handleChangeStatus = async (newStatus) => {
+    if (!activeProjectTag || !prospect.id) return;
+    
+    const oldStatus = projectStatus;
+    
+    // Optimistic update
+    setProjectStatus(newStatus);
+    
+    try {
+      // Mettre à jour le statut dans project_infos
+      const { error: updateError } = await supabase
+        .from('project_infos')
+        .upsert({
+          prospect_id: prospect.id,
+          project_type: activeProjectTag,
+          status: newStatus,
+          data: projectInfo?.data || {}
+        }, {
+          onConflict: 'prospect_id,project_type'
+        });
+      
+      if (updateError) throw updateError;
+      
+      // Ajouter un événement dans l'historique
+      const statusLabels = {
+        'actif': 'réactivé',
+        'abandon': 'abandonné',
+        'archive': 'archivé'
+      };
+      
+      await addProjectEvent({
+        event_type: 'status',
+        description: `Projet ${statusLabels[newStatus] || newStatus}`,
+        metadata: {
+          old_status: oldStatus,
+          new_status: newStatus
+        }
+      });
+      
+      // Mettre à jour projectInfo dans le context
+      updateProjectInfo(prospect.id, activeProjectTag, (prevInfo = {}) => ({
+        ...prevInfo,
+        status: newStatus
+      }));
+      
+      // Mettre à jour allProjectStatuses pour les badges
+      setAllProjectStatuses(prev => ({
+        ...prev,
+        [activeProjectTag]: newStatus
+      }));
+      
+      toast({
+        title: "✅ Statut mis à jour",
+        description: `Le projet est maintenant "${statusLabels[newStatus]}".`,
+        className: "bg-green-500 text-white"
+      });
+      
+    } catch (error) {
+      console.error('Erreur lors du changement de statut:', error);
+      setProjectStatus(oldStatus); // Rollback
+      toast({
+        title: "❌ Erreur",
+        description: "Impossible de changer le statut du projet.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleProjectAmountChange = (value) => {
@@ -1080,9 +1202,37 @@ const ProspectDetailsAdmin = ({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {(prospect.tags || []).map(tag => <button key={tag} onClick={() => handleProjectClick(tag)} className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200 ${activeProjectTag === tag ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                      {projectsData[tag]?.title || tag}
-                    </button>)}
+                  {(prospect.tags || []).map(tag => {
+                    const status = allProjectStatuses[tag] || 'actif';
+                    return (
+                      <button 
+                        key={tag} 
+                        onClick={() => handleProjectClick(tag)} 
+                        className={`px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200 flex items-center gap-2 ${
+                          activeProjectTag === tag 
+                            ? 'bg-blue-600 text-white shadow-md' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span>{projectsData[tag]?.title || tag}</span>
+                        {/* 🔥 ÉTAPE 5: Badge de statut */}
+                        {status === 'abandon' && (
+                          <span className={`text-xs font-medium ${
+                            activeProjectTag === tag ? 'text-red-200' : 'text-red-600'
+                          }`}>
+                            (Abandonné)
+                          </span>
+                        )}
+                        {status === 'archive' && (
+                          <span className={`text-xs font-medium ${
+                            activeProjectTag === tag ? 'text-gray-300' : 'text-gray-500'
+                          }`}>
+                            (Archivé)
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                   {(!prospect.tags || prospect.tags.length === 0) && (
                     <p className="text-gray-400 text-sm italic">Aucun projet associé</p>
                   )}
@@ -1252,9 +1402,38 @@ const ProspectDetailsAdmin = ({
                 </div>
               )}
               <div className="bg-white rounded-2xl shadow-card p-6 flex-1">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                  Étapes du projet
-                </h2>
+                <div className="flex items-center justify-center mb-4 pb-4 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Étapes du projet
+                    </h2>
+                    <span className="text-gray-400">:</span>
+                    
+                    {/* 🔥 ÉTAPE 3: Sélecteur de statut projet (style badge comme les étapes) */}
+                    <Select value={projectStatus} onValueChange={handleChangeStatus}>
+                      <SelectTrigger className={`w-auto h-auto text-sm px-3 py-1.5 rounded-full border-none shadow-none font-medium ${
+                        projectStatus === 'actif' 
+                          ? 'bg-green-100 text-green-700' 
+                          : projectStatus === 'abandon'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="w-44">
+                        <SelectItem value="actif" className="text-sm hover:bg-green-50 text-green-600">
+                          Actif
+                        </SelectItem>
+                        <SelectItem value="abandon" className="text-sm hover:bg-red-50 text-red-600">
+                          Abandonné
+                        </SelectItem>
+                        <SelectItem value="archive" className="text-sm hover:bg-gray-100 text-gray-600">
+                          Archivé
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <ProjectTimeline steps={projectSteps} onUpdateStatus={handleUpdateStatus} />
               </div>
             </div>
