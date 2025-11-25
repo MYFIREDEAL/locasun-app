@@ -231,8 +231,9 @@ const FinalPipeline = () => {
     if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
       return Object.values(usersFromSupabase);
     }
-    const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-    return Object.values(usersFromSupabase).filter(u => allowedIds.includes(u.id));
+    // 🔥 FIX: access_rights.users contient des user_id (UUID auth), pas des id (PK)
+    const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+    return Object.values(usersFromSupabase).filter(u => allowedUserIds.includes(u.user_id));
   }, [activeAdminUser, usersFromSupabase]);
 
   const userOptions = useMemo(() => {
@@ -292,9 +293,13 @@ const FinalPipeline = () => {
     const visibleProspects = prospects.filter(prospect => {
       if (!activeAdminUser) return false;
       if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
-      const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-      return allowedIds.includes(prospect.ownerId);
+      // 🔥 FIX: prospects.ownerId = users.user_id (UUID auth), pas users.id
+      // Utiliser activeAdminUser.user_id au lieu de activeAdminUser.id
+      const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+      return allowedUserIds.includes(prospect.ownerId);
     });
+
+    console.log('🔍 [FinalPipeline] Total prospects:', prospects.length, '| Visible après filtrage:', visibleProspects.length);
 
     // Filtrer par tags (si au moins un tag sélectionné)
     let filtered = visibleProspects;

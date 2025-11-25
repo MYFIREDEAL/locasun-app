@@ -304,9 +304,10 @@ const CompleteOriginalContacts = () => {
       return supabaseUsers;
     }
     
-    const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+    // 🔥 FIX: access_rights.users contient des user_id (UUID auth), pas des id (PK)
+    const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
     
-    const filtered = supabaseUsers.filter(u => allowedIds.includes(u.id));
+    const filtered = supabaseUsers.filter(u => allowedUserIds.includes(u.user_id));
     
     return filtered;
   }, [activeAdminUser, supabaseUsers]);
@@ -345,8 +346,9 @@ const CompleteOriginalContacts = () => {
     const visibleProspects = supabaseProspects.filter(prospect => {
       if (!activeAdminUser) return false;
       if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
-      const allowedIds = [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
-      return allowedIds.includes(prospect.ownerId);
+      // 🔥 FIX: prospects.ownerId = users.user_id (UUID auth), pas users.id
+      const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+      return allowedUserIds.includes(prospect.ownerId);
     });
 
     return visibleProspects.filter(prospect => {

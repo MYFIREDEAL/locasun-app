@@ -16,13 +16,9 @@ export const useSupabaseProspects = (activeAdminUser) => {
     try {
       setLoading(true);
       
-      // Vérifier la session Supabase
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      const { data, error: fetchError } = await supabase
-        .from('prospects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // 🔥 UTILISER LA FONCTION RPC AU LIEU DU SELECT DIRECT
+      // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies SELECT
+      const { data, error: fetchError } = await supabase.rpc('get_prospects_safe');
 
       if (fetchError) {
         console.error('❌ Fetch error:', fetchError);
@@ -48,6 +44,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         updatedAt: prospect.updated_at,
       }));
 
+      console.log('🔍 [useSupabaseProspects] Prospects chargés:', transformedProspects.length, 'prospects');
       setProspects(transformedProspects);
       setError(null);
     } catch (err) {
@@ -65,7 +62,9 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
   // Charger au montage et quand l'utilisateur change
   useEffect(() => {
+    console.log('🔍 [useSupabaseProspects] useEffect triggered, activeAdminUser:', activeAdminUser?.id, activeAdminUser?.name);
     if (activeAdminUser) {
+      console.log('🔍 [useSupabaseProspects] Fetching prospects...');
       fetchProspects();
     } else {
       console.warn('⚠️ No activeAdminUser, skipping fetchProspects');
@@ -153,33 +152,54 @@ export const useSupabaseProspects = (activeAdminUser) => {
     try {
       // Récupérer l'UUID réel du user depuis Supabase
       const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      console.log('🔍 [useSupabaseProspects] Auth user:', user?.id, user?.email);
+      console.log('🔍 [useSupabaseProspects] Session:', session?.access_token ? 'PRÉSENTE' : 'ABSENTE');
       
       if (!user) {
         throw new Error("Utilisateur non authentifié");
+      }
+
+      // Vérifier que l'user est bien dans la table users
+      const { data: userData, error: userCheckError } = await supabase
+        .from('users')
+        .select('user_id, name, role')
+        .eq('user_id', user.id)
+        .single();
+      
+      console.log('🔍 [useSupabaseProspects] User dans table users:', JSON.stringify(userData), 'Error:', userCheckError);
+      
+      if (userCheckError || !userData) {
+        console.error('❌ User pas trouvé dans table users:', userCheckError);
+        throw new Error('Utilisateur non autorisé à créer des prospects');
       }
 
       // 🔥 IMPORTANT: La FK prospects.owner_id référence users.user_id (auth UUID)
       // et PAS users.id (UUID PK de la table users)
       // Donc on utilise directement user.id (auth UUID) sans query supplémentaire
 
-      const { data, error: insertError } = await supabase
-        .from('prospects')
-        .insert([{
-          name: prospectData.name,
-          email: prospectData.email,
-          phone: prospectData.phone,
-          company_name: prospectData.company,
-          address: prospectData.address || '',
-          owner_id: user.id, // 🔥 Auth UUID - correspond à users.user_id (FK)
-          status: prospectData.status || 'Intéressé',
-          tags: prospectData.tags || [],
-          has_appointment: prospectData.hasAppointment || false,
-          affiliate_name: prospectData.affiliateName || null,
-        }])
-        .select()
-        .single();
+      // 🔥 UTILISER LA FONCTION RPC AU LIEU DE L'INSERT DIRECT
+      // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies
+      console.log('🔍 [useSupabaseProspects] Utilisation de la fonction RPC insert_prospect_safe');
+      
+      const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
+        p_name: prospectData.name,
+        p_email: prospectData.email,
+        p_phone: prospectData.phone,
+        p_company_name: prospectData.company || '',
+        p_address: prospectData.address || '',
+        p_status: prospectData.status || 'Intéressé',
+        p_tags: prospectData.tags || [],
+        p_has_appointment: prospectData.hasAppointment || false,
+        p_affiliate_name: prospectData.affiliateName || null,
+      });
 
       if (insertError) throw insertError;
+
+      // La fonction RPC retourne un objet JSON, on le parse
+      const data = rpcResult;
+      console.log('🔍 [useSupabaseProspects] RPC result:', data);
 
       // Transformer et ajouter à la liste locale
       const transformed = {
@@ -201,7 +221,14 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       // Ne pas ajouter localement, laisser le real-time s'en charger
 
-      // ENVOYER UN EMAIL D'INVITATION AU PROSPECT
+      // 🎉 AFFICHER LE TOAST DE SUCCÈS IMMÉDIATEMENT
+      toast({
+        title: "Succès",
+        description: `Prospect "${data.name}" créé !`,
+        className: "bg-green-500 text-white",
+      });
+
+      // ENVOYER UN EMAIL D'INVITATION AU PROSPECT (en arrière-plan, ne bloque pas)
       try {
         // STRATÉGIE : 
         // 1. Créer un user temporaire dans auth.users avec un mot de passe aléatoire
@@ -268,16 +295,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
           
           if (resetError) {
             console.error('⚠️ Erreur envoi email:', resetError);
+          } else {
+            console.log('✅ Email d\'activation envoyé à', data.email);
           }
-          
-          toast({
-            title: "Succès",
-            description: `Prospect ajouté ! Un email d'activation a été envoyé à ${data.email}`,
-            className: "bg-green-500 text-white",
-          });
         }
       } catch (emailErr) {
-        console.error('Erreur email:', emailErr);
+        console.error('⚠️ Erreur email (non bloquant):', emailErr);
+        // Ne pas throw, l'email est optionnel
       }
 
       return transformed;
