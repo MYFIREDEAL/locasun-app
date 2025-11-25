@@ -46,6 +46,7 @@ const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
     prospect._projectContext?.projectTitle ||
     prospect._projectContext?.projectType ||
     null;
+  const activeProjectType = prospect._projectContext?.projectType || null; // 🔥 Type du projet principal
   const activeStepLabel = prospect._projectContext?.stepLabel || null;
   const normalizedActiveLabel = activeProjectLabel ? normalizeLabel(activeProjectLabel) : null;
   const computedSortableId =
@@ -115,7 +116,7 @@ const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
           
           {/* 📋 Afficher les autres tags en mode normal (non entourés) - UNIQUEMENT LES ACTIFS */}
           {activeTags
-            .filter(tag => normalizeLabel(tag) !== normalizedActiveLabel)
+            .filter(tag => tag !== activeProjectType)
             .map(tag => {
               // 🔥 Utiliser le title du projet depuis Supabase au lieu du type brut
               const projectTitle = projectsData[tag]?.title || tag;
