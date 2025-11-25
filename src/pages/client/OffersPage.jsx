@@ -93,6 +93,30 @@ const OfferCard = ({ project, projectStatus }) => {
         tags: updatedTags,
       });
 
+      // 🔥 INITIALISER LES ÉTAPES DANS SUPABASE dès l'ajout du projet par le client
+      if (project.steps && project.steps.length > 0) {
+        const initialSteps = JSON.parse(JSON.stringify(project.steps));
+        initialSteps[0].status = 'in_progress'; // Première étape active
+        
+        const { error: stepsError } = await supabase
+          .from('project_steps_status')
+          .upsert({
+            prospect_id: currentUser.id,
+            project_type: project.type,
+            steps: initialSteps,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'prospect_id,project_type'
+          });
+        
+        if (stepsError) {
+          console.error('⚠️ Erreur initialisation steps:', stepsError);
+          // Ne pas bloquer l'ajout du projet si les steps échouent
+        } else {
+          console.log('✅ Étapes initialisées dans Supabase pour', project.type);
+        }
+      }
+
       // 🔥 Mettre à jour currentUser localement immédiatement
       setCurrentUser({
         ...currentUser,

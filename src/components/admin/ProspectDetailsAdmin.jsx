@@ -1020,7 +1020,7 @@ const ProspectDetailsAdmin = ({
     }
   };
 
-  const handleAddProject = (projectType) => {
+  const handleAddProject = async (projectType) => {
     const currentTags = prospect.tags || [];
     if (!currentTags.includes(projectType)) {
       const updatedProspect = {
@@ -1036,6 +1036,23 @@ const ProspectDetailsAdmin = ({
           const updatedUserProjects = [...userProjects, projectType];
           setUserProjects(updatedUserProjects);
           localStorage.setItem('userProjects', JSON.stringify(updatedUserProjects));
+        }
+      }
+      
+      // 🔥 INITIALISER LES ÉTAPES DANS SUPABASE dès l'ajout du projet
+      const defaultSteps = projectsData[projectType]?.steps;
+      if (defaultSteps && defaultSteps.length > 0) {
+        try {
+          // Copier les steps et mettre la première en "in_progress"
+          const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
+          initialSteps[0].status = 'in_progress';
+          
+          // Sauvegarder dans Supabase via le hook
+          await updateSupabaseSteps(projectType, initialSteps);
+          
+          console.log('✅ Étapes initialisées dans Supabase pour', projectType);
+        } catch (error) {
+          console.error('❌ Erreur initialisation steps:', error);
         }
       }
       
