@@ -17,12 +17,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandGroup } from '@/components/ui/command';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAppContext } from '@/App';
-import { allProjectsData } from '@/data/projects';
 import { cn } from '@/lib/utils';
 import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -42,7 +42,7 @@ const SidebarToggleIcon = ({ className }) => (
 
 const hours = Array.from({ length: 15 }, (_, i) => `${8 + i}:00`);
 
-const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supabaseUsers, updateAppointment, deleteAppointment }) => {
+const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supabaseUsers, updateAppointment, deleteAppointment, projectsData }) => {
   const [status, setStatus] = useState(event?.status || 'pending');
 
   useEffect(() => {
@@ -178,7 +178,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Projet</span>
-              <span className="font-medium text-gray-800">{allProjectsData[event.projectId]?.title || 'N/A'}</span>
+              <span className="font-medium text-gray-800">{projectsData[event.projectId]?.title || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Étape</span>
@@ -232,7 +232,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
   );
 };
 
-const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects, supabaseUsers, updateCall, deleteCall, updateTask, deleteTask }) => {
+const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects, supabaseUsers, updateCall, deleteCall, updateTask, deleteTask, projectsData }) => {
   const [status, setStatus] = useState(activity?.status || 'pending');
   // 🔥 FIX: Tasks utilisent status 'effectue' maintenant au lieu de done boolean
   const [done, setDone] = useState(activity?.status === 'effectue');
@@ -413,7 +413,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
                 <div className="flex justify-between">
                   <span className="text-gray-500">Projet</span>
                   <span className="font-medium text-gray-800">
-                    {allProjectsData[activity.projectId]?.title || 'Aucun'}
+                    {projectsData[activity.projectId]?.title || 'Aucun'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -429,7 +429,7 @@ const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit, prospects,
                 <div className="flex justify-between">
                   <span className="text-gray-500">Projet</span>
                   <span className="font-medium text-gray-800">
-                    {allProjectsData[activity.projectId]?.title || 'Aucun'}
+                    {projectsData[activity.projectId]?.title || 'Aucun'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1026,8 +1026,14 @@ const AddActivityModal = ({
   updateTask: updateTaskProp,
   prospects: prospectsProp, // 🔥 Recevoir les prospects en props
   users: usersProp, // 🔥 Recevoir les users Supabase en props
+  projectsData, // 🔥 Recevoir projectsData du Context
 }) => {
-    const { getProjectSteps } = useAppContext();
+    // État local pour le contact sélectionné (besoin avant le hook)
+    const [selectedContact, setSelectedContact] = useState(null);
+    const [selectedProject, setSelectedProject] = useState('');
+    
+    // 🔥 Hook Supabase pour récupérer les steps du prospect sélectionné
+    const { projectStepsStatus } = useSupabaseProjectStepsStatus(selectedContact?.id);
     
     // Utiliser les prospects Supabase passés en props
     const prospects = prospectsProp || [];
@@ -1042,8 +1048,7 @@ const AddActivityModal = ({
     const updateAppointment = updateAppointmentProp;
     const updateCall = updateCallProp;
     const updateTask = updateTaskProp;
-    const [selectedContact, setSelectedContact] = useState(null);
-    const [selectedProject, setSelectedProject] = useState('');
+    // selectedContact et selectedProject déclarés plus haut (avant le hook)
     const [selectedStep, setSelectedStep] = useState('');
     const [activityType, setActivityType] = useState('physical');
     const [date, setDate] = useState(new Date());
@@ -1088,16 +1093,21 @@ const AddActivityModal = ({
     }, [initialData, prospects, defaultAssignedUserId]);
 
     useEffect(() => {
-      if (selectedContact && selectedProject) {
-        const projectSteps = getProjectSteps(selectedContact.id, selectedProject);
-        const currentStep = projectSteps.find(step => step.status === 'in_progress' || step.status === 'current');
-        if (currentStep) {
-          setSelectedStep(currentStep.name);
+      if (selectedContact && selectedProject && projectStepsStatus) {
+        // 🔥 projectStepsStatus est un objet { projectType: steps[] }
+        const projectSteps = projectStepsStatus[selectedProject];
+        if (projectSteps && Array.isArray(projectSteps)) {
+          const currentStep = projectSteps.find(step => step.status === 'in_progress');
+          if (currentStep) {
+            setSelectedStep(currentStep.name);
+          } else {
+            setSelectedStep('');
+          }
         } else {
           setSelectedStep('');
         }
       }
-    }, [selectedContact, selectedProject, getProjectSteps]);
+    }, [selectedContact, selectedProject, projectStepsStatus]);
 
 
     const resetForm = () => {
@@ -1267,7 +1277,7 @@ const AddActivityModal = ({
                                 </SelectTrigger>
                                 <SelectContent>
                                     {selectedContact.tags.map(tag => (
-                                        <SelectItem key={tag} value={tag}>{allProjectsData[tag]?.title || tag}</SelectItem>
+                                        <SelectItem key={tag} value={tag}>{projectsData[tag]?.title || tag}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -1385,7 +1395,7 @@ const AddActivityModal = ({
 }
 
 const Agenda = () => {
-  const { activeAdminUser } = useAppContext();
+  const { activeAdminUser, projectsData } = useAppContext();
   
   // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
   const { supabaseUserId, authUserId, loading: userIdLoading } = useSupabaseUser();
@@ -1915,6 +1925,7 @@ const Agenda = () => {
         supabaseUsers={supabaseUsers}
         updateAppointment={updateAppointment}
         deleteAppointment={deleteSupabaseAppointment}
+        projectsData={projectsData}
       />
       <OtherActivityDetailsPopup 
         activity={selectedOtherActivity.data} 
@@ -1927,6 +1938,7 @@ const Agenda = () => {
         deleteCall={deleteSupabaseCall}
         updateTask={updateSupabaseTask}
         deleteTask={deleteSupabaseTask}
+        projectsData={projectsData}
       />
       <AddActivityModal 
         open={isAddActivityModalOpen} 
@@ -1941,6 +1953,7 @@ const Agenda = () => {
         updateTask={updateSupabaseTask}
         prospects={prospects}
         users={supabaseUsers}
+        projectsData={projectsData}
       />
     </div>
   );
