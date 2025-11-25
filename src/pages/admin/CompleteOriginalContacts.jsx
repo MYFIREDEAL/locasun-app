@@ -226,7 +226,7 @@ const CompleteOriginalContacts = () => {
   // Transformer en objet pour compatibilité avec le code existant
   const users = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
-      acc[user.id] = user;
+      acc[user.user_id] = user;
       return acc;
     }, {});
   }, [supabaseUsers]);
