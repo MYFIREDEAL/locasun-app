@@ -106,7 +106,11 @@ BEGIN
     email = COALESCE((v_cleaned_data->>'email'), email),
     phone = COALESCE((v_cleaned_data->>'phone'), phone),
     status = COALESCE((v_cleaned_data->>'status'), status),
-    tags = COALESCE((v_cleaned_data->'tags')::TEXT[], tags),
+    tags = CASE 
+      WHEN v_cleaned_data ? 'tags' THEN 
+        ARRAY(SELECT jsonb_array_elements_text(v_cleaned_data->'tags'))
+      ELSE tags 
+    END,
     form_data = COALESCE((v_cleaned_data->'form_data')::JSONB, form_data),
     project_info = COALESCE((v_cleaned_data->'project_info')::JSONB, project_info),
     address = COALESCE((v_cleaned_data->>'address'), address),
