@@ -345,13 +345,25 @@ export const useSupabaseProspects = (activeAdminUser) => {
       if (updates.affiliateName !== undefined) dbUpdates.affiliate_name = updates.affiliateName;
       if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 Réponses aux formulaires
 
+      // 🔥 DEBUG : Log des données envoyées à la RPC
+      console.log('🔍 [updateProspect] Prospect ID:', id);
+      console.log('🔍 [updateProspect] Updates reçus:', updates);
+      console.log('🔍 [updateProspect] dbUpdates (snake_case):', dbUpdates);
+      console.log('🔍 [updateProspect] dbUpdates stringifié:', JSON.stringify(dbUpdates));
+
       // 🔥 UTILISER LA FONCTION RPC AU LIEU DE L'UPDATE DIRECT
       const { data, error: updateError } = await supabase.rpc('update_prospect_safe', {
         _prospect_id: id,
         _data: dbUpdates
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ [updateProspect] RPC Error:', updateError);
+        console.error('❌ [updateProspect] Error details:', JSON.stringify(updateError));
+        throw updateError;
+      }
+
+      console.log('✅ [updateProspect] RPC Success:', data);
 
       // ✅ Ne pas mettre à jour localement, laisser le real-time s'en charger
       // Le real-time va recevoir l'événement UPDATE et mettre à jour automatiquement
