@@ -163,13 +163,16 @@ export const useSupabaseProspects = (activeAdminUser) => {
       .channel('prospects-broadcast-global')
       .on('broadcast', { event: 'prospect-updated' }, (payload) => {
         console.log('📡 [useSupabaseProspects] GLOBAL Broadcast received:', payload.payload);
-        if (activeAdminUser) {
-          // Si admin, mettre à jour la liste prospects
-          // 🔥 Créer un nouvel objet pour forcer React à détecter le changement
-          setProspects(prev => prev.map(p => 
+        // Mettre à jour la liste prospects (pas besoin de if activeAdminUser, on met toujours à jour)
+        // 🔥 Créer un nouvel objet pour forcer React à détecter le changement
+        setProspects(prev => {
+          console.log('🔄 [useSupabaseProspects] Avant update:', prev.find(p => p.id === payload.payload.id)?.name);
+          const updated = prev.map(p => 
             p.id === payload.payload.id ? { ...payload.payload } : p
-          ));
-        }
+          );
+          console.log('✅ [useSupabaseProspects] Après update:', updated.find(p => p.id === payload.payload.id)?.name);
+          return updated;
+        });
       })
       .subscribe();
 
