@@ -84,6 +84,8 @@ const FinalPipeline = () => {
   useEffect(() => {
     if (!selectedProspect?.id) return;
 
+    console.log('🔌 [FinalPipeline] Setting up real-time channel for prospect:', selectedProspect.id);
+
     const channel = supabase
       .channel(`pipeline-prospect-detail-${selectedProspect.id}`)
       .on('postgres_changes', {
@@ -92,7 +94,7 @@ const FinalPipeline = () => {
         table: 'prospects',
         filter: `id=eq.${selectedProspect.id}`
       }, (payload) => {
-        // 🔥 RETRAIT DE LA CONDITION isEditingProspect - Toujours mettre à jour
+        console.log('� [FinalPipeline] Real-time UPDATE received:', payload);
         
         // Transformation Supabase → App (snake_case → camelCase)
         const transformedData = {
