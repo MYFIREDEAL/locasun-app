@@ -105,20 +105,17 @@ BEGIN
     name = COALESCE((v_cleaned_data->>'name'), name),
     email = COALESCE((v_cleaned_data->>'email'), email),
     phone = COALESCE((v_cleaned_data->>'phone'), phone),
+    company_name = COALESCE((v_cleaned_data->>'company_name'), company_name),
+    address = COALESCE((v_cleaned_data->>'address'), address),
     status = COALESCE((v_cleaned_data->>'status'), status),
     tags = CASE 
       WHEN v_cleaned_data ? 'tags' THEN 
         ARRAY(SELECT jsonb_array_elements_text(v_cleaned_data->'tags'))
       ELSE tags 
     END,
+    affiliate_name = COALESCE((v_cleaned_data->>'affiliate_name'), affiliate_name),
+    has_appointment = COALESCE((v_cleaned_data->>'has_appointment')::BOOLEAN, has_appointment),
     form_data = COALESCE((v_cleaned_data->'form_data')::JSONB, form_data),
-    project_info = COALESCE((v_cleaned_data->'project_info')::JSONB, project_info),
-    address = COALESCE((v_cleaned_data->>'address'), address),
-    city = COALESCE((v_cleaned_data->>'city'), city),
-    postal_code = COALESCE((v_cleaned_data->>'postal_code'), postal_code),
-    country = COALESCE((v_cleaned_data->>'country'), country),
-    notes = COALESCE((v_cleaned_data->>'notes'), notes),
-    score = COALESCE((v_cleaned_data->>'score')::INTEGER, score),
     owner_id = COALESCE((v_cleaned_data->>'owner_id')::UUID, owner_id),
     updated_at = NOW()
   WHERE id = _prospect_id

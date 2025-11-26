@@ -81,57 +81,19 @@ const FinalPipeline = () => {
   const lastProcessedUrl = useRef(null); // 🔥 Pour éviter de retraiter la même URL
 
   // ✅ Real-time pour le prospect sélectionné (détail)
+  // 🔥 Synchroniser selectedProspect avec le contexte (source de vérité unique)
   useEffect(() => {
-    if (!selectedProspect?.id) return;
-
-    const channel = supabase
-      .channel(`pipeline-prospect-detail-${selectedProspect.id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'prospects',
-        filter: `id=eq.${selectedProspect.id}`
-      }, (payload) => {
-        // ✅ NE PAS mettre à jour si l'utilisateur est en train d'éditer (évite le scroll)
-        if (isEditingProspect) {
-          return;
-        }
-        
-        // Transformation Supabase → App (snake_case → camelCase)
-        const transformedData = {
-          id: payload.new.id,
-          name: payload.new.name,
-          email: payload.new.email,
-          phone: payload.new.phone,
-          address: payload.new.address,
-          city: payload.new.city,
-          postalCode: payload.new.postal_code,
-          tags: payload.new.tags || [],
-          ownerId: payload.new.owner_id,
-          userId: payload.new.user_id,
-          createdAt: payload.new.created_at,
-          updatedAt: payload.new.updated_at,
-          notes: payload.new.notes,
-          status: payload.new.status,
-          formData: payload.new.form_data || {} // 🔥 Synchroniser les formulaires
-        };
-
-        setSelectedProspect(transformedData);
-        
-        toast({
-          title: "✅ Contact mis à jour",
-          description: "Les modifications ont été synchronisées en temps réel.",
-          duration: 2000,
-        });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedProspect?.id]);
-
-  // ✅ BLOQUER le real-time update pendant l'édition pour éviter le scroll
+    if (!selectedProspect?.id || !supabaseProspects) return;
+    
+    // Trouver le prospect à jour dans le contexte
+    const updatedProspect = supabaseProspects.find(p => p.id === selectedProspect.id);
+    
+    // ✅ Mettre à jour seulement si les données ont changé
+    if (updatedProspect && JSON.stringify(updatedProspect) !== JSON.stringify(selectedProspect)) {
+      setSelectedProspect(updatedProspect);
+      console.log('🔄 [FinalPipeline] selectedProspect synchronisé avec le contexte');
+    }
+  }, [supabaseProspects, selectedProspect?.id]);
   const [isEditingProspect, setIsEditingProspect] = useState(false);
   
   if (!contextData) {
