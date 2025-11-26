@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 
@@ -10,6 +10,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const channelRef = useRef(null); // 🔥 Stocker le channel pour broadcast manuel
 
   // Charger les prospects depuis Supabase
   const fetchProspects = async () => {
@@ -140,11 +141,20 @@ export const useSupabaseProspects = (activeAdminUser) => {
           }
         }
       )
+      .on('broadcast', { event: 'prospect-updated' }, (payload) => {
+        // 🔥 Écouter les broadcasts manuels (quand un client modifie son profil)
+        console.log('📡 [useSupabaseProspects] Broadcast manual UPDATE received:', payload.payload);
+        setProspects(prev => prev.map(p => p.id === payload.payload.id ? payload.payload : p));
+      })
       .subscribe();
+
+    // 🔥 Stocker le channel dans le ref pour broadcast manuel
+    channelRef.current = channel;
 
     // Cleanup : se désabonner quand le composant unmount
     return () => {
       supabase.removeChannel(channel);
+      channelRef.current = null;
     };
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
 
@@ -413,6 +423,17 @@ export const useSupabaseProspects = (activeAdminUser) => {
           prev.map(p => p.id === id ? transformedProspect : p)
         );
         console.log('✅ [updateProspect] State local mis à jour immédiatement');
+
+        // 🔥 Si c'est un CLIENT qui modifie, broadcaster manuellement aux autres utilisateurs
+        if (!adminCheck && channelRef.current) {
+          console.log('📡 [updateProspect] Broadcasting manual update to other users...');
+          // Envoyer un broadcast personnalisé pour notifier les autres utilisateurs
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'prospect-updated',
+            payload: transformedProspect
+          });
+        }
       }
 
       return data;
