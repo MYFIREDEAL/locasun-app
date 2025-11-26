@@ -1314,7 +1314,8 @@ function App() {
     userProjects, setUserProjects, addProject, 
     projectsData, setProjectsData: handleSetProjectsData,
     deleteProjectTemplate: deleteTemplate, // 🔥 Exposer deleteTemplate pour suppression directe
-    prospects, setProspects, addProspect, updateProspect, 
+    prospects: supabaseProspects, // 🔥 Utiliser directement supabaseProspects au lieu du state legacy
+    setProspects, addProspect, updateProspect, 
     currentUser, setCurrentUser: handleSetCurrentUser, 
     appointments, addAppointment, updateAppointment, deleteAppointment, getSharedAppointments,
     getProjectSteps, updateProjectSteps, completeStepAndProceed,
