@@ -345,12 +345,11 @@ export const useSupabaseProspects = (activeAdminUser) => {
       if (updates.affiliateName !== undefined) dbUpdates.affiliate_name = updates.affiliateName;
       if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 Réponses aux formulaires
 
-      const { data, error: updateError } = await supabase
-        .from('prospects')
-        .update(dbUpdates)
-        .eq('id', id)
-        .select()
-        .single();
+      // 🔥 UTILISER LA FONCTION RPC AU LIEU DE L'UPDATE DIRECT
+      const { data, error: updateError } = await supabase.rpc('update_prospect_safe', {
+        _prospect_id: id,
+        _data: dbUpdates
+      });
 
       if (updateError) throw updateError;
 
