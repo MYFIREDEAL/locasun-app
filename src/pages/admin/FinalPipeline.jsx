@@ -69,7 +69,7 @@ const FinalPipeline = () => {
   const { allProjectSteps } = useSupabaseAllProjectSteps();
   
   // États locaux
-  const [selectedProspect, setSelectedProspect] = useState(null);
+  const [selectedProspectId, setSelectedProspectId] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [filter, setFilter] = useState('all');
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -80,9 +80,10 @@ const FinalPipeline = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const lastProcessedUrl = useRef(null); // 🔥 Pour éviter de retraiter la même URL
 
-  // ✅ Real-time pour le prospect sélectionné (détail)
-  useEffect(() => {
-    if (!selectedProspect?.id) return;
+  // ❌ SUPPRIMÉ : Canal real-time spécifique (duplication inutile)
+  // Ancien code causait le bug : selectedProspect était un state local qui ne se synchronisait jamais
+  /* useEffect(() => {
+    if (!selectedProspectId) return;
 
     console.log('🔌 [FinalPipeline] Setting up real-time channel for prospect:', selectedProspect.id);
 
@@ -114,15 +115,15 @@ const FinalPipeline = () => {
           updatedAt: payload.new.updated_at,
         };
 
-        setSelectedProspect(transformedData);
-        console.log('🔄 [FinalPipeline] Real-time: selectedProspect mis à jour');
+        // Pas besoin de setSelectedProspect - le useMemo le fait automatiquement
+        console.log('🔄 [FinalPipeline] Real-time: selectedProspect mis à jour via context');
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedProspect?.id]);
+  }, [selectedProspectId]); */
   const [isEditingProspect, setIsEditingProspect] = useState(false);
   
   if (!contextData) {
@@ -178,6 +179,14 @@ const FinalPipeline = () => {
   const prospects = supabaseProspects;
   const addProspect = addSupabaseProspect;
   const updateProspect = updateSupabaseProspect;
+
+  // 🔥 FIX CHATGPT : Dériver selectedProspect depuis le contexte (source de vérité unique)
+  // Le hook useSupabaseProspects gère déjà le real-time global, donc selectedProspect
+  // se met à jour automatiquement quand supabaseProspects change
+  const selectedProspect = useMemo(
+    () => supabaseProspects?.find(p => p.id === selectedProspectId) || null,
+    [supabaseProspects, selectedProspectId]
+  );
 
   const stageDefinitions = useMemo(() => {
     if (Array.isArray(globalPipelineSteps) && globalPipelineSteps.length > 0) {
@@ -482,8 +491,8 @@ const FinalPipeline = () => {
     }
     
     if (!urlProspectId) {
-      if (selectedProspect !== null) {
-        setSelectedProspect(null);
+      if (selectedProspectId !== null) {
+        setSelectedProspectId(null);
         lastProcessedUrl.current = null;
       }
       return;
@@ -492,12 +501,8 @@ const FinalPipeline = () => {
     const prospectFromList = prospects.find(p => p.id === urlProspectId) || null;
     
     if (prospectFromList) {
-      // Ajouter le projectType au prospect pour que le panneau de détail l'utilise
-      const prospectWithProject = urlProjectType 
-        ? { ...prospectFromList, _selectedProjectType: urlProjectType }
-        : prospectFromList;
-      
-      setSelectedProspect(prospectWithProject);
+      // On stocke juste l'ID - le useMemo dérivera automatiquement selectedProspect
+      setSelectedProspectId(urlProspectId);
       lastProcessedUrl.current = currentUrl; // 🔥 Marquer cette URL comme traitée
     }
   }, [searchParams, prospects]);
@@ -523,7 +528,7 @@ const FinalPipeline = () => {
   };
 
   const handleBack = () => {
-    setSelectedProspect(null);
+    setSelectedProspectId(null);
     const newParams = new URLSearchParams(searchParams);
     newParams.delete('prospect');
     newParams.delete('project');
@@ -558,7 +563,7 @@ const FinalPipeline = () => {
     try {
       if (updateProspect) {
         updateProspect(updatedProspect);
-        setSelectedProspect(updatedProspect);
+        // 🔥 Pas besoin de setSelectedProspect - le useMemo le met à jour automatiquement
         toast({
           title: "Prospect mis à jour",
           description: "Les informations ont été sauvegardées.",
