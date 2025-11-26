@@ -67,7 +67,7 @@ BEGIN
     v_allowed := TRUE;
   
   -- Owner du prospect : accès autorisé
-  ELSIF v_prospect.owner_id = v_current_user_id THEN
+  ELSIF v_prospect.owner_id = v_user_pk THEN
     v_allowed := TRUE;
   
   -- Vérifier si le owner du prospect est dans access_rights.users
