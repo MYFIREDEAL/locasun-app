@@ -367,9 +367,26 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       // 🔥 Mettre à jour immédiatement le state local avec les données retournées
       if (data && data.length > 0) {
-        const updatedProspect = data[0]; // Le RPC retourne un array
+        const dbProspect = data[0]; // Le RPC retourne un array
+        const transformedProspect = {
+          id: dbProspect.id,
+          name: dbProspect.name,
+          email: dbProspect.email,
+          phone: dbProspect.phone,
+          company: dbProspect.company_name,
+          address: dbProspect.address,
+          ownerId: dbProspect.owner_id,
+          status: dbProspect.status,
+          tags: dbProspect.tags || [],
+          hasAppointment: dbProspect.has_appointment || false,
+          affiliateName: dbProspect.affiliate_name,
+          formData: dbProspect.form_data || {},
+          createdAt: dbProspect.created_at,
+          updatedAt: dbProspect.updated_at,
+        };
+        
         setProspects(prev => 
-          prev.map(p => p.id === id ? transformProspectToCamelCase(updatedProspect) : p)
+          prev.map(p => p.id === id ? transformedProspect : p)
         );
         console.log('✅ [updateProspect] State local mis à jour immédiatement');
       }
