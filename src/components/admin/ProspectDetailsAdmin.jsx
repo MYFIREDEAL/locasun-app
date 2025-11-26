@@ -1018,12 +1018,18 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleAddProject = async (projectType) => {
-    const currentTags = prospect.tags || [];
+    // 🔥 FIX: Utiliser editableProspect au lieu de prospect
+    const currentTags = editableProspect.tags || [];
     if (!currentTags.includes(projectType)) {
       const updatedProspect = {
-        ...prospect,
+        ...editableProspect,
         tags: [...currentTags, projectType]
       };
+      
+      // 🔥 FIX: Mettre à jour le state local immédiatement
+      setEditableProspect(updatedProspect);
+      
+      // Puis propager au parent
       onUpdate(updatedProspect);
       setActiveProjectTag(projectType);
       
@@ -1062,7 +1068,8 @@ const ProspectDetailsAdmin = ({
   };
 
   const getAvailableProjects = () => {
-    const currentTags = prospect.tags || [];
+    // 🔥 FIX: Utiliser editableProspect au lieu de prospect
+    const currentTags = editableProspect.tags || [];
     return Object.values(projectsData)
       .filter(project => project.isPublic && !currentTags.includes(project.type));
   };
@@ -1070,14 +1077,17 @@ const ProspectDetailsAdmin = ({
   const handleActionClick = (action) => {
     switch (action) {
       case 'Appel':
-        if (prospect.phone) window.location.href = `tel:${prospect.phone}`;
+        // 🔥 FIX: Utiliser editableProspect
+        if (editableProspect.phone) window.location.href = `tel:${editableProspect.phone}`;
         break;
       case 'Mail':
-        if (prospect.email) window.location.href = `mailto:${prospect.email}`;
+        // 🔥 FIX: Utiliser editableProspect
+        if (editableProspect.email) window.location.href = `mailto:${editableProspect.email}`;
         break;
       case 'WhatsApp':
-        if (prospect.phone) {
-          const phoneNumber = prospect.phone.replace(/[^0-9]/g, '');
+        // 🔥 FIX: Utiliser editableProspect
+        if (editableProspect.phone) {
+          const phoneNumber = editableProspect.phone.replace(/[^0-9]/g, '');
           window.open(`https://wa.me/${phoneNumber}`, '_blank');
         } else {
           toast({
@@ -1208,8 +1218,8 @@ const ProspectDetailsAdmin = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              {/* ✅ Toujours en lecture seule - éditable uniquement dans le bloc "Information Prospect" */}
-              <h1 className="text-2xl font-bold text-gray-900">{prospect.name}</h1>
+              {/* 🔥 FIX: Utiliser editableProspect pour affichage real-time */}
+              <h1 className="text-2xl font-bold text-gray-900">{editableProspect.name}</h1>
             </div>
           </div>
 
@@ -1223,7 +1233,8 @@ const ProspectDetailsAdmin = ({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {(prospect.tags || []).map(tag => {
+                  {/* 🔥 FIX: Utiliser editableProspect.tags pour affichage real-time */}
+                  {(editableProspect.tags || []).map(tag => {
                     const status = allProjectStatuses[tag] || 'actif';
                     return (
                       <button 
@@ -1254,7 +1265,8 @@ const ProspectDetailsAdmin = ({
                       </button>
                     );
                   })}
-                  {(!prospect.tags || prospect.tags.length === 0) && (
+                  {/* 🔥 FIX: Utiliser editableProspect.tags pour affichage real-time */}
+                  {(!editableProspect.tags || editableProspect.tags.length === 0) && (
                     <p className="text-gray-400 text-sm italic">Aucun projet associé</p>
                   )}
                 </div>
@@ -1317,7 +1329,7 @@ const ProspectDetailsAdmin = ({
                             autoFocus={false}
                           />
                         ) : (
-                          <p className="text-gray-700">{prospect[field.id] || <span className="text-gray-400">Non renseigné</span>}</p>
+                          <p className="text-gray-700">{editableProspect[field.id] || <span className="text-gray-400">Non renseigné</span>}</p>
                         )}
                       </div>
                     </div>
