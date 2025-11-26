@@ -13,7 +13,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps';
@@ -147,6 +146,9 @@ const FinalPipeline = () => {
   }
 
   const { 
+    prospects: supabaseProspects, // � Utiliser prospects du contexte (déjà synchronisé avec Supabase)
+    addProspect: addSupabaseProspect,
+    updateProspect: updateSupabaseProspect,
     projectsData = {}, 
     activeAdminUser,
     users = {},
@@ -154,14 +156,7 @@ const FinalPipeline = () => {
     getProjectSteps,
   } = contextData;
 
-  // 🚀 MIGRATION SUPABASE : Charger les prospects depuis Supabase
-  const {
-    prospects: supabaseProspects,
-    loading: prospectsLoading,
-    addProspect: addSupabaseProspect,
-    updateProspect: updateSupabaseProspect,
-    deleteProspect: deleteSupabaseProspect,
-  } = useSupabaseProspects(activeAdminUser);
+  // Note: prospectsLoading retiré car le contexte gère déjà le chargement via authLoading/adminReady
 
   // 🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
@@ -606,17 +601,7 @@ const FinalPipeline = () => {
     );
   }
 
-  // Afficher le chargement si les prospects sont en cours de chargement
-  if (prospectsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement des prospects depuis Supabase...</p>
-        </div>
-      </div>
-    );
-  }
+  // Note: Chargement géré par App.jsx via authLoading, pas besoin de check ici
 
   // Vue principale du pipeline
   return (
