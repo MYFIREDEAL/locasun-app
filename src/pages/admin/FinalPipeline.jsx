@@ -516,7 +516,7 @@ const FinalPipeline = () => {
   };
 
   const handleProspectClick = (prospect, projectType) => {
-    setSelectedProspect(prospect);
+    setSelectedProspectId(prospect.id);
     const newParams = new URLSearchParams(searchParams);
     newParams.set('prospect', prospect.id);
     if (projectType) {

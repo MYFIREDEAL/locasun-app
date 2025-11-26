@@ -658,9 +658,8 @@ const ProspectDetailsAdmin = ({
   });
   const [isEditing, setIsEditing] = useState(false);
   
-  // ✅ Utiliser un ref pour éditer SANS re-render à chaque caractère
-  const editableProspectRef = useRef({...prospect});
-  const [, forceUpdate] = useState({}); // Pour forcer un re-render uniquement quand on veut
+  // 🔥 FIX: Utiliser useState au lieu de useRef pour déclencher les re-renders (pattern du chat)
+  const [editableProspect, setEditableProspect] = useState(prospect);
   
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
 
@@ -711,11 +710,9 @@ const ProspectDetailsAdmin = ({
     }
   }, [notificationId, markNotificationAsRead, setSearchParams, searchParams]);
 
+  // 🔥 FIX: Synchroniser le state quand la prop change (pattern du chat)
   useEffect(() => {
-    // ✅ Mettre à jour le ref sans re-render
-    editableProspectRef.current = {
-      ...prospect
-    };
+    setEditableProspect(prospect);
   }, [prospect]);
 
   useEffect(() => {
@@ -1127,7 +1124,7 @@ const ProspectDetailsAdmin = ({
   
   const handleSave = () => {
     try {
-      onUpdate(editableProspectRef.current);
+      onUpdate(editableProspect);
       setIsEditing(false);
       toast({
         title: "✅ Prospect mis à jour",
@@ -1143,12 +1140,11 @@ const ProspectDetailsAdmin = ({
     }
   };
   const handleInputChange = (fieldId, value) => {
-    // ✅ Modifier directement le ref SANS déclencher de re-render
-    editableProspectRef.current = {
-      ...editableProspectRef.current,
+    // 🔥 FIX: Utiliser setState pour déclencher re-render (pattern du chat)
+    setEditableProspect(prev => ({
+      ...prev,
       [fieldId]: value
-    };
-    // Ne PAS appeler forceUpdate() ici → pas de re-render !
+    }));
   };
 
   const handleOwnerChange = (ownerId) => {
@@ -1162,12 +1158,11 @@ const ProspectDetailsAdmin = ({
       finalOwnerId = supabaseUserId;
     }
     
-    // ✅ Modifier le ref ET forcer un re-render pour mettre à jour l'affichage
-    editableProspectRef.current = {
-      ...editableProspectRef.current,
+    // 🔥 FIX: Utiliser setState pour déclencher re-render (pattern du chat)
+    setEditableProspect(prev => ({
+      ...prev,
       ownerId: finalOwnerId,
-    };
-    forceUpdate({}); // 🔥 Forcer le re-render pour afficher le changement immédiatement
+    }));
   };
 
   const activeProjectData = projectsData[activeProjectTag];
@@ -1315,7 +1310,7 @@ const ProspectDetailsAdmin = ({
                             id={field.id}
                             name={field.id}
                             type={field.type}
-                            defaultValue={editableProspectRef.current[field.id] || ''}
+                            value={editableProspect[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             className="h-8 text-sm"
                             placeholder={field.placeholder}
@@ -1334,7 +1329,7 @@ const ProspectDetailsAdmin = ({
                       {isEditing ? (
                         <SearchableSelect
                           options={userOptions}
-                          value={editableProspectRef.current.ownerId || 'unassigned'}
+                          value={editableProspect.ownerId || 'unassigned'}
                           onSelect={handleOwnerChange}
                           placeholder="Sélectionner un utilisateur"
                           searchPlaceholder="Rechercher..."
@@ -1342,7 +1337,7 @@ const ProspectDetailsAdmin = ({
                         />
                       ) : (
                         <p className="text-gray-700">
-                          {supabaseUsers.find(u => u.user_id === editableProspectRef.current.ownerId)?.name || 'Non assigné'}
+                          {supabaseUsers.find(u => u.user_id === editableProspect.ownerId)?.name || 'Non assigné'}
                         </p>
                       )}
                     </div>

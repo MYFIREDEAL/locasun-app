@@ -241,7 +241,7 @@ const CompleteOriginalContacts = () => {
   } = useSupabaseProspects(activeAdminUser);
   
   const [selectedContacts, setSelectedContacts] = useState([]);
-  const [selectedProspect, setSelectedProspect] = useState(null);
+  const [selectedProspectId, setSelectedProspectId] = useState(null);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
@@ -258,44 +258,17 @@ const CompleteOriginalContacts = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Real-time pour le prospect sélectionné (détail)
-  useEffect(() => {
-    if (!selectedProspect?.id) return;
+  // 🔥 FIX CHATGPT : Dériver selectedProspect depuis le contexte (source de vérité unique)
+  // Le hook useSupabaseProspects gère déjà le real-time global, donc selectedProspect
+  // se met à jour automatiquement quand supabaseProspects change
+  const selectedProspect = useMemo(
+    () => supabaseProspects?.find(p => p.id === selectedProspectId) || null,
+    [supabaseProspects, selectedProspectId]
+  );
 
-    const channel = supabase
-      .channel(`admin-prospect-detail-${selectedProspect.id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'prospects',
-        filter: `id=eq.${selectedProspect.id}`
-      }, (payload) => {
-        // Transformation Supabase → App (snake_case → camelCase)
-        const transformedData = {
-          id: payload.new.id,
-          name: payload.new.name,
-          email: payload.new.email,
-          phone: payload.new.phone,
-          address: payload.new.address,
-          city: payload.new.city,
-          postalCode: payload.new.postal_code,
-          tags: payload.new.tags || [],
-          ownerId: payload.new.owner_id,
-          userId: payload.new.user_id,
-          createdAt: payload.new.created_at,
-          updatedAt: payload.new.updated_at,
-          notes: payload.new.notes,
-          status: payload.new.status
-        };
-
-        setSelectedProspect(transformedData);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedProspect?.id]);
+  // ❌ SUPPRIMÉ : Canal real-time spécifique (duplication inutile)
+  // Ancien code causait le bug : selectedProspect était un state local qui ne se synchronisait jamais
+  // Le hook global gère déjà tous les updates
 
   const allowedUsers = useMemo(() => {
     if (!activeAdminUser || !supabaseUsers) return [];
@@ -467,7 +440,7 @@ const CompleteOriginalContacts = () => {
   };
 
   const handleBackFromDetails = () => {
-    setSelectedProspect(null);
+    setSelectedProspectId(null);
     navigate('/admin/contacts', { replace: true });
   };
 
