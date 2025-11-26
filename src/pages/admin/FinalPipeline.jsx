@@ -81,19 +81,46 @@ const FinalPipeline = () => {
   const lastProcessedUrl = useRef(null); // 🔥 Pour éviter de retraiter la même URL
 
   // ✅ Real-time pour le prospect sélectionné (détail)
-  // 🔥 Synchroniser selectedProspect avec le contexte (source de vérité unique)
   useEffect(() => {
-    if (!selectedProspect?.id || !supabaseProspects) return;
-    
-    // Trouver le prospect à jour dans le contexte
-    const updatedProspect = supabaseProspects.find(p => p.id === selectedProspect.id);
-    
-    // ✅ Mettre à jour seulement si le prospect existe et que les timestamps diffèrent
-    if (updatedProspect && updatedProspect.updatedAt !== selectedProspect.updatedAt) {
-      setSelectedProspect(updatedProspect);
-      console.log('🔄 [FinalPipeline] selectedProspect synchronisé avec le contexte');
-    }
-  }, [supabaseProspects]);
+    if (!selectedProspect?.id) return;
+
+    const channel = supabase
+      .channel(`pipeline-prospect-detail-${selectedProspect.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'prospects',
+        filter: `id=eq.${selectedProspect.id}`
+      }, (payload) => {
+        // 🔥 RETRAIT DE LA CONDITION isEditingProspect - Toujours mettre à jour
+        
+        // Transformation Supabase → App (snake_case → camelCase)
+        const transformedData = {
+          id: payload.new.id,
+          name: payload.new.name,
+          email: payload.new.email,
+          phone: payload.new.phone,
+          address: payload.new.address,
+          company: payload.new.company_name,
+          tags: payload.new.tags || [],
+          ownerId: payload.new.owner_id,
+          status: payload.new.status,
+          hasAppointment: payload.new.has_appointment,
+          affiliateName: payload.new.affiliate_name,
+          formData: payload.new.form_data || {},
+          createdAt: payload.new.created_at,
+          updatedAt: payload.new.updated_at,
+        };
+
+        setSelectedProspect(transformedData);
+        console.log('🔄 [FinalPipeline] Real-time: selectedProspect mis à jour');
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedProspect?.id]);
   const [isEditingProspect, setIsEditingProspect] = useState(false);
   
   if (!contextData) {
