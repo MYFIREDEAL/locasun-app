@@ -712,6 +712,7 @@ const ProspectDetailsAdmin = ({
 
   // 🔥 FIX: Synchroniser le state quand la prop change (pattern du chat)
   useEffect(() => {
+    console.log('🔄 [ProspectDetailsAdmin] prospect prop changed:', prospect.name);
     setEditableProspect(prospect);
   }, [prospect]);
 
