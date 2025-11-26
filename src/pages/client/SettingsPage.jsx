@@ -67,7 +67,7 @@ import React, { useState, useEffect } from 'react';
 
         try {
           // Mettre à jour dans Supabase (table prospects)
-          await updateSupabaseProspect({
+          const result = await updateSupabaseProspect({
             id: currentUser.id,
             name: formData.name,
             email: formData.email,
@@ -76,16 +76,32 @@ import React, { useState, useEffect } from 'react';
             address: formData.address,
           });
 
-          // Mettre à jour le contexte local
-          const updatedUser = {
-            ...currentUser,
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            companyName: formData.companyName,
-            address: formData.address,
-          };
-          setCurrentUser(updatedUser);
+          console.log('✅ [SettingsPage] Update result:', result);
+
+          // Mettre à jour le contexte local avec les données retournées par Supabase
+          // La RPC retourne un array, on prend le premier élément
+          if (result && result.length > 0) {
+            const dbProspect = result[0];
+            const updatedUser = {
+              id: dbProspect.id,
+              name: dbProspect.name,
+              email: dbProspect.email,
+              phone: dbProspect.phone,
+              companyName: dbProspect.company_name,
+              address: dbProspect.address,
+              tags: dbProspect.tags || [],
+              userId: dbProspect.user_id,
+              ownerId: dbProspect.owner_id,
+              status: dbProspect.status,
+              hasAppointment: dbProspect.has_appointment,
+              affiliateName: dbProspect.affiliate_name,
+              formData: dbProspect.form_data || {},
+              createdAt: dbProspect.created_at,
+              updatedAt: dbProspect.updated_at,
+            };
+            setCurrentUser(updatedUser);
+            console.log('✅ [SettingsPage] currentUser mis à jour localement');
+          }
 
           toast({
             title: "Profil mis a jour !",
