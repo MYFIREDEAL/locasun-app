@@ -186,11 +186,12 @@ function App() {
   // ✅ globalPipelineSteps maintenant géré par useSupabaseGlobalPipeline (plus de localStorage)
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // 🔥 État de chargement auth
+  const [adminReady, setAdminReady] = useState(false); // 🔥 Flag pour activer les hooks Supabase
   // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
-  const { users: supabaseUsers } = useSupabaseUsers();
+  const { users: supabaseUsers } = useSupabaseUsers(adminReady);
   
   // 🔥 Charger les panneaux de formulaires clients depuis Supabase avec real-time
   // ⚠️ Si client: charger ses formulaires. Si admin: charger TOUS les formulaires (null = tous)
@@ -226,7 +227,7 @@ function App() {
     updateStep: updatePipelineStep,
     deleteStep: deletePipelineStep,
     reorderSteps: reorderPipelineSteps
-  } = useSupabaseGlobalPipeline();
+  } = useSupabaseGlobalPipeline(adminReady);
 
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
   const {
@@ -236,13 +237,13 @@ function App() {
     updateTemplate,
     deleteTemplate,
     getPublicTemplates
-  } = useSupabaseProjectTemplates();
+  } = useSupabaseProjectTemplates(adminReady);
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
   const {
     forms: supabaseForms,
     loading: formsLoading
-  } = useSupabaseForms();
+  } = useSupabaseForms(adminReady);
 
   // Synchroniser forms dans le state pour compatibilité avec le code existant (chat)
   useEffect(() => {
@@ -255,7 +256,7 @@ function App() {
   const {
     prompts: supabasePrompts,
     loading: promptsLoading
-  } = useSupabasePrompts();
+  } = useSupabasePrompts(adminReady);
 
   // Synchroniser prompts dans le state pour compatibilité avec le code existant
   useEffect(() => {
@@ -269,7 +270,7 @@ function App() {
     notifications,
     createOrUpdateNotification,
     markAsRead: markAdminNotificationAsRead
-  } = useSupabaseNotifications(activeAdminUser?.user_id);
+  } = useSupabaseNotifications(activeAdminUser?.user_id, adminReady);
 
   // 🔥 Charger les notifications client depuis Supabase avec real-time
   // Note: currentUser.id est le prospect_id dans la table prospects
@@ -277,7 +278,7 @@ function App() {
     notifications: clientNotifications,
     createOrUpdateNotification: createOrUpdateClientNotification,
     markAsRead: markClientNotificationAsRead
-  } = useSupabaseClientNotifications(currentUser?.id);
+  } = useSupabaseClientNotifications(currentUser?.id, adminReady);
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
@@ -329,6 +330,7 @@ function App() {
         if (adminData) {
           // C'est un ADMIN → charger activeAdminUser
           setActiveAdminUser(adminData);
+          setAdminReady(true); // 🔥 Activer les hooks Supabase
           try {
             localStorage.setItem('activeAdminUser', JSON.stringify(adminData));
           } catch (e) {
@@ -1312,6 +1314,7 @@ function App() {
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     activeAdminUser, setActiveAdminUser, switchActiveAdminUser,
     authLoading, // 🔥 Exposer l'état de chargement auth
+    adminReady, // 🔥 Exposer le flag pour activer les hooks Supabase
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
     companyLogo, setCompanyLogo, removeLogo,
   };

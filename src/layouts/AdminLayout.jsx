@@ -9,7 +9,7 @@ import React, { useEffect } from 'react';
 
     const AdminLayout = () => {
       const { width } = useWindowSize();
-      const { activeAdminUser, setActiveAdminUser } = useAppContext();
+      const { activeAdminUser, setActiveAdminUser, adminReady } = useAppContext();
       const isMobile = width < 768;
       const isDesktop = width >= 1024;
       const location = useLocation();
@@ -21,6 +21,18 @@ import React, { useEffect } from 'react';
       const isContactsPage = location.pathname.startsWith('/admin/contacts');
 
       const showAside = isDesktop && !isCharlyPage && !isAgendaPage && !isProfilePage && !isPipelinePage && !isContactsPage;
+
+      // 🔥 BLOQUER LE RENDU TANT QUE adminReady N'EST PAS TRUE
+      if (!adminReady) {
+        return (
+          <div className="flex items-center justify-center h-screen bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">Chargement de l'espace admin...</p>
+            </div>
+          </div>
+        );
+      }
 
       // 🔒 PROTECTION : Détecter si un client est connecté et le déconnecter
       useEffect(() => {
