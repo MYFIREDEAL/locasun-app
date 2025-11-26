@@ -165,7 +165,10 @@ export const useSupabaseProspects = (activeAdminUser) => {
         console.log('📡 [useSupabaseProspects] GLOBAL Broadcast received:', payload.payload);
         if (activeAdminUser) {
           // Si admin, mettre à jour la liste prospects
-          setProspects(prev => prev.map(p => p.id === payload.payload.id ? payload.payload : p));
+          // 🔥 Créer un nouvel objet pour forcer React à détecter le changement
+          setProspects(prev => prev.map(p => 
+            p.id === payload.payload.id ? { ...payload.payload } : p
+          ));
         }
       })
       .subscribe();
