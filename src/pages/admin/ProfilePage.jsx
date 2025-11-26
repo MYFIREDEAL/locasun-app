@@ -1092,17 +1092,19 @@ const ProfilePage = () => {
   } = useSupabaseUsersCRUD();
 
   // Transformer le array Supabase en objet compatible avec le code existant
-  // { userId: { id, name, email, ... } }
-  const users = useMemo(() => {
+  // { user_id: { id, user_id, name, email, ... } }
+  const usersByAuthId = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
-      acc[user.id] = {
-        id: user.id,
+      if (!user.user_id) return acc;
+      acc[user.user_id] = {
+        id: user.id,               // PK
+        user_id: user.user_id,     // AUTH UUID
         name: user.name,
         email: user.email,
         role: user.role,
         phone: user.phone,
         avatarUrl: user.avatar_url,
-        manager: user.manager_id, // TODO: résoudre le nom du manager si nécessaire
+        manager: user.manager_id,
         accessRights: user.access_rights,
       };
       return acc;
@@ -1473,10 +1475,13 @@ const ProfilePage = () => {
   const openAccessRightsDialog = user => {
     setEditingUser(user);
     const isEditingAdmin = user.role === 'Admin' || user.role === 'Global Admin';
-    const allUserOptions = Object.values(users).filter(u => u.id !== user.id).map(u => ({
-      value: u.id,
-      label: u.name
-    }));
+    
+    const allUserOptions = Object.values(usersByAuthId)
+      .filter(u => u.user_id !== user.user_id)
+      .map(u => ({
+        value: u.user_id, // ✅ AUTH UUID
+        label: u.name
+      }));
     
     let userAccessRights = user.accessRights;
     if (!userAccessRights) {
@@ -1489,13 +1494,17 @@ const ProfilePage = () => {
         users: allUserOptions
       });
     } else {
-      const selectedUsers = (userAccessRights.users || []).map(userId => {
-        const foundUser = users[userId];
-        return foundUser ? {
-          value: foundUser.id,
-          label: foundUser.name
-        } : null;
+      const ids = userAccessRights?.users || [];
+      const selectedUsers = ids.map((authId) => {
+        const foundUser = usersByAuthId[authId];  // ✅ indexé par user_id
+        if (!foundUser) return null;
+        
+        return {
+          value: foundUser.user_id,  // AUTH UUID
+          label: foundUser.name,
+        };
       }).filter(Boolean);
+      
       setAccessRights({
         modules: userAccessRights.modules || ['Pipeline', 'Agenda', 'Contacts'],
         users: selectedUsers
@@ -1817,7 +1826,7 @@ const ProfilePage = () => {
     setEditingPrompt(prompt);
     setIsPromptCreatorOpen(true);
   };
-  const usersArray = useMemo(() => Object.values(users), [users]);
+  const usersArray = useMemo(() => Object.values(usersByAuthId), [usersByAuthId]);
   const managers = useMemo(() => usersArray.filter(u => u.role === 'Manager' || u.role === 'Admin'), [usersArray]);
   const managerOptions = useMemo(() => [{
     value: 'none',
@@ -1826,8 +1835,8 @@ const ProfilePage = () => {
     value: m.name,
     label: m.name
   }))], [managers]);
-  const allUserOptionsForAccess = useMemo(() => usersArray.filter(u => u.id !== editingUser?.id).map(u => ({
-    value: u.id,
+  const allUserOptionsForAccess = useMemo(() => usersArray.filter(u => u.user_id !== editingUser?.user_id).map(u => ({
+    value: u.user_id,
     label: u.name
   })), [usersArray, editingUser]);
   const filteredUsers = useMemo(() => usersArray.filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 5), [usersArray, searchTerm]);
