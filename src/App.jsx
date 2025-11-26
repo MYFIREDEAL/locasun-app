@@ -413,6 +413,59 @@ function App() {
     return () => subscription.unsubscribe();
   }, []); // ✅ Ne dépend de rien, s'exécute une seule fois au montage
 
+  // 🔥 REAL-TIME POUR LE CLIENT : Écouter les mises à jour du prospect du client connecté
+  useEffect(() => {
+    if (!currentUser?.id) return; // Seulement si un client est connecté
+    
+    console.log('🔌 [App.jsx] Setting up real-time channel for currentUser prospect:', currentUser.id);
+    
+    const channel = supabase
+      .channel(`client-prospect-${currentUser.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'prospects',
+        filter: `id=eq.${currentUser.id}`
+      }, (payload) => {
+        console.log('📡 [App.jsx] Real-time UPDATE received for currentUser:', payload);
+        
+        // Transformer les données Supabase (snake_case → camelCase)
+        const updatedProspect = {
+          id: payload.new.id,
+          name: payload.new.name,
+          email: payload.new.email,
+          phone: payload.new.phone,
+          address: payload.new.address,
+          companyName: payload.new.company_name,
+          tags: payload.new.tags || [],
+          userId: payload.new.user_id,
+          ownerId: payload.new.owner_id,
+          status: payload.new.status,
+          hasAppointment: payload.new.has_appointment,
+          affiliateName: payload.new.affiliate_name,
+          formData: payload.new.form_data || {},
+          createdAt: payload.new.created_at,
+          updatedAt: payload.new.updated_at,
+        };
+        
+        setCurrentUser(updatedProspect);
+        console.log('✅ [App.jsx] currentUser mis à jour en temps réel');
+        
+        // Mettre à jour localStorage aussi
+        try {
+          localStorage.setItem('currentUser', JSON.stringify(updatedProspect));
+        } catch (e) {
+          console.warn('⚠️ localStorage write blocked:', e);
+        }
+      })
+      .subscribe();
+    
+    return () => {
+      console.log('🔌 [App.jsx] Cleaning up real-time channel for currentUser');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]); // Se réabonne si le client change
+
   // ✅ projectsData est maintenant chargé en temps réel depuis Supabase (project_templates table)
   // Plus besoin de localStorage pour evatime_projects_data
 
