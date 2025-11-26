@@ -25,6 +25,7 @@ import { slugify } from '@/lib/utils';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useSupabaseProspects } from '@/hooks/useSupabaseProspects'; // 🔥 AJOUT PRO
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
@@ -192,6 +193,20 @@ function App() {
 
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
   const { users: supabaseUsers } = useSupabaseUsers(adminReady);
+  
+  // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
+  const { 
+    prospects: supabaseProspects, 
+    updateProspect: updateProspectSupabase,
+    loading: prospectsLoading 
+  } = useSupabaseProspects(activeAdminUser);
+  
+  // Synchroniser prospects dans le state pour compatibilité avec le code existant
+  useEffect(() => {
+    if (!prospectsLoading && supabaseProspects) {
+      setProspects(supabaseProspects);
+    }
+  }, [supabaseProspects, prospectsLoading]);
   
   // 🔥 Charger les panneaux de formulaires clients depuis Supabase avec real-time
   // ⚠️ Si client: charger ses formulaires. Si admin: charger TOUS les formulaires (null = tous)
@@ -1233,23 +1248,29 @@ function App() {
     });
   };
 
-  const updateProspect = (updatedProspect) => {
-    // ✅ Met à jour le state local uniquement
-    // Real-time Supabase se charge de la synchronisation automatique
-    setProspects(prevProspects => 
-      prevProspects.map(p => p.id === updatedProspect.id ? updatedProspect : p)
-    );
-
-    if (currentUser && currentUser.id === updatedProspect.id) {
-      setCurrentUser(updatedProspect);
+  const updateProspect = async (updatedProspect) => {
+    // 🔥 ÉTAPE PRO : Appeler la RPC update_prospect_safe() via le hook Supabase
+    try {
+      await updateProspectSupabase(updatedProspect.id, updatedProspect);
       
-      // Synchroniser userProjects avec les tags du prospect
-      if (updatedProspect.tags) {
-        setUserProjects(updatedProspect.tags);
+      // Real-time Supabase se charge de la synchronisation automatique du state
+      // Mais on met à jour currentUser si c'est le prospect connecté
+      if (currentUser && currentUser.id === updatedProspect.id) {
+        setCurrentUser(updatedProspect);
+        
+        // Synchroniser userProjects avec les tags du prospect
+        if (updatedProspect.tags) {
+          setUserProjects(updatedProspect.tags);
+        }
       }
+    } catch (error) {
+      console.error('❌ Error update prospect:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de modifier le prospect.",
+        variant: "destructive",
+      });
     }
-    
-    // ℹ️ localStorage supprimé - Données synchronisées via Supabase Real-time
   };
 
   const handleSetCurrentUser = (user, affiliateName) => {
