@@ -88,12 +88,12 @@ const FinalPipeline = () => {
     // Trouver le prospect à jour dans le contexte
     const updatedProspect = supabaseProspects.find(p => p.id === selectedProspect.id);
     
-    // ✅ Mettre à jour seulement si les données ont changé
-    if (updatedProspect && JSON.stringify(updatedProspect) !== JSON.stringify(selectedProspect)) {
+    // ✅ Mettre à jour seulement si le prospect existe et que les timestamps diffèrent
+    if (updatedProspect && updatedProspect.updatedAt !== selectedProspect.updatedAt) {
       setSelectedProspect(updatedProspect);
       console.log('🔄 [FinalPipeline] selectedProspect synchronisé avec le contexte');
     }
-  }, [supabaseProspects, selectedProspect?.id]);
+  }, [supabaseProspects]);
   const [isEditingProspect, setIsEditingProspect] = useState(false);
   
   if (!contextData) {
