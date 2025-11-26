@@ -351,11 +351,34 @@ export const useSupabaseProspects = (activeAdminUser) => {
       console.log('🔍 [updateProspect] dbUpdates (snake_case):', dbUpdates);
       console.log('🔍 [updateProspect] dbUpdates stringifié:', JSON.stringify(dbUpdates));
 
-      // 🔥 UTILISER LA FONCTION RPC AU LIEU DE L'UPDATE DIRECT
-      const { data, error: updateError } = await supabase.rpc('update_prospect_safe', {
-        _prospect_id: id,
-        _data: dbUpdates
-      });
+      // 🔥 DÉTECTER SI C'EST UN CLIENT OU UN ADMIN
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: adminCheck } = await supabase
+        .from('users')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      let data, updateError;
+
+      if (adminCheck) {
+        // 🔥 ADMIN : Utiliser update_prospect_safe (avec vérification des droits)
+        console.log('🔍 [updateProspect] Mode ADMIN - RPC update_prospect_safe');
+        const result = await supabase.rpc('update_prospect_safe', {
+          _prospect_id: id,
+          _data: dbUpdates
+        });
+        data = result.data;
+        updateError = result.error;
+      } else {
+        // 🔥 CLIENT : Utiliser update_own_prospect_profile (sans prospect_id)
+        console.log('🔍 [updateProspect] Mode CLIENT - RPC update_own_prospect_profile');
+        const result = await supabase.rpc('update_own_prospect_profile', {
+          _data: dbUpdates
+        });
+        data = result.data;
+        updateError = result.error;
+      }
 
       if (updateError) {
         console.error('❌ [updateProspect] RPC Error:', updateError);
