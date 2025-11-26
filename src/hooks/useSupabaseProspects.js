@@ -365,8 +365,14 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       console.log('✅ [updateProspect] RPC Success:', data);
 
-      // ✅ Ne pas mettre à jour localement, laisser le real-time s'en charger
-      // Le real-time va recevoir l'événement UPDATE et mettre à jour automatiquement
+      // 🔥 Mettre à jour immédiatement le state local avec les données retournées
+      if (data && data.length > 0) {
+        const updatedProspect = data[0]; // Le RPC retourne un array
+        setProspects(prev => 
+          prev.map(p => p.id === id ? transformProspectToCamelCase(updatedProspect) : p)
+        );
+        console.log('✅ [updateProspect] State local mis à jour immédiatement');
+      }
 
       return data;
     } catch (err) {
