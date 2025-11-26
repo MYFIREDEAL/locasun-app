@@ -157,6 +157,29 @@ export const useSupabaseProspects = (activeAdminUser) => {
     };
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
 
+  // 🔥 CANAL GLOBAL pour broadcasts (fonctionne pour admins ET clients)
+  useEffect(() => {
+    const broadcastChannel = supabase
+      .channel('prospects-broadcast-global')
+      .on('broadcast', { event: 'prospect-updated' }, (payload) => {
+        console.log('📡 [useSupabaseProspects] GLOBAL Broadcast received:', payload.payload);
+        if (activeAdminUser) {
+          // Si admin, mettre à jour la liste prospects
+          setProspects(prev => prev.map(p => p.id === payload.payload.id ? payload.payload : p));
+        }
+      })
+      .subscribe();
+
+    // Stocker aussi dans le ref pour les clients qui n'ont pas activeAdminUser
+    if (!channelRef.current) {
+      channelRef.current = broadcastChannel;
+    }
+
+    return () => {
+      supabase.removeChannel(broadcastChannel);
+    };
+  }, []); // Pas de dépendance, canal permanent
+
   // Ajouter un prospect
   const addProspect = async (prospectData) => {
     try {
