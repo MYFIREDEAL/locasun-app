@@ -128,17 +128,18 @@ export const useSupabaseUsersCRUD = () => {
       if (authError) throw new Error(`Auth error: ${authError.message}`);
       if (!authData?.user) throw new Error('Échec de création du compte utilisateur');
 
-      // 2️⃣ Trouver l'ID du manager si spécifié
+      // 2️⃣ Trouver l'UUID du manager si spécifié
       let managerId = null;
       if (userData.manager && userData.manager !== 'none' && userData.manager !== '') {
+        // 🔥 FIX : manager_id doit être un UUID (user_id), pas un integer (id)
         const { data: managerData } = await supabase
           .from('users')
-          .select('id')
+          .select('user_id')
           .eq('name', userData.manager)
           .single();
         
         if (managerData) {
-          managerId = managerData.id;
+          managerId = managerData.user_id;
         }
       }
 
@@ -211,14 +212,15 @@ export const useSupabaseUsersCRUD = () => {
         if (updates.manager === '' || updates.manager === 'none') {
           dbUpdates.manager_id = null;
         } else {
+          // 🔥 FIX : manager_id doit être un UUID (user_id), pas un integer (id)
           const { data: managerData } = await supabase
             .from('users')
-            .select('id')
+            .select('user_id')
             .eq('name', updates.manager)
             .single();
           
           if (managerData) {
-            dbUpdates.manager_id = managerData.id;
+            dbUpdates.manager_id = managerData.user_id;
           }
         }
       }
