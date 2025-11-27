@@ -250,11 +250,27 @@ export const useSupabaseUsersCRUD = () => {
 
       console.log('🔍 [updateUser] dbUpdates final:', JSON.stringify(dbUpdates));
 
-      const { data, error: updateError} = await supabase
-        .from('users')
-        .update(dbUpdates)
-        .eq(idField, idValue)
-        .select();
+      let data, updateError;
+
+      // 🔥 Si on modifie access_rights, utiliser la RPC function pour bypass RLS
+      if (updates.accessRights !== undefined) {
+        console.log('🔍 [updateUser] Utilisation RPC pour access_rights');
+        const rpcResult = await supabase.rpc('update_user_access_rights', {
+          target_user_id: idValue,
+          new_access_rights: updates.accessRights
+        });
+        data = rpcResult.data;
+        updateError = rpcResult.error;
+      } else {
+        // Sinon, UPDATE normal
+        const result = await supabase
+          .from('users')
+          .update(dbUpdates)
+          .eq(idField, idValue)
+          .select();
+        data = result.data;
+        updateError = result.error;
+      }
 
       console.log('🔍 [updateUser] Supabase response data:', data);
       console.log('🔍 [updateUser] Supabase response error:', updateError);
