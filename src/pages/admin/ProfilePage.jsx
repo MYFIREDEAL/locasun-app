@@ -88,6 +88,20 @@ const COLOR_OPTIONS = [
   { value: 'bg-gray-100', label: 'Gris doux' },
 ];
 
+// Options de couleurs pour les badges de projets (tags)
+const PROJECT_COLOR_OPTIONS = [
+  { value: 'bg-blue-100 text-blue-800', label: 'Bleu', preview: 'bg-blue-100' },
+  { value: 'bg-green-100 text-green-800', label: 'Vert', preview: 'bg-green-100' },
+  { value: 'bg-orange-100 text-orange-800', label: 'Orange', preview: 'bg-orange-100' },
+  { value: 'bg-teal-100 text-teal-800', label: 'Turquoise', preview: 'bg-teal-100' },
+  { value: 'bg-purple-100 text-purple-800', label: 'Violet', preview: 'bg-purple-100' },
+  { value: 'bg-yellow-100 text-yellow-800', label: 'Jaune', preview: 'bg-yellow-100' },
+  { value: 'bg-pink-100 text-pink-800', label: 'Rose', preview: 'bg-pink-100' },
+  { value: 'bg-indigo-100 text-indigo-800', label: 'Indigo', preview: 'bg-indigo-100' },
+  { value: 'bg-red-100 text-red-800', label: 'Rouge', preview: 'bg-red-100' },
+  { value: 'bg-gray-100 text-gray-800', label: 'Gris', preview: 'bg-gray-100' },
+];
+
 const DEFAULT_COLOR_BY_LABEL = {
   MARKET: 'bg-blue-100',
   ETUDE: 'bg-yellow-100',
@@ -563,7 +577,9 @@ const ProjectEditor = ({
         }))} />
                     </div>
                 </div>
-                 <div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="project-icon">Icône (Emoji)</Label>
                     <EmojiPickerButton
                       value={editedProject.icon}
@@ -572,6 +588,31 @@ const ProjectEditor = ({
                         icon: newIcon
                       }))}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="project-color">Couleur du Badge</Label>
+                    <Select 
+                      value={editedProject.color || 'bg-blue-100 text-blue-800'} 
+                      onValueChange={(value) => setEditedProject(prev => ({
+                        ...prev,
+                        color: value
+                      }))}
+                    >
+                      <SelectTrigger id="project-color">
+                        <SelectValue placeholder="Choisir une couleur" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROJECT_COLOR_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              <span className={`w-4 h-4 rounded-full ${option.preview} border border-gray-300`} />
+                              {option.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <h3 className="text-md font-semibold text-gray-700 pt-4 border-t">Étapes de la Timeline</h3>

@@ -377,7 +377,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
       if (updates.company !== undefined) dbUpdates.company_name = updates.company;
       if (updates.address !== undefined) dbUpdates.address = updates.address;
-      if (updates.ownerId !== undefined) dbUpdates.owner_id = updates.ownerId;
+      // 🔥 NE PAS ENVOYER owner_id (sera géré par la RPC selon le rôle)
+      // if (updates.ownerId !== undefined) dbUpdates.owner_id = updates.ownerId;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
       if (updates.hasAppointment !== undefined) dbUpdates.has_appointment = updates.hasAppointment;

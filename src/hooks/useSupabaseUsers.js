@@ -18,13 +18,13 @@ export const useSupabaseUsers = () => {
         // Vérifier la session Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        // 🔥 FIX: Utiliser RPC function pour gérer access_rights correctement
+        // Cette fonction SECURITY DEFINER bypass les RLS et gère la logique métier
         const { data, error: fetchError } = await supabase
-          .from('users')
-          .select('id, user_id, name, email, role, phone, avatar_url, manager_id, access_rights')
-          .order('name', { ascending: true });
+          .rpc('get_accessible_users');
 
         if (fetchError) {
-          console.error('❌ Safari DEBUG - useSupabaseUsers fetch error:', fetchError);
+          console.error('❌ useSupabaseUsers RPC error:', fetchError);
           throw fetchError;
         }
         

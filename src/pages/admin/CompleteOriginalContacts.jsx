@@ -21,7 +21,8 @@ let AddProspectModal;
 ProspectDetailsAdmin = SafeProspectDetailsAdmin;
 AddProspectModal = SafeAddProspectModal;
 
-const tagColors = {
+// Couleurs par défaut (fallback) - les couleurs réelles viennent de projectsData
+const defaultTagColors = {
   'ACC': 'bg-blue-100 text-blue-800',
   'Autonomie': 'bg-green-100 text-green-800',
   'Centrale': 'bg-orange-100 text-orange-800',
@@ -34,6 +35,7 @@ const allTags = ['ACC', 'Autonomie', 'Centrale', 'Investissement', 'ProducteurPr
 const FallbackProspectDetails = ({ prospect, onBack, onUpdate }) => {
   // ✅ Migré vers Supabase
   const { users: supabaseUsers = [] } = useSupabaseUsers();
+  const { projectsData = {} } = useAppContext();
   const users = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
       acc[user.id] = user;
@@ -82,11 +84,14 @@ const FallbackProspectDetails = ({ prospect, onBack, onUpdate }) => {
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
             <div className="flex flex-wrap gap-2">
-              {prospect.tags.map(tag => (
-                <span key={tag} className={`px-2 py-1 text-xs font-medium rounded-full ${tagColors[tag] || 'bg-gray-100 text-gray-800'}`}>
-                  {tag}
-                </span>
-              ))}
+              {prospect.tags.map(tag => {
+                const projectColor = projectsData[tag]?.color || defaultTagColors[tag] || 'bg-gray-100 text-gray-800';
+                return (
+                  <span key={tag} className={`px-2 py-1 text-xs font-medium rounded-full ${projectColor}`}>
+                    {tag}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
@@ -217,7 +222,7 @@ const FallbackAddModal = ({ open, onOpenChange, onAddProspect }) => {
 
 const CompleteOriginalContacts = () => {
   const context = useAppContext();
-  const { activeAdminUser } = context || {};
+  const { activeAdminUser, projectsData = {} } = context || {};
   // ❌ SUPPRIMÉ: users du context - Utiliser uniquement supabaseUsers
   
   // ✅ Utiliser les vrais utilisateurs Supabase
@@ -277,12 +282,20 @@ const CompleteOriginalContacts = () => {
       return supabaseUsers;
     }
     
-    // 🔥 FIX: access_rights.users contient des user_id (UUID auth), pas des id (PK)
-    const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+    // 🔥 DEBUG: Voir ce qui est chargé
+    console.log('🔍 [allowedUsers] supabaseUsers from RPC:', supabaseUsers);
+    console.log('🔍 [allowedUsers] activeAdminUser.accessRights:', activeAdminUser.accessRights);
+    console.log('🔍 [allowedUsers] activeAdminUser.user_id:', activeAdminUser.user_id);
     
-    const filtered = supabaseUsers.filter(u => allowedUserIds.includes(u.user_id));
+    // 🔥 FIX: Ne pas filtrer si RPC retourne déjà les bons users
+    // La fonction get_accessible_users() gère déjà access_rights
+    // Donc on retourne directement supabaseUsers
+    return supabaseUsers;
     
-    return filtered;
+    // ANCIEN CODE (qui re-filtre inutilement) :
+    // const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+    // const filtered = supabaseUsers.filter(u => allowedUserIds.includes(u.user_id));
+    // return filtered;
   }, [activeAdminUser, supabaseUsers]);
 
   const userFilterLabel = useMemo(() => {
@@ -631,11 +644,14 @@ const CompleteOriginalContacts = () => {
                 <td className="px-6 py-4 hidden lg:table-cell">{contact.email}</td>
                 <td className="px-6 py-4 hidden sm:table-cell">
                   <div className="flex flex-wrap gap-1">
-                    {(contact.tags || []).map(tag => (
-                      <span key={tag} className={`px-2 py-1 text-xs font-medium rounded-full ${tagColors[tag] || 'bg-gray-100 text-gray-800'}`}>
-                        {tag}
-                      </span>
-                    ))}
+                    {(contact.tags || []).map(tag => {
+                      const projectColor = projectsData[tag]?.color || defaultTagColors[tag] || 'bg-gray-100 text-gray-800';
+                      return (
+                        <span key={tag} className={`px-2 py-1 text-xs font-medium rounded-full ${projectColor}`}>
+                          {tag}
+                        </span>
+                      );
+                    })}
                   </div>
                 </td>
                 <td className="px-6 py-4 hidden md:table-cell">

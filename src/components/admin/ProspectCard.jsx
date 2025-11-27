@@ -92,23 +92,9 @@ const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
           {/* 🎯 Afficher LE projet principal de cette carte - UNIQUEMENT SI ACTIF */}
           {activeProjectLabel && activeTags.includes(prospect._projectContext?.projectType || activeProjectLabel) && (
             <span
-              className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border-2 border-blue-400 font-semibold shadow-sm tracking-wide ${(() => {
-                const normalized = normalizeLabel(activeProjectLabel);
-                switch (normalized) {
-                  case 'ACC':
-                    return 'bg-blue-100 text-blue-800';
-                  case 'AUTONOMIE':
-                    return 'bg-green-100 text-green-800';
-                  case 'CENTRALE':
-                    return 'bg-orange-100 text-orange-800';
-                  case 'INVESTISSEMENT':
-                    return 'bg-teal-100 text-teal-800';
-                  case 'PRODUCTEURPRO':
-                    return 'bg-purple-100 text-purple-800';
-                  default:
-                    return 'bg-gray-100 text-gray-600';
-                }
-              })()}`}
+              className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border-2 border-blue-400 font-semibold shadow-sm tracking-wide ${
+                projectsData[activeProjectType]?.color || 'bg-blue-100 text-blue-800'
+              }`}
             >
               <span>{activeProjectLabel}</span>
             </span>
@@ -118,31 +104,14 @@ const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
           {activeTags
             .filter(tag => tag !== activeProjectType)
             .map(tag => {
-              // 🔥 Utiliser le title du projet depuis Supabase au lieu du type brut
+              // 🔥 Utiliser le title et la couleur du projet depuis Supabase
               const projectTitle = projectsData[tag]?.title || tag;
-              const normalizedTag = normalizeLabel(projectTitle);
-              const tagColorClass = (() => {
-                switch (normalizedTag) {
-                  case 'ACC':
-                    return 'bg-blue-100 text-blue-800';
-                  case 'AUTONOMIE':
-                  case 'AUTONOME':
-                    return 'bg-green-100 text-green-800';
-                  case 'CENTRALE':
-                    return 'bg-orange-100 text-orange-800';
-                  case 'INVESTISSEMENT':
-                    return 'bg-teal-100 text-teal-800';
-                  case 'PRODUCTEURPRO':
-                    return 'bg-purple-100 text-purple-800';
-                  default:
-                    return 'bg-gray-100 text-gray-600';
-                }
-              })();
+              const projectColor = projectsData[tag]?.color || 'bg-gray-100 text-gray-800';
 
               return (
                 <span
                   key={tag}
-                  className={`text-xs px-2 py-1 rounded-full ${tagColorClass}`}
+                  className={`text-xs px-2 py-1 rounded-full ${projectColor}`}
                 >
                   {projectTitle}
                 </span>

@@ -944,6 +944,18 @@ CREATE POLICY "Users can delete their own prospects"
     )
   );
 
+-- COMMERCIAL peut MODIFIER ses propres prospects
+CREATE POLICY "Users can update their own prospects"
+  ON public.prospects
+  FOR UPDATE
+  USING (
+    owner_id = auth.uid() AND
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE user_id = auth.uid() AND role IN ('Commercial', 'Manager', 'Global Admin')
+    )
+  );
+
 -- COMMERCIAL peut modifier les prospects qui lui sont partagés via access_rights.users
 -- ⚠️  SÉCURITÉ : owner_id ne peut PAS être modifié (empêche le "vol" de contacts)
 CREATE POLICY "Users can manage authorized prospects"

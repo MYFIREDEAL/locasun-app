@@ -23,7 +23,6 @@ SET search_path = public
 AS $$
 DECLARE
   v_current_user_id UUID;
-  v_user_pk UUID;
   v_user_role TEXT;
   v_user_access_rights JSONB;
   v_prospect RECORD;
@@ -39,12 +38,12 @@ BEGIN
     RAISE EXCEPTION 'Authentication required';
   END IF;
 
-  SELECT id, role, access_rights
-  INTO v_user_pk, v_user_role, v_user_access_rights
+  SELECT role, access_rights
+  INTO v_user_role, v_user_access_rights
   FROM public.users
   WHERE user_id = v_current_user_id;
 
-  IF v_user_pk IS NULL THEN
+  IF v_user_role IS NULL THEN
     RAISE EXCEPTION 'User not found';
   END IF;
 
@@ -66,8 +65,8 @@ BEGIN
   IF v_user_role = 'Global Admin' THEN
     v_allowed := TRUE;
   
-  -- Owner du prospect : accès autorisé
-  ELSIF v_prospect.owner_id = v_user_pk THEN
+  -- Owner du prospect : accès autorisé (comparer avec user_id pas avec PK)
+  ELSIF v_prospect.owner_id = v_current_user_id THEN
     v_allowed := TRUE;
   
   -- Vérifier si le owner du prospect est dans access_rights.users

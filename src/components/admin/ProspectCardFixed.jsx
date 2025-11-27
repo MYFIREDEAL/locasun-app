@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useAppContext } from '@/App';
 
-const tagColors = {
+// Couleurs par défaut (fallback si le projet n'existe pas dans projectsData)
+const defaultTagColors = {
   ACC: 'bg-blue-100 text-blue-800',
   Autonomie: 'bg-green-100 text-green-800',
   Centrale: 'bg-orange-100 text-orange-800',
@@ -13,6 +15,7 @@ const tagColors = {
 };
 
 const ProspectCardFixed = ({ prospect, onClick }) => {
+  const { projectsData } = useAppContext();
   const {
     attributes,
     listeners,
@@ -53,14 +56,18 @@ const ProspectCardFixed = ({ prospect, onClick }) => {
         </div>
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {tags.map((tag, index) => (
-              <span 
-                key={`${tag}-${index}`} 
-                className={`text-xs font-medium px-2 py-1 rounded-full ${tagColors[tag] || 'bg-gray-100 text-gray-800'}`}
-              >
-                {tag}
-              </span>
-            ))}
+            {tags.map((tag, index) => {
+              // 🎨 Utiliser la couleur depuis projectsData ou fallback
+              const projectColor = projectsData[tag]?.color || defaultTagColors[tag] || 'bg-gray-100 text-gray-800';
+              return (
+                <span 
+                  key={`${tag}-${index}`} 
+                  className={`text-xs font-medium px-2 py-1 rounded-full ${projectColor}`}
+                >
+                  {tag}
+                </span>
+              );
+            })}
           </div>
         )}
       </motion.div>

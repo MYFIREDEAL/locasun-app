@@ -9,7 +9,8 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 
-const tagColors = {
+// Couleurs par défaut (fallback)
+const defaultTagColors = {
   'ACC': 'bg-blue-100 text-blue-800',
   'Autonomie': 'bg-green-100 text-green-800',
   'Centrale': 'bg-orange-100 text-orange-800',
@@ -234,16 +235,18 @@ const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
         <div className="bg-white rounded-lg shadow-soft p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Projets d'intérêt</h3>
           <div className="flex flex-wrap gap-2">
-            {prospect.tags.map(tag => (
-              <span
-                key={tag}
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  tagColors[tag] || 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {getProjectTitle(tag)}
-              </span>
-            ))}
+            {prospect.tags.map(tag => {
+              // 🎨 Utiliser la couleur depuis projectsData ou fallback
+              const projectColor = projectsData[tag]?.color || defaultTagColors[tag] || 'bg-gray-100 text-gray-800';
+              return (
+                <span
+                  key={tag}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${projectColor}`}
+                >
+                  {getProjectTitle(tag)}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
