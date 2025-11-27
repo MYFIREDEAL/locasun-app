@@ -332,8 +332,9 @@ const CompleteOriginalContacts = () => {
     const visibleProspects = supabaseProspects.filter(prospect => {
       if (!activeAdminUser) return false;
       if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
-      // 🔥 FIX: prospects.ownerId = users.user_id (UUID auth), pas users.id
-      const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+      // 🔥 FIX: Utiliser access_rights (snake_case) depuis Supabase
+      const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
+      const allowedUserIds = [activeAdminUser.user_id, ...(accessRights?.users || [])];
       return allowedUserIds.includes(prospect.ownerId);
     });
 
