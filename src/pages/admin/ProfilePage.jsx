@@ -1137,6 +1137,14 @@ const ProfilePage = () => {
   const usersByAuthId = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
       if (!user.user_id) return acc;
+      
+      // 🔥 FIX : Trouver le NOM du manager à partir de manager_id (UUID)
+      let managerName = null;
+      if (user.manager_id) {
+        const managerUser = supabaseUsers.find(u => u.user_id === user.manager_id);
+        managerName = managerUser ? managerUser.name : user.manager_id; // Fallback sur UUID si nom pas trouvé
+      }
+      
       acc[user.user_id] = {
         id: user.id,               // PK
         user_id: user.user_id,     // AUTH UUID
@@ -1145,7 +1153,7 @@ const ProfilePage = () => {
         role: user.role,
         phone: user.phone,
         avatarUrl: user.avatar_url,
-        manager: user.manager_id,
+        manager: managerName,      // 🔥 NOM du manager au lieu de UUID
         accessRights: user.access_rights,
       };
       return acc;
