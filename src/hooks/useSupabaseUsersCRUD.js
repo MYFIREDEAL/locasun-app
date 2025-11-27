@@ -192,11 +192,18 @@ export const useSupabaseUsersCRUD = () => {
    * ✅ METTRE À JOUR UN UTILISATEUR
    * Modifie les données dans public.users
    * 
-   * @param {string} userId - UUID de l'utilisateur (public.users.id)
+   * @param {string|number} userIdOrPk - UUID (user_id) OU integer PK (id)
    * @param {Object} updates - Champs à mettre à jour
    */
-  const updateUser = async (userId, updates) => {
+  const updateUser = async (userIdOrPk, updates) => {
     try {
+      // 🔥 Détecter si c'est un UUID (string) ou un PK (integer)
+      const isUUID = typeof userIdOrPk === 'string' && userIdOrPk.includes('-');
+      const idField = isUUID ? 'user_id' : 'id';
+      const idValue = userIdOrPk;
+      
+      console.log(`🔍 [updateUser] idField: ${idField}, idValue: ${idValue}`);
+      
       // Préparer les données pour Supabase (snake_case)
       const dbUpdates = {};
       
@@ -228,10 +235,10 @@ export const useSupabaseUsersCRUD = () => {
       // Ajouter updated_at
       dbUpdates.updated_at = new Date().toISOString();
 
-      const { data, error: updateError } = await supabase
+      const { data, error: updateError} = await supabase
         .from('users')
         .update(dbUpdates)
-        .eq('id', userId)
+        .eq(idField, idValue)
         .select();
 
       if (updateError) throw updateError;
@@ -262,15 +269,20 @@ export const useSupabaseUsersCRUD = () => {
    * ✅ SUPPRIMER UN UTILISATEUR
    * Supprime l'utilisateur et réassigne ses prospects à son manager
    * 
-   * @param {string} userId - UUID de l'utilisateur à supprimer (public.users.id)
+   * @param {string|number} userIdOrPk - UUID (user_id) OU integer PK (id)
    */
-  const deleteUser = async (userId) => {
+  const deleteUser = async (userIdOrPk) => {
     try {
+      // 🔥 Détecter si c'est un UUID (string) ou un PK (integer)
+      const isUUID = typeof userIdOrPk === 'string' && userIdOrPk.includes('-');
+      const idField = isUUID ? 'user_id' : 'id';
+      const idValue = userIdOrPk;
+      
       // 1️⃣ Récupérer les infos de l'utilisateur à supprimer
       const { data: userToDelete, error: fetchError } = await supabase
         .from('users')
         .select('*, manager:manager_id(id, name)')
-        .eq('id', userId)
+        .eq(idField, idValue)
         .single();
 
       if (fetchError) throw fetchError;
@@ -313,7 +325,7 @@ export const useSupabaseUsersCRUD = () => {
       const { error: deleteError } = await supabase
         .from('users')
         .delete()
-        .eq('id', userId);
+        .eq(idField, idValue);
 
       if (deleteError) throw deleteError;
 
