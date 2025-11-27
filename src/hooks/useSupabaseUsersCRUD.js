@@ -248,11 +248,16 @@ export const useSupabaseUsersCRUD = () => {
       // Ajouter updated_at
       dbUpdates.updated_at = new Date().toISOString();
 
+      console.log('🔍 [updateUser] dbUpdates final:', JSON.stringify(dbUpdates));
+
       const { data, error: updateError} = await supabase
         .from('users')
         .update(dbUpdates)
         .eq(idField, idValue)
         .select();
+
+      console.log('🔍 [updateUser] Supabase response data:', data);
+      console.log('🔍 [updateUser] Supabase response error:', updateError);
 
       if (updateError) throw updateError;
       
