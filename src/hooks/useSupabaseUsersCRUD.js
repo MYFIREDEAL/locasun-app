@@ -212,22 +212,35 @@ export const useSupabaseUsersCRUD = () => {
       if (updates.role !== undefined) dbUpdates.role = updates.role;
       if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
       if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl;
-      if (updates.accessRights !== undefined) dbUpdates.access_rights = updates.accessRights;
+      if (updates.accessRights !== undefined) {
+        dbUpdates.access_rights = updates.accessRights;
+        console.log('🔍 [updateUser] access_rights envoyé:', JSON.stringify(updates.accessRights));
+      }
       
       // Gérer manager_id si "manager" est fourni (nom du manager)
       if (updates.manager !== undefined) {
+        console.log('🔍 [updateUser] Manager reçu:', updates.manager);
         if (updates.manager === '' || updates.manager === 'none') {
           dbUpdates.manager_id = null;
+          console.log('🔍 [updateUser] Manager = null (aucun manager)');
         } else {
           // 🔥 FIX : manager_id doit être un UUID (user_id), pas un integer (id)
-          const { data: managerData } = await supabase
+          const { data: managerData, error: managerError } = await supabase
             .from('users')
             .select('user_id')
             .eq('name', updates.manager)
             .single();
           
+          console.log('🔍 [updateUser] Recherche manager par nom:', updates.manager);
+          console.log('🔍 [updateUser] Manager trouvé:', managerData);
+          
+          if (managerError) {
+            console.error('❌ [updateUser] Erreur recherche manager:', managerError);
+          }
+          
           if (managerData) {
             dbUpdates.manager_id = managerData.user_id;
+            console.log('✅ [updateUser] manager_id assigné:', managerData.user_id);
           }
         }
       }
