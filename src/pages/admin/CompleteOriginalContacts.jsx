@@ -656,7 +656,17 @@ const CompleteOriginalContacts = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 hidden md:table-cell">
-                  {users[contact.ownerId]?.name || 'Non assigné'}
+                  {(() => {
+                    // 🔥 DEBUG
+                    if (!users[contact.ownerId]) {
+                      console.log('⚠️ Owner not found:', {
+                        prospectName: contact.name,
+                        ownerId: contact.ownerId,
+                        availableUsers: Object.keys(users)
+                      });
+                    }
+                    return users[contact.ownerId]?.name || 'Non assigné';
+                  })()}
                 </td>
               </tr>
             ))}

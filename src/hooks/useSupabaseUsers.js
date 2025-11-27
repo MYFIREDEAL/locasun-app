@@ -18,6 +18,14 @@ export const useSupabaseUsers = () => {
         // Vérifier la session Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        // 🔥 FIX: Si pas de session, ne pas appeler la RPC
+        if (!session) {
+          console.warn('⚠️ useSupabaseUsers: Pas de session Supabase active');
+          setUsers([]);
+          setLoading(false);
+          return;
+        }
+        
         // 🔥 FIX: Utiliser RPC function pour gérer access_rights correctement
         // Cette fonction SECURITY DEFINER bypass les RLS et gère la logique métier
         const { data, error: fetchError } = await supabase
@@ -28,6 +36,7 @@ export const useSupabaseUsers = () => {
           throw fetchError;
         }
         
+        console.log('✅ useSupabaseUsers loaded:', data?.length || 0, 'users');
         setUsers(data || []);
       } catch (err) {
         console.error('❌ Erreur chargement utilisateurs:', err);
