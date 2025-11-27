@@ -646,9 +646,10 @@ const CompleteOriginalContacts = () => {
                   <div className="flex flex-wrap gap-1">
                     {(contact.tags || []).map(tag => {
                       const projectColor = projectsData[tag]?.color || defaultTagColors[tag] || 'bg-gray-100 text-gray-800';
+                      const projectTitle = projectsData[tag]?.title || tag;
                       return (
                         <span key={tag} className={`px-2 py-1 text-xs font-medium rounded-full ${projectColor}`}>
-                          {tag}
+                          {projectTitle}
                         </span>
                       );
                     })}
