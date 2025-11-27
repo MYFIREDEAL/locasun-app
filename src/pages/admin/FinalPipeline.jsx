@@ -226,8 +226,9 @@ const FinalPipeline = () => {
     if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') {
       return Object.values(usersFromSupabase);
     }
-    // 🔥 FIX: access_rights.users contient des user_id (UUID auth), pas des id (PK)
-    const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+    // 🔥 FIX: Utiliser access_rights (snake_case) depuis Supabase
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
+    const allowedUserIds = [activeAdminUser.user_id, ...(accessRights?.users || [])];
     return Object.values(usersFromSupabase).filter(u => allowedUserIds.includes(u.user_id));
   }, [activeAdminUser, usersFromSupabase]);
 
@@ -288,9 +289,9 @@ const FinalPipeline = () => {
     const visibleProspects = prospects.filter(prospect => {
       if (!activeAdminUser) return false;
       if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
-      // 🔥 FIX: prospects.ownerId = users.user_id (UUID auth), pas users.id
-      // Utiliser activeAdminUser.user_id au lieu de activeAdminUser.id
-      const allowedUserIds = [activeAdminUser.user_id, ...(activeAdminUser.accessRights?.users || [])];
+      // 🔥 FIX: Utiliser access_rights (snake_case) depuis Supabase
+      const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
+      const allowedUserIds = [activeAdminUser.user_id, ...(accessRights?.users || [])];
       return allowedUserIds.includes(prospect.ownerId);
     });
 

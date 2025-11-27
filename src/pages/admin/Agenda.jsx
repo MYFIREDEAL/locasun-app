@@ -621,9 +621,10 @@ const AgendaSidebar = ({
   
   const visibleCalls = useMemo(() => {
     if (!activeAdminUser) return [];
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
-      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      : [activeAdminUser.user_id, ...(accessRights?.users || [])];
     
     return calls.filter(call => {
       const isVisible = allowedIds ? allowedIds.includes(call.assignedUserId) : true;
@@ -634,9 +635,10 @@ const AgendaSidebar = ({
 
   const futureCalls = useMemo(() => {
     if (!activeAdminUser) return [];
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
-      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      : [activeAdminUser.user_id, ...(accessRights?.users || [])];
     
     const endOfToday = new Date(currentDate);
     endOfToday.setHours(23, 59, 59, 999);
@@ -658,9 +660,10 @@ const AgendaSidebar = ({
 
   const visibleTasks = useMemo(() => {
     if (!activeAdminUser) return [];
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
-      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      : [activeAdminUser.user_id, ...(accessRights?.users || [])];
       
     return tasks.filter(task => {
       const isVisible = allowedIds ? allowedIds.includes(task.assignedUserId) : true;
@@ -671,9 +674,10 @@ const AgendaSidebar = ({
 
   const futureTasks = useMemo(() => {
     if (!activeAdminUser) return [];
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
-      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      : [activeAdminUser.user_id, ...(accessRights?.users || [])];
     
     const endOfToday = new Date(currentDate);
     endOfToday.setHours(23, 59, 59, 999);
@@ -694,9 +698,10 @@ const AgendaSidebar = ({
 
   const overdueActivities = useMemo(() => {
     if (!activeAdminUser) return { calls: [], tasks: [], appointments: [] };
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
-      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      : [activeAdminUser.user_id, ...(accessRights?.users || [])];
     
     const now = new Date();
     
@@ -1635,9 +1640,10 @@ const Agenda = () => {
 
   const filteredAppointments = useMemo(() => {
     if (!activeAdminUser) return [];
+    const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
     const allowedIds = (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') 
       ? null 
-      : [activeAdminUser.id, ...(activeAdminUser.accessRights?.users || [])];
+      : [activeAdminUser.user_id, ...(accessRights?.users || [])];
     
     return normalizedAppointments.filter(app => {
       const isVisible = allowedIds ? allowedIds.includes(app.assignedUserId) : true;
