@@ -67,7 +67,7 @@ const FinalPipeline = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   // ✅ Charger TOUS les project steps pour afficher les bonnes étapes sur les cartes
-  const { allProjectSteps } = useSupabaseAllProjectSteps();
+  const { allProjectSteps, loading: stepsLoading } = useSupabaseAllProjectSteps();
   
   // États locaux
   const [selectedProspectId, setSelectedProspectId] = useState(null);
@@ -745,8 +745,8 @@ const FinalPipeline = () => {
 
               {/* Prospects List */}
               <div className="flex-1 space-y-3 overflow-y-auto">
-                {/* 🔥 Skeleton screens pendant le chargement */}
-                {prospectsLoading ? (
+                {/* 🔥 Skeleton screens pendant le chargement (prospects OU steps) */}
+                {(prospectsLoading || stepsLoading) ? (
                   <>
                     <SkeletonCard />
                     <SkeletonCard />
