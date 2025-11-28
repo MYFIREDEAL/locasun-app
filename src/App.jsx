@@ -34,6 +34,7 @@ import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
 import { useSupabaseClientNotifications } from '@/hooks/useSupabaseClientNotifications';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels'; // 🔥 AJOUT
+import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps'; // 🔥 Précharger au niveau App
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -243,6 +244,9 @@ function App() {
     deleteStep: deletePipelineStep,
     reorderSteps: reorderPipelineSteps
   } = useSupabaseGlobalPipeline(adminReady);
+
+  // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
+  const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
 
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
   const {
@@ -1388,6 +1392,8 @@ function App() {
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
+    allProjectSteps, // 🔥 Tous les project steps préchargés pour éviter race conditions
+    allStepsLoading, // 🔥 État de chargement des project steps
     activeAdminUser, setActiveAdminUser, switchActiveAdminUser,
     authLoading, // 🔥 Exposer l'état de chargement auth
     adminReady, // 🔥 Exposer le flag pour activer les hooks Supabase

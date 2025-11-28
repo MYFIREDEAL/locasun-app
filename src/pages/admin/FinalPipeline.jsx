@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
-import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -65,9 +64,6 @@ const FinalPipeline = () => {
   // Récupération du contexte avec gestion d'erreur
   const contextData = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  // ✅ Charger TOUS les project steps pour afficher les bonnes étapes sur les cartes
-  const { allProjectSteps, loading: stepsLoading } = useSupabaseAllProjectSteps();
   
   // États locaux
   const [selectedProspectId, setSelectedProspectId] = useState(null);
@@ -141,6 +137,8 @@ const FinalPipeline = () => {
   const { 
     prospects: supabaseProspects, // 🔥 Utiliser prospects du contexte (déjà synchronisé avec Supabase)
     prospectsLoading, // 🔥 État de chargement pour skeleton screens
+    allProjectSteps = {}, // 🔥 Tous les project steps préchargés dans App.jsx
+    allStepsLoading, // 🔥 État de chargement des project steps
     addProspect: addSupabaseProspect,
     updateProspect: updateSupabaseProspect,
     projectsData = {}, 
@@ -745,8 +743,8 @@ const FinalPipeline = () => {
 
               {/* Prospects List */}
               <div className="flex-1 space-y-3 overflow-y-auto">
-                {/* 🔥 Skeleton screens pendant le chargement (prospects OU steps) */}
-                {(prospectsLoading || stepsLoading) ? (
+                {/* 🔥 Skeleton screens pendant le chargement (prospects OU steps préchargés) */}
+                {(prospectsLoading || allStepsLoading) ? (
                   <>
                     <SkeletonCard />
                     <SkeletonCard />
