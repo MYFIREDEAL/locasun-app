@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase';
 
 const ClientAccessPage = () => {
   const navigate = useNavigate();
-  const { projectsData } = useAppContext();
+  const { projectsData, authLoading } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
@@ -20,16 +20,19 @@ const ClientAccessPage = () => {
   const [emailSent, setEmailSent] = useState(false);
 
   // Projets publics dynamiques (comme dans RegistrationPage)
-  const projectOptions = useMemo(() => 
-    Object.values(projectsData)
-      .filter(p => p.isPublic)
+  const projectOptions = useMemo(() => {
+    if (!projectsData || Object.keys(projectsData).length === 0) {
+      return [];
+    }
+    return Object.values(projectsData)
+      .filter(p => p && p.isPublic)
       .map(p => ({
         id: p.type,
-        label: p.clientTitle,
-        icon: p.icon,
+        label: p.clientTitle || p.title,
+        icon: p.icon || '📋',
         color: p.color
-      })), 
-  [projectsData]);
+      }));
+  }, [projectsData]);
 
   const handleProjectToggle = (projectId) => {
     setSelectedProjects(prev =>
@@ -42,16 +45,7 @@ const ClientAccessPage = () => {
   const handleSendMagicLink = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!name.trim()) {
-      toast({
-        title: "Champ requis",
-        description: "Veuillez saisir votre nom.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Validation email uniquement
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
       toast({
         title: "Email invalide",
@@ -61,19 +55,10 @@ const ClientAccessPage = () => {
       return;
     }
 
-    if (selectedProjects.length === 0) {
-      toast({
-        title: "Sélection requise",
-        description: "Veuillez sélectionner au moins un projet.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setLoading(true);
 
-      // 1) Vérifier si un prospect existe déjà avec cet email
+      // 1) Vérifier si un prospect existe avec cet email
       const { data: existingProspect, error: checkError } = await supabase
         .from('prospects')
         .select('*')
@@ -84,39 +69,17 @@ const ClientAccessPage = () => {
         throw checkError;
       }
 
-      // 2) Si prospect n'existe pas, le créer (sans user_id pour l'instant)
       if (!existingProspect) {
-        const { error: insertError } = await supabase
-          .from('prospects')
-          .insert([{
-            name: name.trim(),
-            email: email.trim(),
-            tags: selectedProjects,
-            status: 'Intéressé',
-            has_appointment: false,
-          }]);
-
-        if (insertError) {
-          throw insertError;
-        }
-      } else {
-        // Si prospect existe, mettre à jour le nom et les projets
-        const updatedTags = [...new Set([...existingProspect.tags || [], ...selectedProjects])];
-        
-        const { error: updateError } = await supabase
-          .from('prospects')
-          .update({
-            name: name.trim(),
-            tags: updatedTags,
-          })
-          .eq('id', existingProspect.id);
-
-        if (updateError) {
-          throw updateError;
-        }
+        toast({
+          title: "Compte introuvable",
+          description: "Aucun compte client trouvé avec cet email. Veuillez vous inscrire d'abord.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
       }
 
-      // 3) Envoyer le Magic Link
+      // 2) Envoyer le Magic Link
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
@@ -146,6 +109,18 @@ const ClientAccessPage = () => {
       setLoading(false);
     }
   };
+
+  // Afficher un loader si les projets ne sont pas encore chargés
+  if (authLoading || !projectsData || Object.keys(projectsData).length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (emailSent) {
     return (
@@ -186,61 +161,16 @@ const ClientAccessPage = () => {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Espace Client</h1>
-          <p className="text-gray-600">Accédez à vos projets en toute sécurité</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Connexion Client</h1>
+          <p className="text-gray-600">
+            Recevez un lien sécurisé pour accéder à votre espace
+          </p>
         </div>
 
         <form onSubmit={handleSendMagicLink} className="space-y-6">
-          {/* Projets dynamiques */}
+          {/* Email uniquement */}
           <div>
-            <Label className="text-base font-semibold text-gray-700 mb-3 block">
-              Sélectionnez vos projets
-            </Label>
-            <div className="grid grid-cols-1 gap-3">
-              {projectOptions.map((project) => (
-                <div
-                  key={project.id}
-                  onClick={() => handleProjectToggle(project.id)}
-                  className={`
-                    flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all
-                    ${selectedProjects.includes(project.id)
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                    }
-                  `}
-                >
-                  <Checkbox
-                    checked={selectedProjects.includes(project.id)}
-                    onCheckedChange={() => handleProjectToggle(project.id)}
-                    className="mr-3"
-                  />
-                  <span className="text-2xl mr-3">{project.icon}</span>
-                  <span className="font-medium text-gray-800">{project.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Nom */}
-          <div>
-            <Label htmlFor="name">Nom complet</Label>
-            <div className="relative mt-2">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                id="name"
-                type="text"
-                placeholder="Jean Dupont"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="pl-10"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          {/* Email */}
-          <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Votre adresse email</Label>
             <div className="relative mt-2">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
@@ -319,11 +249,20 @@ const ClientAccessPage = () => {
           </p>
         </form>
 
-        {/* Lien retour */}
-        <div className="mt-6 text-center">
+        {/* Liens navigation */}
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-sm text-gray-600">
+            Pas encore de compte ?{' '}
+            <button
+              onClick={() => navigate('/inscription')}
+              className="text-blue-600 font-medium hover:underline"
+            >
+              Créer un compte
+            </button>
+          </p>
           <button
             onClick={() => navigate('/')}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-gray-500 hover:underline block mx-auto"
           >
             ← Retour à l'accueil
           </button>
