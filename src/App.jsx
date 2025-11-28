@@ -460,6 +460,7 @@ function App() {
       return;
     }
 
+    setAuthLoading(true); // 🔥 Mettre loading AVANT de charger
     loadAuthUser(session.user.id);
     
     // 🔥 Rediriger vers /dashboard après Magic Link si on est sur la page d'accueil
