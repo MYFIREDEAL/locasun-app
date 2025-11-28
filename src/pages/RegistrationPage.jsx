@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
-import { User, Mail } from 'lucide-react';
+import { User, Mail, Phone, Building2 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -297,6 +297,8 @@ const RegistrationPageOLD = () => {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', company: '' });
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
+  const [loading, setLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   // 🔥 Transformer array Supabase en object pour compatibilité
   const users = useMemo(() => {
@@ -356,10 +358,12 @@ const RegistrationPageOLD = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    setLoading(true);
+
     try {
       const finalProjects = [...new Set(selectedProjects)];
 
-      // 🔥 ÉTAPE 1: Créer uniquement le prospect (pas de compte Auth pour l'instant)
+      // 🔥 ÉTAPE 1: Créer le prospect
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
         .insert([{
@@ -386,19 +390,40 @@ const RegistrationPageOLD = () => {
             : "Impossible de créer votre profil. Veuillez réessayer.",
           variant: "destructive",
         });
+        setLoading(false);
+        return;
+      }
+
+      // 🔥 ÉTAPE 2: Envoyer le Magic Link (COPIÉ EXACTEMENT DE client-access)
+      const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+        email: formData.email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/#/dashboard`,
+          shouldCreateUser: false, // Ne pas créer de user (le prospect existe déjà)
+        }
+      });
+
+      if (magicLinkError) {
+        console.error('❌ Erreur Magic Link:', magicLinkError);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'envoyer le lien. Veuillez réessayer.",
+          variant: "destructive",
+        });
+        setLoading(false);
         return;
       }
 
       sessionStorage.removeItem('affiliateUser');
 
       toast({
-        title: "✅ Inscription réussie !",
-        description: "Vous allez recevoir un lien de connexion par email.",
-        className: "bg-blue-500 text-white",
+        title: "✅ Email envoyé !",
+        description: "Consultez votre boîte mail pour accéder à votre espace.",
+        className: "bg-green-500 text-white",
       });
 
-      // 🔥 ÉTAPE 2: Rediriger vers /client-access avec email pré-rempli
-      navigate('/client-access', { state: { email: formData.email } });
+      setMagicLinkSent(true);
+
     } catch (error) {
       console.error('❌ Erreur inscription:', error);
       toast({
@@ -406,8 +431,49 @@ const RegistrationPageOLD = () => {
         description: "Une erreur est survenue lors de l'inscription. Veuillez réessayer.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
+
+  // 🔥 Écran de succès après envoi du Magic Link
+  if (magicLinkSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-full max-w-md bg-white p-8 rounded-2xl shadow-soft text-center"
+        >
+          <div className="mb-6">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <Mail className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              ✅ Email envoyé !
+            </h2>
+            <div className="space-y-2 text-gray-600">
+              <p>
+                Nous avons envoyé un lien de connexion à <strong>{formData.email}</strong>
+              </p>
+              <p className="text-sm">
+                Cliquez sur le lien dans l'email pour accéder à votre espace client.
+              </p>
+              <p className="text-xs text-gray-500 mt-4">
+                Le lien est valide pendant 60 minutes.
+              </p>
+            </div>
+          </div>
+          <Button 
+            onClick={() => navigate('/client-access')} 
+            className="w-full gradient-blue text-white"
+          >
+            Retour à la connexion
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -479,8 +545,13 @@ const RegistrationPageOLD = () => {
              </div>
           </div>
           
-          <Button type="submit" size="lg" className="w-full gradient-green text-white text-base font-semibold py-6 rounded-xl shadow-soft hover:shadow-lg transition-all transform hover:scale-105">
-            Valider et accéder à mon espace
+          <Button 
+            type="submit" 
+            size="lg" 
+            disabled={loading}
+            className="w-full gradient-green text-white text-base font-semibold py-6 rounded-xl shadow-soft hover:shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Envoi en cours...' : 'Valider et accéder à mon espace'}
           </Button>
         </form>
       </motion.div>
