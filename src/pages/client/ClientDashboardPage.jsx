@@ -7,7 +7,7 @@ import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
 
 function ClientDashboardPage() {
-  const { projectsData, currentUser } = useAppContext();
+  const { projectsData, currentUser, authLoading } = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedProject, setSelectedProject] = useState(null);
@@ -88,6 +88,16 @@ function ClientDashboardPage() {
       navigate('/dashboard', { replace: true, state: {} });
     }
   }, [location.state, projectsData, navigate]);
+
+  // 🔥 Attendre que l'authentification se charge avant d'afficher "pas connecté"
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-gray-600">Chargement de votre espace...</p>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return (
