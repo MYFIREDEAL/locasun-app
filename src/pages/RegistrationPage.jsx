@@ -133,11 +133,15 @@ const RegistrationPage = () => {
         throw prospectError;
       }
 
-      // Envoyer le Magic Link
+      // Envoyer le Magic Link (sans confirmation d'email)
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
           emailRedirectTo: `${window.location.origin}/#/dashboard`,
+          shouldCreateUser: true, // Créer le user s'il n'existe pas
+          data: {
+            email_confirm: false // Forcer pas de confirmation
+          }
         }
       });
 
