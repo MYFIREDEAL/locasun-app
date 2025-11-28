@@ -399,9 +399,20 @@ function App() {
     loadAuthUser();
 
     // Écouter les changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 [App.jsx] Auth event:', event);
+      
       if (session?.user) {
-        loadAuthUser();
+        // Ne recharger QUE lors d'un nouveau login (SIGNED_IN)
+        // INITIAL_SESSION est déjà géré par loadAuthUser() au montage
+        if (event === 'SIGNED_IN') {
+          console.log('✅ [App.jsx] New login detected, loading user');
+          loadAuthUser();
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('⏭️ [App.jsx] Token refreshed, skip reload (already logged in)');
+        } else if (event === 'INITIAL_SESSION') {
+          console.log('⏭️ [App.jsx] Initial session, skip (already loaded by useEffect)');
+        }
       } else {
         setActiveAdminUser(null);
         setCurrentUser(null);
