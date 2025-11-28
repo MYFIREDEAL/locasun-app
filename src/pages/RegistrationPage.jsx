@@ -20,6 +20,7 @@ const RegistrationPage = () => {
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
   const [loading, setLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false); // État pour afficher le message de succès
 
   const projectOptions = useMemo(() => {
     if (!projectsData || Object.keys(projectsData).length === 0) return [];
@@ -151,14 +152,15 @@ const RegistrationPage = () => {
 
       sessionStorage.removeItem('affiliateUser');
 
-      toast({
-        title: "✅ Inscription réussie !",
-        description: "Consultez votre boîte mail pour accéder à votre espace.",
-        className: "bg-green-500 text-white",
-      });
+      // Afficher le message de succès sur la page
+      setMagicLinkSent(true);
 
-      // Rediriger vers une page de confirmation
-      setTimeout(() => navigate('/client-access'), 2000);
+      toast({
+        title: "✅ Magic Link envoyé !",
+        description: "Vérifiez votre boîte mail et cliquez sur le lien pour accéder à votre espace.",
+        className: "bg-green-500 text-white",
+        duration: 8000,
+      });
     } catch (error) {
       console.error('❌ Erreur inscription:', error);
       toast({
@@ -170,6 +172,44 @@ const RegistrationPage = () => {
       setLoading(false);
     }
   };
+
+  // Si le Magic Link a été envoyé, afficher un message de succès
+  if (magicLinkSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-soft text-center"
+        >
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-green-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">✅ Inscription réussie !</h1>
+            <p className="text-lg text-gray-600 mb-4">
+              Un email avec un lien de connexion vous a été envoyé à :
+            </p>
+            <p className="text-xl font-semibold text-blue-600 mb-6">{formData.email}</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-700">
+                📧 <strong>Vérifiez votre boîte mail</strong> et cliquez sur le lien pour accéder à votre espace client.
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Le lien est valide pendant 60 minutes.
+              </p>
+            </div>
+          </div>
+          <Button 
+            onClick={() => navigate('/client-access')} 
+            className="w-full gradient-blue text-white"
+          >
+            Retour à la connexion
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
