@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +12,25 @@ import { supabase } from '@/lib/supabase';
 
 const ClientAccessPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { projectsData, authLoading } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // 🔥 Pré-remplir l'email si on vient de l'inscription
+  useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+      toast({
+        title: "📧 Presque terminé !",
+        description: "Cliquez sur 'Recevoir le lien' pour accéder à votre espace.",
+        className: "bg-blue-500 text-white",
+      });
+    }
+  }, [location.state]);
 
   // Projets publics dynamiques (comme dans RegistrationPage)
   const projectOptions = useMemo(() => {

@@ -294,7 +294,7 @@ const RegistrationPageOLD = () => {
   const { projectsData, setUserProjects, addProspect, setCurrentUser } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [selectedProjects, setSelectedProjects] = useState([]);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', company: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', company: '' });
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
 
@@ -347,8 +347,6 @@ const RegistrationPageOLD = () => {
     if (!formData.email) newErrors.email = "L'adresse e-mail est requise.";
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "L'adresse e-mail est invalide.";
     if (!formData.phone) newErrors.phone = "Le numéro de téléphone est requis.";
-    if (!formData.password) newErrors.password = "Le mot de passe est requis.";
-    else if (formData.password.length < 6) newErrors.password = "Le mot de passe doit contenir au moins 6 caractères.";
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -361,102 +359,46 @@ const RegistrationPageOLD = () => {
     try {
       const finalProjects = [...new Set(selectedProjects)];
 
-      // 🔥 ÉTAPE 1: Créer le compte dans Supabase Auth (ESPACE CLIENT, pas admin!)
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: {
-            email_confirm: false, // Forcer la confirmation à false
-          }
-        }
-      });
-
-      if (authError) {
-        console.error('❌ Erreur Auth:', authError);
-        toast({
-          title: "Erreur d'inscription",
-          description: authError.message === 'User already registered' 
-            ? "Un compte existe déjà avec cet email."
-            : authError.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!authData.user || !authData.session) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de créer le compte. Veuillez réessayer.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // 🔥 IMPORTANT : Attendre que la session soit bien établie
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 🔥 ÉTAPE 2: Créer le prospect dans public.prospects avec user_id
-      // La session est maintenant active, donc auth.uid() retournera le bon user_id
+      // 🔥 ÉTAPE 1: Créer uniquement le prospect (pas de compte Auth pour l'instant)
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
         .insert([{
-          user_id: authData.user.id, // ⚠️ IMPORTANT: Lier le prospect au compte Auth
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
           company_name: formData.company || null,
           address: '',
-          owner_id: affiliateInfo.id || null, // Commercial qui a parrainé (si lien d'affiliation)
+          owner_id: affiliateInfo.id || DEFAULT_JACK_USER_ID, // Jack Luc par défaut
           status: 'Intéressé',
           tags: finalProjects, // Projets sélectionnés
           has_appointment: false,
-          affiliate_name: affiliateInfo.name || null,
+          affiliate_name: affiliateInfo.name || 'Jack Luc',
         }])
         .select()
         .single();
 
       if (prospectError) {
         console.error('❌ Erreur création prospect:', prospectError);
-        // Si le prospect existe déjà, supprimer le compte Auth créé
-        await supabase.auth.signOut();
         toast({
           title: "Erreur",
-          description: "Impossible de créer votre profil. Veuillez réessayer.",
+          description: prospectError.message === 'duplicate key value violates unique constraint "prospects_email_key"'
+            ? "Un compte existe déjà avec cet email."
+            : "Impossible de créer votre profil. Veuillez réessayer.",
           variant: "destructive",
         });
         return;
       }
 
-      // 🔥 ÉTAPE 3: Définir currentUser dans le contexte (format app)
-      const clientUserData = {
-        id: prospectData.id,
-        userId: prospectData.user_id, // UUID de auth.users
-        name: prospectData.name,
-        email: prospectData.email,
-        phone: prospectData.phone,
-        company: prospectData.company_name,
-        address: prospectData.address,
-        tags: prospectData.tags,
-        status: prospectData.status,
-        ownerId: prospectData.owner_id,
-        affiliateName: prospectData.affiliate_name,
-        hasAppointment: prospectData.has_appointment,
-      };
-
-      setCurrentUser(clientUserData);
-      
       sessionStorage.removeItem('affiliateUser');
 
       toast({
         title: "✅ Inscription réussie !",
-        description: "Bienvenue dans votre espace client Evatime.",
+        description: "Vous allez recevoir un lien de connexion par email.",
         className: "bg-blue-500 text-white",
       });
 
-      // 🔥 ÉTAPE 4: Rediriger vers le dashboard CLIENT
-      navigate('/dashboard');
+      // 🔥 ÉTAPE 2: Rediriger vers /client-access avec email pré-rempli
+      navigate('/client-access', { state: { email: formData.email } });
     } catch (error) {
       console.error('❌ Erreur inscription:', error);
       toast({
@@ -534,14 +476,6 @@ const RegistrationPageOLD = () => {
                     <Input id="email" type="email" placeholder="jack.dupont@email.com" onChange={handleInputChange} value={formData.email} className="pl-10" />
                 </div>
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-             </div>
-             <div>
-                <Label htmlFor="password">Mot de passe</Label>
-                 <div className="relative mt-1">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="password" type="password" placeholder="••••••••" onChange={handleInputChange} value={formData.password} className="pl-10" />
-                </div>
-                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
              </div>
           </div>
           
