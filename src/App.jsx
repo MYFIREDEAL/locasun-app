@@ -189,6 +189,7 @@ function App() {
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // 🔥 État de chargement auth
   const [adminReady, setAdminReady] = useState(false); // 🔥 Flag pour activer les hooks Supabase
+  const [session, setSession] = useState(null); // 🔥 Session Supabase
   // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
@@ -319,114 +320,115 @@ function App() {
     ? getFormContactConfig() 
     : defaultFormContactConfig;
 
-  // 🔥 CHARGER L'UTILISATEUR AUTH SUPABASE AU MONTAGE + ÉCOUTER LES CHANGEMENTS
+  // � 1 — Simplifier onAuthStateChange : juste stocker la session
   useEffect(() => {
-    const loadAuthUser = async () => {
-      try {
-        setAuthLoading(true); // 🔥 Début du chargement
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setActiveAdminUser(null);
-          setCurrentUser(null);
-          try {
-            localStorage.removeItem('activeAdminUser');
-            localStorage.removeItem('currentUser');
-          } catch (e) {
-            console.warn('⚠️ localStorage blocked:', e);
-          }
-          setAuthLoading(false); // 🔥 Fin du chargement
-          return;
-        }
-
-        // 1️⃣ Vérifier si c'est un ADMIN (table users)
-        const { data: adminData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (adminData) {
-          // C'est un ADMIN → charger activeAdminUser
-          setActiveAdminUser(adminData);
-          setAdminReady(true); // 🔥 Activer les hooks Supabase
-          try {
-            localStorage.setItem('activeAdminUser', JSON.stringify(adminData));
-          } catch (e) {
-            console.warn('⚠️ localStorage write blocked:', e);
-          }
-          setAuthLoading(false); // 🔥 Fin du chargement
-          return;
-        }
-
-        // 2️⃣ Sinon, vérifier si c'est un CLIENT (table prospects)
-        const { data: clientData } = await supabase
-          .from('prospects')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (clientData) {
-          // C'est un CLIENT → charger currentUser
-          setCurrentUser(clientData);
-          try {
-            localStorage.setItem('currentUser', JSON.stringify(clientData));
-          } catch (e) {
-            console.warn('⚠️ localStorage write blocked:', e);
-          }
-          
-          // Synchroniser userProjects avec les tags du prospect
-          if (clientData.tags && Array.isArray(clientData.tags)) {
-            setUserProjects(clientData.tags);
-            try {
-              localStorage.setItem('userProjects', JSON.stringify(clientData.tags));
-            } catch (e) {
-              console.warn('⚠️ localStorage write blocked:', e);
-            }
-          }
-          setAuthLoading(false); // 🔥 Fin du chargement
-        } else {
-          // Ni admin ni client trouvé
-          setAuthLoading(false); // 🔥 Fin du chargement
-        }
-      } catch (error) {
-        console.error('❌ Error loading auth user:', error);
-        setAuthLoading(false); // 🔥 Fin du chargement même en cas d'erreur
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session ?? null);
       }
-    };
+    );
 
-    // Charger l'utilisateur au montage
-    loadAuthUser();
-
-    // Écouter les changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔔 [App.jsx] Auth event:', event);
-      
-      if (session?.user) {
-        // Ne recharger QUE lors d'un nouveau login (SIGNED_IN)
-        // INITIAL_SESSION est déjà géré par loadAuthUser() au montage
-        if (event === 'SIGNED_IN') {
-          console.log('✅ [App.jsx] New login detected, loading user');
-          loadAuthUser();
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('⏭️ [App.jsx] Token refreshed, skip reload (already logged in)');
-        } else if (event === 'INITIAL_SESSION') {
-          console.log('⏭️ [App.jsx] Initial session, skip (already loaded by useEffect)');
-        }
-      } else {
-        setActiveAdminUser(null);
-        setCurrentUser(null);
-        try {
-          localStorage.removeItem('activeAdminUser');
-          localStorage.removeItem('currentUser');
-        } catch (e) {
-          console.warn('⚠️ localStorage blocked:', e);
-        }
-      }
+    // Charger la session initiale
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
     });
 
     return () => subscription.unsubscribe();
-  }, []); // ✅ Ne dépend de rien, s'exécute une seule fois au montage
+  }, []);
+
+  // 🟣 3 — Fonction loadAuthUser stable (version industrielle)
+  const isLoadingAuthRef = useRef(false);
+
+  async function loadAuthUser(userId) {
+    if (isLoadingAuthRef.current) return;
+    isLoadingAuthRef.current = true;
+
+    try {
+      setAuthLoading(true);
+
+      // 1) ADMIN ?
+      const { data: admin } = await supabase
+        .from("users")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (admin) {
+        setActiveAdminUser(admin);
+        setAdminReady(true);
+        setCurrentUser(null);
+        setAuthLoading(false);
+        isLoadingAuthRef.current = false;
+        return;
+      }
+
+      // 2) CLIENT ?
+      let { data: prospect } = await supabase
+        .from("prospects")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      // Magic link: match par email si user_id manquant
+      if (!prospect) {
+        const email = session?.user?.email;
+        if (email) {
+          const { data: byEmail } = await supabase
+            .from("prospects")
+            .select("*")
+            .eq("email", email)
+            .maybeSingle();
+
+          if (byEmail) {
+            if (!byEmail.user_id) {
+              await supabase
+                .from("prospects")
+                .update({ user_id: userId })
+                .eq("id", byEmail.id);
+            }
+            prospect = { ...byEmail, user_id: userId };
+          }
+        }
+      }
+
+      if (prospect) {
+        setCurrentUser(prospect);
+        setActiveAdminUser(null);
+        
+        // Synchroniser userProjects avec les tags du prospect
+        if (prospect.tags && Array.isArray(prospect.tags)) {
+          setUserProjects(prospect.tags);
+        }
+        
+        setAuthLoading(false);
+        isLoadingAuthRef.current = false;
+        return;
+      }
+
+      // Aucun rôle trouvé
+      setCurrentUser(null);
+      setActiveAdminUser(null);
+      setAuthLoading(false);
+
+    } catch (err) {
+      console.error("loadAuthUser error:", err);
+      setAuthLoading(false);
+    } finally {
+      isLoadingAuthRef.current = false;
+    }
+  }
+
+  // 🟣 4 — Déclencher loadAuthUser quand la session change
+  useEffect(() => {
+    if (!session) {
+      setActiveAdminUser(null);
+      setCurrentUser(null);
+      setAuthLoading(false);
+      return;
+    }
+
+    loadAuthUser(session.user.id);
+  }, [session]);
 
   // 🔥 REAL-TIME POUR LE CLIENT : Écouter les mises à jour du prospect du client connecté
   useEffect(() => {
