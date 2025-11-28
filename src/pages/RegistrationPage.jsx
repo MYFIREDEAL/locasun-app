@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
-import { User, Phone, Mail, Lock, Building2 } from 'lucide-react';
+import { User, Mail } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { supabase } from '@/lib/supabase';
@@ -18,7 +18,7 @@ const RegistrationPage = () => {
   const { projectsData } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
   const [selectedProjects, setSelectedProjects] = useState([]);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', company: '' });
+  const [formData, setFormData] = useState({ name: '', email: '' });
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
   const [loading, setLoading] = useState(false);
@@ -70,7 +70,6 @@ const RegistrationPage = () => {
     if (!formData.name) newErrors.name = "Le nom complet est requis.";
     if (!formData.email) newErrors.email = "L'adresse e-mail est requise.";
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "L'adresse e-mail est invalide.";
-    if (!formData.phone) newErrors.phone = "Le numéro de téléphone est requis.";
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -116,8 +115,8 @@ const RegistrationPage = () => {
         .insert([{
           name: formData.name,
           email: formData.email,
-          phone: formData.phone,
-          company_name: formData.company || null,
+          phone: null,
+          company_name: null,
           address: '',
           owner_id: affiliateInfo.id || null,
           status: 'Intéressé',
@@ -207,30 +206,15 @@ const RegistrationPage = () => {
                 <Label htmlFor="name">Nom complet</Label>
                 <div className="relative mt-1">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="name" placeholder="Jack Dupont" onChange={handleInputChange} value={formData.name} className="pl-10" disabled={loading} />
+                    <Input id="name" placeholder="Jean Dupont" onChange={handleInputChange} value={formData.name} className="pl-10" disabled={loading} />
                 </div>
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-             </div>
-             <div>
-                <Label htmlFor="company">Société (Optionnel)</Label>
-                <div className="relative mt-1">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="company" placeholder="Nom de votre société" onChange={handleInputChange} value={formData.company} className="pl-10" disabled={loading} />
-                </div>
-             </div>
-             <div>
-                <Label htmlFor="phone">Téléphone</Label>
-                <div className="relative mt-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="phone" type="tel" placeholder="06 12 34 56 78" onChange={handleInputChange} value={formData.phone} className="pl-10" disabled={loading} />
-                </div>
-                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
              </div>
              <div>
                 <Label htmlFor="email">Email</Label>
                 <div className="relative mt-1">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="email" type="email" placeholder="jack.dupont@email.com" onChange={handleInputChange} value={formData.email} className="pl-10" disabled={loading} />
+                    <Input id="email" type="email" placeholder="jean.dupont@email.com" onChange={handleInputChange} value={formData.email} className="pl-10" disabled={loading} />
                 </div>
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
              </div>
