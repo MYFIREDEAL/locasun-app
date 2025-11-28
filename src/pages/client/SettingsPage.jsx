@@ -39,11 +39,7 @@ import React, { useState, useEffect } from 'react';
         address: '',
       });
 
-      const [passwordData, setPasswordData] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      // ❌ SUPPRIMÉ: passwordData (Client n'a plus de mot de passe - Magic Link uniquement)
 
       useEffect(() => {
         if (currentUser) {
@@ -125,65 +121,7 @@ import React, { useState, useEffect } from 'react';
         });
       };
 
-      const handleChangePassword = async () => {
-        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-          toast({
-            title: "Erreur",
-            description: "Veuillez remplir tous les champs.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (passwordData.newPassword !== passwordData.confirmPassword) {
-          toast({
-            title: "Erreur",
-            description: "Les mots de passe ne correspondent pas.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (passwordData.newPassword.length < 6) {
-          toast({
-            title: "Erreur",
-            description: "Le mot de passe doit contenir au moins 6 caracteres.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        try {
-          // Changer le mot de passe via Supabase Auth
-          const { error } = await supabase.auth.updateUser({
-            password: passwordData.newPassword
-          });
-
-          if (error) {
-            throw error;
-          }
-
-          // Réinitialiser les champs
-          setPasswordData({
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: '',
-          });
-
-          toast({
-            title: "Mot de passe modifie !",
-            description: "Votre mot de passe a ete mis a jour avec succes.",
-            className: "bg-green-100 border-green-300 text-green-800",
-          });
-        } catch (error) {
-          console.error('Erreur changement mot de passe:', error);
-          toast({
-            title: "Erreur",
-            description: error.message || "Impossible de changer le mot de passe.",
-            variant: "destructive",
-          });
-        }
-      };
+      // ❌ SUPPRIMÉ: handleChangePassword (Client utilise Magic Link uniquement)
 
       const handleLogout = async () => {
         try {
@@ -258,54 +196,7 @@ import React, { useState, useEffect } from 'react';
               </div>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-4 mt-6 pt-6 border-t">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Lock className="mr-2 h-4 w-4" />
-                    Changer le mot de passe
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Changer le mot de passe</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-                      <Input 
-                        id="currentPassword" 
-                        type="password" 
-                        placeholder="••••••••"
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-                      <Input 
-                        id="newPassword" 
-                        type="password" 
-                        placeholder="••••••••"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
-                      <Input 
-                        id="confirmPassword" 
-                        type="password" 
-                        placeholder="••••••••"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleChangePassword} className="bg-green-600 hover:bg-green-700">Valider</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              {/* ❌ SUPPRIMÉ: Bouton "Changer le mot de passe" - Client utilise Magic Link uniquement */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive">
@@ -317,7 +208,7 @@ import React, { useState, useEffect } from 'react';
                   <AlertDialogHeader>
                     <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à votre espace client.
+                      Êtes-vous sûr de vouloir vous déconnecter ? Vous recevrez un nouveau lien sécurisé pour vous reconnecter.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

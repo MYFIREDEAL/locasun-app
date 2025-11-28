@@ -27,13 +27,14 @@ const HowItWorksCard = ({ icon, title, description, badgeText, delay }) => (
   </motion.div>
 );
 
-const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
+// 🟢 MODALE PRO LOGIN (email + password) - NE PAS TOUCHER
+const ProLoginModal = ({ isOpen, onOpenChange }) => {
   const navigate = useNavigate();
-  const { setCurrentUser, setActiveAdminUser, prospects } = useAppContext();
+  const { setActiveAdminUser } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = async (e) => {
+  const handleProLogin = async (e) => {
     e.preventDefault();
     
     try {
@@ -52,83 +53,51 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
         return;
       }
 
-      // Vérifier si c'est un user PRO ou un CLIENT
-      if (loginType === 'pro') {
-        // Récupérer les données du user PRO depuis public.users
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('user_id', authData.user.id)
-          .single();
+      // Récupérer les données du user PRO depuis public.users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .single();
 
-        if (userError || !userData) {
-          console.error('❌ Erreur détaillée:', userError);
-          toast({
-            title: "Erreur",
-            description: `Compte professionnel introuvable. ${userError?.message || ''}`,
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Connexion PRO réussie
+      if (userError || !userData) {
+        console.error('❌ Erreur détaillée:', userError);
         toast({
-          title: "Connexion réussie !",
-          description: "Redirection vers l'espace pro...",
-          className: "bg-green-500 text-white",
+          title: "Erreur",
+          description: `Compte professionnel introuvable. ${userError?.message || ''}`,
+          variant: "destructive",
         });
-        
-        // ✅ Transformer les données Supabase (snake_case → camelCase)
-        const transformedUserData = {
-          id: userData.id,
-          userId: userData.user_id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role,
-          phone: userData.phone,
-          avatarUrl: userData.avatar_url,
-          managerId: userData.manager_id,
-          accessRights: userData.access_rights, // ⚠️ IMPORTANT pour les droits d'accès
-          createdAt: userData.created_at,
-          updatedAt: userData.updated_at,
-        };
-        
-        // ✅ Définir activeAdminUser pour les PRO (pas currentUser)
-        setActiveAdminUser(transformedUserData);
-        onOpenChange(false);
-        setTimeout(() => navigate('/admin'), 500);
-      } else {
-        // Récupérer les données du CLIENT depuis public.prospects
-        const { data: prospectData, error: prospectError } = await supabase
-          .from('prospects')
-          .select('*')
-          .eq('user_id', authData.user.id)
-          .single();
-
-        if (prospectError || !prospectData) {
-          toast({
-            title: "Erreur",
-            description: "Compte client introuvable.",
-            variant: "destructive",
-          });
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Connexion CLIENT réussie
-        toast({
-          title: "Connexion réussie !",
-          description: "Redirection vers votre espace client...",
-          className: "bg-blue-500 text-white",
-        });
-
-        setCurrentUser(prospectData);
-        onOpenChange(false);
-        setTimeout(() => navigate('/dashboard'), 500);
+        await supabase.auth.signOut();
+        return;
       }
+
+      // Connexion PRO réussie
+      toast({
+        title: "Connexion réussie !",
+        description: "Redirection vers l'espace pro...",
+        className: "bg-green-500 text-white",
+      });
+      
+      // ✅ Transformer les données Supabase (snake_case → camelCase)
+      const transformedUserData = {
+        id: userData.id,
+        userId: userData.user_id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        phone: userData.phone,
+        avatarUrl: userData.avatar_url,
+        managerId: userData.manager_id,
+        accessRights: userData.access_rights,
+        createdAt: userData.created_at,
+        updatedAt: userData.updated_at,
+      };
+      
+      setActiveAdminUser(transformedUserData);
+      onOpenChange(false);
+      setTimeout(() => navigate('/admin'), 500);
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Pro login error:', error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la connexion.",
@@ -138,22 +107,16 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
   };
 
   const handleForgotPassword = () => {
-    toast({
-      title: "🚧 Bientôt disponible",
-      description: "La récupération de mot de passe n'est pas encore implémentée.",
-    });
+    navigate('/reset-password');
   };
-
-  const title = loginType === 'pro' ? 'Connexion Espace Pro' : 'Connexion Espace Client';
-  const buttonClass = loginType === 'pro' ? 'gradient-green text-white' : 'gradient-blue text-white';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">{title}</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-center">Connexion Espace Pro</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleLogin} className="space-y-6 px-4 py-6">
+        <form onSubmit={handleProLogin} className="space-y-6 px-4 py-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="votre@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -162,7 +125,7 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
             <Label htmlFor="password">Mot de passe</Label>
             <Input id="password" type="password" placeholder="********" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <Button type="submit" className={`w-full ${buttonClass} text-lg py-6`}>
+          <Button type="submit" className="w-full gradient-green text-white text-lg py-6">
             Se connecter
           </Button>
           <div className="text-center">
@@ -177,8 +140,8 @@ const LoginModal = ({ isOpen, onOpenChange, loginType }) => {
 };
 
 const HomePage = () => {
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [loginType, setLoginType] = useState('client'); // 'client' or 'pro'
+  const navigate = useNavigate();
+  const [isProLoginOpen, setIsProLoginOpen] = useState(false);
   const { slugUser } = useParams();
 
   useEffect(() => {
@@ -187,9 +150,12 @@ const HomePage = () => {
     }
   }, [slugUser]);
 
-  const openLoginModal = (type) => {
-    setLoginType(type);
-    setIsLoginOpen(true);
+  const openProLogin = () => {
+    setIsProLoginOpen(true);
+  };
+
+  const openClientAccess = () => {
+    navigate('/client-access');
   };
 
   const registrationLink = slugUser ? `/inscription/${slugUser}` : '/inscription';
@@ -198,16 +164,16 @@ const HomePage = () => {
     <div className="bg-gray-50 relative">
       <header className="absolute top-0 right-0 p-4 md:p-6 z-20">
         <div className="flex items-center space-x-3">
-          <Button onClick={() => openLoginModal('pro')} className="gradient-green text-white shadow-soft hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+          <Button onClick={openProLogin} className="gradient-green text-white shadow-soft hover:shadow-lg transition-all duration-300 transform hover:scale-105">
             Espace Pro
           </Button>
-          <Button onClick={() => openLoginModal('client')} className="gradient-blue text-white shadow-soft hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+          <Button onClick={openClientAccess} className="gradient-blue text-white shadow-soft hover:shadow-lg transition-all duration-300 transform hover:scale-105">
             Espace Client
           </Button>
         </div>
       </header>
 
-      <LoginModal isOpen={isLoginOpen} onOpenChange={setIsLoginOpen} loginType={loginType} />
+      <ProLoginModal isOpen={isProLoginOpen} onOpenChange={setIsProLoginOpen} />
 
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
         <div className="relative w-full max-w-4xl">

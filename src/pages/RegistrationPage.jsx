@@ -15,6 +15,20 @@ import { supabase } from '@/lib/supabase';
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
+
+  // 🟣 REDIRECTION : Page d'inscription désormais gérée par ClientAccessPage (Magic Link uniquement)
+  useEffect(() => {
+    navigate('/client-access', { replace: true });
+  }, [navigate]);
+
+  return null;
+};
+
+/* 
+// ❌ ANCIEN SYSTÈME (SUPPRIMÉ) - Inscription avec password
+const RegistrationPageOLD = () => {
+  const navigate = useNavigate();
+  const { slugUser } = useParams();
   const { projectsData, setUserProjects, addProspect, setCurrentUser } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   const [selectedProjects, setSelectedProjects] = useState([]);
@@ -277,5 +291,6 @@ const RegistrationPage = () => {
     </div>
   );
 };
+*/
 
 export default RegistrationPage;

@@ -15,6 +15,7 @@ import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
 import ActivationPage from '@/pages/client/ActivationPage';
 import HomePage from '@/pages/HomePage';
+import ClientAccessPage from '@/pages/ClientAccessPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import ProducerLandingPage from '@/pages/ProducerLandingPage';
 import TestSupabasePage from '@/pages/TestSupabasePage';
@@ -1465,6 +1466,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/:slugUser" element={<HomePage />} />
+        <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
         <Route path="/inscription/:slugUser" element={<RegistrationPage />} />
         <Route path="/producteurs" element={<ProducerLandingPage />} />
