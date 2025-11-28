@@ -17,6 +17,15 @@ export const useSupabaseProspects = (activeAdminUser) => {
     try {
       setLoading(true);
       
+      // 🔥 Vérifier si une session existe
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('⚠️ [useSupabaseProspects] Pas de session - skip chargement prospects');
+        setProspects([]);
+        setLoading(false);
+        return;
+      }
+      
       // 🔥 UTILISER LA FONCTION RPC AU LIEU DU SELECT DIRECT
       // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies SELECT
       const { data, error: fetchError } = await supabase.rpc('get_prospects_safe');

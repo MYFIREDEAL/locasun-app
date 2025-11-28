@@ -216,10 +216,13 @@ function App() {
   const isClientRoute = location.pathname.startsWith('/dashboard');
   const prospectIdForForms = isClientRoute ? currentUser?.id : null;
   
-  console.log('🔍 [App.jsx] isClientRoute:', isClientRoute);
-  console.log('🔍 [App.jsx] activeAdminUser:', activeAdminUser?.user_id, activeAdminUser?.name, activeAdminUser?.role);
-  console.log('🔍 [App.jsx] currentUser pour forms:', currentUser?.id, currentUser?.name);
-  console.log('🔍 [App.jsx] prospectIdForForms:', prospectIdForForms);
+  // 🔥 Logs seulement si session active (éviter spam lors de l'inscription)
+  if (session) {
+    console.log('🔍 [App.jsx] isClientRoute:', isClientRoute);
+    console.log('🔍 [App.jsx] activeAdminUser:', activeAdminUser?.user_id, activeAdminUser?.name, activeAdminUser?.role);
+    console.log('🔍 [App.jsx] currentUser pour forms:', currentUser?.id, currentUser?.name);
+    console.log('🔍 [App.jsx] prospectIdForForms:', prospectIdForForms);
+  }
   
   const {
     formPanels: clientFormPanels,

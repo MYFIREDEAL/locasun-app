@@ -40,7 +40,18 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       try {
         setLoading(true);
         
+        // 🔥 Vérifier si une session existe avant de faire des requêtes
+        const { data: { session } } = await supabase.auth.getSession();
+        
         console.log('🔍 [useSupabaseClientFormPanels] Chargement avec prospectId:', prospectId);
+        
+        // Si pas de session active, ne charger aucune donnée (ex: page inscription)
+        if (!session) {
+          console.log('⚠️ [useSupabaseClientFormPanels] Pas de session - skip chargement');
+          setFormPanels([]);
+          setLoading(false);
+          return;
+        }
         
         // 🔥 Si prospectId === null, charger TOUS les formulaires (pour admin)
         let query = supabase
