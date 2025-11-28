@@ -1368,6 +1368,7 @@ function App() {
     projectsData, setProjectsData: handleSetProjectsData,
     deleteProjectTemplate: deleteTemplate, // 🔥 Exposer deleteTemplate pour suppression directe
     prospects: supabaseProspects, // 🔥 Utiliser directement supabaseProspects au lieu du state legacy
+    prospectsLoading, // 🔥 État de chargement des prospects pour skeleton screens
     setProspects, addProspect, updateProspect, 
     currentUser, setCurrentUser: handleSetCurrentUser, 
     appointments, addAppointment, updateAppointment, deleteAppointment, getSharedAppointments,

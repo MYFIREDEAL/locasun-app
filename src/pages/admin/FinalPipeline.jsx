@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '@/App';
 import ProspectCard from '@/components/admin/ProspectCard';
+import SkeletonCard from '@/components/admin/SkeletonCard';
 import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
 import AddProspectModal from '@/components/admin/AddProspectModal';
 import { toast } from '@/components/ui/use-toast';
@@ -138,7 +139,8 @@ const FinalPipeline = () => {
   }
 
   const { 
-    prospects: supabaseProspects, // � Utiliser prospects du contexte (déjà synchronisé avec Supabase)
+    prospects: supabaseProspects, // 🔥 Utiliser prospects du contexte (déjà synchronisé avec Supabase)
+    prospectsLoading, // 🔥 État de chargement pour skeleton screens
     addProspect: addSupabaseProspect,
     updateProspect: updateSupabaseProspect,
     projectsData = {}, 
@@ -147,8 +149,6 @@ const FinalPipeline = () => {
     globalPipelineSteps = [],
     getProjectSteps,
   } = contextData;
-
-  // Note: prospectsLoading retiré car le contexte gère déjà le chargement via authLoading/adminReady
 
   // 🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
@@ -745,55 +745,66 @@ const FinalPipeline = () => {
 
               {/* Prospects List */}
               <div className="flex-1 space-y-3 overflow-y-auto">
-                {(prospectsByStage[stage.id] || [])
-                  .filter(entry => {
-                    // 🎯 Filtrer par tags sélectionnés au niveau de la CARTE (projectType)
-                    if (selectedTags.length === 0) return true;
-                    const { projectType } = entry;
-                    return selectedTags.some(tag => 
-                      tag.toUpperCase() === (projectType || '').toUpperCase()
-                    );
-                  })
-                  .map((entry, idx) => {
-                    const { prospect, projectType, activeStep } = entry;
-                    const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
-                    const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
-                    const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
-                    const stepLabel = activeStep?.label || activeStep?.name || stage.name;
-                    const projectColor = stage.color || 'bg-blue-100 text-blue-700';
-                    const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
+                {/* 🔥 Skeleton screens pendant le chargement */}
+                {prospectsLoading ? (
+                  <>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </>
+                ) : (
+                  <>
+                    {(prospectsByStage[stage.id] || [])
+                      .filter(entry => {
+                        // 🎯 Filtrer par tags sélectionnés au niveau de la CARTE (projectType)
+                        if (selectedTags.length === 0) return true;
+                        const { projectType } = entry;
+                        return selectedTags.some(tag => 
+                          tag.toUpperCase() === (projectType || '').toUpperCase()
+                        );
+                      })
+                      .map((entry, idx) => {
+                        const { prospect, projectType, activeStep } = entry;
+                        const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
+                        const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
+                        const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
+                        const stepLabel = activeStep?.label || activeStep?.name || stage.name;
+                        const projectColor = stage.color || 'bg-blue-100 text-blue-700';
+                        const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
 
-                    return (
-                    <motion.div
-                      key={key}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ProspectCard
-                        prospect={{ ...prospect, _projectContext: { projectType: projectType || fallbackProjectLabel, projectTitle, stepLabel, projectColor } }}
-                        onClick={() =>
-                          handleProspectClick(
-                            prospect,
-                            projectType || prospect.projectType || (Array.isArray(prospect.tags) ? prospect.tags[0] : fallbackProjectLabel)
-                          )
-                        }
-                        compact={true}
-                        sortableId={sortableId}
-                        projectsData={projectsData}
-                      />
-                    </motion.div>
-                  );
-                })}
-                
-                {stage.count === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="w-16 h-16 bg-white bg-opacity-50 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <Users className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className="text-sm">Aucun prospect</p>
-                  </div>
+                        return (
+                        <motion.div
+                          key={key}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          whileHover={{ scale: 1.02 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ProspectCard
+                            prospect={{ ...prospect, _projectContext: { projectType: projectType || fallbackProjectLabel, projectTitle, stepLabel, projectColor } }}
+                            onClick={() =>
+                              handleProspectClick(
+                                prospect,
+                                projectType || prospect.projectType || (Array.isArray(prospect.tags) ? prospect.tags[0] : fallbackProjectLabel)
+                              )
+                            }
+                            compact={true}
+                            sortableId={sortableId}
+                            projectsData={projectsData}
+                          />
+                        </motion.div>
+                      );
+                    })}
+                    
+                    {stage.count === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <div className="w-16 h-16 bg-white bg-opacity-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Users className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <p className="text-sm">Aucun prospect</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </motion.div>
