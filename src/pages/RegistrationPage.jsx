@@ -108,9 +108,25 @@ const RegistrationPage = () => {
         return;
       }
 
-      // Créer le prospect (sans user_id pour l'instant - sera ajouté au premier login Magic Link)
+      // ÉTAPE 1 : Créer le compte auth ET envoyer le Magic Link en une seule fois
+      // signInWithOtp avec shouldCreateUser=true crée le compte et envoie le Magic Link
+      const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/#/dashboard`,
+          shouldCreateUser: true, // Créer le user auth s'il n'existe pas
+        }
+      });
+
+      if (magicLinkError) {
+        console.error('❌ Erreur Magic Link:', magicLinkError);
+        throw magicLinkError;
+      }
+
+      console.log('✅ Magic Link envoyé, otpData:', otpData);
+
+      // ÉTAPE 2 : Créer le prospect (sans user_id pour l'instant - sera lié au premier login)
       // Par défaut, assigner le propriétaire à Jack Luc si aucun affilié détecté
-      // UUID de Jack Luc (auth.user_id) utilisé temporairement
       const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
 
       const { data: prospectData, error: prospectError } = await supabase
@@ -131,24 +147,11 @@ const RegistrationPage = () => {
         .single();
 
       if (prospectError) {
+        console.error('❌ Erreur création prospect:', prospectError);
         throw prospectError;
       }
 
-      // Envoyer le Magic Link (sans confirmation d'email)
-      const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/#/dashboard`,
-          shouldCreateUser: true, // Créer le user s'il n'existe pas
-          data: {
-            email_confirm: false // Forcer pas de confirmation
-          }
-        }
-      });
-
-      if (magicLinkError) {
-        throw magicLinkError;
-      }
+      console.log('✅ Prospect créé:', prospectData);
 
       sessionStorage.removeItem('affiliateUser');
 
