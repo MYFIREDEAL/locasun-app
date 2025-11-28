@@ -724,7 +724,8 @@ const FinalPipeline = () => {
             {stagesWithCounts.map((stage) => (
             <motion.div
               key={stage.id}
-              initial={false}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               className={`${stage.color} rounded-lg p-4 flex flex-col h-full min-h-[500px]`}
             >
               {/* Column Header */}
@@ -774,7 +775,8 @@ const FinalPipeline = () => {
                         return (
                         <motion.div
                           key={key}
-                          initial={false}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
                           whileHover={{ scale: 1.02 }}
                           transition={{ duration: 0.2 }}
                         >
