@@ -348,7 +348,7 @@ function App() {
             window.history.replaceState({}, document.title, window.location.pathname + '#/dashboard');
           }
         });
-        return; // Stopper l'exécution ici
+        // Ne pas return ici - continuer pour setup la subscription
       }
     }
     
