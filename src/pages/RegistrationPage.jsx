@@ -9,48 +9,46 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { User, Mail } from 'lucide-react';
 import { slugify } from '@/lib/utils';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { supabase } from '@/lib/supabase';
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
   const { projectsData } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
   const [loading, setLoading] = useState(false);
 
-  // Transformer array Supabase en object pour compatibilité
-  const users = useMemo(() => {
-    return supabaseUsers.reduce((acc, user) => {
-      acc[user.id] = user;
-      return acc;
-    }, {});
-  }, [supabaseUsers]);
-
-  const projectOptions = useMemo(() => 
-    Object.values(projectsData)
+  const projectOptions = useMemo(() => {
+    if (!projectsData || Object.keys(projectsData).length === 0) return [];
+    return Object.values(projectsData)
         .filter(p => p.isPublic)
         .map(p => ({
             id: p.type,
             label: p.clientTitle,
             icon: p.icon
-        })), 
-  [projectsData]);
+        }));
+  }, [projectsData]);
 
+  // 🔥 Charger l'info d'affiliation directement depuis Supabase (pas besoin de hook)
   useEffect(() => {
-    if (!users || Object.keys(users).length === 0) return;
     const affiliateId = slugUser || sessionStorage.getItem('affiliateUser');
-    if (affiliateId) {
-      const owner = users[affiliateId];
-      if (owner) {
-        setAffiliateInfo({ id: owner.id, name: owner.name });
-      }
-    }
-  }, [slugUser, users]);
+    if (!affiliateId) return;
+
+    // Requête directe sans session (table users est accessible en lecture)
+    supabase
+      .from('users')
+      .select('id, name')
+      .eq('id', affiliateId)
+      .single()
+      .then(({ data, error }) => {
+        if (data && !error) {
+          setAffiliateInfo({ id: data.id, name: data.name });
+        }
+      });
+  }, [slugUser]);
 
   const handleCheckboxChange = (projectId) => {
     setSelectedProjects(prev =>
@@ -110,6 +108,10 @@ const RegistrationPage = () => {
       }
 
       // Créer le prospect (sans user_id pour l'instant - sera ajouté au premier login Magic Link)
+      // Par défaut, assigner le propriétaire à Jack Luc si aucun affilié détecté
+      // UUID de Jack Luc (auth.user_id) utilisé temporairement
+      const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
+
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
         .insert([{
@@ -118,11 +120,11 @@ const RegistrationPage = () => {
           phone: null,
           company_name: null,
           address: '',
-          owner_id: affiliateInfo.id || null,
+          owner_id: affiliateInfo.id || DEFAULT_JACK_USER_ID,
           status: 'Intéressé',
           tags: finalProjects,
           has_appointment: false,
-          affiliate_name: affiliateInfo.name || null,
+          affiliate_name: affiliateInfo.name || 'Jack Luc',
         }])
         .select()
         .single();
