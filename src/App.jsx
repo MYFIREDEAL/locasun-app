@@ -326,14 +326,43 @@ function App() {
 
   // � 1 — Simplifier onAuthStateChange : juste stocker la session
   useEffect(() => {
+    // 🔥 MAGIC LINK: Parser le hash dans l'URL pour extraire access_token
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      
+      if (accessToken && refreshToken) {
+        console.log('🔐 [App.jsx] Magic Link détecté dans URL, activation session...');
+        supabase.auth.setSession({ 
+          access_token: accessToken, 
+          refresh_token: refreshToken 
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error('❌ Erreur setSession:', error);
+          } else if (data.session) {
+            console.log('✅ Session activée:', data.session.user.email);
+            setSession(data.session);
+            // Nettoyer l'URL et rediriger
+            window.history.replaceState({}, document.title, window.location.pathname + '#/dashboard');
+          }
+        });
+        return; // Stopper l'exécution ici
+      }
+    }
+    
+    // Écouter les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔐 [App.jsx] Auth event:', event);
         setSession(session ?? null);
       }
     );
 
     // Charger la session initiale
     supabase.auth.getSession().then(({ data }) => {
+      console.log('🔐 [App.jsx] Session initiale:', data.session?.user?.email || 'aucune');
       setSession(data.session ?? null);
     });
 
