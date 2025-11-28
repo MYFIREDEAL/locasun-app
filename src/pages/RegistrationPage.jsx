@@ -398,7 +398,7 @@ const RegistrationPageOLD = () => {
       const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: formData.email.trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}/#/dashboard`,
+          emailRedirectTo: window.location.origin, // Juste la racine, le router gérera la redirection
           shouldCreateUser: true, // ✅ CRÉER le user dans auth.users pour permettre l'envoi du Magic Link
         }
       });

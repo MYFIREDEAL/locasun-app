@@ -432,6 +432,14 @@ function App() {
     }
 
     loadAuthUser(session.user.id);
+    
+    // 🔥 Rediriger vers /dashboard après Magic Link si on est sur la page d'accueil
+    if (location.pathname === '/' && !currentUser && !activeAdminUser) {
+      setTimeout(() => {
+        // Attendre que loadAuthUser finisse pour savoir si c'est un client
+        if (currentUser) navigate('/dashboard');
+      }, 1000);
+    }
   }, [session]);
 
   // 🔥 REAL-TIME POUR LE CLIENT : Écouter les mises à jour du prospect du client connecté
