@@ -394,12 +394,12 @@ const RegistrationPageOLD = () => {
         return;
       }
 
-      // 🔥 ÉTAPE 2: Envoyer le Magic Link (COPIÉ EXACTEMENT DE client-access)
-      const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+      // 🔥 ÉTAPE 2: Envoyer le Magic Link ET créer le user auth en même temps
+      const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: formData.email.trim(),
         options: {
           emailRedirectTo: `${window.location.origin}/#/dashboard`,
-          shouldCreateUser: false, // Ne pas créer de user (le prospect existe déjà)
+          shouldCreateUser: true, // ✅ CRÉER le user dans auth.users pour permettre l'envoi du Magic Link
         }
       });
 
@@ -412,6 +412,14 @@ const RegistrationPageOLD = () => {
         });
         setLoading(false);
         return;
+      }
+
+      // 🔥 ÉTAPE 3: Lier le prospect au user_id créé par Supabase
+      if (otpData?.user?.id) {
+        await supabase
+          .from('prospects')
+          .update({ user_id: otpData.user.id })
+          .eq('email', formData.email.trim());
       }
 
       sessionStorage.removeItem('affiliateUser');
