@@ -180,8 +180,10 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     }
     
     // 🔥 FIX: Mettre à jour currentUser immédiatement pour que le client voit ses changements
+    // App.jsx updateProspect attend un objet avec id, pas (id, updates)
     try {
-      await updateProspect(prospectId, { 
+      await updateProspect({ 
+        id: prospectId,
         formData: updatedFormData,
         form_data: updatedFormData 
       });
