@@ -13,12 +13,20 @@ import { supabase } from '@/lib/supabase';
 const ClientAccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { projectsData, authLoading } = useAppContext();
+  const { projectsData, authLoading, currentUser } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // 🔥 REDIRECTION AUTO si déjà connecté
+  useEffect(() => {
+    if (currentUser) {
+      console.log('✅ Client déjà connecté, redirection vers /dashboard');
+      navigate('/dashboard');
+    }
+  }, [currentUser, navigate]);
 
   // 🔥 Pré-remplir l'email si on vient de l'inscription
   useEffect(() => {
