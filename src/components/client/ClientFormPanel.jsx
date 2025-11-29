@@ -210,9 +210,27 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           );
         });
 
+    console.log('🔍 [ClientFormPanel] DEBUG Auto-Complete:', {
+      promptId,
+      relatedPrompt: relatedPrompt ? { id: relatedPrompt.id, name: relatedPrompt.name } : null,
+      currentStepIndex,
+      stepConfig: relatedPrompt?.stepsConfig?.[currentStepIndex],
+      autoCompleteStep: relatedPrompt?.stepsConfig?.[currentStepIndex]?.autoCompleteStep,
+      projectType,
+      formId
+    });
+
     if (relatedPrompt) {
       const stepConfig = relatedPrompt.stepsConfig?.[currentStepIndex];
+      console.log('✅ [ClientFormPanel] Prompt trouvé, stepConfig:', stepConfig);
+      console.log('🎯 [ClientFormPanel] autoCompleteStep value:', stepConfig?.autoCompleteStep);
+      
       if (stepConfig?.autoCompleteStep) {
+        console.log('🚀 [ClientFormPanel] Appel completeStepAndProceed avec:', {
+          prospectId,
+          projectType,
+          currentStepIndex
+        });
         completeStepAndProceed(prospectId, projectType, currentStepIndex);
         toast({
           title: 'Étape terminée !',
@@ -220,6 +238,8 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           className: 'bg-green-500 text-white',
         });
       } else {
+        console.log('❌ [ClientFormPanel] autoCompleteStep est false ou undefined');
+
         toast({
           title: 'Formulaire envoyé',
           description: 'Vos informations ont été transmises à votre conseiller.',

@@ -1305,17 +1305,35 @@ function App() {
   };
 
   const completeStepAndProceed = (prospectId, projectType, currentStepIndex) => {
+    console.log('🎯 [completeStepAndProceed] DÉBUT:', { prospectId, projectType, currentStepIndex });
+    
     const steps = getProjectSteps(prospectId, projectType);
-    if (currentStepIndex < 0 || currentStepIndex >= steps.length) return;
+    console.log('📋 [completeStepAndProceed] Steps récupérés:', steps);
+    
+    if (currentStepIndex < 0 || currentStepIndex >= steps.length) {
+      console.error('❌ [completeStepAndProceed] Index invalide:', currentStepIndex, 'steps.length:', steps.length);
+      return;
+    }
 
     const newSteps = JSON.parse(JSON.stringify(steps));
     
+    const completedStepName = newSteps[currentStepIndex].name;
     newSteps[currentStepIndex].status = 'completed';
+    
+    let nextStepName = null;
     if (currentStepIndex + 1 < newSteps.length) {
       newSteps[currentStepIndex + 1].status = 'in_progress';
+      nextStepName = newSteps[currentStepIndex + 1].name;
     }
     
+    console.log('✅ [completeStepAndProceed] Étape complétée:', completedStepName);
+    console.log('▶️ [completeStepAndProceed] Prochaine étape:', nextStepName);
+    console.log('💾 [completeStepAndProceed] Mise à jour des steps:', newSteps);
+    
     updateProjectSteps(prospectId, projectType, newSteps);
+    
+    // TODO: Ajouter événement dans project_history
+    console.log('⚠️ [completeStepAndProceed] Événement project_history pas encore implémenté');
   };
 
   const addProject = (projectType) => {
