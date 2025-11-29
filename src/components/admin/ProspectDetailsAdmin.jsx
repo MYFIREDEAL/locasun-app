@@ -488,8 +488,8 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     const handleEdit = (panel) => {
         setEditingPanelId(panel.panelId);
         
-        // 🔥 FIX: Charger les données du formulaire spécifique
-        const fullFormData = prospect.form_data || prospect.formData || {};
+        // 🔥 FIX: Utiliser editableProspect pour charger les dernières données real-time
+        const fullFormData = editableProspect.form_data || editableProspect.formData || {};
         const projectFormData = fullFormData[panel.projectType] || {};
         const formFields = projectFormData[panel.formId] || {};
         
@@ -515,7 +515,8 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             return;
         }
         
-        const currentFormData = prospect.form_data || prospect.formData || {};
+        // 🔥 FIX: Utiliser editableProspect pour avoir les dernières données real-time
+        const currentFormData = editableProspect.form_data || editableProspect.formData || {};
         const updatedFormData = {
             ...currentFormData,
             [projectType]: {
@@ -566,7 +567,8 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             <div className="space-y-4">
                 {relevantPanels.map(panel => {
                     const formDefinition = forms[panel.formId];
-                    const fullFormData = prospect.form_data || prospect.formData || {};
+                    // 🔥 FIX: Utiliser editableProspect pour avoir les updates real-time
+                    const fullFormData = editableProspect.form_data || editableProspect.formData || {};
                     
                     // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
                     const projectFormData = fullFormData[panel.projectType] || {};
@@ -694,6 +696,12 @@ const ProspectDetailsAdmin = ({
   
   // 🔥 FIX: Utiliser useState au lieu de useRef pour déclencher les re-renders (pattern du chat)
   const [editableProspect, setEditableProspect] = useState(prospect);
+  
+  // 🔥 SYNCHRONISER editableProspect avec prospect (real-time updates)
+  useEffect(() => {
+    console.log('🔄 [ProspectDetailsAdmin] prospect updated via real-time:', prospect.form_data);
+    setEditableProspect(prospect);
+  }, [prospect]);
   
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
 
