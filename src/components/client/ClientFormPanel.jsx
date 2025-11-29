@@ -74,6 +74,8 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       setFormDrafts({});
       return;
     }
+    console.log('🔍 [ClientFormPanel] prospect.form_data:', prospect.form_data);
+    console.log('🔍 [ClientFormPanel] prospect.formData:', prospect.formData);
     setFormDrafts(prev => {
       const next = { ...prev };
       relevantForms.forEach(panel => {
@@ -81,9 +83,11 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           const formDefinition = forms[panel.formId];
           const hydrated = {};
           const formData = prospect.form_data || prospect.formData || {};
+          console.log('🔍 [ClientFormPanel] formData pour', panel.panelId, ':', formData);
           formDefinition?.fields?.forEach(field => {
             if (formData[field.id]) {
               hydrated[field.id] = formData[field.id];
+              console.log('✅ [ClientFormPanel] Champ hydraté:', field.id, '=', formData[field.id]);
             }
           });
           next[panel.panelId] = hydrated;
