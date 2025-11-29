@@ -485,9 +485,19 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
         );
     }
 
-    const handleEdit = (panelId) => {
-        setEditingPanelId(panelId);
-        setEditedData({ ...prospect.formData });
+    const handleEdit = (panel) => {
+        setEditingPanelId(panel.panelId);
+        
+        // 🔥 FIX: Charger les données du formulaire spécifique
+        const fullFormData = prospect.form_data || prospect.formData || {};
+        const projectFormData = fullFormData[panel.projectType] || {};
+        const formFields = projectFormData[panel.formId] || {};
+        
+        // Stocker aussi projectType et formId pour handleSave
+        setEditedData({ 
+            ...formFields,
+            _meta: { projectType: panel.projectType, formId: panel.formId }
+        });
     };
 
     const handleCancel = () => {
@@ -496,10 +506,30 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     };
 
     const handleSave = async () => {
+        // 🔥 FIX: Reconstruire la structure correcte projectType > formId > fields
+        const { _meta, ...fieldValues } = editedData;
+        const { projectType, formId } = _meta || {};
+        
+        if (!projectType || !formId) {
+            console.error('❌ Métadonnées manquantes pour la sauvegarde');
+            return;
+        }
+        
+        const currentFormData = prospect.form_data || prospect.formData || {};
+        const updatedFormData = {
+            ...currentFormData,
+            [projectType]: {
+                ...(currentFormData[projectType] || {}),
+                [formId]: fieldValues
+            }
+        };
+        
+        console.log('🔍 [handleSave] updatedFormData:', updatedFormData);
+        
         // Mettre à jour dans Supabase
         const { error } = await supabase
             .from('prospects')
-            .update({ form_data: editedData })
+            .update({ form_data: updatedFormData })
             .eq('id', prospect.id);
 
         if (error) {
@@ -610,7 +640,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
                                         </Button>
                                     </>
                                 ) : (
-                                    <Button variant="outline" size="sm" onClick={() => handleEdit(panel.panelId)}>
+                                    <Button variant="outline" size="sm" onClick={() => handleEdit(panel)}>
                                         <Edit className="h-4 w-4 mr-1" />
                                         Modifier
                                     </Button>
