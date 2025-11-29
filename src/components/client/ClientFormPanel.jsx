@@ -84,10 +84,16 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           const hydrated = {};
           const formData = prospect.form_data || prospect.formData || {};
           console.log('🔍 [ClientFormPanel] formData pour', panel.panelId, ':', formData);
+          
+          // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
+          const projectFormData = formData[panel.projectType] || {};
+          const formFields = projectFormData[panel.formId] || {};
+          console.log('🔍 [ClientFormPanel] formFields extraits:', formFields);
+          
           formDefinition?.fields?.forEach(field => {
-            if (formData[field.id]) {
-              hydrated[field.id] = formData[field.id];
-              console.log('✅ [ClientFormPanel] Champ hydraté:', field.id, '=', formData[field.id]);
+            if (formFields[field.id]) {
+              hydrated[field.id] = formFields[field.id];
+              console.log('✅ [ClientFormPanel] Champ hydraté:', field.id, '=', formFields[field.id]);
             }
           });
           next[panel.panelId] = hydrated;
@@ -240,7 +246,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   };
 
   const handleEdit = async (panel) => {
-    const { panelId, formId } = panel;
+    const { panelId, formId, projectType } = panel;
     
     // 🔥 CORRECTION: Recharger les données DEPUIS SUPABASE avant d'éditer
     const { data: freshProspectData, error } = await supabase
@@ -262,9 +268,16 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     // Hydrater avec les données fraîches depuis Supabase
     const formDefinition = forms[formId];
     const hydrated = {};
+    
+    // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
+    const projectFormData = freshProspectData.form_data?.[projectType] || {};
+    const formFields = projectFormData[formId] || {};
+    console.log('🔍 [handleEdit] formFields rechargés:', formFields);
+    
     formDefinition?.fields?.forEach(field => {
-      if (freshProspectData.form_data && freshProspectData.form_data[field.id]) {
-        hydrated[field.id] = freshProspectData.form_data[field.id];
+      if (formFields[field.id]) {
+        hydrated[field.id] = formFields[field.id];
+        console.log('✅ [handleEdit] Champ rechargé:', field.id, '=', formFields[field.id]);
       }
     });
     

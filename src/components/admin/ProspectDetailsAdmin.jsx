@@ -536,7 +536,11 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             <div className="space-y-4">
                 {relevantPanels.map(panel => {
                     const formDefinition = forms[panel.formId];
-                    const formData = prospect.form_data || prospect.formData || {};
+                    const fullFormData = prospect.form_data || prospect.formData || {};
+                    
+                    // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
+                    const projectFormData = fullFormData[panel.projectType] || {};
+                    const formData = projectFormData[panel.formId] || {};
                     
                     if (!formDefinition) return null;
 
