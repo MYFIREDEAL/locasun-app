@@ -536,7 +536,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             <div className="space-y-4">
                 {relevantPanels.map(panel => {
                     const formDefinition = forms[panel.formId];
-                    const formData = prospect.formData || {};
+                    const formData = prospect.form_data || prospect.formData || {};
                     
                     if (!formDefinition) return null;
 
