@@ -368,15 +368,20 @@ export const useSupabaseProspects = (activeAdminUser) => {
   const updateProspect = async (idOrProspect, updatesParam) => {
     try {
       // Support des deux formats : updateProspect(id, updates) OU updateProspect({ id, ...data })
+      console.log('🔍 [updateProspect] idOrProspect:', typeof idOrProspect, idOrProspect);
+      console.log('🔍 [updateProspect] updatesParam:', typeof updatesParam, updatesParam);
+      
       let id, updates;
       if (typeof idOrProspect === 'object' && idOrProspect.id) {
         // Format objet complet
         id = idOrProspect.id;
         updates = idOrProspect;
+        console.log('🔍 [updateProspect] Mode objet complet');
       } else {
         // Format séparé (id, updates)
         id = idOrProspect;
         updates = updatesParam;
+        console.log('🔍 [updateProspect] Mode séparé (id, updates)');
       }
       
       // Transformer les clés du format app vers le format DB
