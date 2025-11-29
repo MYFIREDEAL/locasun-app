@@ -40,7 +40,7 @@ const RegistrationPage = () => {
       toast({
         title: "Vous êtes déjà connecté",
         description: "Redirection vers votre espace client...",
-        variant: "default",
+        variant: "destructive",
       });
       setTimeout(() => navigate('/dashboard'), 2000);
     }
