@@ -458,11 +458,12 @@ const ProjectTimeline = ({
 };
 
 const ProspectForms = ({ prospect, projectType, onUpdate }) => {
-    const { forms } = useAppContext();
+    const { forms, prompts, completeStepAndProceed } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
     const { formPanels: clientFormPanels = [], loading } = useSupabaseClientFormPanels(null);
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
+    const [processedPanels, setProcessedPanels] = useState(new Set());
 
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
@@ -472,6 +473,54 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             panel.projectType === projectType
         ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }, [clientFormPanels, prospect.id, projectType]);
+
+    // 🔥 AUTO-COMPLETE: Surveiller les nouveaux formulaires soumis et déclencher l'étape suivante
+    useEffect(() => {
+        if (!relevantPanels || relevantPanels.length === 0) return;
+
+        relevantPanels.forEach(panel => {
+            // Si déjà traité ou pas encore soumis, ignorer
+            if (processedPanels.has(panel.panelId) || panel.status !== 'submitted') return;
+
+            console.log('🎯 [ProspectForms] Nouveau formulaire soumis détecté:', {
+                panelId: panel.panelId,
+                formId: panel.formId,
+                projectType: panel.projectType,
+                stepIndex: panel.currentStepIndex
+            });
+
+            // Chercher le prompt associé
+            const relatedPrompt = panel.promptId
+                ? prompts[panel.promptId]
+                : Object.values(prompts).find((pr) => {
+                      if (pr.projectId !== panel.projectType) return false;
+                      const stepConfig = pr.stepsConfig?.[panel.currentStepIndex];
+                      return stepConfig?.actions?.some(
+                          (action) => action.type === 'show_form' && action.formId === panel.formId
+                      );
+                  });
+
+            console.log('🔍 [ProspectForms] Prompt trouvé:', relatedPrompt?.name);
+            console.log('🔍 [ProspectForms] autoCompleteStep:', relatedPrompt?.stepsConfig?.[panel.currentStepIndex]?.autoCompleteStep);
+
+            if (relatedPrompt) {
+                const stepConfig = relatedPrompt.stepsConfig?.[panel.currentStepIndex];
+                if (stepConfig?.autoCompleteStep) {
+                    console.log('🚀 [ProspectForms] Déclenchement completeStepAndProceed pour:', prospect.name);
+                    completeStepAndProceed(prospect.id, panel.projectType, panel.currentStepIndex);
+                    
+                    toast({
+                        title: 'Étape terminée !',
+                        description: `${prospect.name} a complété le formulaire. L'étape a été automatiquement validée.`,
+                        className: 'bg-green-500 text-white',
+                    });
+                }
+            }
+
+            // Marquer comme traité pour éviter la boucle infinie
+            setProcessedPanels(prev => new Set([...prev, panel.panelId]));
+        });
+    }, [relevantPanels, prompts, completeStepAndProceed, prospect.id, prospect.name, processedPanels]);
 
     if (relevantPanels.length === 0) {
         return (
