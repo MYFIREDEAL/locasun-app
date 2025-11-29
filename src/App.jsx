@@ -503,6 +503,29 @@ function App() {
     };
   }, [currentUser?.id]); // Se réabonne si le client change
 
+  // 🔥 SYNCHRONISER currentUser avec prospects (pour les updates côté admin)
+  useEffect(() => {
+    if (!currentUser?.id || !prospects.length) return;
+    
+    // Chercher le prospect mis à jour dans la liste
+    const updatedProspect = prospects.find(p => p.id === currentUser.id);
+    
+    if (updatedProspect) {
+      // Vérifier si form_data a changé (comparaison shallow)
+      const currentFormData = JSON.stringify(currentUser.formData || currentUser.form_data);
+      const newFormData = JSON.stringify(updatedProspect.formData || updatedProspect.form_data);
+      
+      if (currentFormData !== newFormData) {
+        console.log('🔄 [App.jsx] Synchronisation currentUser depuis prospects (form_data changé)');
+        setCurrentUser({
+          ...currentUser,
+          formData: updatedProspect.formData || updatedProspect.form_data,
+          form_data: updatedProspect.formData || updatedProspect.form_data,
+        });
+      }
+    }
+  }, [prospects, currentUser?.id]);
+
   // ✅ projectsData est maintenant chargé en temps réel depuis Supabase (project_templates table)
   // Plus besoin de localStorage pour evatime_projects_data
 
