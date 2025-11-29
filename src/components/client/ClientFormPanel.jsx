@@ -200,6 +200,19 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       relatedMessageTimestamp: messageTimestamp,
     });
 
+    console.log('🎬 [ClientFormPanel] DÉBUT vérification auto-complete avec:', {
+      promptId,
+      promptsKeys: Object.keys(prompts || {}),
+      promptsCount: Object.keys(prompts || {}).length,
+      projectType,
+      formId,
+      currentStepIndex
+    });
+
+    if (!prompts || Object.keys(prompts).length === 0) {
+      console.error('❌ [ClientFormPanel] AUCUN PROMPT CHARGÉ !');
+    }
+
     const relatedPrompt = promptId
       ? prompts[promptId]
       : Object.values(prompts).find((pr) => {
