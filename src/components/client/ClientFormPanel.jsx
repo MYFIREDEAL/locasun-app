@@ -147,7 +147,15 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       // Continuer avec currentUser.formData en fallback
     }
     
-    const updatedFormData = { ...(currentData?.form_data || currentUser.formData || {}), ...draft };
+    // 🔥 FIX: Structurer correctement form_data avec projectType > formId > fields
+    const currentFormData = currentData?.form_data || currentUser.formData || {};
+    const updatedFormData = {
+      ...currentFormData,
+      [projectType]: {
+        ...(currentFormData[projectType] || {}),
+        [formId]: draft
+      }
+    };
     
     // 🔥 CORRECTION: Mettre à jour dans Supabase directement
     const { error: updateError } = await supabase
