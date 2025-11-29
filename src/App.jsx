@@ -1291,6 +1291,10 @@ function App() {
     const savedSteps = projectStepsStatus[key];
     const templateSteps = projectsData[projectType]?.steps;
 
+    console.log('🔍 [getProjectSteps] Appelé avec:', { prospectId, projectType, key });
+    console.log('🔍 [getProjectSteps] savedSteps:', savedSteps);
+    console.log('🔍 [getProjectSteps] templateSteps count:', templateSteps?.length);
+
     // ✅ TOUJOURS utiliser la structure du template Supabase (ordre à jour)
     if (!templateSteps || templateSteps.length === 0) {
       return [];
@@ -1301,6 +1305,7 @@ function App() {
 
     // Si des steps ont déjà été sauvegardés dans le state, restaurer les statuts
     if (savedSteps && savedSteps.length > 0) {
+      console.log('✅ [getProjectSteps] Restauration des statuts depuis savedSteps');
       // Matcher les steps par name pour préserver les statuts
       currentSteps.forEach((step, index) => {
         const savedStep = savedSteps.find(s => s.name === step.name);

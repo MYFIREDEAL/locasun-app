@@ -482,6 +482,23 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             // Si déjà traité ou pas encore soumis, ignorer
             if (processedPanels.has(panel.panelId) || panel.status !== 'submitted') return;
 
+            // 🔥 NOUVEAU: Ne traiter que les soumissions récentes (moins de 10 secondes)
+            // Cela évite de re-déclencher l'auto-complete au rechargement de la page
+            if (panel.lastSubmittedAt) {
+                const submittedTime = new Date(panel.lastSubmittedAt).getTime();
+                const now = Date.now();
+                const timeSinceSubmission = now - submittedTime;
+                
+                if (timeSinceSubmission > 10000) { // Plus de 10 secondes
+                    console.log('⏭️ [ProspectForms] Formulaire trop ancien, skip auto-complete:', {
+                        panelId: panel.panelId,
+                        timeSinceSubmission: `${Math.floor(timeSinceSubmission / 1000)}s`
+                    });
+                    setProcessedPanels(prev => new Set([...prev, panel.panelId]));
+                    return;
+                }
+            }
+
             console.log('🎯 [ProspectForms] Nouveau formulaire soumis détecté:', {
                 panelId: panel.panelId,
                 formId: panel.formId,
