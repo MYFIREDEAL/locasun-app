@@ -179,7 +179,16 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       return;
     }
     
-    // ℹ️ updateProspect() supprimé - Real-time Supabase synchronise automatiquement
+    // 🔥 FIX: Mettre à jour currentUser immédiatement pour que le client voit ses changements
+    try {
+      await updateProspect(prospectId, { 
+        formData: updatedFormData,
+        form_data: updatedFormData 
+      });
+      console.log('✅ [ClientFormPanel] currentUser mis à jour avec form_data:', updatedFormData);
+    } catch (err) {
+      console.warn('⚠️ Erreur mise à jour currentUser (non bloquant):', err);
+    }
 
     // ✅ Envoyer le message de complétion (déduplication gérée par Supabase)
     addChatMessage(prospectId, projectType, {
