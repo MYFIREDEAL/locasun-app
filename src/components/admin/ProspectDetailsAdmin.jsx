@@ -708,6 +708,7 @@ const ProspectDetailsAdmin = ({
   // 🔥 SYNCHRONISER editableProspect avec prospect (real-time updates)
   useEffect(() => {
     console.log('🔄 [ProspectDetailsAdmin] prospect updated via real-time:', prospect.form_data);
+    console.log('🔄 [ProspectDetailsAdmin] prospect prop changed:', prospect.name);
     setEditableProspect(prospect);
   }, [prospect]);
   
