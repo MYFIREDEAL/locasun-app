@@ -549,7 +549,15 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             className: 'bg-green-500 text-white',
         });
 
-        // ℹ️ onUpdate() supprimé - Real-time Supabase synchronise automatiquement
+        // 🔥 FIX: Appeler onUpdate pour mettre à jour editableProspect immédiatement
+        if (onUpdate) {
+            onUpdate({
+                ...prospect,
+                form_data: updatedFormData,
+                formData: updatedFormData
+            });
+        }
+        
         setEditingPanelId(null);
         setEditedData({});
     };
@@ -1344,7 +1352,16 @@ const ProspectDetailsAdmin = ({
               {/* Bloc Activité en cours */}
               <ProspectActivities prospectId={prospect.id} />
 
-              <ProspectForms prospect={editableProspect} projectType={activeProjectTag} onUpdate={onUpdate} />
+              <ProspectForms 
+                prospect={editableProspect} 
+                projectType={activeProjectTag} 
+                onUpdate={(updated) => {
+                  // 🔥 FIX: Mettre à jour editableProspect immédiatement
+                  setEditableProspect(updated);
+                  // Et aussi appeler onUpdate du parent pour Supabase
+                  if (onUpdate) onUpdate(updated);
+                }} 
+              />
               
               <div className="bg-white rounded-2xl shadow-card p-6">
                  <div className="flex justify-between items-center mb-4">
