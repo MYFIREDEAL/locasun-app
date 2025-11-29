@@ -488,8 +488,8 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
     const handleEdit = (panel) => {
         setEditingPanelId(panel.panelId);
         
-        // 🔥 FIX: Utiliser editableProspect pour charger les dernières données real-time
-        const fullFormData = editableProspect.form_data || editableProspect.formData || {};
+        // 🔥 FIX: prospect est maintenant editableProspect passé en prop
+        const fullFormData = prospect.form_data || prospect.formData || {};
         const projectFormData = fullFormData[panel.projectType] || {};
         const formFields = projectFormData[panel.formId] || {};
         
@@ -515,8 +515,8 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             return;
         }
         
-        // 🔥 FIX: Utiliser editableProspect pour avoir les dernières données real-time
-        const currentFormData = editableProspect.form_data || editableProspect.formData || {};
+        // 🔥 FIX: prospect est maintenant editableProspect passé en prop
+        const currentFormData = prospect.form_data || prospect.formData || {};
         const updatedFormData = {
             ...currentFormData,
             [projectType]: {
@@ -567,8 +567,8 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             <div className="space-y-4">
                 {relevantPanels.map(panel => {
                     const formDefinition = forms[panel.formId];
-                    // 🔥 FIX: Utiliser editableProspect pour avoir les updates real-time
-                    const fullFormData = editableProspect.form_data || editableProspect.formData || {};
+                    // 🔥 FIX: prospect est maintenant editableProspect passé en prop
+                    const fullFormData = prospect.form_data || prospect.formData || {};
                     
                     // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
                     const projectFormData = fullFormData[panel.projectType] || {};
@@ -1344,7 +1344,7 @@ const ProspectDetailsAdmin = ({
               {/* Bloc Activité en cours */}
               <ProspectActivities prospectId={prospect.id} />
 
-              <ProspectForms prospect={prospect} projectType={activeProjectTag} onUpdate={onUpdate} />
+              <ProspectForms prospect={editableProspect} projectType={activeProjectTag} onUpdate={onUpdate} />
               
               <div className="bg-white rounded-2xl shadow-card p-6">
                  <div className="flex justify-between items-center mb-4">
