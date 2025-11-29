@@ -253,6 +253,22 @@ function App() {
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
   const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
 
+  // 🔥 Synchroniser allProjectSteps (Supabase) avec projectStepsStatus (state local)
+  useEffect(() => {
+    if (!allStepsLoading && allProjectSteps) {
+      setProjectStepsStatus(prev => {
+        const updated = { ...prev };
+        // Convertir le format "prospectId-projectType" en "prospect_prospectId_project_projectType"
+        Object.entries(allProjectSteps).forEach(([key, steps]) => {
+          const [prospectId, projectType] = key.split('-');
+          const appKey = `prospect_${prospectId}_project_${projectType}`;
+          updated[appKey] = steps;
+        });
+        return updated;
+      });
+    }
+  }, [allProjectSteps, allStepsLoading]);
+
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
   const {
     projectTemplates,
