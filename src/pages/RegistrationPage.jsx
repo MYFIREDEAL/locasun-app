@@ -37,7 +37,13 @@ const RegistrationPage = () => {
   useEffect(() => {
     if (currentUser) {
       console.log('⚠️ Utilisateur déjà connecté, redirection vers /dashboard');
-      navigate('/dashboard');
+      toast({
+        title: "⚠️ Vous êtes déjà connecté",
+        description: "Vous avez déjà un compte actif. Pour créer un nouvel espace client, veuillez d'abord vous déconnecter depuis votre profil.",
+        variant: "default",
+        duration: 6000,
+      });
+      setTimeout(() => navigate('/dashboard'), 2000); // Délai pour lire le message
     }
   }, [currentUser, navigate]);
 
