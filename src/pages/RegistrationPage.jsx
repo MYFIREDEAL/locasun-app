@@ -108,22 +108,7 @@ const RegistrationPage = () => {
         return;
       }
 
-      // ÉTAPE 1 : Envoyer le Magic Link (Supabase crée le compte auth automatiquement)
-      const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        }
-      });
-
-      if (magicLinkError) {
-        console.error('❌ Erreur Magic Link:', magicLinkError);
-        throw magicLinkError;
-      }
-
-      console.log('✅ Magic Link envoyé:', otpData);
-
-      // ÉTAPE 2 : Créer le prospect
+      // ÉTAPE 1 : Créer le prospect d'abord
       // Par défaut, assigner le propriétaire à Jack Luc si aucun affilié détecté
       const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
 
@@ -150,6 +135,21 @@ const RegistrationPage = () => {
       }
 
       console.log('✅ Prospect créé:', prospectData);
+
+      // ÉTAPE 2 : Envoyer le Magic Link (le trigger liera automatiquement au clic)
+      const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        }
+      });
+
+      if (magicLinkError) {
+        console.error('❌ Erreur Magic Link:', magicLinkError);
+        throw magicLinkError;
+      }
+
+      console.log('✅ Magic Link envoyé:', otpData);
 
       sessionStorage.removeItem('affiliateUser');
 
