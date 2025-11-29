@@ -33,18 +33,16 @@ const RegistrationPage = () => {
         }));
   }, [projectsData]);
 
-  // ✅ Redirection automatique si l'utilisateur est déjà connecté
+  // ✅ Toast si l'utilisateur est déjà connecté
   useEffect(() => {
     if (currentUser) {
       console.log('⚠️ Utilisateur déjà connecté, redirection vers /dashboard');
       toast({
-        title: "⚠️ Vous êtes déjà connecté",
-        description: "Vous avez déjà un compte actif. Pour créer un nouvel espace client, veuillez d'abord vous déconnecter depuis votre profil.",
+        title: "Vous êtes déjà connecté",
+        description: "Redirection vers votre espace client...",
         variant: "default",
-        duration: 5000,
-        className: "text-lg p-8",
       });
-      setTimeout(() => navigate('/dashboard'), 5000); // 5 secondes pour lire
+      setTimeout(() => navigate('/dashboard'), 2000);
     }
   }, [currentUser, navigate]);
 
