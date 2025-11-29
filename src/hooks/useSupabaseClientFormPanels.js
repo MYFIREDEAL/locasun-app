@@ -16,10 +16,13 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     prospectId: dbPanel.prospect_id,
     projectType: dbPanel.project_type,
     formId: dbPanel.form_id,
+    promptId: dbPanel.prompt_id, // 🔥 AJOUT: ID du prompt pour auto-complete
+    currentStepIndex: dbPanel.current_step_index, // 🔥 AJOUT: Index de l'étape
     messageTimestamp: dbPanel.message_timestamp,
     status: dbPanel.status,
     userOverride: dbPanel.user_override,
     stepName: dbPanel.step_name, // 🔥 AJOUT: Nom de l'étape du pipeline
+    lastSubmittedAt: dbPanel.last_submitted_at ? new Date(dbPanel.last_submitted_at).getTime() : null,
     createdAt: new Date(dbPanel.created_at).getTime(),
     updatedAt: new Date(dbPanel.updated_at).getTime(),
   });
@@ -142,7 +145,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       const dbUpdates = {};
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.userOverride !== undefined) dbUpdates.user_override = updates.userOverride;
-      // Note: submission_data n'existe pas encore dans la table
+      if (updates.lastSubmittedAt !== undefined) dbUpdates.last_submitted_at = updates.lastSubmittedAt;
 
       const { data, error } = await supabase
         .from('client_form_panels')
@@ -218,6 +221,8 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           prospect_id: panelData.prospectId,
           project_type: panelData.projectType,
           form_id: panelData.formId,
+          prompt_id: panelData.promptId || null, // 🔥 AJOUT: ID du prompt pour auto-complete
+          current_step_index: panelData.currentStepIndex || 0, // 🔥 AJOUT: Index de l'étape
           message_timestamp: panelData.messageTimestamp,
           status: panelData.status || 'pending',
           step_name: panelData.stepName || null, // 🔥 AJOUT: Nom de l'étape du pipeline

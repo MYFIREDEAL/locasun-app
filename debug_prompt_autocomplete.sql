@@ -1,16 +1,13 @@
 -- Debug: Vérifier pourquoi le prompt n'est pas trouvé pour l'auto-complete
 
--- 1. Voir les client_form_panels pour joeblackyes
-SELECT 
-  panel_id,
-  prospect_id,
-  project_type,
-  form_id,
-  prompt_id,
-  current_step_index,
-  status,
-  step_name,
-  created_at
+-- 0. Voir la structure de client_form_panels
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name = 'client_form_panels'
+ORDER BY ordinal_position;
+
+-- 1. Voir les client_form_panels pour joeblackyes (sans prompt_id pour l'instant)
+SELECT *
 FROM client_form_panels
 WHERE prospect_id = '77a38933-2e4e-4930-b4c0-991131a06569'
 ORDER BY created_at DESC;
