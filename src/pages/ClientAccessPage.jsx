@@ -96,7 +96,7 @@ const ClientAccessPage = () => {
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}/#/dashboard`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           shouldCreateUser: false, // Ne pas créer de user (il existe déjà)
         }
       });
