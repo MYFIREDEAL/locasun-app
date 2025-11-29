@@ -112,7 +112,7 @@ const RegistrationPage = () => {
       const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
-          emailRedirectTo: `${window.location.origin}/#/dashboard`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         }
       });
 

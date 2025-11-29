@@ -325,50 +325,24 @@ function App() {
     : defaultFormContactConfig;
 
   // � 1 — Simplifier onAuthStateChange : juste stocker la session
+  // ---------------------------------------------
+  // EVATIME AUTH — VERSION BROWSERROUTER (PRO)
+  // Supabase gère automatiquement les tokens du Magic Link
+  // ---------------------------------------------
   useEffect(() => {
-    let magicLinkDetected = false;
-    
-    // 🔥 MAGIC LINK: Parser le hash dans l'URL pour extraire access_token
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      const hashParams = new URLSearchParams(hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      
-      if (accessToken && refreshToken) {
-        magicLinkDetected = true;
-        console.log('🔐 [App.jsx] Magic Link détecté dans URL, activation session...');
-        supabase.auth.setSession({ 
-          access_token: accessToken, 
-          refresh_token: refreshToken 
-        }).then(({ data, error }) => {
-          if (error) {
-            console.error('❌ Erreur setSession:', error);
-          } else if (data.session) {
-            console.log('✅ Session activée:', data.session.user.email);
-            setSession(data.session);
-            // Nettoyer l'URL et rediriger
-            window.history.replaceState({}, document.title, window.location.pathname + '#/dashboard');
-          }
-        });
-      }
-    }
-    
-    // Écouter les changements d'auth
+    // Supabase gère maintenant automatiquement les tokens du Magic Link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('🔐 [App.jsx] Auth event:', event);
+        console.log("🔐 AUTH EVENT:", event, session?.user?.email || "aucune");
         setSession(session ?? null);
       }
     );
 
-    // Charger la session initiale SEULEMENT si pas de Magic Link
-    if (!magicLinkDetected) {
-      supabase.auth.getSession().then(({ data }) => {
-        console.log('🔐 [App.jsx] Session initiale:', data.session?.user?.email || 'aucune');
-        setSession(data.session ?? null);
-      });
-    }
+    // Session initiale (au démarrage)
+    supabase.auth.getSession().then(({ data }) => {
+      console.log("🔐 SESSION INITIALE:", data.session?.user?.email || "aucune");
+      setSession(data.session ?? null);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
