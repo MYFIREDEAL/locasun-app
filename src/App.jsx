@@ -1369,7 +1369,11 @@ function App() {
       // Real-time Supabase se charge de la synchronisation automatique du state
       // Mais on met à jour currentUser si c'est le prospect connecté
       if (currentUser && currentUser.id === updatedProspect.id) {
-        setCurrentUser(updatedProspect);
+        // 🔥 FIX: Merger avec currentUser au lieu d'écraser
+        setCurrentUser({
+          ...currentUser,
+          ...updatedProspect
+        });
         
         // Synchroniser userProjects avec les tags du prospect
         if (updatedProspect.tags) {
