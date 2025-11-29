@@ -486,19 +486,46 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
                 panelId: panel.panelId,
                 formId: panel.formId,
                 projectType: panel.projectType,
-                stepIndex: panel.currentStepIndex
+                stepIndex: panel.currentStepIndex,
+                promptId: panel.promptId
+            });
+
+            console.log('🔍 [ProspectForms] Prompts disponibles:', {
+                count: Object.keys(prompts).length,
+                promptIds: Object.keys(prompts),
+                prompts: Object.values(prompts).map(p => ({ 
+                    id: p.id, 
+                    name: p.name, 
+                    projectId: p.projectId 
+                }))
             });
 
             // Chercher le prompt associé
-            const relatedPrompt = panel.promptId
-                ? prompts[panel.promptId]
-                : Object.values(prompts).find((pr) => {
-                      if (pr.projectId !== panel.projectType) return false;
-                      const stepConfig = pr.stepsConfig?.[panel.currentStepIndex];
-                      return stepConfig?.actions?.some(
-                          (action) => action.type === 'show_form' && action.formId === panel.formId
-                      );
-                  });
+            let relatedPrompt = null;
+            
+            if (panel.promptId) {
+                console.log('🔍 [ProspectForms] Recherche par promptId:', panel.promptId);
+                relatedPrompt = prompts[panel.promptId];
+                console.log('🔍 [ProspectForms] Résultat recherche par ID:', relatedPrompt?.name);
+            }
+            
+            if (!relatedPrompt) {
+                console.log('🔍 [ProspectForms] Recherche par projectType + formId');
+                relatedPrompt = Object.values(prompts).find((pr) => {
+                    console.log('🔍 [ProspectForms] Test prompt:', pr.name, 'projectId:', pr.projectId, 'vs', panel.projectType);
+                    if (pr.projectId !== panel.projectType) return false;
+                    
+                    const stepConfig = pr.stepsConfig?.[panel.currentStepIndex];
+                    console.log('🔍 [ProspectForms] stepConfig:', stepConfig);
+                    
+                    const hasFormAction = stepConfig?.actions?.some(
+                        (action) => action.type === 'show_form' && action.formId === panel.formId
+                    );
+                    console.log('🔍 [ProspectForms] hasFormAction:', hasFormAction);
+                    
+                    return hasFormAction;
+                });
+            }
 
             console.log('🔍 [ProspectForms] Prompt trouvé:', relatedPrompt?.name);
             console.log('🔍 [ProspectForms] autoCompleteStep:', relatedPrompt?.stepsConfig?.[panel.currentStepIndex]?.autoCompleteStep);
