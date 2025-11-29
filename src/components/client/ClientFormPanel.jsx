@@ -80,9 +80,10 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
         if (!next[panel.panelId]) {
           const formDefinition = forms[panel.formId];
           const hydrated = {};
+          const formData = prospect.form_data || prospect.formData || {};
           formDefinition?.fields?.forEach(field => {
-            if (prospect.formData && prospect.formData[field.id]) {
-              hydrated[field.id] = prospect.formData[field.id];
+            if (formData[field.id]) {
+              hydrated[field.id] = formData[field.id];
             }
           });
           next[panel.panelId] = hydrated;
