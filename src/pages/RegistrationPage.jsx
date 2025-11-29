@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
-  const { projectsData } = useAppContext();
+  const { projectsData, currentUser } = useAppContext();
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [errors, setErrors] = useState({});
@@ -32,6 +32,14 @@ const RegistrationPage = () => {
             icon: p.icon
         }));
   }, [projectsData]);
+
+  // ✅ Redirection automatique si l'utilisateur est déjà connecté
+  useEffect(() => {
+    if (currentUser) {
+      console.log('⚠️ Utilisateur déjà connecté, redirection vers /dashboard');
+      navigate('/dashboard');
+    }
+  }, [currentUser, navigate]);
 
   // 🔥 Charger l'info d'affiliation directement depuis Supabase (pas besoin de hook)
   useEffect(() => {
