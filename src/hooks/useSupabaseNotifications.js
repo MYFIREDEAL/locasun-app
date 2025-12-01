@@ -102,13 +102,18 @@ export function useSupabaseNotifications(userId) {
       }
 
       // Vérifier si notification existe déjà (non lue)
-      const { data: existing } = await supabase
+      const { data: existing, error: selectError } = await supabase
         .from('notifications')
         .select('*')
         .eq('prospect_id', prospectId)
         .eq('project_type', projectType)
         .eq('read', false)
         .maybeSingle()
+
+      if (selectError) {
+        console.error('❌ Error checking existing notification:', selectError);
+        return;
+      }
 
       if (existing) {
         // Incrémenter le count
