@@ -163,8 +163,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // 🔥 CRITICAL: appointments.assigned_user_id référence users.id (UUID PK), PAS users.user_id !
-      // Donc on doit convertir auth UUID → users.id (UUID PK)
+      // 🔥 CRITICAL: assigned_user_id doit contenir users.user_id (auth UUID), comme prospects.owner_id
+      // Les RLS policies utilisent auth.uid() qui retourne users.user_id
       
       // Valider que contact_id est un UUID valide ou null
       const contactId = appointmentData.contactId && 
@@ -172,20 +172,13 @@ export const useSupabaseAgenda = (activeAdminUser) => {
                        ? appointmentData.contactId 
                        : null;
 
-      // 🔥 Si assignedUserId fourni, c'est déjà users.id (UUID PK) du dropdown
-      // Sinon, récupérer users.id du user connecté
+      // 🔥 Si assignedUserId fourni, l'utiliser directement
+      // Sinon, utiliser auth.uid() du user connecté (users.user_id, pas users.id!)
       let assignedUserId = appointmentData.assignedUserId;
       
       if (!assignedUserId) {
-        // Récupérer users.id (UUID PK) du user connecté
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (!userData) throw new Error("User introuvable dans public.users");
-        assignedUserId = userData.id;
+        // Utiliser l'auth UUID directement (comme prospects.owner_id)
+        assignedUserId = user.id;  // auth.uid() = users.user_id
       }
 
       // 🔧 Valeurs par défaut pour colonnes NOT NULL
