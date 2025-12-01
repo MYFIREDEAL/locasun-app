@@ -1491,6 +1491,7 @@ function App() {
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
+    pipelineLoading, // 🔥 État de chargement des colonnes du pipeline
     allProjectSteps, // 🔥 Tous les project steps préchargés pour éviter race conditions
     allStepsLoading, // 🔥 État de chargement des project steps
     activeAdminUser, setActiveAdminUser, switchActiveAdminUser,

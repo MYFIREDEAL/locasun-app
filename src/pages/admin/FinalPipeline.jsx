@@ -145,8 +145,21 @@ const FinalPipeline = () => {
     activeAdminUser,
     users = {},
     globalPipelineSteps = [],
+    pipelineLoading, // 🔥 État de chargement des colonnes du pipeline
     getProjectSteps,
   } = contextData;
+
+  // 🔥 Attendre que les colonnes du pipeline soient chargées avant d'afficher
+  if (pipelineLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des colonnes du pipeline...</p>
+        </div>
+      </div>
+    );
+  }
 
   // � UTILISER LE HOOK DIRECT COMME DANS CONTACTS (pas le contexte)
   const {
@@ -190,33 +203,20 @@ const FinalPipeline = () => {
     [supabaseProspects, selectedProspectId]
   );
 
+  // 🔥 Construire les colonnes à partir des globalPipelineSteps depuis Supabase
+  // Plus besoin de fallback car on attend pipelineLoading avant d'afficher
   const stageDefinitions = useMemo(() => {
-    if (Array.isArray(globalPipelineSteps) && globalPipelineSteps.length > 0) {
-      return globalPipelineSteps.map((step, index) => {
-        const normalizedLabel = normalizePipelineLabel(step.label);
-        const assignedColor =
-          step.color ||
-          STAGE_COLOR_OVERRIDES[normalizedLabel] ||
-          COLUMN_COLORS[index % COLUMN_COLORS.length];
-
-        return {
-          id: step.id,
-          label: step.label,
-          name: humanizePipelineLabel(step.label),
-          color: assignedColor,
-        };
-      });
-    }
-
-    return DEFAULT_PIPELINE_STAGE_DEFINITIONS.map((stage, index) => {
-      const normalizedLabel = normalizePipelineLabel(stage.label);
+    return globalPipelineSteps.map((step, index) => {
+      const normalizedLabel = normalizePipelineLabel(step.label);
       const assignedColor =
-        stage.color ||
+        step.color ||
         STAGE_COLOR_OVERRIDES[normalizedLabel] ||
         COLUMN_COLORS[index % COLUMN_COLORS.length];
 
       return {
-        ...stage,
+        id: step.id,
+        label: step.label,
+        name: humanizePipelineLabel(step.label),
         color: assignedColor,
       };
     });
