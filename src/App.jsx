@@ -381,7 +381,28 @@ function App() {
         .maybeSingle();
 
       if (admin) {
-        setActiveAdminUser(admin);
+        // 🔥 FIX : Transformer snake_case → camelCase pour cohérence
+        // Garder les 2 versions (snake_case + camelCase) pour compatibilité
+        const transformedAdmin = {
+          id: admin.id,
+          user_id: admin.user_id,  // ✅ Garder snake_case (utilisé par Agenda, FinalPipeline)
+          userId: admin.user_id,   // ✅ Ajouter camelCase
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          phone: admin.phone,
+          avatar_url: admin.avatar_url,  // ✅ Garder snake_case
+          avatarUrl: admin.avatar_url,   // ✅ Ajouter camelCase
+          manager_id: admin.manager_id,  // ✅ Garder snake_case
+          managerId: admin.manager_id,   // ✅ Ajouter camelCase
+          access_rights: admin.access_rights,  // ✅ Garder snake_case (utilisé partout)
+          accessRights: admin.access_rights,   // ✅ Ajouter camelCase
+          created_at: admin.created_at,  // ✅ Garder snake_case
+          createdAt: admin.created_at,   // ✅ Ajouter camelCase
+          updated_at: admin.updated_at,  // ✅ Garder snake_case
+          updatedAt: admin.updated_at,   // ✅ Ajouter camelCase
+        };
+        setActiveAdminUser(transformedAdmin);
         setAdminReady(true);
         setCurrentUser(null);
         setAuthLoading(false);

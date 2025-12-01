@@ -1065,6 +1065,16 @@ const AddActivityModal = ({
     const [assignedUserId, setAssignedUserId] = useState(defaultAssignedUserId || null);
     const [isEditing, setIsEditing] = useState(false);
 
+    // 🔍 DEBUG
+    console.log('🔍 [AddActivityModal] defaultAssignedUserId:', defaultAssignedUserId);
+    console.log('🔍 [AddActivityModal] assignedUserId state:', assignedUserId);
+    console.log('🔍 [AddActivityModal] users count:', users?.length);
+    console.log('🔍 [AddActivityModal] users:', users);
+    console.log('🔍 [AddActivityModal] users.map(u => u.id):', users?.map(u => u.id));
+    const foundUser = users?.find(u => u.id === assignedUserId);
+    console.log('🔍 [AddActivityModal] foundUser:', foundUser);
+    console.log('🔍 [AddActivityModal] Searching for:', assignedUserId, 'in', users?.map(u => ({ id: u.id, name: u.name })));
+
     const userOptions = useMemo(() => {
       if (!users || !Array.isArray(users)) return [];
       // 🔥 appointments.assigned_user_id référence users.id (UUID PK), pas user_id
@@ -1099,7 +1109,9 @@ const AddActivityModal = ({
 
     // 🔥 Forcer la mise à jour de assignedUserId quand defaultAssignedUserId change (user connecté chargé)
     useEffect(() => {
+      console.log('🔍 [AddActivityModal useEffect] defaultAssignedUserId:', defaultAssignedUserId, 'assignedUserId:', assignedUserId, 'initialData:', initialData);
       if (defaultAssignedUserId && !assignedUserId && !initialData) {
+        console.log('✅ [AddActivityModal] Setting assignedUserId to:', defaultAssignedUserId);
         setAssignedUserId(defaultAssignedUserId);
       }
     }, [defaultAssignedUserId, assignedUserId, initialData]);
