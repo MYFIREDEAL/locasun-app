@@ -59,7 +59,10 @@ BEGIN
     company_name = COALESCE((_data->>'company_name'), company_name),
     address = COALESCE((_data->>'address'), address),
     form_data = COALESCE((_data->'form_data')::JSONB, form_data),
-    tags = COALESCE((_data->'tags')::JSONB, tags), -- ✅ Autoriser modification des tags (projets)
+    tags = COALESCE(
+      ARRAY(SELECT jsonb_array_elements_text(_data->'tags')),
+      tags
+    ), -- ✅ Convertir JSONB array en text[] pour correspondre au type de la colonne
     updated_at = NOW()
   WHERE user_id = v_current_user_id
   RETURNING *;
