@@ -276,80 +276,55 @@ export const useSupabaseProspects = (activeAdminUser) => {
         className: "bg-green-500 text-white",
       });
 
-      // ENVOYER UN EMAIL D'INVITATION AU PROSPECT (en arrière-plan, ne bloque pas)
+      // 🔥 ENVOYER UN MAGIC LINK AU PROSPECT (passwordless, comme inscription client)
       try {
-        // STRATÉGIE : 
-        // 1. Créer un user temporaire dans auth.users avec un mot de passe aléatoire
-        // 2. Envoyer un email de réinitialisation de mot de passe
-        // 3. Le prospect définit son mot de passe et active son compte
+        console.log('📧 [useSupabaseProspects] Envoi Magic Link à', data.email);
         
-        const tempPassword = `temp_${Math.random().toString(36).slice(2)}_${Date.now()}`;
-        
-        // Créer le user dans auth.users
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        // Envoyer le Magic Link (crée automatiquement le user auth si inexistant)
+        const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
           email: data.email,
-          password: tempPassword,
           options: {
-            data: {
-              prospect_id: data.id,
-            }
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+            shouldCreateUser: true, // ✅ Créer le user auth automatiquement
           }
         });
 
-        if (signUpError) {
-          console.error('❌ Erreur création auth user:', signUpError);
+        if (magicLinkError) {
+          console.error('❌ Erreur envoi Magic Link:', magicLinkError);
           
-          // Si l'user existe déjà, envoyer juste un reset password
-          if (signUpError.message.includes('already registered')) {
-            const redirectUrl = import.meta.env.DEV 
-              ? `${window.location.origin}/reset-password`
-              : 'https://evatime.vercel.app/reset-password';
-            
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(data.email, {
-              redirectTo: redirectUrl,
-            });
-            
-            if (resetError) {
-              throw resetError;
-            }
-            
-            toast({
-              title: "Prospect créé",
-              description: `Un email d'activation a été envoyé à ${data.email}`,
-              className: "bg-green-500 text-white",
-            });
-          } else {
-            throw signUpError;
-          }
-        } else {
-          // Lier immédiatement le user_id au prospect
-          const { error: updateError } = await supabase
-            .from('prospects')
-            .update({ user_id: authData.user.id })
-            .eq('id', data.id);
-          
-          if (updateError) {
-            console.error('⚠️ Erreur liaison user_id:', updateError);
-          }
-          
-          // Envoyer un email de définition de mot de passe
-          const redirectUrl = import.meta.env.DEV 
-            ? `${window.location.origin}/reset-password`
-            : 'https://evatime.vercel.app/reset-password';
-          
-          const { error: resetError } = await supabase.auth.resetPasswordForEmail(data.email, {
-            redirectTo: redirectUrl,
+          // Afficher un toast informatif (ne pas bloquer la création du prospect)
+          toast({
+            title: "Prospect créé",
+            description: "Le prospect a été créé mais l'email de connexion n'a pas pu être envoyé.",
+            variant: "warning",
           });
-          
-          if (resetError) {
-            console.error('⚠️ Erreur envoi email:', resetError);
-          } else {
-            console.log('✅ Email d\'activation envoyé à', data.email);
+        } else {
+          // 🔥 Lier le user_id au prospect si disponible immédiatement
+          if (otpData?.user?.id) {
+            const { error: updateError } = await supabase
+              .from('prospects')
+              .update({ user_id: otpData.user.id })
+              .eq('id', data.id);
+            
+            if (updateError) {
+              console.error('⚠️ Erreur liaison user_id:', updateError);
+            } else {
+              console.log('✅ Prospect lié au user_id:', otpData.user.id);
+            }
           }
+          
+          console.log('✅ Magic Link envoyé à', data.email);
+          
+          // Toast de succès avec info email
+          toast({
+            title: "Prospect créé",
+            description: `Un lien de connexion a été envoyé à ${data.email}`,
+            className: "bg-green-500 text-white",
+          });
         }
       } catch (emailErr) {
-        console.error('⚠️ Erreur email (non bloquant):', emailErr);
-        // Ne pas throw, l'email est optionnel
+        console.error('⚠️ Erreur envoi Magic Link:', emailErr);
+        // Ne pas bloquer si l'email échoue - le prospect est créé
       }
 
       return transformed;
