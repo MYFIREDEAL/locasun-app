@@ -101,6 +101,8 @@ export function useSupabaseNotifications(userId) {
         return;
       }
 
+      console.log('🔍 [Admin Notif] Checking existing notification for:', { prospectId, projectType });
+
       // Vérifier si notification existe déjà (non lue)
       const { data: existing, error: selectError } = await supabase
         .from('notifications')
@@ -110,6 +112,8 @@ export function useSupabaseNotifications(userId) {
         .eq('read', false)
         .maybeSingle()
 
+      console.log('🔍 [Admin Notif] Existing notification:', existing, 'Error:', selectError);
+
       if (selectError) {
         console.error('❌ Error checking existing notification:', selectError);
         return;
@@ -117,6 +121,7 @@ export function useSupabaseNotifications(userId) {
 
       if (existing) {
         // Incrémenter le count
+        console.log('✅ [Admin Notif] Incrementing count from', existing.count, 'to', existing.count + 1);
         const { error } = await supabase
           .from('notifications')
           .update({ 
@@ -125,9 +130,14 @@ export function useSupabaseNotifications(userId) {
           })
           .eq('id', existing.id)
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error updating notification:', error);
+          throw error;
+        }
+        console.log('✅ [Admin Notif] Count incremented successfully');
       } else {
         // Créer nouvelle notification avec owner_id
+        console.log('➕ [Admin Notif] Creating new notification with count=1');
         const { error } = await supabase
           .from('notifications')
           .insert({
@@ -140,7 +150,11 @@ export function useSupabaseNotifications(userId) {
             read: false
           })
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error creating notification:', error);
+          throw error;
+        }
+        console.log('✅ [Admin Notif] New notification created');
       }
     } catch (error) {
       console.error('Error creating/updating notification:', error)
