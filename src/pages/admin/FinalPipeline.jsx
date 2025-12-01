@@ -540,9 +540,12 @@ const FinalPipeline = () => {
 
   const handleAddProspect = async (newProspectData) => {
     try {
+      // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
+      const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
+      
       await addSupabaseProspectDirect({ 
         ...newProspectData, 
-        status: 'Intéressé', 
+        status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
         ownerId: activeAdminUser?.id
       });
       setIsAddModalOpen(false);

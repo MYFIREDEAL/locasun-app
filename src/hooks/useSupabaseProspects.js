@@ -231,13 +231,15 @@ export const useSupabaseProspects = (activeAdminUser) => {
       // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies
       console.log('🔍 [useSupabaseProspects] Utilisation de la fonction RPC insert_prospect_safe');
       
+      // ⚠️ Ne plus utiliser 'Intéressé' en fallback - le status doit venir de l'appelant
+      // qui utilise le step_id de la première colonne du globalPipelineSteps
       const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
         p_name: prospectData.name,
         p_email: prospectData.email,
         p_phone: prospectData.phone,
         p_company_name: prospectData.company || '',
         p_address: prospectData.address || '',
-        p_status: prospectData.status || 'Intéressé',
+        p_status: prospectData.status, // ✅ Requis - doit être fourni par l'appelant
         p_tags: prospectData.tags || [],
         p_has_appointment: prospectData.hasAppointment || false,
         p_affiliate_name: prospectData.affiliateName || null,

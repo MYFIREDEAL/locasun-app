@@ -222,7 +222,7 @@ const FallbackAddModal = ({ open, onOpenChange, onAddProspect }) => {
 
 const CompleteOriginalContacts = () => {
   const context = useAppContext();
-  const { activeAdminUser, projectsData = {} } = context || {};
+  const { activeAdminUser, projectsData = {}, globalPipelineSteps = [] } = context || {};
   // ❌ SUPPRIMÉ: users du context - Utiliser uniquement supabaseUsers
   
   // ✅ Utiliser les vrais utilisateurs Supabase
@@ -438,9 +438,12 @@ const CompleteOriginalContacts = () => {
 
   const handleAddProspect = async (newProspectData) => {
     try {
+      // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
+      const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
+      
       await addSupabaseProspect({ 
         ...newProspectData, 
-        status: 'Intéressé', 
+        status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
         ownerId: activeAdminUser?.id
       });
       setAddModalOpen(false);

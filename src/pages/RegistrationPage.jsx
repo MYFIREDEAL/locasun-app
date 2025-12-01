@@ -125,6 +125,14 @@ const RegistrationPage = () => {
       // Par défaut, assigner le propriétaire à Jack Luc si aucun affilié détecté
       const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
 
+      // 🔥 Récupérer le step_id de la première colonne du pipeline
+      const { data: firstStepId, error: stepError } = await supabase
+        .rpc('get_first_pipeline_step_id');
+      
+      if (stepError) {
+        console.error('❌ Erreur récupération step_id:', stepError);
+      }
+
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
         .insert([{
@@ -134,7 +142,7 @@ const RegistrationPage = () => {
           company_name: null,
           address: '',
           owner_id: affiliateInfo.id || DEFAULT_JACK_USER_ID,
-          status: 'Intéressé',
+          status: firstStepId || 'default-global-pipeline-step-0', // ✅ Utilise le step_id de MARKET
           tags: finalProjects,
           has_appointment: false,
           affiliate_name: affiliateInfo.name || 'Jack Luc',
@@ -376,6 +384,14 @@ const RegistrationPageOLD = () => {
     try {
       const finalProjects = [...new Set(selectedProjects)];
 
+      // 🔥 Récupérer le step_id de la première colonne du pipeline
+      const { data: firstStepId, error: stepError } = await supabase
+        .rpc('get_first_pipeline_step_id');
+      
+      if (stepError) {
+        console.error('❌ Erreur récupération step_id:', stepError);
+      }
+
       // 🔥 ÉTAPE 1: Créer le prospect
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
@@ -386,7 +402,7 @@ const RegistrationPageOLD = () => {
           company_name: formData.company || null,
           address: '',
           owner_id: affiliateInfo.id || DEFAULT_JACK_USER_ID, // Jack Luc par défaut
-          status: 'Intéressé',
+          status: firstStepId || 'default-global-pipeline-step-0', // ✅ Utilise le step_id de MARKET
           tags: finalProjects, // Projets sélectionnés
           has_appointment: false,
           affiliate_name: affiliateInfo.name || 'Jack Luc',
