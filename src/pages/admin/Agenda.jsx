@@ -1077,8 +1077,8 @@ const AddActivityModal = ({
 
     const userOptions = useMemo(() => {
       if (!users || !Array.isArray(users)) return [];
-      // 🔥 appointments.assigned_user_id référence users.id (UUID PK), pas user_id
-      return users.map(user => ({ value: user.id, label: user.name }));
+      // 🔥 appointments.assigned_user_id doit utiliser users.user_id (auth UUID) pour matcher avec RLS policies
+      return users.map(user => ({ value: user.user_id, label: user.name }));
     }, [users]);
     
     useEffect(() => {
