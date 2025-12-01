@@ -8,7 +8,7 @@ import { useAppContext } from '@/App';
 import ProspectCard from '@/components/admin/ProspectCard';
 import SkeletonCard from '@/components/admin/SkeletonCard';
 import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
-import AddProspectModal from '@/components/admin/AddProspectModal';
+import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import { toast } from '@/components/ui/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -534,20 +534,15 @@ const FinalPipeline = () => {
     setSearchParams(newParams);
   };
 
-  const handleAddProspect = async (newProspect) => {
+  const handleAddProspect = async (newProspectData) => {
     try {
-      if (addProspect) {
-        await addProspect({
-          ...newProspect,
-          status: 'Intéressé', // 🔥 Utiliser 'status' au lieu de 'stage'
-          ownerId: activeAdminUser?.id || 'user-1',
-          createdAt: new Date().toISOString()
-        });
-        // 🔥 Le toast de succès est déjà géré dans useSupabaseProspects
-      }
+      await addProspect({ 
+        ...newProspectData, 
+        status: 'Intéressé', 
+        ownerId: activeAdminUser?.id
+      });
       setIsAddModalOpen(false);
     } catch (error) {
-      console.error('❌ Erreur ajout prospect:', error);
       toast({
         title: "Erreur",
         description: "Impossible d'ajouter le prospect.",
@@ -810,7 +805,7 @@ const FinalPipeline = () => {
       </div>
 
       {/* Add Prospect Modal */}
-      <AddProspectModal
+      <SafeAddProspectModal
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onAddProspect={handleAddProspect}

@@ -97,7 +97,7 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const requiredField = formContactConfig.find(f => f.required);
@@ -119,21 +119,17 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
       return;
     }
 
+    // 🔥 Ne pas générer d'ID temporaire, Supabase le fera
     const newProspect = {
-      id: `prospect-${Date.now()}`,
       ...formData,
       tags: formData.tags,
       hasAppointment: false,
-      ownerId: (currentUser || activeAdminUser)?.id || 'user-1',
+      // ownerId sera défini dans le handler parent (FinalPipeline ou CompleteOriginalContacts)
     };
 
-    onAddProspect(newProspect);
+    await onAddProspect(newProspect);
     
-    toast({
-      title: "✅ Prospect ajouté !",
-      description: `${newProspect.name} a été ajouté à la colonne "Intéressé".`,
-    });
-
+    // 🔥 Toast de succès géré par useSupabaseProspects
     onOpenChange(false);
   };
 
