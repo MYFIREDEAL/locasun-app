@@ -1,13 +1,12 @@
 -- ================================================================
--- Fonction RPC : update_own_prospect_profile()
+-- CORRECTION : Autoriser les clients à ajouter des projets (tags)
 -- ================================================================
--- Permet à un CLIENT de mettre à jour SON PROPRE profil
--- en bypassant les RLS.
+-- Problème : Les clients ne peuvent pas ajouter de projets depuis
+-- leur espace car update_own_prospect_profile() bloquait la modification
+-- du champ 'tags'.
 --
--- Règles :
--- - Le client peut uniquement modifier SON prospect (user_id = auth.uid())
--- - Le client NE PEUT PAS modifier : owner_id, status, has_appointment
--- - Le client PEUT modifier : name, email, phone, company_name, address, form_data, tags
+-- Solution : Autoriser la modification de 'tags' pour que les clients
+-- puissent ajouter des projets depuis /dashboard/offres
 -- ================================================================
 
 DROP FUNCTION IF EXISTS public.update_own_prospect_profile(jsonb);
@@ -76,7 +75,5 @@ GRANT EXECUTE ON FUNCTION public.update_own_prospect_profile(JSONB) TO authentic
 -- ================================================================
 -- COMMENTAIRE
 -- ================================================================
-COMMENT ON FUNCTION public.update_own_prospect_profile(JSONB) IS 
-'Permet à un client authentifié de mettre à jour SON PROPRE profil prospect.
-Le client peut modifier : name, email, phone, company_name, address, form_data.
-Le client NE PEUT PAS modifier : owner_id, status, tags, has_appointment (réservé aux admins).';
+COMMENT ON FUNCTION public.update_own_prospect_profile IS
+'Permet à un client de mettre à jour son propre profil prospect (name, email, phone, company_name, address, form_data, tags). Bypass RLS.';
