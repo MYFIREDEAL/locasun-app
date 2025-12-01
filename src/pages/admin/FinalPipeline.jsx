@@ -534,22 +534,20 @@ const FinalPipeline = () => {
     setSearchParams(newParams);
   };
 
-  const handleAddProspect = (newProspect) => {
+  const handleAddProspect = async (newProspect) => {
     try {
       if (addProspect) {
-        addProspect({
+        await addProspect({
           ...newProspect,
-          stage: 'lead',
+          status: 'Intéressé', // 🔥 Utiliser 'status' au lieu de 'stage'
           ownerId: activeAdminUser?.id || 'user-1',
           createdAt: new Date().toISOString()
         });
-        toast({
-          title: "Prospect ajouté",
-          description: "Le nouveau prospect a été créé avec succès.",
-        });
+        // 🔥 Le toast de succès est déjà géré dans useSupabaseProspects
       }
       setIsAddModalOpen(false);
     } catch (error) {
+      console.error('❌ Erreur ajout prospect:', error);
       toast({
         title: "Erreur",
         description: "Impossible d'ajouter le prospect.",
