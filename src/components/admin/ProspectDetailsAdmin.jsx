@@ -854,6 +854,15 @@ const ProspectDetailsAdmin = ({
     }
   }, [notificationId, markNotificationAsRead, setSearchParams, searchParams]);
 
+  // 🔥 FIX: Ouvrir automatiquement le bon projet depuis les query params (notifications)
+  useEffect(() => {
+    const urlProjectType = searchParams.get('project');
+    if (urlProjectType && urlProjectType !== activeProjectTag && prospect.tags?.includes(urlProjectType)) {
+      console.log('🎯 [ProspectDetailsAdmin] Opening project from URL:', urlProjectType);
+      setActiveProjectTag(urlProjectType);
+    }
+  }, [searchParams, prospect.tags]);
+
   // 🔥 FIX: Synchroniser le state quand la prop change (pattern du chat)
   useEffect(() => {
     console.log('🔄 [ProspectDetailsAdmin] prospect prop changed:', prospect.name);
