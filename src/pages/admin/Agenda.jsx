@@ -1097,6 +1097,13 @@ const AddActivityModal = ({
       }
     }, [initialData, prospects, defaultAssignedUserId]);
 
+    // 🔥 Forcer la mise à jour de assignedUserId quand defaultAssignedUserId change (user connecté chargé)
+    useEffect(() => {
+      if (defaultAssignedUserId && !assignedUserId && !initialData) {
+        setAssignedUserId(defaultAssignedUserId);
+      }
+    }, [defaultAssignedUserId, assignedUserId, initialData]);
+
     useEffect(() => {
       if (selectedContact && selectedProject && projectStepsStatus) {
         // 🔥 projectStepsStatus est un objet { projectType: steps[] }
@@ -1355,9 +1362,9 @@ const AddActivityModal = ({
                                                         {userOptions.map((user) => (
                                                             <CommandItem
                                                                 key={user.value}
-                                                                value={user.label}
-                                                                onSelect={() => {
-                                                                    setAssignedUserId(user.value);
+                                                                value={user.value}
+                                                                onSelect={(currentValue) => {
+                                                                    setAssignedUserId(currentValue);
                                                                     setUserSearchOpen(false);
                                                                 }}
                                                             >
