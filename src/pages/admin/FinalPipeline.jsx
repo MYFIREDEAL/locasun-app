@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
+import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -139,7 +140,6 @@ const FinalPipeline = () => {
     prospectsLoading, // 🔥 État de chargement pour skeleton screens
     allProjectSteps = {}, // 🔥 Tous les project steps préchargés dans App.jsx
     allStepsLoading, // 🔥 État de chargement des project steps
-    addProspect: addSupabaseProspect,
     updateProspect: updateSupabaseProspect,
     projectsData = {}, 
     activeAdminUser,
@@ -148,7 +148,12 @@ const FinalPipeline = () => {
     getProjectSteps,
   } = contextData;
 
-  // 🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
+  // � UTILISER LE HOOK DIRECT COMME DANS CONTACTS (pas le contexte)
+  const {
+    addProspect: addSupabaseProspectDirect,
+  } = useSupabaseProspects(activeAdminUser);
+
+  // �🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
   
   // 🔥 Get auth UUID for current user (for "mine" filter)
@@ -175,7 +180,6 @@ const FinalPipeline = () => {
 
   // Utiliser les prospects Supabase
   const prospects = supabaseProspects;
-  const addProspect = addSupabaseProspect;
   const updateProspect = updateSupabaseProspect;
 
   // 🔥 FIX CHATGPT : Dériver selectedProspect depuis le contexte (source de vérité unique)
@@ -536,7 +540,7 @@ const FinalPipeline = () => {
 
   const handleAddProspect = async (newProspectData) => {
     try {
-      await addProspect({ 
+      await addSupabaseProspectDirect({ 
         ...newProspectData, 
         status: 'Intéressé', 
         ownerId: activeAdminUser?.id
