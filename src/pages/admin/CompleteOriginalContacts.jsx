@@ -329,14 +329,10 @@ const CompleteOriginalContacts = () => {
   }, [supabaseProspects]);
 
   const filteredProspects = useMemo(() => {
-    const visibleProspects = supabaseProspects.filter(prospect => {
-      if (!activeAdminUser) return false;
-      if (activeAdminUser.role === 'Global Admin' || activeAdminUser.role === 'Admin') return true;
-      // 🔥 FIX: Utiliser access_rights (snake_case) depuis Supabase
-      const accessRights = activeAdminUser.access_rights || activeAdminUser.accessRights;
-      const allowedUserIds = [activeAdminUser.user_id, ...(accessRights?.users || [])];
-      return allowedUserIds.includes(prospect.ownerId);
-    });
+    // 🔥 FIX: NE PAS RE-FILTRER - Le RPC get_prospects_safe() filtre déjà correctement
+    // Filtrer ici cause un bug: on compare avec access_rights.users qui ne contient pas l'user lui-même
+    // Le RPC retourne déjà SEULEMENT les prospects que l'user peut voir (ses propres + ceux partagés)
+    const visibleProspects = supabaseProspects;
 
     return visibleProspects.filter(prospect => {
       const searchMatch = prospect.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||

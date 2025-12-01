@@ -1065,16 +1065,6 @@ const AddActivityModal = ({
     const [assignedUserId, setAssignedUserId] = useState(defaultAssignedUserId || null);
     const [isEditing, setIsEditing] = useState(false);
 
-    // 🔍 DEBUG
-    console.log('🔍 [AddActivityModal] defaultAssignedUserId:', defaultAssignedUserId);
-    console.log('🔍 [AddActivityModal] assignedUserId state:', assignedUserId);
-    console.log('🔍 [AddActivityModal] users count:', users?.length);
-    console.log('🔍 [AddActivityModal] users:', users);
-    console.log('🔍 [AddActivityModal] users.map(u => u.id):', users?.map(u => u.id));
-    const foundUser = users?.find(u => u.id === assignedUserId);
-    console.log('🔍 [AddActivityModal] foundUser:', foundUser);
-    console.log('🔍 [AddActivityModal] Searching for:', assignedUserId, 'in', users?.map(u => ({ id: u.id, name: u.name })));
-
     const userOptions = useMemo(() => {
       if (!users || !Array.isArray(users)) return [];
       // 🔥 appointments.assigned_user_id doit utiliser users.user_id (auth UUID) pour matcher avec RLS policies
@@ -1502,7 +1492,7 @@ const Agenda = () => {
   }, [activeAdminUser, supabaseUsers]);
 
   const userOptions = useMemo(() => {
-    return allowedUsers.map(user => ({ value: user.id, label: user.name }));
+    return allowedUsers.map(user => ({ value: user.user_id, label: user.name })); // 🔥 FIX: user_id (auth UUID) pour filtrer
   }, [allowedUsers]);
 
   // 🔧 Mettre à jour selectedUserId quand supabaseUserId est chargé
@@ -1719,7 +1709,7 @@ const Agenda = () => {
                       className="w-[180px] justify-between"
                     >
                         <Users className="mr-2 h-4 w-4" />
-                        {selectedUserId ? (supabaseUsers.find(u => u.id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
+                        {selectedUserId ? (supabaseUsers.find(u => u.user_id === selectedUserId)?.name || "Utilisateur") : "Utilisateur"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>

@@ -192,7 +192,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           start_time: appointmentData.startTime || now.toISOString(),  // 🔧 Défaut: maintenant
           end_time: appointmentData.endTime || oneHourLater.toISOString(),  // 🔧 Défaut: +1h
           contact_id: contactId,
-          assigned_user_id: assignedUserId,  // 🔥 users.id (UUID PK) - FK vers users(id)
+          assigned_user_id: assignedUserId,  // 🔥 users.user_id (auth UUID) pour RLS policies
           project_id: appointmentData.projectId || null,
           step: appointmentData.step || null,
           type: appointmentData.type || 'physical',
