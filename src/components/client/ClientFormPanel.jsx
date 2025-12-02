@@ -185,7 +185,8 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       await updateProspect({ 
         id: prospectId,
         formData: updatedFormData,
-        form_data: updatedFormData 
+        form_data: updatedFormData,
+        tags: currentUser?.tags || [] // ✅ FIX: Préserver les tags existants
       });
       console.log('✅ [ClientFormPanel] currentUser mis à jour avec form_data:', updatedFormData);
     } catch (err) {
