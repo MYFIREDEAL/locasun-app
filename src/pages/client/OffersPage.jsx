@@ -88,10 +88,15 @@ const OfferCard = ({ project, projectStatus }) => {
       // Ajouter le nouveau tag au prospect dans Supabase
       const updatedTags = [...(currentUser.tags || []), project.type];
       
+      console.log('🔥 [OffersPage] Ajout projet, tags avant:', currentUser.tags);
+      console.log('🔥 [OffersPage] Ajout projet, tags après:', updatedTags);
+      
       await updateProspect({
         id: currentUser.id,
         tags: updatedTags,
       });
+
+      console.log('✅ [OffersPage] Update Supabase terminé, real-time va se déclencher');
 
       // 🔥 INITIALISER LES ÉTAPES DANS SUPABASE dès l'ajout du projet par le client
       if (project.steps && project.steps.length > 0) {
@@ -117,18 +122,16 @@ const OfferCard = ({ project, projectStatus }) => {
         }
       }
 
-      // 🔥 Mettre à jour currentUser localement immédiatement
-      setCurrentUser({
-        ...currentUser,
-        tags: updatedTags,
-      });
-
+      // ✅ Le real-time de App.jsx mettra à jour currentUser automatiquement
       toast({
         title: "Projet ajouté avec succès ! ✅",
         description: `Le projet "${project.clientTitle}" est maintenant dans votre tableau de bord.`,
       });
       
-      navigate('/dashboard');
+      // Attendre un peu que le real-time se déclenche avant de naviguer
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 500);
     } catch (error) {
       console.error('Erreur ajout projet:', error);
       toast({
