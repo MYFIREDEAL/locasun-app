@@ -31,7 +31,11 @@ const EditModal = ({ open, onOpenChange, prospect, users, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await onSave({ ...formData, id: prospect.id });
+      await onSave({ 
+        ...formData, 
+        id: prospect.id,
+        tags: prospect.tags || [] // ✅ FIX: Préserver les tags existants
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Erreur:', error);
