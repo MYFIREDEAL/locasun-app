@@ -1,12 +1,11 @@
 /**
  * 🔥 Hook Supabase pour gérer les informations de projets (project_infos)
  * 
- * PHASE 1 : Gère uniquement amount et status
+ * Gère uniquement amount et status :
  * - amount: number (montant du deal en €)
  * - status: "actif" | "abandon" | "archive"
  * 
  * ⚠️ Les autres champs (ribFile, documents, notes, etc.) sont ignorés pour l'instant
- * ⚠️ Ce hook cohabite avec le système localStorage existant (migration progressive)
  * 
  * @returns {Object} { projectInfos, getProjectInfo, updateProjectInfo, isLoading, error }
  */

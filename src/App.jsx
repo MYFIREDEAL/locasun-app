@@ -36,7 +36,7 @@ import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
 import { useSupabaseClientNotifications } from '@/hooks/useSupabaseClientNotifications';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels'; // 🔥 AJOUT
 import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps'; // 🔥 Précharger au niveau App
-import { useSupabaseProjectInfos } from '@/hooks/useSupabaseProjectInfos'; // 🔥 PHASE 1: Hook project_infos (amount + status)
+import { useSupabaseProjectInfos } from '@/hooks/useSupabaseProjectInfos';
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -322,7 +322,6 @@ function App() {
     markAsRead: markClientNotificationAsRead
   } = useSupabaseClientNotifications(currentUser?.id, adminReady);
 
-  // 🔥 PHASE 1: Hook project_infos (amount + status uniquement, cohabitation avec localStorage)
   const {
     projectInfos: supabaseProjectInfos,
     getProjectInfo: getSupabaseProjectInfo,
@@ -589,30 +588,6 @@ function App() {
     // ✅ activeAdminUser et currentUser sont maintenant chargés depuis Supabase Auth uniquement
     // Pas de localStorage loading au montage, tout est géré par le useEffect Auth ci-dessus
     
-    // ❌ SUPPRIMÉ: chat_messages localStorage - Maintenant géré par Supabase real-time dans les composants
-    // Les messages sont chargés via le hook useSupabaseChatMessages dans chaque composant
-    // const storedChatMessages = localStorage.getItem('evatime_chat_messages');
-    // setChatMessages(storedChatMessages ? JSON.parse(storedChatMessages) : {});
-
-    // ❌ SUPPRIMÉ: notifications localStorage - Maintenant géré par useSupabaseNotifications/useSupabaseClientNotifications
-    // const storedNotifications = localStorage.getItem('evatime_notifications');
-    // setNotifications(storedNotifications ? JSON.parse(storedNotifications) : []);
-    // const storedClientNotifications = localStorage.getItem('evatime_client_notifications');
-    // setClientNotifications(storedClientNotifications ? JSON.parse(storedClientNotifications) : []);
-
-    // ❌ SUPPRIMÉ: forms localStorage - Maintenant géré par useSupabaseForms() dans ProfilePage
-    // const storedForms = localStorage.getItem('evatime_forms');
-    // setForms(storedForms ? JSON.parse(storedForms) : {});
-
-    // ❌ SUPPRIMÉ: prompts localStorage - Maintenant géré par useSupabasePrompts() dans ProfilePage
-    // const storedPrompts = localStorage.getItem('evatime_prompts');
-    // setPrompts(storedPrompts ? JSON.parse(storedPrompts) : {});
-
-    // 🔥 PHASE 2: project_infos entièrement géré par useSupabaseProjectInfos() - localStorage supprimé
-
-    // ✅ globalPipelineSteps maintenant chargé automatiquement par useSupabaseGlobalPipeline
-    // Plus besoin de localStorage.getItem(GLOBAL_PIPELINE_STORAGE_KEY)
-    
     // hasHydratedFormContactConfig n'est plus nécessaire (géré par Supabase)
     hasHydratedGlobalPipelineSteps.current = true;
   }, []);
@@ -653,18 +628,6 @@ function App() {
       throw error;
     }
   };
-
-  // ❌ SUPPRIMÉ: handleSetForms - Maintenant géré par useSupabaseForms() dans ProfilePage
-  // const handleSetForms = (newForms) => {
-  //   setForms(newForms);
-  //   localStorage.setItem('evatime_forms', JSON.stringify(newForms));
-  // };
-  
-  // ❌ SUPPRIMÉ: handleSetPrompts - Maintenant géré par useSupabasePrompts() dans ProfilePage
-  // const handleSetPrompts = (newPrompts) => {
-  //   setPrompts(newPrompts);
-  //   localStorage.setItem('evatime_prompts', JSON.stringify(newPrompts));
-  // };
 
   const handleSetFormContactConfig = async (updater) => {
     // Récupérer la config actuelle depuis Supabase
@@ -1270,7 +1233,6 @@ function App() {
     prompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,
-    // 🔥 PHASE 1: Nouveau système Supabase (amount + status) en cohabitation avec localStorage
     supabaseProjectInfos, getSupabaseProjectInfo, updateSupabaseProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     pipelineLoading, // 🔥 État de chargement des colonnes du pipeline
