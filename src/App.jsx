@@ -363,9 +363,20 @@ function App() {
     );
 
     // Session initiale (au démarrage)
+    // 🔥 WAIT FOR SESSION (CRUCIAL POUR MAGIC LINK)
     supabase.auth.getSession().then(({ data }) => {
-      console.log("🔐 SESSION INITIALE:", data.session?.user?.email || "aucune");
-      setSession(data.session ?? null);
+      const initialSession = data.session;
+      
+      if (!initialSession) {
+        console.log("⏳ SESSION INITIALE: aucune - Attente évènement AUTH...");
+        // ❌ Ne pas setSession(null) ici, on attend l'événement SIGNED_IN
+        // Le listener onAuthStateChange ci-dessus gérera la session
+        return;
+      }
+      
+      // ✅ Session trouvée immédiatement (reconnexion ou session existante)
+      console.log("🔐 SESSION INITIALE:", initialSession.user?.email || "aucune");
+      setSession(initialSession);
     });
 
     return () => subscription.unsubscribe();
