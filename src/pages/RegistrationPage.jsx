@@ -157,32 +157,45 @@ const RegistrationPage = () => {
 
       console.log('✅ Prospect créé:', prospectData);
 
-      // ÉTAPE 2 : Envoyer le Magic Link (le trigger liera automatiquement au clic)
-      const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
+      // 🔥 FLUX 1 - INSCRIPTION INSTANTANÉE (sans attendre Magic Link)
+      // Stocker les données en attente pour App.jsx
+      localStorage.setItem('pendingSignup', JSON.stringify({
+        firstname: formData.name,
+        email: formData.email,
+        projects: finalProjects,
+        prospectId: prospectData.id
+      }));
+
+      // ÉTAPE 2 : Créer l'utilisateur Auth ET authentifier immédiatement
+      const { data: signUpData, error: signUpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
+          shouldCreateUser: true, // ✅ Créer le user Auth
           emailRedirectTo: `${window.location.origin}/dashboard`,
         }
       });
 
-      if (magicLinkError) {
-        console.error('❌ Erreur Magic Link:', magicLinkError);
-        throw magicLinkError;
+      if (signUpError) {
+        console.error('❌ Erreur création Auth + OTP:', signUpError);
+        throw signUpError;
       }
 
-      console.log('✅ Magic Link envoyé:', otpData);
+      console.log('✅ Auth user créé + OTP envoyé:', signUpData);
 
       sessionStorage.removeItem('affiliateUser');
 
-      // Afficher le message de succès
-      setMagicLinkSent(true);
-
+      // 🔥 REDIRECTION INSTANTANÉE (ne pas attendre le Magic Link)
       toast({
-        title: "✅ Magic Link envoyé !",
-        description: "Vérifiez votre boîte mail et cliquez sur le lien pour accéder à votre espace.",
+        title: "✅ Compte créé avec succès !",
+        description: "Redirection vers votre espace client...",
         className: "bg-green-500 text-white",
-        duration: 8000,
+        duration: 3000,
       });
+
+      // Redirection directe vers le dashboard (App.jsx détectera pendingSignup)
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
     } catch (error) {
       console.error('❌ Erreur inscription:', error);
       toast({

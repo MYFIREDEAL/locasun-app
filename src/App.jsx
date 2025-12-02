@@ -418,14 +418,18 @@ function App() {
         return;
       }
 
-      // 2) CLIENT ?
+      // 🔥 FLUX 2 - ONBOARDING VIA ADMIN (Magic Link)
+      // Étape A : Récupérer les données d'inscription en attente
+      const pendingSignup = JSON.parse(localStorage.getItem('pendingSignup') || 'null');
+
+      // 2) CLIENT - Étape B : Vérifier si prospect existe via user_id
       let { data: prospect } = await supabase
         .from("prospects")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
 
-      // Magic link: match par email si user_id manquant
+      // Étape C : Si pas de prospect avec user_id, chercher par email
       if (!prospect) {
         const email = session?.user?.email;
         if (email) {
@@ -435,16 +439,52 @@ function App() {
             .eq("email", email)
             .maybeSingle();
 
+          // Étape D : Si prospect trouvé par email → associer user_id
           if (byEmail) {
-            if (!byEmail.user_id) {
-              await supabase
-                .from("prospects")
-                .update({ user_id: userId })
-                .eq("id", byEmail.id);
-            }
+            console.log('✅ Prospect trouvé par email, association user_id:', userId);
+            await supabase
+              .from("prospects")
+              .update({ user_id: userId })
+              .eq("id", byEmail.id);
+            
             prospect = { ...byEmail, user_id: userId };
+          } 
+          // Étape E : Si aucun prospect n'existe → créer automatiquement
+          else if (pendingSignup || !byEmail) {
+            console.log('🔥 Aucun prospect trouvé, création automatique...');
+            
+            // Récupérer le step_id de la première colonne du pipeline
+            const { data: firstStepId } = await supabase.rpc('get_first_pipeline_step_id');
+            const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
+
+            const { data: newProspect, error: insertError } = await supabase
+              .from('prospects')
+              .insert([{
+                name: pendingSignup?.firstname || email.split('@')[0],
+                email: email,
+                user_id: userId,
+                owner_id: DEFAULT_JACK_USER_ID,
+                status: firstStepId || 'default-global-pipeline-step-0',
+                tags: pendingSignup?.projects || [],
+                has_appointment: false,
+              }])
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('❌ Erreur création prospect:', insertError);
+            } else {
+              console.log('✅ Prospect créé automatiquement:', newProspect);
+              prospect = newProspect;
+            }
           }
         }
+      }
+
+      // Nettoyer le localStorage après traitement
+      if (pendingSignup) {
+        localStorage.removeItem('pendingSignup');
+        console.log('🧹 pendingSignup nettoyé du localStorage');
       }
 
       if (prospect) {
