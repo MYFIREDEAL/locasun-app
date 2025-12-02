@@ -1,18 +1,61 @@
-import React, { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import ClientHeader from '@/components/client/ClientHeader';
 import useWindowSize from '@/hooks/useWindowSize';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
 
 const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const { currentUser, setCurrentUser, companyLogo } = useAppContext();
+  const navigate = useNavigate();
+  const [sessionCheckDone, setSessionCheckDone] = useState(false);
+  
+  // 🔥 NOUVEAU: Vérifier et créer session Supabase si manquante
+  useEffect(() => {
+    const ensureSupabaseSession = async () => {
+      if (!currentUser?.email) {
+        setSessionCheckDone(true);
+        return;
+      }
+
+      // Vérifier si session Supabase existe
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('⚠️ Client localStorage détecté SANS session Supabase. Envoi magic link...');
+        
+        // Envoyer un magic link automatiquement
+        const { error } = await supabase.auth.signInWithOtp({
+          email: currentUser.email,
+          options: {
+            shouldCreateUser: true,
+            emailRedirectTo: window.location.href
+          }
+        });
+        
+        if (!error) {
+          toast({
+            title: "📧 Activation requise",
+            description: `Un lien de connexion a été envoyé à ${currentUser.email}. Cliquez dessus pour activer toutes les fonctionnalités.`,
+            duration: 10000,
+          });
+        } else {
+          console.error('Erreur envoi magic link:', error);
+        }
+      }
+      
+      setSessionCheckDone(true);
+    };
+
+    ensureSupabaseSession();
+  }, [currentUser?.email]);
   
   // 🔥 Real-time : Écouter les modifications du prospect connecté
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id || !sessionCheckDone) return;
 
     const channel = supabase
       .channel(`prospect-${currentUser.id}`)
