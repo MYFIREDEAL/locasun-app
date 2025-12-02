@@ -9,4 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 🔥 Configuration complète pour garantir la persistance de session
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: window.localStorage,        // Force localStorage (pas cookies)
+    autoRefreshToken: true,               // Rafraîchir automatiquement le token
+    persistSession: true,                 // Persister la session entre les rechargements
+    detectSessionInUrl: true,             // CRUCIAL : Détecter le token dans l'URL du magic link
+    flowType: 'pkce',                     // Flux PKCE (plus sécurisé)
+    storageKey: 'sb-yscwpxwgnhqbhkqzipag-auth-token', // Clé explicite du token
+  }
+});
