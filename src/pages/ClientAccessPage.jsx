@@ -100,12 +100,12 @@ const ClientAccessPage = () => {
         return;
       }
 
-      // 2) Envoyer le Magic Link (sans confirmation d'email)
+      // 2) Envoyer le Magic Link (exactement comme RegistrationPage)
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
+          shouldCreateUser: true, // ✅ Créer le user Auth (copié depuis RegistrationPage)
           emailRedirectTo: `${window.location.origin}/dashboard`,
-          shouldCreateUser: false, // Ne pas créer de user (il existe déjà)
         }
       });
 
