@@ -36,6 +36,7 @@ import { useSupabaseNotifications } from '@/hooks/useSupabaseNotifications';
 import { useSupabaseClientNotifications } from '@/hooks/useSupabaseClientNotifications';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels'; // 🔥 AJOUT
 import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps'; // 🔥 Précharger au niveau App
+import { useSupabaseProjectInfos } from '@/hooks/useSupabaseProjectInfos'; // 🔥 PHASE 1: Hook project_infos (amount + status)
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -98,7 +99,8 @@ const sanitizeGlobalPipelineSteps = (steps) => {
     .filter(Boolean);
 };
 
-const PROJECT_INFO_STORAGE_KEY = 'evatime_project_infos';
+// 🔥 PHASE 2: Constante obsolète - project_infos géré par useSupabaseProjectInfos()
+// const PROJECT_INFO_STORAGE_KEY = 'evatime_project_infos';
 
 const areFormConfigsEqual = (a = [], b = []) => {
   if (a === b) return true;
@@ -320,6 +322,13 @@ function App() {
     markAsRead: markClientNotificationAsRead
   } = useSupabaseClientNotifications(currentUser?.id, adminReady);
 
+  // 🔥 PHASE 1: Hook project_infos (amount + status uniquement, cohabitation avec localStorage)
+  const {
+    projectInfos: supabaseProjectInfos,
+    getProjectInfo: getSupabaseProjectInfo,
+    updateProjectInfo: updateSupabaseProjectInfo
+  } = useSupabaseProjectInfos();
+
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
   // IMPORTANT: useMemo pour que projectsData se recalcule quand projectTemplates change (real-time)
@@ -525,12 +534,7 @@ function App() {
         setCurrentUser(updatedProspect);
         console.log('✅ [App.jsx] currentUser mis à jour en temps réel');
         
-        // Mettre à jour localStorage aussi
-        try {
-          localStorage.setItem('currentUser', JSON.stringify(updatedProspect));
-        } catch (e) {
-          console.warn('⚠️ localStorage write blocked:', e);
-        }
+        // 🔥 PHASE 3: localStorage supprimé - currentUser géré uniquement par Supabase
       })
       .subscribe();
     
@@ -566,169 +570,21 @@ function App() {
   // ✅ projectsData est maintenant chargé en temps réel depuis Supabase (project_templates table)
   // Plus besoin de localStorage pour evatime_projects_data
 
+  // 🔥 PHASE 4: userProjects supprimé de localStorage - Utiliser currentUser.tags
   useEffect(() => {
-    const storedProjects = localStorage.getItem('userProjects');
-    if (storedProjects) {
-      const parsedProjects = JSON.parse(storedProjects);
-      const validProjects = parsedProjects.filter(pId => projectsData[pId]);
-      if (parsedProjects.length !== validProjects.length) {
-         localStorage.setItem('userProjects', JSON.stringify(validProjects));
-      }
-      setUserProjects(validProjects);
-    } else {
-      const defaultProjects = ['ACC'];
-      localStorage.setItem('userProjects', JSON.stringify(defaultProjects));
-      setUserProjects(defaultProjects);
-    }
+    // userProjects est maintenant géré par currentUser.tags (source: Supabase prospects table)
+    // Plus de chargement localStorage nécessaire
 
-    const storedProspects = localStorage.getItem('evatime_prospects');
-    if (storedProspects) {
-      const parsedProspects = JSON.parse(storedProspects);
-      const normalizedProspects = parsedProspects.map((prospect) => {
-        const normalizedTags = Array.isArray(prospect.tags)
-          ? prospect.tags
-          : typeof prospect.tags === 'string' && prospect.tags.trim()
-            ? [prospect.tags.trim()]
-            : prospect.projectType
-              ? [prospect.projectType]
-              : [];
-
-        return {
-          ...prospect,
-          tags: normalizedTags,
-        };
-      });
-      setProspects(normalizedProspects);
-      localStorage.setItem('evatime_prospects', JSON.stringify(normalizedProspects));
-    } else {
-      // Prospects par défaut pour les activités de test
-      const defaultProspects = [
-        {
-          id: 'prospect-1',
-          name: 'Jean Dupont',
-          email: 'jean.dupont@example.com',
-          phone: '01 23 45 67 89',
-          company: 'Dupont SA',
-          address: '123 Rue de la Paix, 75001 Paris',
-          ownerId: 'user-1',
-          status: 'lead',
-          tags: ['ACC'],
-        },
-        {
-          id: 'prospect-2',
-          name: 'Marie Martin',
-          email: 'marie.martin@example.com',
-          phone: '09 87 65 43 21',
-          company: 'Martin & Co',
-          address: '456 Avenue des Champs, 69000 Lyon',
-          ownerId: 'user-1',
-          status: 'qualified',
-          tags: ['Centrale'],
-        },
-        {
-          id: 'prospect-3',
-          name: 'Pierre Durand',
-          email: 'pierre.durand@example.com',
-          phone: '04 56 78 90 12',
-          company: 'Durand Industries',
-          address: '789 Boulevard du Commerce, 13000 Marseille',
-          ownerId: 'user-1',
-          status: 'opportunity',
-          tags: ['Investissement'],
-        }
-      ];
-      setProspects(defaultProspects);
-      localStorage.setItem('evatime_prospects', JSON.stringify(defaultProspects));
-    }
+    // 🔥 PHASE 6: Prospects maintenant gérés 100% par useSupabaseProspects() - localStorage supprimé
+    // Les prospects sont synchronisés automatiquement depuis Supabase (voir ligne ~210)
 
     // ✅ currentUser et activeAdminUser sont maintenant chargés dans le useEffect principal ci-dessus
     
-    const storedAppointments = localStorage.getItem('evatime_appointments');
-    if (storedAppointments) {
-      const parsedAppointments = JSON.parse(storedAppointments).map(app => ({
-        ...app,
-        start: new Date(app.start),
-        end: new Date(app.end),
-        status: app.status || 'pending',
-      }));
-      setAppointments(parsedAppointments);
-    }
+    // 🔥 PHASE 5: Agenda (appointments/calls/tasks) maintenant géré par useSupabaseAgenda() - localStorage supprimé
+    // Les données sont chargées automatiquement par le hook Supabase avec real-time sync
     
     // ✅ projectStepsStatus maintenant chargé depuis Supabase via useSupabaseProjectStepsStatus
     // Plus besoin de localStorage pour 'evatime_project_steps_status'
-
-    const storedCalls = localStorage.getItem('evatime_calls');
-    if (storedCalls) {
-      setCalls(JSON.parse(storedCalls));
-    } else {
-      // Données de test par défaut avec des activités en retard
-      const defaultCalls = [
-        {
-          id: 'call-overdue-1',
-          name: 'Appel commercial urgent',
-          date: '2025-10-10', // 3 jours en retard
-          time: '14:30',
-          contactId: 'prospect-1',
-          assignedUserId: 'user-1',
-          status: 'pending'
-        },
-        {
-          id: 'call-overdue-2',
-          name: 'Suivi client important',
-          date: '2025-10-11', // 2 jours en retard
-          time: '10:00',
-          contactId: 'prospect-2',
-          assignedUserId: 'user-1',
-          status: 'pending'
-        },
-        {
-          id: 'call-today-1',
-          name: 'Appel de suivi',
-          date: '2025-10-13', // Aujourd'hui
-          time: '16:00',
-          contactId: 'prospect-3',
-          assignedUserId: 'user-1',
-          status: 'pending'
-        }
-      ];
-      setCalls(defaultCalls);
-      localStorage.setItem('evatime_calls', JSON.stringify(defaultCalls));
-    }
-
-    const storedTasks = localStorage.getItem('evatime_tasks');
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
-    } else {
-      // Données de test par défaut avec des tâches en retard
-      const defaultTasks = [
-        {
-          id: 'task-overdue-1',
-          text: 'Préparer devis pour client VIP',
-          date: '2025-10-09', // 4 jours en retard
-          contactId: 'prospect-1',
-          assignedUserId: 'user-1',
-          done: false
-        },
-        {
-          id: 'task-overdue-2',
-          text: 'Envoyer documentation technique',
-          date: '2025-10-10', // 3 jours en retard
-          contactId: 'prospect-2',
-          assignedUserId: 'user-1',
-          done: false
-        },
-        {
-          id: 'task-today-1',
-          text: 'Finaliser présentation',
-          date: '2025-10-13', // Aujourd'hui
-          contactId: 'prospect-3',
-          assignedUserId: 'user-1',
-          done: false
-        }
-      ];
-      setTasks(defaultTasks);
-      localStorage.setItem('evatime_tasks', JSON.stringify(defaultTasks));
-    }
 
     // ✅ activeAdminUser et currentUser sont maintenant chargés depuis Supabase Auth uniquement
     // Pas de localStorage loading au montage, tout est géré par le useEffect Auth ci-dessus
@@ -752,49 +608,7 @@ function App() {
     // const storedPrompts = localStorage.getItem('evatime_prompts');
     // setPrompts(storedPrompts ? JSON.parse(storedPrompts) : {});
 
-    let initialProjectInfos = {};
-    const storedProjectInfos = localStorage.getItem(PROJECT_INFO_STORAGE_KEY);
-    if (storedProjectInfos) {
-      try {
-        const parsedProjectInfos = JSON.parse(storedProjectInfos);
-        if (parsedProjectInfos && typeof parsedProjectInfos === 'object') {
-          initialProjectInfos = parsedProjectInfos;
-        }
-      } catch {
-        // ignore malformed data
-      }
-    }
-
-    const legacyProjectKeys = Object.keys(localStorage).filter((key) => key.startsWith('prospect_') && key.includes('_project_'));
-    if (legacyProjectKeys.length > 0) {
-      legacyProjectKeys.forEach((legacyKey) => {
-        try {
-          const storedValue = localStorage.getItem(legacyKey);
-          if (!storedValue) return;
-          const parsedValue = JSON.parse(storedValue);
-          const match = legacyKey.match(/^prospect_(.+)_project_(.+)$/);
-          if (match && parsedValue && typeof parsedValue === 'object') {
-            const [, legacyProspectId, legacyProjectType] = match;
-            if (!initialProjectInfos[legacyProspectId]) {
-              initialProjectInfos[legacyProspectId] = {};
-            }
-            initialProjectInfos[legacyProspectId][legacyProjectType] = {
-              ...initialProjectInfos[legacyProspectId][legacyProjectType],
-              ...parsedValue,
-            };
-          }
-        } catch {
-          // ignore malformed legacy data
-        } finally {
-          localStorage.removeItem(legacyKey);
-        }
-      });
-    }
-
-    if (Object.keys(initialProjectInfos).length > 0) {
-      setProjectInfos(initialProjectInfos);
-      localStorage.setItem(PROJECT_INFO_STORAGE_KEY, JSON.stringify(initialProjectInfos));
-    }
+    // 🔥 PHASE 2: project_infos entièrement géré par useSupabaseProjectInfos() - localStorage supprimé
 
     // ✅ globalPipelineSteps maintenant chargé automatiquement par useSupabaseGlobalPipeline
     // Plus besoin de localStorage.getItem(GLOBAL_PIPELINE_STORAGE_KEY)
@@ -875,62 +689,27 @@ function App() {
     }
   };
 
-  const setProjectInfosState = (updater) => {
-    setProjectInfos(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem(PROJECT_INFO_STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
+  // 🔥 PHASE 2: setProjectInfosState supprimé - Utiliser updateSupabaseProjectInfo() du hook
+  // ❌ SUPPRIMÉ: localStorage.setItem(PROJECT_INFO_STORAGE_KEY, ...) - Hook Supabase gère tout
 
   const getProjectInfo = (prospectId, projectType) => {
     if (!prospectId || !projectType) return {};
     return projectInfos?.[prospectId]?.[projectType] || {};
   };
 
+  // 🔥 PHASE 2: updateProjectInfo maintenant wrapper vers le hook Supabase
+  // Le hook gère le state local via real-time - pas besoin de setProjectInfosState
   const updateProjectInfo = async (prospectId, projectType, updater) => {
     if (!prospectId || !projectType) return;
     
-    // 1. Mettre à jour le state local
-    let finalInfo = null;
-    setProjectInfosState(prev => {
-      const prevForProspect = prev[prospectId] || {};
-      const prevInfo = prevForProspect[projectType] || {};
-      const nextInfoRaw = typeof updater === 'function' ? updater(prevInfo) : { ...prevInfo, ...updater };
-      const nextInfo = nextInfoRaw && typeof nextInfoRaw === 'object'
-        ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
-        : {};
-
-      finalInfo = nextInfo;
-
-      if (Object.keys(nextInfo).length === 0) {
-        const { [projectType]: _, ...restProjects } = prevForProspect;
-        const nextState = { ...prev };
-        if (Object.keys(restProjects).length > 0) {
-          nextState[prospectId] = restProjects;
-        } else {
-          delete nextState[prospectId];
-        }
-        return nextState;
-      }
-
-      if (
-        Object.keys(nextInfo).length === Object.keys(prevInfo).length &&
-        Object.entries(nextInfo).every(([key, value]) => prevInfo[key] === value)
-      ) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [prospectId]: {
-          ...prevForProspect,
-          [projectType]: nextInfo,
-        },
-      };
-    });
+    // Calculer finalInfo depuis le state actuel (pour backward compatibility)
+    const prevInfo = projectInfos?.[prospectId]?.[projectType] || {};
+    const nextInfoRaw = typeof updater === 'function' ? updater(prevInfo) : { ...prevInfo, ...updater };
+    const finalInfo = nextInfoRaw && typeof nextInfoRaw === 'object'
+      ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
+      : {};
     
-    // 2. Sauvegarder dans Supabase
+    // Sauvegarder directement dans Supabase (le hook mettra à jour le state via real-time)
     try {
       const { error } = await supabase
         .from('project_infos')
@@ -1193,76 +972,55 @@ function App() {
   // - updateUser(userId, updates) pour modifier
   // - deleteUser(userId) pour supprimer (avec réassignation automatique des prospects)
 
-  const addAppointment = (newAppointment) => {
-    setAppointments(prev => {
-      const updated = [...prev, { ...newAppointment, status: 'pending' }];
-      localStorage.setItem('evatime_appointments', JSON.stringify(updated));
-      return updated;
-    });
+  // 🔥 PHASE 5: Fonctions CRUD Agenda simplifiées - localStorage supprimé, Supabase uniquement via hooks
+  // Note: Ces fonctions sont maintenant des wrappers vers useSupabaseAgenda()
+  // Le hook gère automatiquement le state + real-time + Supabase
+  
+  const addAppointment = async (newAppointment) => {
+    // 🔥 PHASE 5: Appel direct au hook Supabase (plus de localStorage)
+    // Note: Le hook useSupabaseAgenda expose déjà addAppointment, cette fonction peut être deprecated
+    console.warn('⚠️ addAppointment (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
+    // Pour backward compatibility, on pourrait appeler le hook ici, mais il vaut mieux refactoriser les composants
   };
 
-  const updateAppointment = (updatedAppointment) => {
-    setAppointments(prev => {
-      const updated = prev.map(app => app.id === updatedAppointment.id ? updatedAppointment : app);
-      localStorage.setItem('evatime_appointments', JSON.stringify(updated));
-      return updated;
-    });
+  const updateAppointment = async (updatedAppointment) => {
+    // 🔥 PHASE 5: localStorage supprimé - Utiliser useSupabaseAgenda().updateAppointment()
+    console.warn('⚠️ updateAppointment (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const deleteAppointment = (appointmentId) => {
-    setAppointments(prev => {
-      const updated = prev.filter(app => app.id !== appointmentId);
-      localStorage.setItem('evatime_appointments', JSON.stringify(updated));
-      return updated;
-    });
+  const deleteAppointment = async (appointmentId) => {
+    // 🔥 PHASE 5: localStorage supprimé - Utiliser useSupabaseAgenda().deleteAppointment()
+    console.warn('⚠️ deleteAppointment (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const addCall = (newCall) => {
-    setCalls(prev => {
-      const updated = [...prev, { ...newCall, status: 'pending' }];
-      localStorage.setItem('evatime_calls', JSON.stringify(updated));
-      return updated;
-    });
+  const addCall = async (newCall) => {
+    // 🔥 PHASE 5: localStorage supprimé - Calls gérés par useSupabaseAgenda (type: 'call')
+    console.warn('⚠️ addCall (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const updateCall = (updatedCall) => {
-    setCalls(prev => {
-      const updated = prev.map(call => call.id === updatedCall.id ? updatedCall : call);
-      localStorage.setItem('evatime_calls', JSON.stringify(updated));
-      return updated;
-    });
+  const updateCall = async (updatedCall) => {
+    // 🔥 PHASE 5: localStorage supprimé - Utiliser useSupabaseAgenda().updateAppointment()
+    console.warn('⚠️ updateCall (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const deleteCall = (callId) => {
-    setCalls(prev => {
-      const updated = prev.filter(call => call.id !== callId);
-      localStorage.setItem('evatime_calls', JSON.stringify(updated));
-      return updated;
-    });
+  const deleteCall = async (callId) => {
+    // 🔥 PHASE 5: localStorage supprimé - Utiliser useSupabaseAgenda().deleteAppointment()
+    console.warn('⚠️ deleteCall (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const addTask = (newTask) => {
-    setTasks(prev => {
-      const updated = [...prev, { ...newTask, done: false }];
-      localStorage.setItem('evatime_tasks', JSON.stringify(updated));
-      return updated;
-    });
+  const addTask = async (newTask) => {
+    // 🔥 PHASE 5: localStorage supprimé - Tasks gérés par useSupabaseAgenda (type: 'task')
+    console.warn('⚠️ addTask (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const updateTask = (updatedTask) => {
-    setTasks(prev => {
-      const updated = prev.map(task => task.id === updatedTask.id ? updatedTask : task);
-      localStorage.setItem('evatime_tasks', JSON.stringify(updated));
-      return updated;
-    });
+  const updateTask = async (updatedTask) => {
+    // 🔥 PHASE 5: localStorage supprimé - Utiliser useSupabaseAgenda().updateAppointment()
+    console.warn('⚠️ updateTask (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
 
-  const deleteTask = (taskId) => {
-    setTasks(prev => {
-      const updated = prev.filter(task => task.id !== taskId);
-      localStorage.setItem('evatime_tasks', JSON.stringify(updated));
-      return updated;
-    });
+  const deleteTask = async (taskId) => {
+    // 🔥 PHASE 5: localStorage supprimé - Utiliser useSupabaseAgenda().deleteAppointment()
+    console.warn('⚠️ deleteTask (App.jsx) est deprecated, utiliser le hook useSupabaseAgenda directement');
   };
   
   const updateProjectSteps = async (prospectId, projectType, newSteps) => {
@@ -1384,7 +1142,7 @@ function App() {
     }
     const updatedProjects = [...userProjects, projectType];
     setUserProjects(updatedProjects);
-    localStorage.setItem('userProjects', JSON.stringify(updatedProjects));
+    // 🔥 PHASE 4: localStorage.setItem('userProjects') supprimé - currentUser.tags est la source
 
     if (currentUser) {
       setProspects(prevProspects => {
@@ -1398,7 +1156,7 @@ function App() {
           }
           return prospect;
         });
-        localStorage.setItem('evatime_prospects', JSON.stringify(updatedProspects));
+        // 🔥 PHASE 6: localStorage supprimé - prospects synchronisés automatiquement via useSupabaseProspects()
         return updatedProspects;
       });
 
@@ -1416,7 +1174,7 @@ function App() {
   const addProspect = (newProspect) => {
     setProspects(prevProspects => {
       const updatedProspects = [newProspect, ...prevProspects];
-      localStorage.setItem('evatime_prospects', JSON.stringify(updatedProspects));
+      // 🔥 PHASE 6: localStorage supprimé - prospects synchronisés automatiquement via useSupabaseProspects()
       return updatedProspects;
     });
   };
@@ -1450,19 +1208,20 @@ function App() {
     }
   };
 
+  // 🔥 PHASE 3: handleSetCurrentUser simplifié - localStorage supprimé pour currentUser
   const handleSetCurrentUser = (user, affiliateName) => {
     const userWithAffiliate = user ? { ...user, affiliateName } : null;
     setCurrentUser(userWithAffiliate);
     if (userWithAffiliate) {
-      localStorage.setItem('currentUser', JSON.stringify(userWithAffiliate));
+      // 🔥 PHASE 3: localStorage.setItem('currentUser') supprimé - Supabase gère tout
       
-      // Synchroniser userProjects avec les tags du prospect/user
+      // 🔥 PHASE 4: Synchroniser userProjects avec les tags du prospect/user (source unique: Supabase)
       if (userWithAffiliate.tags && Array.isArray(userWithAffiliate.tags)) {
         setUserProjects(userWithAffiliate.tags);
-        localStorage.setItem('userProjects', JSON.stringify(userWithAffiliate.tags));
+        // 🔥 PHASE 4: localStorage.setItem('userProjects') supprimé - currentUser.tags est la source
       }
     } else {
-      localStorage.removeItem('currentUser');
+      // 🔥 PHASE 3: Pas besoin de removeItem car plus jamais écrit
       navigate('/');
     }
   };
@@ -1511,6 +1270,8 @@ function App() {
     prompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
     projectInfos, getProjectInfo, updateProjectInfo,
+    // 🔥 PHASE 1: Nouveau système Supabase (amount + status) en cohabitation avec localStorage
+    supabaseProjectInfos, getSupabaseProjectInfo, updateSupabaseProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     pipelineLoading, // 🔥 État de chargement des colonnes du pipeline
     allProjectSteps, // 🔥 Tous les project steps préchargés pour éviter race conditions

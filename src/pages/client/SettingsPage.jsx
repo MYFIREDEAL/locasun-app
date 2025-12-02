@@ -123,14 +123,14 @@ import React, { useState, useEffect } from 'react';
 
       // ❌ SUPPRIMÉ: handleChangePassword (Client utilise Magic Link uniquement)
 
+      // 🔥 PHASE 3: handleLogout simplifié - localStorage supprimé, Supabase uniquement
       const handleLogout = async () => {
         try {
           // Deconnexion de Supabase Auth
           await supabase.auth.signOut();
           
-          // Nettoyer le contexte local
+          // Nettoyer le contexte local (React state uniquement)
           setCurrentUser(null);
-          localStorage.removeItem('evatime_current_user');
           
           toast({
             title: "Deconnexion reussie",
@@ -142,7 +142,6 @@ import React, { useState, useEffect } from 'react';
           console.error('Erreur deconnexion:', error);
           // Deconnecter quand meme localement
           setCurrentUser(null);
-          localStorage.removeItem('evatime_current_user');
           navigate('/');
         }
       };

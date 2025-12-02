@@ -12,15 +12,10 @@ function ClientDashboardPage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [displayedProjects, setDisplayedProjects] = useState([]);
 
+  // 🔥 PHASE 4: userProjects provient de currentUser.tags (Supabase) - Plus de localStorage
   useEffect(() => {
-    if (!userProjects || userProjects.length === 0) {
-      const storedProjects = localStorage.getItem('userProjects');
-      if (!storedProjects || JSON.parse(storedProjects).length === 0) {
-        const defaultProjects = ['ACC', 'Batterie'];
-        localStorage.setItem('userProjects', JSON.stringify(defaultProjects));
-        return;
-      }
-    }
+    // userProjects est maintenant alimenté par currentUser.tags depuis App.jsx
+    // Plus besoin de fallback localStorage
     
     const projectsToDisplay = userProjects.map(pId => projectsData[pId]).filter(Boolean);
     setDisplayedProjects(projectsToDisplay);

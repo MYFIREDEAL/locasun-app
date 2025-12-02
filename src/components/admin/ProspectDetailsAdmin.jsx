@@ -1187,12 +1187,12 @@ const ProspectDetailsAdmin = ({
       onUpdate(updatedProspect);
       setActiveProjectTag(projectType);
       
-      // Si ce prospect est le currentUser connecté, synchroniser avec userProjects
+      // 🔥 PHASE 4: Si ce prospect est le currentUser connecté, synchroniser avec userProjects
       if (currentUser && prospect.id === currentUser.id) {
         if (!userProjects.includes(projectType)) {
           const updatedUserProjects = [...userProjects, projectType];
           setUserProjects(updatedUserProjects);
-          localStorage.setItem('userProjects', JSON.stringify(updatedUserProjects));
+          // 🔥 PHASE 4: localStorage.setItem('userProjects') supprimé - currentUser.tags est la source
         }
       }
       

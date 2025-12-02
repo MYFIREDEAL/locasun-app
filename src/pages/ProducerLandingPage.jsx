@@ -52,11 +52,11 @@ const ProducerLandingPage = () => {
 
       addProspect(newProspect);
 
-      localStorage.setItem('userProjects', JSON.stringify(projects));
+      // 🔥 PHASE 4: localStorage.setItem('userProjects') supprimé - currentUser.tags géré par Supabase
       if(setUserProjects) setUserProjects(projects);
 
       const currentUserData = { id: newProspect.id, name: newProspect.name, email: newProspect.email };
-      localStorage.setItem('currentUser', JSON.stringify(currentUserData));
+      // 🔥 PHASE 3: localStorage.setItem('currentUser') supprimé - Supabase gère via loadAuthUser()
       setCurrentUser(currentUserData);
       
       toast({
