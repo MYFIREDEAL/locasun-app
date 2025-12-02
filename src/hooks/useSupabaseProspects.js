@@ -286,7 +286,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
           email: data.email,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/client/dashboard`,
             shouldCreateUser: true, // ✅ Créer le user auth automatiquement
           }
         });
