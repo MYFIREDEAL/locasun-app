@@ -188,7 +188,7 @@ function App() {
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
   // formContactConfig est maintenant géré par useSupabaseCompanySettings (plus besoin de useState)
-  const [projectInfos, setProjectInfos] = useState({});
+  // ❌ SUPPRIMÉ: const [projectInfos, setProjectInfos] = useState({}) - Utiliser supabaseProjectInfos du hook
   // ✅ globalPipelineSteps maintenant géré par useSupabaseGlobalPipeline (plus de localStorage)
   const [activeAdminUser, setActiveAdminUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // 🔥 État de chargement auth
