@@ -48,7 +48,8 @@ async function run() {
     .select("*")
     .limit(1);
 
-  if (selectAnon.data !== null && !selectAnon.error) {
+  // 🔥 Si le SELECT retourne au moins UNE ligne => FAIL
+  if (Array.isArray(selectAnon.data) && selectAnon.data.length > 0) {
     console.error("❌ Anonyme : SELECT autorisé (fail RLS)");
     process.exit(1);
   }
