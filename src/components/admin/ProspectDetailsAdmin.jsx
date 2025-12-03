@@ -868,12 +868,15 @@ const ProspectDetailsAdmin = ({
   }, [prospect]);
 
   useEffect(() => {
+    // Ne mettre à jour l'input QUE si on n'est pas en train d'éditer
+    if (isEditingAmount) return;
+    
     if (savedAmount === undefined || savedAmount === null || savedAmount === '') {
       setProjectAmountInput('');
     } else {
       setProjectAmountInput(savedAmount.toString());
     }
-  }, [savedAmount, activeProjectTag]);
+  }, [savedAmount, isEditingAmount]);
 
   // 🔥 ÉTAPE 2: Charger le statut depuis projectInfo
   useEffect(() => {
