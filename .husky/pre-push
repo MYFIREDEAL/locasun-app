@@ -1,0 +1,10 @@
+#!/bin/sh
+echo "🔍 EVATIME – Vérification avant PUSH..."
+
+npm run evatime:check || {
+  echo "❌ PUSH BLOQUÉ"
+  echo "❌ EVATIME n'est PAS stable en local."
+  exit 1
+}
+
+echo "🟢 EVATIME OK → Push autorisé."
