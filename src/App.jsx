@@ -720,37 +720,8 @@ function App() {
     return supabaseProjectInfos?.[prospectId]?.[projectType] || {};
   };
 
-  // 🔥 PHASE 2: updateProjectInfo maintenant wrapper vers le hook Supabase
-  // Le hook gère le state local via real-time - pas besoin de setProjectInfosState
-  const updateProjectInfo = async (prospectId, projectType, updater) => {
-    if (!prospectId || !projectType) return;
-    
-    // Calculer finalInfo depuis le state actuel (pour backward compatibility)
-    const prevInfo = supabaseProjectInfos?.[prospectId]?.[projectType] || {};
-    const nextInfoRaw = typeof updater === 'function' ? updater(prevInfo) : { ...prevInfo, ...updater };
-    const finalInfo = nextInfoRaw && typeof nextInfoRaw === 'object'
-      ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
-      : {};
-    
-    // Sauvegarder directement dans Supabase (le hook mettra à jour le state via real-time)
-    try {
-      const { error } = await supabase
-        .from('project_infos')
-        .upsert({
-          prospect_id: prospectId,
-          project_type: projectType,
-          data: finalInfo || {}
-        }, {
-          onConflict: 'prospect_id,project_type'
-        });
-      
-      if (error) {
-        logger.error('Erreur sauvegarde project_infos', { error: error.message });
-      }
-    } catch (err) {
-      logger.error('Erreur updateProjectInfo Supabase', { error: err.message });
-    }
-  };
+  // 🔥 UTILISER DIRECTEMENT LE HOOK - Il gère le real-time automatiquement
+  const updateProjectInfo = updateSupabaseProjectInfo;
 
   // ✅ Fonction wrapper pour compatibilité avec le code existant
   // Maintenant les modifications passent par useSupabaseGlobalPipeline
