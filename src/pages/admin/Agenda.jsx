@@ -23,6 +23,7 @@ import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
+import { logger } from '@/lib/logger';
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -493,7 +494,7 @@ const Appointment = ({ appointment, onAppointmentClick, onDrop }) => {
   const endDate = appointment.end instanceof Date ? appointment.end : new Date(appointment.end);
 
   if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime()) || !(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
-    console.warn('[Agenda] Rendez-vous ignoré car la date est invalide.', appointment);
+    logger.warn('Rendez-vous ignoré - date invalide', { appointmentId: appointment?.id, appointmentTitle: appointment?.title });
     return null;
   }
 
@@ -769,7 +770,7 @@ const AgendaSidebar = ({
             
             // Vérifier que la date est valide
             if (!appointmentDate || isNaN(appointmentDate.getTime())) {
-              console.warn('[AgendaSidebar] RDV ignoré - date invalide:', appointment);
+              logger.warn('AgendaSidebar - RDV ignoré date invalide', { appointmentId: appointment?.id });
               return null;
             }
             
@@ -1099,9 +1100,13 @@ const AddActivityModal = ({
 
     // 🔥 Forcer la mise à jour de assignedUserId quand defaultAssignedUserId change (user connecté chargé)
     useEffect(() => {
-      console.log('🔍 [AddActivityModal useEffect] defaultAssignedUserId:', defaultAssignedUserId, 'assignedUserId:', assignedUserId, 'initialData:', initialData);
+      logger.debug('AddActivityModal useEffect triggered', { 
+        defaultAssignedUserId, 
+        assignedUserId, 
+        hasInitialData: !!initialData 
+      });
       if (defaultAssignedUserId && !assignedUserId && !initialData) {
-        console.log('✅ [AddActivityModal] Setting assignedUserId to:', defaultAssignedUserId);
+        logger.debug('Setting assignedUserId', { userId: defaultAssignedUserId });
         setAssignedUserId(defaultAssignedUserId);
       }
     }, [defaultAssignedUserId, assignedUserId, initialData]);
@@ -1474,7 +1479,7 @@ const Agenda = () => {
         const endDate = appointment?.end instanceof Date ? appointment.end : new Date(appointment?.end);
 
         if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime()) || !(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
-          console.warn('[Agenda] Rendez-vous ignoré car les dates sont invalides.', appointment);
+          logger.warn('Rendez-vous ignoré - dates invalides', { appointmentId: appointment?.id });
           return null;
         }
 
