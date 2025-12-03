@@ -473,18 +473,15 @@ function App() {
         return;
       }
 
-      // 🔥 FLUX 2 - ONBOARDING VIA ADMIN (Magic Link)
-      // Étape A : Récupérer les données d'inscription en attente
-      const pendingSignup = JSON.parse(localStorage.getItem('pendingSignup') || 'null');
-
-      // 2) CLIENT - Étape B : Vérifier si prospect existe via user_id
+      // 🔥 CLIENT - Charger le prospect depuis Supabase
+      // Étape 1 : Chercher par user_id
       let { data: prospect } = await supabase
         .from("prospects")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
 
-      // Étape C : Si pas de prospect avec user_id, chercher par email
+      // Étape 2 : Si pas trouvé par user_id, chercher par email et associer
       if (!prospect) {
         const email = session?.user?.email;
         if (email) {
@@ -494,7 +491,6 @@ function App() {
             .eq("email", email)
             .maybeSingle();
 
-          // Étape D : Si prospect trouvé par email → associer user_id
           if (byEmail) {
             logger.debug('Prospect found by email, linking user_id', { userId });
             await supabase
@@ -503,43 +499,12 @@ function App() {
               .eq("id", byEmail.id);
             
             prospect = { ...byEmail, user_id: userId };
-          } 
-          // Étape E : Si aucun prospect n'existe → créer automatiquement
-          else if (pendingSignup || !byEmail) {
-            logger.debug('No prospect found, creating automatically');
-            
-            // Récupérer le step_id de la première colonne du pipeline
-            const { data: firstStepId } = await supabase.rpc('get_first_pipeline_step_id');
-            const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
-
-            const { data: newProspect, error: insertError } = await supabase
-              .from('prospects')
-              .insert([{
-                name: pendingSignup?.firstname || email.split('@')[0],
-                email: email,
-                user_id: userId,
-                owner_id: DEFAULT_JACK_USER_ID,
-                status: firstStepId || 'default-global-pipeline-step-0',
-                tags: pendingSignup?.projects || [],
-                has_appointment: false,
-              }])
-              .select()
-              .single();
-
-            if (insertError) {
-              logger.error('Erreur création prospect', { error: insertError.message });
-            } else {
-              logger.debug('Prospect created automatically', { prospectId: newProspect?.id });
-              prospect = newProspect;
-            }
+          } else {
+            // Si aucun prospect trouvé, ne rien faire
+            // L'admin doit créer le prospect manuellement
+            logger.debug('No prospect found for this user');
           }
         }
-      }
-
-      // Nettoyer le localStorage après traitement
-      if (pendingSignup) {
-        localStorage.removeItem('pendingSignup');
-        logger.debug('pendingSignup cleaned from localStorage');
       }
 
       if (prospect) {
