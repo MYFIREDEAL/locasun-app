@@ -886,15 +886,18 @@ const ProspectDetailsAdmin = ({
       // Récupérer le statut depuis Supabase
       const { data, error } = await supabase
         .from('project_infos')
-        .select('status')
+        .select('data')
         .eq('prospect_id', prospect.id)
         .eq('project_type', activeProjectTag)
-        .single();
+        .maybeSingle();
       
-      if (data) {
-        setProjectStatus(data.status || 'actif');
-      } else if (!error || error.code === 'PGRST116') {
-        // Si aucune ligne n'existe, créer une avec statut 'actif'
+      if (error) {
+        logger.error('Erreur chargement project status:', error);
+        setProjectStatus('actif');
+      } else if (data?.data?.status) {
+        setProjectStatus(data.data.status);
+      } else {
+        // Si aucune ligne n'existe, statut par défaut 'actif'
         setProjectStatus('actif');
       }
     };
