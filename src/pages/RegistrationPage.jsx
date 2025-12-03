@@ -104,45 +104,37 @@ const RegistrationPage = () => {
       setLoading(true);
       const finalProjects = [...new Set(selectedProjects)];
 
-      // Vérifier si prospect existe déjà
+      // 🔥 ÉTAPE 1: Vérifier si prospect existe déjà
       const { data: existingProspect } = await supabase
         .from('prospects')
         .select('*')
-        .eq('email', formData.email)
+        .eq('email', formData.email.trim())
         .maybeSingle();
 
       if (existingProspect) {
         toast({
           title: "Compte existant",
-          description: "Un compte existe déjà avec cet email. Utilisez la connexion.",
+          description: "Un compte existe déjà avec cet email. Connectez-vous plutôt.",
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      // ÉTAPE 1 : Créer le prospect d'abord
-      // Par défaut, assigner le propriétaire à Jack Luc si aucun affilié détecté
+      // 🔥 ÉTAPE 2: Créer le prospect dans Supabase
       const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
-
-      // 🔥 Récupérer le step_id de la première colonne du pipeline
-      const { data: firstStepId, error: stepError } = await supabase
-        .rpc('get_first_pipeline_step_id');
-      
-      if (stepError) {
-        logger.error('❌ Erreur récupération step_id:', stepError);
-      }
+      const { data: firstStepId } = await supabase.rpc('get_first_pipeline_step_id');
 
       const { data: prospectData, error: prospectError } = await supabase
         .from('prospects')
         .insert([{
           name: formData.name,
-          email: formData.email,
+          email: formData.email.trim(),
           phone: null,
           company_name: null,
           address: '',
           owner_id: affiliateInfo.id || DEFAULT_JACK_USER_ID,
-          status: firstStepId || 'default-global-pipeline-step-0', // ✅ Utilise le step_id de MARKET
+          status: firstStepId || 'default-global-pipeline-step-0',
           tags: finalProjects,
           has_appointment: false,
           affiliate_name: affiliateInfo.name || 'Jack Luc',
@@ -151,53 +143,33 @@ const RegistrationPage = () => {
         .single();
 
       if (prospectError) {
-        logger.error('❌ Erreur création prospect:', prospectError);
         throw prospectError;
       }
 
-      console.log('✅ Prospect créé:', prospectData);
-
-      // 🔥 FLUX 1 - INSCRIPTION INSTANTANÉE (sans attendre Magic Link)
-      // Stocker les données en attente pour App.jsx
-      localStorage.setItem('pendingSignup', JSON.stringify({
-        firstname: formData.name,
-        email: formData.email,
-        projects: finalProjects,
-        prospectId: prospectData.id
-      }));
-
-      // ÉTAPE 2 : Créer l'utilisateur Auth ET authentifier immédiatement
-      const { data: signUpData, error: signUpError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
+      // 🔥 ÉTAPE 3: Envoyer le Magic Link
+      const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+        email: formData.email.trim(),
         options: {
-          shouldCreateUser: true, // ✅ Créer le user Auth
+          shouldCreateUser: true,
           emailRedirectTo: `${window.location.origin}/dashboard`,
         }
       });
 
-      if (signUpError) {
-        logger.error('❌ Erreur création Auth + OTP:', signUpError);
-        throw signUpError;
+      if (magicLinkError) {
+        throw magicLinkError;
       }
-
-      console.log('✅ Auth user créé + OTP envoyé:', signUpData);
 
       sessionStorage.removeItem('affiliateUser');
 
-      // 🔥 REDIRECTION INSTANTANÉE (ne pas attendre le Magic Link)
+      // ✅ AFFICHER LE MESSAGE "MAGIC LINK ENVOYÉ"
+      setMagicLinkSent(true);
       toast({
-        title: "✅ Compte créé avec succès !",
-        description: "Redirection vers votre espace client...",
+        title: "✅ Compte créé !",
+        description: "Un email vous a été envoyé. Cliquez sur le lien pour accéder à votre espace.",
         className: "bg-green-500 text-white",
-        duration: 3000,
+        duration: 5000,
       });
-
-      // Redirection directe vers le dashboard (App.jsx détectera pendingSignup)
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
     } catch (error) {
-      logger.error('❌ Erreur inscription:', error);
       toast({
         title: "Erreur",
         description: error.message || "Une erreur est survenue lors de l'inscription.",
