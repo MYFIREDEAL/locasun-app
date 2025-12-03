@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour charger TOUS les utilisateurs depuis Supabase
@@ -20,7 +21,7 @@ export const useSupabaseUsers = () => {
         
         // 🔥 FIX: Si pas de session, ne pas appeler la RPC
         if (!session) {
-          console.warn('⚠️ useSupabaseUsers: Pas de session Supabase active');
+          console.warn('useSupabaseUsers: No active Supabase session');
           setUsers([]);
           setLoading(false);
           return;
@@ -32,11 +33,11 @@ export const useSupabaseUsers = () => {
           .rpc('get_accessible_users');
 
         if (fetchError) {
-          console.error('❌ useSupabaseUsers RPC error:', fetchError);
+          console.error('useSupabaseUsers RPC error:', fetchError);
           throw fetchError;
         }
         
-        console.log('✅ useSupabaseUsers loaded:', data?.length || 0, 'users');
+        logger.debug('useSupabaseUsers loaded', { count: data?.length || 0 });
         setUsers(data || []);
       } catch (err) {
         console.error('❌ Erreur chargement utilisateurs:', err);

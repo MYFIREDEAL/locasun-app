@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
+import { logger } from '@/lib/logger';
 
 export function useSupabaseProjectFiles({ projectType, prospectId, enabled = true }) {
   const [files, setFiles] = useState([]);
@@ -54,7 +55,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
           filter: `project_type=eq.${projectType}`,
         },
         (payload) => {
-          console.log("🔥 Realtime event:", payload.eventType, payload);
+          logger.debug('Realtime event', { eventType: payload.eventType });
           
           setFiles((current) => {
             const { eventType, new: newRow, old: oldRow } = payload;
@@ -65,7 +66,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
             
             if (eventType === "DELETE") {
               const idToDelete = oldRow?.id || payload.old?.id;
-              console.log("🗑️ Deleting file with id:", idToDelete);
+              logger.debug('Deleting file', { id: idToDelete });
               return current.filter((f) => f.id !== idToDelete);
             }
             

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { logger } from '@/lib/logger';
 
 export function useSupabaseProjectHistory({ projectType, prospectId, enabled = true }) {
   const [history, setHistory] = useState([]);
@@ -106,12 +107,12 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
   const addProjectEvent = useCallback(
     async ({ prospectId, projectType, title, description, createdBy }) => {
       if (!projectType || !prospectId) {
-        console.error('❌ [addProjectEvent] prospectId et projectType requis');
+        console.error('prospectId and projectType required');
         return { success: false, error: 'Paramètres manquants' };
       }
 
       try {
-        console.log('➕ [addProjectEvent] Ajout événement:', { prospectId, projectType, title });
+        logger.debug('Adding project event', { prospectId, projectType, title });
 
         const { data, error } = await supabase
           .from("project_history")
@@ -129,11 +130,11 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
           .single();
 
         if (error) {
-          console.error('❌ [addProjectEvent] Erreur Supabase:', error.message);
+          console.error('Supabase error:', error.message);
           throw error;
         }
 
-        console.log('✅ [addProjectEvent] Événement créé:', data.id);
+        logger.debug('Project event created', { eventId: data.id });
         return { success: true, data };
 
       } catch (err) {

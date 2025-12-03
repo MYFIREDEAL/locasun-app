@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { logger } from '@/lib/logger'
 
 /**
  * Hook pour gérer les notifications admin avec Supabase
@@ -97,11 +98,11 @@ export function useSupabaseNotifications(userId) {
       const { prospectId, projectType, prospectName, projectName, ownerId } = notificationData
 
       if (!ownerId) {
-        console.error('❌ ownerId is REQUIRED for notifications');
+        console.error('ownerId is REQUIRED for notifications');
         return;
       }
 
-      console.log('🔍 [Admin Notif] Checking existing notification for:', { prospectId, projectType });
+      logger.debug('Checking existing notification', { prospectId, projectType });
 
       // Vérifier si notification existe déjà (non lue)
       const { data: existing, error: selectError } = await supabase
@@ -112,7 +113,7 @@ export function useSupabaseNotifications(userId) {
         .eq('read', false)
         .maybeSingle()
 
-      console.log('🔍 [Admin Notif] Existing notification:', existing, 'Error:', selectError);
+      logger.debug('Existing notification check', { found: !!existing, error: !!selectError });
 
       if (selectError) {
         console.error('❌ Error checking existing notification:', selectError);
@@ -121,7 +122,7 @@ export function useSupabaseNotifications(userId) {
 
       if (existing) {
         // Incrémenter le count
-        console.log('✅ [Admin Notif] Incrementing count from', existing.count, 'to', existing.count + 1);
+        logger.debug('Incrementing notification count', { from: existing.count, to: existing.count + 1 });
         const { error } = await supabase
           .from('notifications')
           .update({ 
@@ -131,13 +132,13 @@ export function useSupabaseNotifications(userId) {
           .eq('id', existing.id)
 
         if (error) {
-          console.error('❌ Error updating notification:', error);
+          console.error('Error updating notification:', error);
           throw error;
         }
-        console.log('✅ [Admin Notif] Count incremented successfully');
+        logger.debug('Notification count incremented successfully');
       } else {
         // Créer nouvelle notification avec owner_id
-        console.log('➕ [Admin Notif] Creating new notification with count=1');
+        logger.debug('Creating new notification with count=1');
         const { error } = await supabase
           .from('notifications')
           .insert({
@@ -151,10 +152,10 @@ export function useSupabaseNotifications(userId) {
           })
 
         if (error) {
-          console.error('❌ Error creating notification:', error);
+          console.error('Error creating notification:', error);
           throw error;
         }
-        console.log('✅ [Admin Notif] New notification created');
+        logger.debug('New notification created');
       }
     } catch (error) {
       console.error('Error creating/updating notification:', error)

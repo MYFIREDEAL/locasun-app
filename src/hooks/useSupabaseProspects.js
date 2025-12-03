@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook personnalisé pour gérer les prospects via Supabase
@@ -20,7 +21,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       // 🔥 Vérifier si une session existe
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.warn('⚠️ [useSupabaseProspects] Pas de session - skip chargement prospects');
+        console.warn('[useSupabaseProspects] No session - skipping prospects loading');
         setProspects([]);
         setLoading(false);
         return;
@@ -31,7 +32,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       const { data, error: fetchError } = await supabase.rpc('get_prospects_safe');
 
       if (fetchError) {
-        console.error('❌ Fetch error:', fetchError);
+        console.error('Fetch error:', fetchError);
         throw fetchError;
       }
 
@@ -54,7 +55,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         updatedAt: prospect.updated_at,
       }));
 
-      console.log('🔍 [useSupabaseProspects] Prospects chargés:', transformedProspects.length, 'prospects');
+      logger.debug('Prospects fetched', { count: transformedProspects.length });
       setProspects(transformedProspects);
       setError(null);
     } catch (err) {
@@ -72,12 +73,12 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
   // Charger au montage et quand l'utilisateur change
   useEffect(() => {
-    console.log('🔍 [useSupabaseProspects] useEffect triggered, activeAdminUser:', activeAdminUser?.id, activeAdminUser?.name);
+    logger.debug('useSupabaseProspects initialized', { activeAdmin: activeAdminUser?.name });
     if (activeAdminUser) {
-      console.log('🔍 [useSupabaseProspects] Fetching prospects...');
+      logger.debug('Fetching prospects...');
       fetchProspects();
     } else {
-      console.warn('⚠️ No activeAdminUser, skipping fetchProspects');
+      console.warn('No activeAdminUser, skipping fetchProspects');
       setLoading(false);
     }
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
@@ -151,7 +152,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       )
       .on('broadcast', { event: 'prospect-updated' }, (payload) => {
         // 🔥 Écouter les broadcasts manuels (quand un client modifie son profil)
-        console.log('📡 [useSupabaseProspects] Broadcast manual UPDATE received:', payload.payload);
+        logger.debug('Broadcast manual UPDATE received', { id: payload.payload?.id });
         setProspects(prev => prev.map(p => p.id === payload.payload.id ? payload.payload : p));
       })
       .subscribe();
@@ -171,15 +172,15 @@ export const useSupabaseProspects = (activeAdminUser) => {
     const broadcastChannel = supabase
       .channel('prospects-broadcast-global')
       .on('broadcast', { event: 'prospect-updated' }, (payload) => {
-        console.log('📡 [useSupabaseProspects] GLOBAL Broadcast received:', payload.payload);
+        logger.debug('GLOBAL Broadcast received', { id: payload.payload?.id });
         // Mettre à jour la liste prospects (pas besoin de if activeAdminUser, on met toujours à jour)
         // 🔥 Créer un nouvel objet pour forcer React à détecter le changement
         setProspects(prev => {
-          console.log('🔄 [useSupabaseProspects] Avant update:', prev.find(p => p.id === payload.payload.id)?.name);
+          logger.debug('Before update', { name: prev.find(p => p.id === payload.payload.id)?.name });
           const updated = prev.map(p => 
             p.id === payload.payload.id ? { ...payload.payload } : p
           );
-          console.log('✅ [useSupabaseProspects] Après update:', updated.find(p => p.id === payload.payload.id)?.name);
+          logger.debug('After update', { name: updated.find(p => p.id === payload.payload.id)?.name });
           return updated;
         });
       })
@@ -202,8 +203,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
       
-      console.log('🔍 [useSupabaseProspects] Auth user:', user?.id, user?.email);
-      console.log('🔍 [useSupabaseProspects] Session:', session?.access_token ? 'PRÉSENTE' : 'ABSENTE');
+      logger.debug('Auth user', { id: user?.id, email: user?.email });
+      logger.debug('Session status', { hasSession: !!session?.access_token });
       
       if (!user) {
         throw new Error("Utilisateur non authentifié");
@@ -216,10 +217,10 @@ export const useSupabaseProspects = (activeAdminUser) => {
         .eq('user_id', user.id)
         .single();
       
-      console.log('🔍 [useSupabaseProspects] User dans table users:', JSON.stringify(userData), 'Error:', userCheckError);
+      logger.debug('User in users table', { userData, error: userCheckError });
       
       if (userCheckError || !userData) {
-        console.error('❌ User pas trouvé dans table users:', userCheckError);
+        console.error('User not found in users table:', userCheckError);
         throw new Error('Utilisateur non autorisé à créer des prospects');
       }
 
@@ -229,7 +230,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       // 🔥 UTILISER LA FONCTION RPC AU LIEU DE L'INSERT DIRECT
       // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies
-      console.log('🔍 [useSupabaseProspects] Utilisation de la fonction RPC insert_prospect_safe');
+      logger.debug('Using RPC insert_prospect_safe');
       
       // ⚠️ Ne plus utiliser 'Intéressé' en fallback - le status doit venir de l'appelant
       // qui utilise le step_id de la première colonne du globalPipelineSteps
@@ -249,7 +250,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       // La fonction RPC retourne un objet JSON, on le parse
       const data = rpcResult;
-      console.log('🔍 [useSupabaseProspects] RPC result:', data);
+      logger.debug('RPC result', { prospectId: data?.id });
 
       // Transformer et ajouter à la liste locale
       const transformed = {
@@ -280,7 +281,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       // 🔥 ENVOYER UN MAGIC LINK AU PROSPECT (passwordless, comme inscription client)
       try {
-        console.log('📧 [useSupabaseProspects] Envoi Magic Link à', data.email);
+        logger.debug('Sending Magic Link', { email: data.email });
         
         // Envoyer le Magic Link (crée automatiquement le user auth si inexistant)
         const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
@@ -292,7 +293,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         });
 
         if (magicLinkError) {
-          console.error('❌ Erreur envoi Magic Link:', magicLinkError);
+          console.error('Magic Link send error:', magicLinkError);
           
           // Afficher un toast informatif (ne pas bloquer la création du prospect)
           toast({
@@ -309,13 +310,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
               .eq('id', data.id);
             
             if (updateError) {
-              console.error('⚠️ Erreur liaison user_id:', updateError);
+              console.error('Error linking user_id:', updateError);
             } else {
-              console.log('✅ Prospect lié au user_id:', otpData.user.id);
+              logger.debug('Prospect linked to user_id', { userId: otpData.user.id });
             }
           }
           
-          console.log('✅ Magic Link envoyé à', data.email);
+          logger.debug('Magic Link sent', { email: data.email });
           
           // Toast de succès avec info email
           toast({
@@ -325,7 +326,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
           });
         }
       } catch (emailErr) {
-        console.error('⚠️ Erreur envoi Magic Link:', emailErr);
+        console.error('Magic Link send error:', emailErr);
         // Ne pas bloquer si l'email échoue - le prospect est créé
       }
 
@@ -345,20 +346,22 @@ export const useSupabaseProspects = (activeAdminUser) => {
   const updateProspect = async (idOrProspect, updatesParam) => {
     try {
       // Support des deux formats : updateProspect(id, updates) OU updateProspect({ id, ...data })
-      console.log('🔍 [updateProspect] idOrProspect:', typeof idOrProspect, idOrProspect);
-      console.log('🔍 [updateProspect] updatesParam:', typeof updatesParam, updatesParam);
+      logger.debug('updateProspect called', { 
+        idType: typeof idOrProspect, 
+        updatesType: typeof updatesParam 
+      });
       
       let id, updates;
       if (typeof idOrProspect === 'object' && idOrProspect.id) {
         // Format objet complet
         id = idOrProspect.id;
         updates = idOrProspect;
-        console.log('🔍 [updateProspect] Mode objet complet');
+        logger.debug('Update mode: full object');
       } else {
         // Format séparé (id, updates)
         id = idOrProspect;
         updates = updatesParam;
-        console.log('🔍 [updateProspect] Mode séparé (id, updates)');
+        logger.debug('Update mode: separate params');
       }
       
       // Transformer les clés du format app vers le format DB
@@ -377,10 +380,10 @@ export const useSupabaseProspects = (activeAdminUser) => {
       if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 Réponses aux formulaires
 
       // 🔥 DEBUG : Log des données envoyées à la RPC
-      console.log('🔍 [updateProspect] Prospect ID:', id);
-      console.log('🔍 [updateProspect] Updates reçus:', updates);
-      console.log('🔍 [updateProspect] dbUpdates (snake_case):', dbUpdates);
-      console.log('🔍 [updateProspect] dbUpdates stringifié:', JSON.stringify(dbUpdates));
+      logger.debug('Preparing update', { 
+        prospectId: id, 
+        fieldsUpdated: Object.keys(dbUpdates) 
+      });
 
       // 🔥 DÉTECTER SI C'EST UN CLIENT OU UN ADMIN
       const { data: { user } } = await supabase.auth.getUser();
@@ -394,7 +397,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       if (adminCheck) {
         // 🔥 ADMIN : Utiliser update_prospect_safe (avec vérification des droits)
-        console.log('🔍 [updateProspect] Mode ADMIN - RPC update_prospect_safe');
+        logger.debug('Update mode: ADMIN - using update_prospect_safe');
         const result = await supabase.rpc('update_prospect_safe', {
           _prospect_id: id,
           _data: dbUpdates
@@ -403,7 +406,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         updateError = result.error;
       } else {
         // 🔥 CLIENT : Utiliser update_own_prospect_profile (sans prospect_id)
-        console.log('🔍 [updateProspect] Mode CLIENT - RPC update_own_prospect_profile');
+        logger.debug('Update mode: CLIENT - using update_own_prospect_profile');
         const result = await supabase.rpc('update_own_prospect_profile', {
           _data: dbUpdates
         });
@@ -412,12 +415,12 @@ export const useSupabaseProspects = (activeAdminUser) => {
       }
 
       if (updateError) {
-        console.error('❌ [updateProspect] RPC Error:', updateError);
-        console.error('❌ [updateProspect] Error details:', JSON.stringify(updateError));
+        console.error('RPC Error:', updateError);
+        console.error('Error details:', JSON.stringify(updateError));
         throw updateError;
       }
 
-      console.log('✅ [updateProspect] RPC Success:', data);
+      logger.debug('RPC Success', { prospectId: id });
 
       // 🔥 Mettre à jour immédiatement le state local avec les données retournées
       if (data && data.length > 0) {
@@ -442,11 +445,11 @@ export const useSupabaseProspects = (activeAdminUser) => {
         setProspects(prev => 
           prev.map(p => p.id === id ? transformedProspect : p)
         );
-        console.log('✅ [updateProspect] State local mis à jour immédiatement');
+        logger.debug('Local state updated immediately');
 
         // 🔥 Si c'est un CLIENT qui modifie, broadcaster manuellement aux autres utilisateurs
         if (!adminCheck && channelRef.current) {
-          console.log('📡 [updateProspect] Broadcasting manual update to other users...');
+          logger.debug('Broadcasting manual update to other users');
           // Envoyer un broadcast personnalisé pour notifier les autres utilisateurs
           channelRef.current.send({
             type: 'broadcast',

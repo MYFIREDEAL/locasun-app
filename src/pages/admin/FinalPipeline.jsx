@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '@/App';
+import { logger } from '@/lib/logger';
 import ProspectCard from '@/components/admin/ProspectCard';
 import SkeletonCard from '@/components/admin/SkeletonCard';
 import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
@@ -83,7 +84,7 @@ const FinalPipeline = () => {
   /* useEffect(() => {
     if (!selectedProspectId) return;
 
-    console.log('🔌 [FinalPipeline] Setting up real-time channel for prospect:', selectedProspect.id);
+    logger.debug('[FinalPipeline] Setting up real-time channel', { prospectId: selectedProspect.id });
 
     const channel = supabase
       .channel(`pipeline-prospect-detail-${selectedProspect.id}`)
@@ -93,7 +94,7 @@ const FinalPipeline = () => {
         table: 'prospects',
         filter: `id=eq.${selectedProspect.id}`
       }, (payload) => {
-        console.log('� [FinalPipeline] Real-time UPDATE received:', payload);
+        logger.debug('[FinalPipeline] Real-time UPDATE received', { prospectId: payload.new?.id });
         
         // Transformation Supabase → App (snake_case → camelCase)
         const transformedData = {
@@ -114,7 +115,7 @@ const FinalPipeline = () => {
         };
 
         // Pas besoin de setSelectedProspect - le useMemo le fait automatiquement
-        console.log('🔄 [FinalPipeline] Real-time: selectedProspect mis à jour via context');
+        logger.debug('[FinalPipeline] selectedProspect updated via context');
       })
       .subscribe();
 
@@ -297,7 +298,7 @@ const FinalPipeline = () => {
       return allowedUserIds.includes(prospect.ownerId);
     });
 
-    console.log('🔍 [FinalPipeline] Total prospects:', prospects.length, '| Visible après filtrage:', visibleProspects.length);
+    logger.debug('[FinalPipeline] Prospects count', { total: prospects.length, visible: visibleProspects.length });
 
     // Filtrer par tags (si au moins un tag sélectionné)
     let filtered = visibleProspects;

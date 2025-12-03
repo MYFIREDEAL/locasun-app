@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour gérer les opérations CRUD sur les utilisateurs PRO (public.users)
@@ -202,7 +203,7 @@ export const useSupabaseUsersCRUD = () => {
       const idField = isUUID ? 'user_id' : 'id';
       const idValue = userIdOrPk;
       
-      console.log(`🔍 [updateUser] idField: ${idField}, idValue: ${idValue}`);
+      logger.debug('updateUser called', { idField, idValue });
       
       // Préparer les données pour Supabase (snake_case)
       const dbUpdates = {};
@@ -214,15 +215,15 @@ export const useSupabaseUsersCRUD = () => {
       if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl;
       if (updates.accessRights !== undefined) {
         dbUpdates.access_rights = updates.accessRights;
-        console.log('🔍 [updateUser] access_rights envoyé:', JSON.stringify(updates.accessRights));
+        logger.debug('access_rights sent', { hasRights: !!updates.accessRights });
       }
       
       // Gérer manager_id si "manager" est fourni (nom du manager)
       if (updates.manager !== undefined) {
-        console.log('🔍 [updateUser] Manager reçu:', updates.manager);
+        logger.debug('Manager received', { manager: updates.manager });
         if (updates.manager === '' || updates.manager === 'none') {
           dbUpdates.manager_id = null;
-          console.log('🔍 [updateUser] Manager = null (aucun manager)');
+          logger.debug('Manager set to null');
         } else {
           // 🔥 FIX : manager_id doit être un UUID (user_id), pas un integer (id)
           const { data: managerData, error: managerError } = await supabase
@@ -231,16 +232,15 @@ export const useSupabaseUsersCRUD = () => {
             .eq('name', updates.manager)
             .single();
           
-          console.log('🔍 [updateUser] Recherche manager par nom:', updates.manager);
-          console.log('🔍 [updateUser] Manager trouvé:', managerData);
+          logger.debug('Searching manager by name', { manager: updates.manager, found: !!managerData });
           
           if (managerError) {
-            console.error('❌ [updateUser] Erreur recherche manager:', managerError);
+            console.error('Manager search error:', managerError);
           }
           
           if (managerData) {
             dbUpdates.manager_id = managerData.user_id;
-            console.log('✅ [updateUser] manager_id assigné:', managerData.user_id);
+            logger.debug('manager_id assigned', { managerId: managerData.user_id });
           }
         }
       }
@@ -248,13 +248,13 @@ export const useSupabaseUsersCRUD = () => {
       // Ajouter updated_at
       dbUpdates.updated_at = new Date().toISOString();
 
-      console.log('🔍 [updateUser] dbUpdates final:', JSON.stringify(dbUpdates));
+      logger.debug('Final dbUpdates', { fields: Object.keys(dbUpdates) });
 
       let data, updateError;
 
       // 🔥 Si on modifie access_rights, utiliser la RPC function pour bypass RLS
       if (updates.accessRights !== undefined) {
-        console.log('🔍 [updateUser] Utilisation RPC pour access_rights');
+        logger.debug('Using RPC for access_rights');
         const rpcResult = await supabase.rpc('update_user_access_rights', {
           target_user_id: idValue,
           new_access_rights: updates.accessRights
@@ -272,8 +272,7 @@ export const useSupabaseUsersCRUD = () => {
         updateError = result.error;
       }
 
-      console.log('🔍 [updateUser] Supabase response data:', data);
-      console.log('🔍 [updateUser] Supabase response error:', updateError);
+      logger.debug('Supabase response', { hasData: !!data, hasError: !!updateError });
 
       if (updateError) throw updateError;
       

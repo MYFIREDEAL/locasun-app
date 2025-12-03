@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour gérer les prompts Charly AI via Supabase
@@ -40,7 +41,7 @@ export function useSupabasePrompts() {
         if (error) throw error;
 
         const transformed = transformFromDB(data || []);
-        console.log('✅ Prompts loaded from Supabase:', Object.keys(transformed).length);
+        logger.debug('Prompts loaded', { count: Object.keys(transformed).length });
         setPrompts(transformed);
         setError(null);
       } catch (err) {
@@ -54,7 +55,7 @@ export function useSupabasePrompts() {
     fetchPrompts();
 
     // Real-time subscription
-    console.log('🔥 Setting up real-time subscription for prompts...');
+    logger.debug('Setting up real-time subscription for prompts');
     const channel = supabase
       .channel(`prompts-changes-${Math.random().toString(36).slice(2)}`)
       .on(
@@ -65,7 +66,7 @@ export function useSupabasePrompts() {
           table: 'prompts',
         },
         (payload) => {
-          console.log('🔔 Real-time prompts EVENT:', payload.eventType, payload);
+          logger.debug('Real-time prompts event', { eventType: payload.eventType });
 
           if (payload.eventType === 'INSERT') {
             const newPrompt = payload.new;
@@ -105,11 +106,11 @@ export function useSupabasePrompts() {
         }
       )
       .subscribe((status) => {
-        console.log('📡 Prompts subscription status:', status);
+        logger.debug('Prompts subscription status', { status });
       });
 
     return () => {
-      console.log('🔌 Unsubscribing from prompts real-time...');
+      logger.debug('Unsubscribing from prompts real-time');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -133,10 +134,10 @@ export function useSupabasePrompts() {
 
       if (error) throw error;
 
-      console.log('✅ Prompt saved to Supabase:', data);
+      logger.debug('Prompt saved to Supabase', { promptId: data?.prompt_id });
       return { success: true, data };
     } catch (err) {
-      console.error('❌ Error saving prompt:', err);
+      console.error('Error saving prompt:', err);
       return { success: false, error: err.message };
     }
   };
@@ -151,7 +152,7 @@ export function useSupabasePrompts() {
 
       if (error) throw error;
 
-      console.log('✅ Prompt deleted from Supabase:', promptId);
+      logger.debug('Prompt deleted from Supabase', { promptId });
       return { success: true };
     } catch (err) {
       console.error('❌ Error deleting prompt:', err);

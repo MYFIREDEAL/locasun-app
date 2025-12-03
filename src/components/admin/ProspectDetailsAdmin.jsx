@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
+import { logger } from '@/lib/logger';
 import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, FileText, Download, Edit, Save, X, Building, User, Send, Paperclip, Bot, Tag, GripVertical, Hash, Calendar, Check, Users, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -490,67 +491,65 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
                 const timeSinceSubmission = now - submittedTime;
                 
                 if (timeSinceSubmission > 10000) { // Plus de 10 secondes
-                    console.log('⏭️ [ProspectForms] Formulaire trop ancien, skip auto-complete:', {
+                    logger.debug('Form too old, skipping auto-complete', {
                         panelId: panel.panelId,
-                        timeSinceSubmission: `${Math.floor(timeSinceSubmission / 1000)}s`
+                        ageSeconds: Math.floor(timeSinceSubmission / 1000)
                     });
                     setProcessedPanels(prev => new Set([...prev, panel.panelId]));
                     return;
                 }
             }
 
-            console.log('🎯 [ProspectForms] Nouveau formulaire soumis détecté:', {
+            logger.debug('New submitted form detected', {
                 panelId: panel.panelId,
                 formId: panel.formId,
-                projectType: panel.projectType,
-                stepIndex: panel.currentStepIndex,
-                promptId: panel.promptId
+                projectType: panel.projectType
             });
 
-            console.log('🔍 [ProspectForms] Prompts disponibles:', {
-                count: Object.keys(prompts).length,
-                promptIds: Object.keys(prompts),
-                prompts: Object.values(prompts).map(p => ({ 
-                    id: p.id, 
-                    name: p.name, 
-                    projectId: p.projectId 
-                }))
+            logger.debug('Available prompts', {
+                count: Object.keys(prompts).length
             });
 
             // Chercher le prompt associé
             let relatedPrompt = null;
             
             if (panel.promptId) {
-                console.log('🔍 [ProspectForms] Recherche par promptId:', panel.promptId);
+                logger.debug('Searching by promptId', { promptId: panel.promptId });
                 relatedPrompt = prompts[panel.promptId];
-                console.log('🔍 [ProspectForms] Résultat recherche par ID:', relatedPrompt?.name);
+                logger.debug('Search result by ID', { found: !!relatedPrompt });
             }
             
             if (!relatedPrompt) {
-                console.log('🔍 [ProspectForms] Recherche par projectType + formId');
+                logger.debug('Searching by projectType + formId');
                 relatedPrompt = Object.values(prompts).find((pr) => {
-                    console.log('🔍 [ProspectForms] Test prompt:', pr.name, 'projectId:', pr.projectId, 'vs', panel.projectType);
+                    logger.debug('Testing prompt', { 
+                        name: pr.name, 
+                        projectId: pr.projectId,
+                        target: panel.projectType 
+                    });
                     if (pr.projectId !== panel.projectType) return false;
                     
                     const stepConfig = pr.stepsConfig?.[panel.currentStepIndex];
-                    console.log('🔍 [ProspectForms] stepConfig:', stepConfig);
+                    logger.debug('Step config', { hasConfig: !!stepConfig });
                     
                     const hasFormAction = stepConfig?.actions?.some(
                         (action) => action.type === 'show_form' && action.formId === panel.formId
                     );
-                    console.log('🔍 [ProspectForms] hasFormAction:', hasFormAction);
+                    logger.debug('Has form action', { hasFormAction });
                     
                     return hasFormAction;
                 });
             }
 
-            console.log('🔍 [ProspectForms] Prompt trouvé:', relatedPrompt?.name);
-            console.log('🔍 [ProspectForms] autoCompleteStep:', relatedPrompt?.stepsConfig?.[panel.currentStepIndex]?.autoCompleteStep);
+            logger.debug('Prompt found', { 
+                name: relatedPrompt?.name,
+                autoComplete: relatedPrompt?.stepsConfig?.[panel.currentStepIndex]?.autoCompleteStep 
+            });
 
             if (relatedPrompt) {
                 const stepConfig = relatedPrompt.stepsConfig?.[panel.currentStepIndex];
                 if (stepConfig?.autoCompleteStep) {
-                    console.log('🚀 [ProspectForms] Déclenchement completeStepAndProceed pour:', prospect.name);
+                    logger.debug('Triggering completeStepAndProceed', { prospect: prospect.name });
                     completeStepAndProceed(prospect.id, panel.projectType, panel.currentStepIndex);
                     
                     toast({
@@ -618,7 +617,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             }
         };
         
-        console.log('🔍 [handleSave] updatedFormData:', updatedFormData);
+        logger.debug('Updating form data', { projectType, formId });
         
         // Mettre à jour dans Supabase
         const { error } = await supabase
@@ -800,8 +799,7 @@ const ProspectDetailsAdmin = ({
   
   // 🔥 SYNCHRONISER editableProspect avec prospect (real-time updates)
   useEffect(() => {
-    console.log('🔄 [ProspectDetailsAdmin] prospect updated via real-time:', prospect.form_data);
-    console.log('🔄 [ProspectDetailsAdmin] prospect prop changed:', prospect.name);
+    logger.debug('Prospect updated via real-time', { name: prospect.name });
     setEditableProspect(prospect);
   }, [prospect]);
   
@@ -858,14 +856,14 @@ const ProspectDetailsAdmin = ({
   useEffect(() => {
     const urlProjectType = searchParams.get('project');
     if (urlProjectType && urlProjectType !== activeProjectTag && prospect.tags?.includes(urlProjectType)) {
-      console.log('🎯 [ProspectDetailsAdmin] Opening project from URL:', urlProjectType);
+      logger.debug('Opening project from URL', { projectType: urlProjectType });
       setActiveProjectTag(urlProjectType);
     }
   }, [searchParams, prospect.tags]);
 
   // 🔥 FIX: Synchroniser le state quand la prop change (pattern du chat)
   useEffect(() => {
-    console.log('🔄 [ProspectDetailsAdmin] prospect prop changed:', prospect.name);
+    logger.debug('Prospect prop changed', { name: prospect.name });
     setEditableProspect(prospect);
   }, [prospect]);
 
@@ -1207,9 +1205,9 @@ const ProspectDetailsAdmin = ({
           // Sauvegarder dans Supabase via le hook
           await updateSupabaseSteps(projectType, initialSteps);
           
-          console.log('✅ Étapes initialisées dans Supabase pour', projectType);
+          logger.debug('Steps initialized in Supabase', { projectType });
         } catch (error) {
-          console.error('❌ Erreur initialisation steps:', error);
+          console.error('Steps initialization error:', error);
         }
       }
       

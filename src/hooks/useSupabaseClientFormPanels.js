@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour gérer les formulaires envoyés aux clients via Supabase
@@ -46,11 +47,11 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         // 🔥 Vérifier si une session existe avant de faire des requêtes
         const { data: { session } } = await supabase.auth.getSession();
         
-        console.log('🔍 [useSupabaseClientFormPanels] Chargement avec prospectId:', prospectId);
+        logger.debug('Loading client form panels', { prospectId });
         
         // Si pas de session active, ne charger aucune donnée (ex: page inscription)
         if (!session) {
-          console.log('⚠️ [useSupabaseClientFormPanels] Pas de session - skip chargement');
+          logger.debug('No session - skipping form panels loading');
           setFormPanels([]);
           setLoading(false);
           return;
@@ -63,21 +64,21 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         
         if (prospectId) {
           query = query.eq('prospect_id', prospectId);
-          console.log('🔍 [useSupabaseClientFormPanels] Filtre appliqué: prospect_id =', prospectId);
+          logger.debug('Filter applied', { prospectId });
         } else {
-          console.log('🔍 [useSupabaseClientFormPanels] Pas de filtre (mode admin)');
+          logger.debug('No filter (admin mode)');
         }
         
         const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) {
-          console.error('❌ [useSupabaseClientFormPanels] Erreur Supabase SELECT:', error.message);
+          console.error('Supabase SELECT error:', error.message);
           throw error;
         }
 
-        console.log('📋 [useSupabaseClientFormPanels] Données brutes Supabase:', data?.length || 0, 'formulaires');
+        logger.debug('Form panels loaded', { raw: data?.length || 0 });
         const transformed = Array.isArray(data) ? data.map(transformFromDB) : [];
-        console.log('📋 [useSupabaseClientFormPanels] Données transformées:', transformed.length, 'formulaires');
+        logger.debug('Form panels transformed', { count: transformed.length });
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
@@ -206,12 +207,10 @@ export function useSupabaseClientFormPanels(prospectId = null) {
   // 🔥 AJOUT : Créer un nouveau formulaire dans Supabase
   const createFormPanel = async (panelData) => {
     try {
-      console.log('➕ [createFormPanel] Création formulaire:', {
+      logger.debug('Creating form panel', {
         prospectId: panelData.prospectId,
         projectType: panelData.projectType,
-        formId: panelData.formId,
-        status: panelData.status || 'pending',
-        stepName: panelData.stepName
+        formId: panelData.formId
       });
 
       const { error } = await supabase
@@ -229,14 +228,14 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         });
 
       if (error) {
-        console.error('❌ [createFormPanel] Erreur Supabase INSERT:', error.message);
+        console.error('Supabase INSERT error:', error.message);
         throw error;
       }
       
-      console.log('✅ [createFormPanel] Formulaire créé avec succès');
+      logger.debug('Form panel created successfully');
       return { success: true };
     } catch (err) {
-      console.error('❌ [createFormPanel] Exception insertion:', err.message || err);
+      console.error('Form panel insertion error:', err.message || err);
       return { success: false, error: err.message || 'Erreur inconnue' };
     }
   };

@@ -23,6 +23,7 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage';
 // ✅ allProjectsData maintenant chargé depuis Supabase (project_templates table)
 import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
@@ -220,10 +221,12 @@ function App() {
   
   // 🔥 Logs seulement si session active (éviter spam lors de l'inscription)
   if (session) {
-    console.log('🔍 [App.jsx] isClientRoute:', isClientRoute);
-    console.log('🔍 [App.jsx] activeAdminUser:', activeAdminUser?.user_id, activeAdminUser?.name, activeAdminUser?.role);
-    console.log('🔍 [App.jsx] currentUser pour forms:', currentUser?.id, currentUser?.name);
-    console.log('🔍 [App.jsx] prospectIdForForms:', prospectIdForForms);
+    logger.debug('App routing info', { 
+      isClientRoute, 
+      activeAdmin: activeAdminUser?.name,
+      currentUser: currentUser?.name,
+      prospectIdForForms 
+    });
   }
   
   const {
@@ -357,7 +360,7 @@ function App() {
     // Supabase gère maintenant automatiquement les tokens du Magic Link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log("🔐 AUTH EVENT:", event, session?.user?.email || "aucune");
+        logger.debug('Auth event', { event, email: session?.user?.email });
         setSession(session ?? null);
       }
     );
@@ -368,14 +371,14 @@ function App() {
       const initialSession = data.session;
       
       if (!initialSession) {
-        console.log("⏳ SESSION INITIALE: aucune - Attente évènement AUTH...");
+        logger.debug('No initial session - waiting for auth event');
         // ❌ Ne pas setSession(null) ici, on attend l'événement SIGNED_IN
         // Le listener onAuthStateChange ci-dessus gérera la session
         return;
       }
       
       // ✅ Session trouvée immédiatement (reconnexion ou session existante)
-      console.log("🔐 SESSION INITIALE:", initialSession.user?.email || "aucune");
+      logger.debug('Initial session found', { email: initialSession.user?.email });
       setSession(initialSession);
     });
 
@@ -452,7 +455,7 @@ function App() {
 
           // Étape D : Si prospect trouvé par email → associer user_id
           if (byEmail) {
-            console.log('✅ Prospect trouvé par email, association user_id:', userId);
+            logger.debug('Prospect found by email, linking user_id', { userId });
             await supabase
               .from("prospects")
               .update({ user_id: userId })
@@ -462,7 +465,7 @@ function App() {
           } 
           // Étape E : Si aucun prospect n'existe → créer automatiquement
           else if (pendingSignup || !byEmail) {
-            console.log('🔥 Aucun prospect trouvé, création automatique...');
+            logger.debug('No prospect found, creating automatically');
             
             // Récupérer le step_id de la première colonne du pipeline
             const { data: firstStepId } = await supabase.rpc('get_first_pipeline_step_id');
@@ -483,9 +486,9 @@ function App() {
               .single();
 
             if (insertError) {
-              console.error('❌ Erreur création prospect:', insertError);
+              console.error('Prospect creation error:', insertError);
             } else {
-              console.log('✅ Prospect créé automatiquement:', newProspect);
+              logger.debug('Prospect created automatically', { prospectId: newProspect?.id });
               prospect = newProspect;
             }
           }
@@ -495,7 +498,7 @@ function App() {
       // Nettoyer le localStorage après traitement
       if (pendingSignup) {
         localStorage.removeItem('pendingSignup');
-        console.log('🧹 pendingSignup nettoyé du localStorage');
+        logger.debug('pendingSignup cleaned from localStorage');
       }
 
       if (prospect) {
@@ -550,7 +553,7 @@ function App() {
   useEffect(() => {
     if (!currentUser?.id) return; // Seulement si un client est connecté
     
-    console.log('🔌 [App.jsx] Setting up real-time channel for currentUser prospect:', currentUser.id);
+    logger.debug('Setting up real-time channel for currentUser prospect', { prospectId: currentUser.id });
     
     const channel = supabase
       .channel(`client-prospect-${currentUser.id}`)
@@ -560,7 +563,7 @@ function App() {
         table: 'prospects',
         filter: `id=eq.${currentUser.id}`
       }, (payload) => {
-        console.log('📡 [App.jsx] Real-time UPDATE received for currentUser:', payload);
+        logger.debug('Real-time UPDATE received for currentUser', { prospectId: payload.new?.id });
         
         // Transformer les données Supabase (snake_case → camelCase)
         const updatedProspect = {
@@ -582,14 +585,14 @@ function App() {
         };
         
         setCurrentUser(updatedProspect);
-        console.log('✅ [App.jsx] currentUser mis à jour en temps réel');
+        logger.debug('currentUser updated in real-time');
         
         // 🔥 PHASE 3: localStorage supprimé - currentUser géré uniquement par Supabase
       })
       .subscribe();
     
     return () => {
-      console.log('🔌 [App.jsx] Cleaning up real-time channel for currentUser');
+      logger.debug('Cleaning up real-time channel for currentUser');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id]); // Se réabonne si le client change
@@ -607,7 +610,7 @@ function App() {
       const newFormData = JSON.stringify(updatedProspect.formData || updatedProspect.form_data);
       
       if (currentFormData !== newFormData) {
-        console.log('🔄 [App.jsx] Synchronisation currentUser depuis prospects (form_data changé)');
+        logger.debug('Synchronizing currentUser from prospects (form_data changed)');
         setCurrentUser({
           ...currentUser,
           formData: updatedProspect.formData || updatedProspect.form_data,
@@ -1084,9 +1087,12 @@ function App() {
     const savedSteps = projectStepsStatus[key];
     const templateSteps = projectsData[projectType]?.steps;
 
-    console.log('🔍 [getProjectSteps] Appelé avec:', { prospectId, projectType, key });
-    console.log('🔍 [getProjectSteps] savedSteps:', savedSteps);
-    console.log('🔍 [getProjectSteps] templateSteps count:', templateSteps?.length);
+    logger.debug('getProjectSteps called', { 
+      prospectId, 
+      projectType, 
+      hasSavedSteps: !!savedSteps,
+      templateStepsCount: templateSteps?.length 
+    });
 
     // ✅ TOUJOURS utiliser la structure du template Supabase (ordre à jour)
     if (!templateSteps || templateSteps.length === 0) {
@@ -1098,7 +1104,7 @@ function App() {
 
     // Si des steps ont déjà été sauvegardés dans le state, restaurer les statuts
     if (savedSteps && savedSteps.length > 0) {
-      console.log('✅ [getProjectSteps] Restauration des statuts depuis savedSteps');
+      logger.debug('Restoring step statuses from savedSteps');
       // Matcher les steps par name pour préserver les statuts
       currentSteps.forEach((step, index) => {
         const savedStep = savedSteps.find(s => s.name === step.name);
@@ -1119,13 +1125,13 @@ function App() {
   };
 
   const completeStepAndProceed = (prospectId, projectType, currentStepIndex) => {
-    console.log('🎯 [completeStepAndProceed] DÉBUT:', { prospectId, projectType, currentStepIndex });
+    logger.debug('completeStepAndProceed START', { prospectId, projectType, currentStepIndex });
     
     const steps = getProjectSteps(prospectId, projectType);
-    console.log('📋 [completeStepAndProceed] Steps récupérés:', steps);
+    logger.debug('Steps retrieved', { count: steps?.length });
     
     if (currentStepIndex < 0 || currentStepIndex >= steps.length) {
-      console.error('❌ [completeStepAndProceed] Index invalide:', currentStepIndex, 'steps.length:', steps.length);
+      console.error('Invalid step index:', currentStepIndex, 'steps.length:', steps.length);
       return;
     }
 
@@ -1140,14 +1146,15 @@ function App() {
       nextStepName = newSteps[currentStepIndex + 1].name;
     }
     
-    console.log('✅ [completeStepAndProceed] Étape complétée:', completedStepName);
-    console.log('▶️ [completeStepAndProceed] Prochaine étape:', nextStepName);
-    console.log('💾 [completeStepAndProceed] Mise à jour des steps:', newSteps);
+    logger.debug('Step completed', { 
+      completedStep: completedStepName,
+      nextStep: nextStepName 
+    });
     
     updateProjectSteps(prospectId, projectType, newSteps);
     
     // TODO: Ajouter événement dans project_history
-    console.log('⚠️ [completeStepAndProceed] Événement project_history pas encore implémenté');
+    logger.debug('project_history event not yet implemented');
   };
 
   const addProject = (projectType) => {

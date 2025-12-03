@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 export const useSupabaseProjectInfos = () => {
   // État local : structure { [prospectId]: { [projectType]: { amount, status } } }
@@ -69,14 +70,14 @@ export const useSupabaseProjectInfos = () => {
           .order('created_at', { ascending: false });
 
         if (fetchError) {
-          console.error('❌ Erreur chargement project_infos:', fetchError);
+          console.error('Error loading project_infos:', fetchError);
           setError(fetchError);
           return;
         }
 
         const transformed = transformSupabaseToLocal(data || []);
         setProjectInfos(transformed);
-        console.log('✅ project_infos chargés depuis Supabase:', Object.keys(transformed).length, 'prospects');
+        logger.debug('project_infos loaded from Supabase', { count: Object.keys(transformed).length });
 
       } catch (err) {
         console.error('❌ Erreur fetchProjectInfos:', err);
@@ -103,7 +104,7 @@ export const useSupabaseProjectInfos = () => {
           table: 'project_infos'
         },
         (payload) => {
-          console.log('🔄 Real-time project_infos:', payload.eventType, payload);
+          logger.debug('Real-time project_infos', { eventType: payload.eventType });
 
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const { prospect_id, project_type, data } = payload.new;
@@ -151,7 +152,7 @@ export const useSupabaseProjectInfos = () => {
       .subscribe();
 
     return () => {
-      console.log('🔌 Nettoyage canal real-time project_infos');
+      logger.debug('Cleaning up real-time channel project_infos');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -233,14 +234,14 @@ export const useSupabaseProjectInfos = () => {
         );
 
       if (upsertError) {
-        console.error('❌ Erreur upsert project_infos:', upsertError);
+        console.error('Error upserting project_infos:', upsertError);
         throw upsertError;
       }
 
-      console.log('✅ project_info mis à jour:', prospectId, projectType, nextInfo);
+      logger.debug('project_info updated', { prospectId, projectType });
 
     } catch (err) {
-      console.error('❌ Erreur updateProjectInfo:', err);
+      console.error('Error updateProjectInfo:', err);
       
       // En cas d'erreur, recharger depuis Supabase pour synchroniser
       const { data } = await supabase
