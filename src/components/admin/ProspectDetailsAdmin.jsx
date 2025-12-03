@@ -820,6 +820,7 @@ const ProspectDetailsAdmin = ({
   const euroFormatter = useMemo(() => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }), []);
   const [projectAmountInput, setProjectAmountInput] = useState('');
   const [isEditingAmount, setIsEditingAmount] = useState(false);
+  const justSavedAmount = useRef(false);
 
   // 🔥 Utiliser les utilisateurs Supabase pour le dropdown
   const userOptions = useMemo(() => [
@@ -868,8 +869,8 @@ const ProspectDetailsAdmin = ({
   }, [prospect]);
 
   useEffect(() => {
-    // Ne mettre à jour l'input QUE si on n'est pas en train d'éditer
-    if (isEditingAmount) return;
+    // Ne mettre à jour l'input QUE si on n'est pas en train d'éditer ET qu'on vient pas de sauvegarder
+    if (isEditingAmount || justSavedAmount.current) return;
     
     if (savedAmount === undefined || savedAmount === null || savedAmount === '') {
       setProjectAmountInput('');
@@ -1059,7 +1060,13 @@ const ProspectDetailsAdmin = ({
       ...prevInfo,
       amount: roundedValue,
     }));
+    // Marquer qu'on vient de sauvegarder pour éviter que useEffect écrase la valeur
+    justSavedAmount.current = true;
     setProjectAmountInput(roundedValue.toFixed(2));
+    // Réinitialiser le flag après un court délai (temps pour le real-time de mettre à jour)
+    setTimeout(() => {
+      justSavedAmount.current = false;
+    }, 500);
   };
 
   const handleProjectAmountBlur = () => {
