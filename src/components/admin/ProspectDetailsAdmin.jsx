@@ -1059,13 +1059,16 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleProjectAmountBlur = () => {
+    console.log('🔥 handleProjectAmountBlur called', { projectAmountInput });
     handleProjectAmountCommit(projectAmountInput);
     setIsEditingAmount(false);
   };
 
   const handleProjectAmountKeyDown = (event) => {
+    console.log('🔥 handleProjectAmountKeyDown', { key: event.key });
     if (event.key === 'Enter') {
       event.preventDefault();
+      console.log('🔥 Enter pressed, value:', event.currentTarget.value);
       handleProjectAmountCommit(event.currentTarget.value);
       event.currentTarget.blur();
       setIsEditingAmount(false);
