@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
 import AdminLayout from '@/layouts/AdminLayout';
@@ -1365,6 +1365,12 @@ function App() {
         <Route path="/test-supabase" element={<TestSupabasePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/client/activation" element={<ActivationPage />} />
+        <Route path="/client/dashboard" element={<ClientLayout />}>
+          <Route index element={<ClientDashboardPage />} />
+          <Route path="parrainage" element={<ParrainagePage />} />
+          <Route path="profil" element={<SettingsPage />} />
+          <Route path="offres" element={<OffersPage />} />
+        </Route>
         <Route path="/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />
