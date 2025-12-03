@@ -76,17 +76,18 @@ export const useSupabaseProspects = (activeAdminUser) => {
     // ⚠️ IMPORTANT : Ne charger que si activeAdminUser existe ET a un ID
     // Cela évite les calls 403 pendant l'inscription (utilisateur anonyme)
     if (!activeAdminUser || !activeAdminUser.id) {
-      logger.debug('useSupabaseProspects: No valid activeAdminUser, skipping fetch', { 
+      console.log('🔍 [useSupabaseProspects] Skipping fetch:', { 
+        activeAdminUser: activeAdminUser,
         hasUser: !!activeAdminUser, 
-        hasId: !!activeAdminUser?.id 
+        hasId: !!activeAdminUser?.id,
+        id: activeAdminUser?.id
       });
       setLoading(false);
       setProspects([]);
       return;
     }
     
-    logger.debug('useSupabaseProspects initialized', { activeAdmin: activeAdminUser?.name });
-    logger.debug('Fetching prospects...');
+    console.log('🔍 [useSupabaseProspects] Fetching prospects for:', activeAdminUser?.name);
     fetchProspects();
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
 
