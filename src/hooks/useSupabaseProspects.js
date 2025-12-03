@@ -78,7 +78,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       logger.debug('Fetching prospects...');
       fetchProspects();
     } else {
-      console.warn('No activeAdminUser, skipping fetchProspects');
+      logger.debug('No activeAdminUser, skipping fetchProspects');
       setLoading(false);
     }
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
