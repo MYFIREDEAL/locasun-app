@@ -1026,8 +1026,10 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleProjectAmountCommit = (rawValue) => {
+    console.log('🔥 handleProjectAmountCommit called', { rawValue, activeProjectTag });
     if (!activeProjectTag) return;
     const normalizedInput = rawValue.replace(',', '.').trim();
+    console.log('🔥 normalizedInput:', normalizedInput);
 
     if (normalizedInput === '') {
       updateProjectInfo(prospect.id, activeProjectTag, (prevInfo = {}) => {
