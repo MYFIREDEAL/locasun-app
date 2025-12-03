@@ -43,15 +43,16 @@ async function run() {
   }
   console.log("🟢 Anonyme INSERT OK");
 
-  const { error: errSelectAnon } = await sb
+  const selectAnon = await sb
     .from("prospects")
     .select("*")
     .limit(1);
 
-  if (!errSelectAnon) {
+  if (selectAnon.data !== null && !selectAnon.error) {
     console.error("❌ Anonyme : SELECT autorisé (fail RLS)");
     process.exit(1);
   }
+
   console.log("🟢 Anonyme SELECT bloqué (OK)");
 
   const { error: errUpdateAnon } = await sb
