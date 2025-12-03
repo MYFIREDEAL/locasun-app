@@ -927,7 +927,12 @@ function App() {
           .single();
 
         if (prospectError) {
-          console.error('❌ Error loading prospect:', prospectError);
+          logger.error('Error loading prospect for notification', { error: prospectError });
+          toast({
+            title: "Erreur",
+            description: "Impossible de charger les informations du prospect.",
+            variant: "destructive"
+          });
           return;
         }
 
