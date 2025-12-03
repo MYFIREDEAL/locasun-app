@@ -129,15 +129,15 @@ async function run() {
   }
   console.log("🟢 Admin SELECT OK");
 
-  // Récupérer un prospect existant à mettre à jour
+  // 🔍 Récupérer le prospect du client test (cet email existe toujours)
   const targetProspect = await sbAdmin
     .from("prospects")
     .select("id")
-    .limit(1)
+    .eq("email", "client_test@evatime.fr")
     .single();
 
   if (targetProspect.error) {
-    console.error("❌ Admin : impossible de récupérer un prospect pour le test");
+    console.error("❌ Admin : impossible de récupérer le prospect du client test");
     process.exit(1);
   }
 
