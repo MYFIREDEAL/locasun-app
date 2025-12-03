@@ -31,7 +31,11 @@ async function run() {
 
   const { error: errInsert } = await sb
     .from("prospects")
-    .insert({ email: "test_inscription_auto@evatime.fr", name: "Test Auto" });
+    .insert({
+      email: "test_inscription_auto@evatime.fr",
+      name: "Test Auto",
+      owner_id: "82be903d-9600-4c53-9cd4-113bfaaac12e"
+    });
 
   if (errInsert) {
     console.error("❌ Anonyme : INSERT cassé");
