@@ -16,7 +16,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,               // Rafraîchir automatiquement le token
     persistSession: true,                 // Persister la session entre les rechargements
     detectSessionInUrl: true,             // CRUCIAL : Détecter le token dans l'URL du magic link
-    flowType: 'pkce',                     // Flux PKCE (plus sécurisé)
+    flowType: 'implicit',                 // ✅ Flux implicit pour Magic Link OTP (pas PKCE)
     storageKey: 'sb-yscwpxwgnhqbhkqzipag-auth-token', // Clé explicite du token
   }
 });
