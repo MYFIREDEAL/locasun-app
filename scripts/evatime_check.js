@@ -129,15 +129,28 @@ async function run() {
   }
   console.log("🟢 Admin SELECT OK");
 
-  const { error: adminUpdateError } = await sbAdmin
+  // Récupérer un prospect existant à mettre à jour
+  const targetProspect = await sbAdmin
+    .from("prospects")
+    .select("id")
+    .limit(1)
+    .single();
+
+  if (targetProspect.error) {
+    console.error("❌ Admin : impossible de récupérer un prospect pour le test");
+    process.exit(1);
+  }
+
+  const adminUpdate = await sbAdmin
     .from("prospects")
     .update({ status: "checked" })
-    .limit(1);
+    .eq("id", targetProspect.data.id);
 
-  if (adminUpdateError) {
+  if (adminUpdate.error || (adminUpdate.data && adminUpdate.data.length === 0)) {
     console.error("❌ Admin : UPDATE fail");
     process.exit(1);
   }
+
   console.log("🟢 Admin UPDATE OK");
 
   console.log("✅ EVATIME CHECK COMPLET OK");
