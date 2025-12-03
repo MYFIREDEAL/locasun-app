@@ -700,7 +700,7 @@ function App() {
     const nextConfig = typeof updater === 'function' ? updater(prevConfig) : updater;
     
     if (!Array.isArray(nextConfig)) {
-      console.warn('⚠️ Invalid form contact config (not an array)');
+      logger.warn('Invalid form contact config, using default', { received: typeof nextConfig });
       return;
     }
     
@@ -940,7 +940,7 @@ function App() {
             projectName: projectsData[projectType]?.title || projectType
           });
         } else {
-          console.warn('⚠️ No prospect data found');
+          logger.warn('No prospect data found for notification', { prospectId });
         }
       }
 
