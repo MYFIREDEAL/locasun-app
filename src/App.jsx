@@ -1289,7 +1289,7 @@ function App() {
     // 🔥 prompts synchronisé depuis Supabase (read-only pour Charly AI, édition via useSupabasePrompts dans ProfilePage)
     prompts,
     formContactConfig, setFormContactConfig: handleSetFormContactConfig,
-    projectInfos, getProjectInfo, updateProjectInfo,
+    projectInfos: supabaseProjectInfos, getProjectInfo, updateProjectInfo,
     supabaseProjectInfos, getSupabaseProjectInfo, updateSupabaseProjectInfo,
     globalPipelineSteps, setGlobalPipelineSteps: handleSetGlobalPipelineSteps,
     pipelineLoading, // 🔥 État de chargement des colonnes du pipeline
