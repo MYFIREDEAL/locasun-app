@@ -93,15 +93,16 @@ async function run() {
   }
   console.log("🟢 Client SELECT OK");
 
-  const { error: clientUpdErr } = await sbClient
+  const updateClient = await sbClient
     .from("prospects")
     .update({ phone: "0707070707" })
-    .limit(1);
+    .eq('user_id', (await sbClient.auth.getUser()).data.user.id);
 
-  if (clientUpdErr) {
+  if (updateClient.error || (updateClient.data && updateClient.data.length === 0)) {
     console.error("❌ Client : UPDATE own fail");
     process.exit(1);
   }
+
   console.log("🟢 Client UPDATE OK");
 
   // 3️⃣ TESTS ADMIN
