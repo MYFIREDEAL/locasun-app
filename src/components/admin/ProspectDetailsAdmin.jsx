@@ -1026,10 +1026,8 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleProjectAmountCommit = (rawValue) => {
-    console.log('🔥 handleProjectAmountCommit called', { rawValue, activeProjectTag });
     if (!activeProjectTag) return;
     const normalizedInput = rawValue.replace(',', '.').trim();
-    console.log('🔥 normalizedInput:', normalizedInput);
 
     if (normalizedInput === '') {
       updateProjectInfo(prospect.id, activeProjectTag, (prevInfo = {}) => {
@@ -1059,16 +1057,13 @@ const ProspectDetailsAdmin = ({
   };
 
   const handleProjectAmountBlur = () => {
-    console.log('🔥 handleProjectAmountBlur called', { projectAmountInput });
     handleProjectAmountCommit(projectAmountInput);
     setIsEditingAmount(false);
   };
 
   const handleProjectAmountKeyDown = (event) => {
-    console.log('🔥 handleProjectAmountKeyDown', { key: event.key });
     if (event.key === 'Enter') {
       event.preventDefault();
-      console.log('🔥 Enter pressed, value:', event.currentTarget.value);
       handleProjectAmountCommit(event.currentTarget.value);
       event.currentTarget.blur();
       setIsEditingAmount(false);

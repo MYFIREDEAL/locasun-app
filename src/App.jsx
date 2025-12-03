@@ -723,7 +723,6 @@ function App() {
   // 🔥 PHASE 2: updateProjectInfo maintenant wrapper vers le hook Supabase
   // Le hook gère le state local via real-time - pas besoin de setProjectInfosState
   const updateProjectInfo = async (prospectId, projectType, updater) => {
-    console.log('🔥 updateProjectInfo called', { prospectId, projectType });
     if (!prospectId || !projectType) return;
     
     // Calculer finalInfo depuis le state actuel (pour backward compatibility)
@@ -733,11 +732,9 @@ function App() {
       ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
       : {};
     
-    console.log('🔥 finalInfo to save:', finalInfo);
-    
     // Sauvegarder directement dans Supabase (le hook mettra à jour le state via real-time)
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('project_infos')
         .upsert({
           prospect_id: prospectId,
@@ -745,10 +742,7 @@ function App() {
           data: finalInfo || {}
         }, {
           onConflict: 'prospect_id,project_type'
-        })
-        .select();
-      
-      console.log('🔥 Supabase upsert result:', { data, error });
+        });
       
       if (error) {
         logger.error('Erreur sauvegarde project_infos', { error: error.message });
