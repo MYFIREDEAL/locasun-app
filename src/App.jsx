@@ -357,6 +357,36 @@ function App() {
   // Supabase gère automatiquement les tokens du Magic Link
   // ---------------------------------------------
   useEffect(() => {
+    // 🔥 GÉRER LE PARAMÈTRE ?code= (Magic Link avec PKCE flow)
+    const handleCodeExchange = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      
+      if (code) {
+        logger.debug('Magic Link code detected, exchanging for session', { code });
+        
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (error) {
+            logger.error('Error exchanging code for session', { error: error.message });
+          } else if (data.session) {
+            logger.debug('Session established from code', { email: data.session.user?.email });
+            setSession(data.session);
+            
+            // Nettoyer l'URL (enlever le ?code=xxx)
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+          }
+        } catch (err) {
+          logger.error('Exception during code exchange', { error: err.message });
+        }
+        
+        return; // Ne pas continuer avec getSession si on a un code
+      }
+    };
+    
+    handleCodeExchange();
+    
     // Supabase gère maintenant automatiquement les tokens du Magic Link
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
