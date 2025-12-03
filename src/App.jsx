@@ -197,30 +197,33 @@ function App() {
   // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
+  // 🔥 FIX: TOUJOURS appeler les hooks (React règle des hooks)
+  // mais on désactive la logique interne via les paramètres
+  
   // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
-  const { users: supabaseUsers } = useSupabaseUsers(adminReady);
+  const { users: supabaseUsers } = useSupabaseUsers(adminReady && !authLoading);
   
   // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
   const { 
     prospects: supabaseProspects, 
     updateProspect: updateProspectSupabase,
     loading: prospectsLoading 
-  } = useSupabaseProspects(activeAdminUser);
+  } = useSupabaseProspects(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
   
   // Synchroniser prospects dans le state pour compatibilité avec le code existant
   useEffect(() => {
-    if (!prospectsLoading && supabaseProspects) {
+    if (!authLoading && !prospectsLoading && supabaseProspects) {
       setProspects(supabaseProspects);
     }
-  }, [supabaseProspects, prospectsLoading]);
+  }, [supabaseProspects, prospectsLoading, authLoading]);
   
   // 🔥 Charger les panneaux de formulaires clients depuis Supabase avec real-time
   // ⚠️ Si client: charger ses formulaires. Si admin: charger TOUS les formulaires (null = tous)
   const isClientRoute = location.pathname.startsWith('/dashboard');
-  const prospectIdForForms = isClientRoute ? currentUser?.id : null;
+  const prospectIdForForms = (authLoading || !isClientRoute) ? null : currentUser?.id;
   
   // 🔥 Logs seulement si session active (éviter spam lors de l'inscription)
-  if (session) {
+  if (session && !authLoading) {
     logger.debug('App routing info', { 
       isClientRoute, 
       activeAdmin: activeAdminUser?.name,
@@ -253,14 +256,14 @@ function App() {
     updateStep: updatePipelineStep,
     deleteStep: deletePipelineStep,
     reorderSteps: reorderPipelineSteps
-  } = useSupabaseGlobalPipeline(adminReady);
+  } = useSupabaseGlobalPipeline(adminReady && !authLoading);
 
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
   const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
 
   // 🔥 Synchroniser allProjectSteps (Supabase) avec projectStepsStatus (state local)
   useEffect(() => {
-    if (!allStepsLoading && allProjectSteps) {
+    if (!authLoading && !allStepsLoading && allProjectSteps) {
       setProjectStepsStatus(prev => {
         const updated = { ...prev };
         // Convertir le format "prospectId-projectType" en "prospect_prospectId_project_projectType"
@@ -272,7 +275,7 @@ function App() {
         return updated;
       });
     }
-  }, [allProjectSteps, allStepsLoading]);
+  }, [allProjectSteps, allStepsLoading, authLoading]);
 
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
   const {
@@ -282,40 +285,40 @@ function App() {
     updateTemplate,
     deleteTemplate,
     getPublicTemplates
-  } = useSupabaseProjectTemplates(adminReady);
+  } = useSupabaseProjectTemplates(adminReady && !authLoading);
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
   const {
     forms: supabaseForms,
     loading: formsLoading
-  } = useSupabaseForms(adminReady);
+  } = useSupabaseForms(adminReady && !authLoading);
 
   // Synchroniser forms dans le state pour compatibilité avec le code existant (chat)
   useEffect(() => {
-    if (!formsLoading) {
+    if (!authLoading && !formsLoading) {
       setForms(supabaseForms);
     }
-  }, [supabaseForms, formsLoading]);
+  }, [supabaseForms, formsLoading, authLoading]);
 
   // 🔥 Charger les prompts depuis Supabase avec real-time (pour Charly AI)
   const {
     prompts: supabasePrompts,
     loading: promptsLoading
-  } = useSupabasePrompts(adminReady);
+  } = useSupabasePrompts(adminReady && !authLoading);
 
   // Synchroniser prompts dans le state pour compatibilité avec le code existant
   useEffect(() => {
-    if (!promptsLoading) {
+    if (!authLoading && !promptsLoading) {
       setPrompts(supabasePrompts);
     }
-  }, [supabasePrompts, promptsLoading]);
+  }, [supabasePrompts, promptsLoading, authLoading]);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
   const {
     notifications,
     createOrUpdateNotification,
     markAsRead: markAdminNotificationAsRead
-  } = useSupabaseNotifications(activeAdminUser?.user_id, adminReady);
+  } = useSupabaseNotifications(authLoading ? null : activeAdminUser?.user_id, adminReady && !authLoading);
 
   // 🔥 Charger les notifications client depuis Supabase avec real-time
   // Note: currentUser.id est le prospect_id dans la table prospects
@@ -323,7 +326,7 @@ function App() {
     notifications: clientNotifications,
     createOrUpdateNotification: createOrUpdateClientNotification,
     markAsRead: markClientNotificationAsRead
-  } = useSupabaseClientNotifications(currentUser?.id, adminReady);
+  } = useSupabaseClientNotifications(authLoading ? null : currentUser?.id, adminReady && !authLoading);
 
   const {
     projectInfos: supabaseProjectInfos,
