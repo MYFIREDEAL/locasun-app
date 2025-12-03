@@ -799,9 +799,9 @@ const ProspectDetailsAdmin = ({
   
   // 🔥 SYNCHRONISER editableProspect avec prospect (real-time updates)
   useEffect(() => {
-    logger.debug('Prospect updated via real-time', { name: prospect.name, tags: prospect.tags });
+    logger.debug('Prospect updated via real-time', { name: prospect.name, tags: prospect?.tags });
     setEditableProspect(prospect);
-  }, [prospect, prospect.tags, prospect.status]);
+  }, [prospect, JSON.stringify(prospect?.tags), prospect?.status]);
   
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
 
