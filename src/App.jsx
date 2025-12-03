@@ -717,7 +717,7 @@ function App() {
 
   const getProjectInfo = (prospectId, projectType) => {
     if (!prospectId || !projectType) return {};
-    return projectInfos?.[prospectId]?.[projectType] || {};
+    return supabaseProjectInfos?.[prospectId]?.[projectType] || {};
   };
 
   // 🔥 PHASE 2: updateProjectInfo maintenant wrapper vers le hook Supabase
@@ -726,7 +726,7 @@ function App() {
     if (!prospectId || !projectType) return;
     
     // Calculer finalInfo depuis le state actuel (pour backward compatibility)
-    const prevInfo = projectInfos?.[prospectId]?.[projectType] || {};
+    const prevInfo = supabaseProjectInfos?.[prospectId]?.[projectType] || {};
     const nextInfoRaw = typeof updater === 'function' ? updater(prevInfo) : { ...prevInfo, ...updater };
     const finalInfo = nextInfoRaw && typeof nextInfoRaw === 'object'
       ? Object.fromEntries(Object.entries(nextInfoRaw).filter(([_, value]) => value !== undefined))
