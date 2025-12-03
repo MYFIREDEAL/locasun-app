@@ -45,7 +45,7 @@ export function useSupabasePrompts() {
         setPrompts(transformed);
         setError(null);
       } catch (err) {
-        console.error('❌ Error loading prompts:', err);
+        logger.error('❌ Error loading prompts:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -137,7 +137,7 @@ export function useSupabasePrompts() {
       logger.debug('Prompt saved to Supabase', { promptId: data?.prompt_id });
       return { success: true, data };
     } catch (err) {
-      console.error('Error saving prompt:', err);
+      logger.error('Error saving prompt:', err);
       return { success: false, error: err.message };
     }
   };
@@ -155,7 +155,7 @@ export function useSupabasePrompts() {
       logger.debug('Prompt deleted from Supabase', { promptId });
       return { success: true };
     } catch (err) {
-      console.error('❌ Error deleting prompt:', err);
+      logger.error('❌ Error deleting prompt:', err);
       return { success: false, error: err.message };
     }
   };

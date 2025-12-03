@@ -5,6 +5,7 @@ import useWindowSize from '@/hooks/useWindowSize';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
+import { logger } from '@/lib/logger';
 
 const ClientLayout = () => {
   const { width } = useWindowSize();
@@ -43,7 +44,7 @@ const ClientLayout = () => {
             duration: 10000,
           });
         } else {
-          console.error('Erreur envoi magic link:', error);
+          logger.error('Erreur envoi magic link', { error: error.message });
         }
       }
       

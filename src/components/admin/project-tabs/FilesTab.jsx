@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import React, { useState } from 'react';
 import { Upload, Download, Trash2, FileText, Image, File } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -66,7 +67,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
       setSelectedFile(null);
       event.target.value = '';
     } catch (err) {
-      console.error('Error uploading files:', err);
+      logger.error('Error uploading files:', err);
       setSelectedFile(null);
     }
   };
@@ -78,7 +79,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
         .createSignedUrl(file.storage_path, 3600);
 
       if (error) {
-        console.error('Error creating signed URL:', error);
+        logger.error('Error creating signed URL:', error);
         return;
       }
       
@@ -100,7 +101,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      console.error('Error downloading file:', err);
+      logger.error('Error downloading file:', err);
     }
   };
 
@@ -110,7 +111,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
     try {
       await deleteFile(file.id, file.storage_path);
     } catch (err) {
-      console.error('Error deleting file:', err);
+      logger.error('Error deleting file:', err);
     }
   };
 

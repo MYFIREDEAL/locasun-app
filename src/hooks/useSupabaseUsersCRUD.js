@@ -34,7 +34,7 @@ export const useSupabaseUsersCRUD = () => {
       setUsers(data || []);
       setError(null);
     } catch (err) {
-      console.error('❌ Erreur chargement utilisateurs CRUD:', err);
+      logger.error('❌ Erreur chargement utilisateurs CRUD:', err);
       setError(err.message);
       toast({
         title: "Erreur",
@@ -163,7 +163,7 @@ export const useSupabaseUsersCRUD = () => {
         .single();
 
       if (publicUserError) {
-        console.error('❌ Error creating public user:', publicUserError);
+        logger.error('❌ Error creating public user:', publicUserError);
         throw new Error(`Public user error: ${publicUserError.message}`);
       }
 
@@ -179,7 +179,7 @@ export const useSupabaseUsersCRUD = () => {
 
       return publicUserData;
     } catch (err) {
-      console.error('❌ Erreur ajout utilisateur:', err);
+      logger.error('❌ Erreur ajout utilisateur:', err);
       toast({
         title: "Erreur",
         description: err.message || "Impossible d'ajouter l'utilisateur.",
@@ -235,7 +235,7 @@ export const useSupabaseUsersCRUD = () => {
           logger.debug('Searching manager by name', { manager: updates.manager, found: !!managerData });
           
           if (managerError) {
-            console.error('Manager search error:', managerError);
+            logger.error('Manager search error:', managerError);
           }
           
           if (managerData) {
@@ -288,7 +288,7 @@ export const useSupabaseUsersCRUD = () => {
 
       return updatedUser;
     } catch (err) {
-      console.error('❌ Erreur update utilisateur:', err);
+      logger.error('❌ Erreur update utilisateur:', err);
       toast({
         title: "Erreur",
         description: err.message || "Impossible de modifier l'utilisateur.",
@@ -349,7 +349,7 @@ export const useSupabaseUsersCRUD = () => {
           .eq('owner_id', userId);
 
         if (updateProspectsError) {
-          console.error('⚠️ Erreur réassignation prospects:', updateProspectsError);
+          logger.error('⚠️ Erreur réassignation prospects:', updateProspectsError);
         }
       }
 
@@ -371,7 +371,7 @@ export const useSupabaseUsersCRUD = () => {
 
       return true;
     } catch (err) {
-      console.error('❌ Erreur suppression utilisateur:', err);
+      logger.error('❌ Erreur suppression utilisateur:', err);
       toast({
         title: "Erreur",
         description: err.message || "Impossible de supprimer l'utilisateur.",

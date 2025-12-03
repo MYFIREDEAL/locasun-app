@@ -31,7 +31,7 @@ const ActivationPage = () => {
         const refreshToken = hashParams.get('refresh_token');
 
         if (!accessToken) {
-          console.error('❌ Pas d\'access_token dans le fragment');
+          logger.error('❌ Pas d\'access_token dans le fragment');
           setStatus('error');
           setMessage('Lien invalide ou expiré. Veuillez demander un nouveau lien.');
           return;
@@ -44,7 +44,7 @@ const ActivationPage = () => {
         });
 
         if (sessionError) {
-          console.error('❌ Erreur setSession:', sessionError);
+          logger.error('❌ Erreur setSession:', sessionError);
           setStatus('error');
           setMessage('Erreur lors de la connexion. Le lien a peut-être expiré.');
           return;
@@ -69,7 +69,7 @@ const ActivationPage = () => {
           .is('user_id', null); // Chercher seulement ceux sans user_id
 
         if (prospectError) {
-          console.error('Erreur recherche prospect:', prospectError);
+          logger.error('Erreur recherche prospect:', prospectError);
           throw prospectError;
         }
 
@@ -127,7 +127,7 @@ const ActivationPage = () => {
           .single();
 
         if (updateError) {
-          console.error('Erreur mise a jour prospect:', updateError);
+          logger.error('Erreur mise a jour prospect:', updateError);
           throw updateError;
         }
 
@@ -162,7 +162,7 @@ const ActivationPage = () => {
         }, 2000);
 
       } catch (error) {
-        console.error('Erreur activation:', error);
+        logger.error('Erreur activation:', error);
         setStatus('error');
         setMessage('Une erreur est survenue. Veuillez reessayer.');
       }

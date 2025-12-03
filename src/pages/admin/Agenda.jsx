@@ -1638,7 +1638,7 @@ const Agenda = () => {
         });
       }
     } catch (error) {
-      console.error('Erreur lors du drop:', error);
+      logger.error('Erreur lors du drop:', error);
       toast({
         title: "Erreur",
         description: "Impossible de déplacer le rendez-vous",

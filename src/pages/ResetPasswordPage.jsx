@@ -34,7 +34,7 @@ const ResetPasswordPage = () => {
       
       // Si on a une erreur dans le hash
       if (hashError) {
-        console.error('❌ Erreur dans le hash:', hashError, hashErrorDescription);
+        logger.error('❌ Erreur dans le hash:', hashError, hashErrorDescription);
         toast({
           title: "Erreur d'authentification",
           description: hashErrorDescription || "Une erreur est survenue.",
@@ -147,7 +147,7 @@ const ResetPasswordPage = () => {
       }
 
     } catch (error) {
-      console.error('Erreur réinitialisation mot de passe:', error);
+      logger.error('Erreur réinitialisation mot de passe:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible de réinitialiser le mot de passe.",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour gérer les formulaires dynamiques via Supabase
@@ -42,7 +43,7 @@ export function useSupabaseForms() {
         setForms(transformed);
         setError(null);
       } catch (err) {
-        console.error('❌ Error loading forms:', err);
+        logger.error('Erreur chargement forms:', { error: err.message });
         setError(err.message);
       } finally {
         setLoading(false);
@@ -124,7 +125,7 @@ export function useSupabaseForms() {
 
       return { success: true, data };
     } catch (err) {
-      console.error('❌ Error saving form:', err);
+      logger.error('Erreur sauvegarde form:', { error: err.message });
       return { success: false, error: err.message };
     }
   };
@@ -141,7 +142,7 @@ export function useSupabaseForms() {
 
       return { success: true };
     } catch (err) {
-      console.error('❌ Error deleting form:', err);
+      logger.error('Erreur suppression form:', { error: err.message });
       return { success: false, error: err.message };
     }
   };

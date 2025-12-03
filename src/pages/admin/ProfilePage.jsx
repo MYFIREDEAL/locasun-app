@@ -21,6 +21,7 @@ import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 const normalizePipelineStepLabel = (label) => (label || '').toString().trim().toUpperCase();
 const generatePipelineStepId = (prefix = 'pipeline-step') => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -1466,7 +1467,7 @@ const ProfilePage = () => {
       await updateUser(currentUser.id, userInfo);
       // Le toast de succès est déjà affiché dans le hook
     } catch (err) {
-      console.error('Erreur sauvegarde modifications:', err);
+      logger.error('Erreur sauvegarde modifications', { error: err.message });
       toast({
         title: "Erreur",
         description: "Impossible de sauvegarder les modifications.",
@@ -1500,7 +1501,7 @@ const ProfilePage = () => {
       // Rediriger vers la page de login
       window.location.href = '/';
     } catch (error) {
-      console.error('Erreur déconnexion:', error);
+      logger.error('Erreur déconnexion', { error: error.message });
       toast({
         title: "Erreur",
         description: "Impossible de se déconnecter.",
@@ -1578,7 +1579,7 @@ const ProfilePage = () => {
       setIsAccessRightsOpen(false);
       setEditingUser(null);
     } catch (err) {
-      console.error('Erreur sauvegarde droits accès:', err);
+      logger.error('Erreur sauvegarde droits accès', { error: err.message });
     }
   };
   const handleChangeRole = async () => {
@@ -1602,7 +1603,7 @@ const ProfilePage = () => {
       setIsChangeRoleOpen(false);
       setEditingUser(null);
     } catch (err) {
-      console.error('Erreur changement rôle:', err);
+      logger.error('Erreur changement rôle', { error: err.message });
     }
   };
   const handleDeleteUser = async (userToDelete) => {
@@ -1610,7 +1611,7 @@ const ProfilePage = () => {
       await deleteUserSupabase(userToDelete.id);
       // Le toast est déjà affiché dans le hook
     } catch (err) {
-      console.error('Erreur suppression utilisateur:', err);
+      logger.error('Erreur suppression utilisateur', { error: err.message });
     }
   };
   const handleCopyLink = user => {
@@ -1708,7 +1709,7 @@ const ProfilePage = () => {
         className: "bg-green-500 text-white"
       });
     } catch (error) {
-      console.error('❌ Erreur suppression projet:', error);
+      logger.error('Erreur suppression projet', { error: error.message });
       toast({
         title: "Erreur !",
         description: error.message || "Impossible de supprimer le projet.",
@@ -1761,7 +1762,7 @@ const ProfilePage = () => {
           // 🔥 Sauvegarder dans Supabase (le real-time mettra à jour le contexte)
           await setCompanyLogo(reader.result);
         } catch (error) {
-          console.error('Error uploading logo:', error);
+          logger.error('Erreur upload logo', { error: error.message });
         }
       };
       reader.readAsDataURL(file);
@@ -1778,7 +1779,7 @@ const ProfilePage = () => {
       }
       setIsLogoMenuOpen(false);
     } catch (error) {
-      console.error('Error removing logo:', error);
+      logger.error('Erreur suppression logo', { error: error.message });
     }
   };
   const handleSaveForm = async (formToSave) => {
@@ -1929,7 +1930,7 @@ const ProfilePage = () => {
         manager: ''
       });
     } catch (err) {
-      console.error('Erreur invitation utilisateur:', err);
+      logger.error('Erreur invitation utilisateur', { error: err.message });
     }
   };
   const containerVariants = {
@@ -2118,7 +2119,7 @@ const ProfilePage = () => {
                         alt="Logo de l'entreprise" 
                         className="max-w-xs max-h-48 object-contain rounded-lg shadow-md"
                         onError={(e) => {
-                          console.error('❌ Erreur chargement image:', companyLogo);
+                          logger.error('Erreur chargement image', { url: companyLogo });
                           e.target.style.display = 'none';
                         }}
                       />

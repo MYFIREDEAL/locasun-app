@@ -105,7 +105,7 @@ import React, { useState, useEffect } from 'react';
             className: "bg-green-100 border-green-300 text-green-800",
           });
         } catch (error) {
-          console.error('Erreur sauvegarde profil:', error);
+          logger.error('Erreur sauvegarde profil:', error);
           toast({
             title: "Erreur",
             description: "Impossible de sauvegarder les modifications.",
@@ -139,7 +139,7 @@ import React, { useState, useEffect } from 'react';
           
           navigate('/');
         } catch (error) {
-          console.error('Erreur deconnexion:', error);
+          logger.error('Erreur deconnexion:', error);
           // Deconnecter quand meme localement
           setCurrentUser(null);
           navigate('/');

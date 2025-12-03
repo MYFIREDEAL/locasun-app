@@ -50,7 +50,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
         setMessages(transformed);
         setError(null);
       } catch (err) {
-        console.error('❌ Error loading chat messages:', err);
+        logger.error('❌ Error loading chat messages:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -156,7 +156,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
 
       return { success: true, data: transformFromDB(data) };
     } catch (err) {
-      console.error('❌ Error sending message:', err);
+      logger.error('❌ Error sending message:', err);
       return { success: false, error: err.message };
     }
   };
@@ -173,7 +173,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
 
       return { success: true };
     } catch (err) {
-      console.error('❌ Error marking messages as read:', err);
+      logger.error('❌ Error marking messages as read:', err);
       return { success: false, error: err.message };
     }
   };

@@ -61,7 +61,7 @@ const ProLoginModal = ({ isOpen, onOpenChange }) => {
         .single();
 
       if (userError || !userData) {
-        console.error('❌ Erreur détaillée:', userError);
+        logger.error('❌ Erreur détaillée:', userError);
         toast({
           title: "Erreur",
           description: `Compte professionnel introuvable. ${userError?.message || ''}`,
@@ -97,7 +97,7 @@ const ProLoginModal = ({ isOpen, onOpenChange }) => {
       onOpenChange(false);
       setTimeout(() => navigate('/admin'), 500);
     } catch (error) {
-      console.error('Pro login error:', error);
+      logger.error('Pro login error:', error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la connexion.",

@@ -30,7 +30,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
       setHistory(data || []);
 
     } catch (err) {
-      console.error("Error fetching project history:", err);
+      logger.error('Erreur récupération project history:', { error: err.message });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -93,7 +93,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         return data;
 
       } catch (err) {
-        console.error("Error adding history event:", err);
+        logger.error('Erreur ajout history event:', { error: err.message });
         setError(err.message);
         throw err;
       } finally {
@@ -107,7 +107,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
   const addProjectEvent = useCallback(
     async ({ prospectId, projectType, title, description, createdBy }) => {
       if (!projectType || !prospectId) {
-        console.error('prospectId and projectType required');
+        logger.error('prospectId and projectType required');
         return { success: false, error: 'Paramètres manquants' };
       }
 
@@ -130,7 +130,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
           .single();
 
         if (error) {
-          console.error('Supabase error:', error.message);
+          logger.error('Supabase error:', { error: error.message.message });
           throw error;
         }
 
@@ -138,7 +138,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         return { success: true, data };
 
       } catch (err) {
-        console.error('❌ [addProjectEvent] Exception:', err.message || err);
+        logger.error('[addProjectEvent] Exception:', { error: err.message || err.message });
         return { success: false, error: err.message || 'Erreur inconnue' };
       }
     },

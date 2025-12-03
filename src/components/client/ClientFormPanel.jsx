@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -149,7 +150,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       .single();
     
     if (fetchError) {
-      console.error('❌ Erreur rechargement form_data:', fetchError);
+      logger.error('❌ Erreur rechargement form_data:', fetchError);
       // Continuer avec currentUser.formData en fallback
     }
     
@@ -170,7 +171,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       .eq('id', prospectId);
     
     if (updateError) {
-      console.error('❌ Erreur update form_data:', updateError);
+      logger.error('❌ Erreur update form_data:', updateError);
       toast({
         title: 'Erreur',
         description: 'Impossible de sauvegarder vos données.',
@@ -211,7 +212,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     });
 
     if (!prompts || Object.keys(prompts).length === 0) {
-      console.error('❌ [ClientFormPanel] AUCUN PROMPT CHARGÉ !');
+      logger.error('❌ [ClientFormPanel] AUCUN PROMPT CHARGÉ !');
     }
 
     const relatedPrompt = promptId
@@ -286,7 +287,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       });
     } catch (historyErr) {
       // Ne pas bloquer si l'événement échoue
-      console.error('⚠️ Erreur ajout événement historique:', historyErr);
+      logger.error('⚠️ Erreur ajout événement historique:', historyErr);
     }
   };
 
@@ -301,7 +302,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       .single();
     
     if (error) {
-      console.error('❌ Erreur rechargement form_data:', error);
+      logger.error('❌ Erreur rechargement form_data:', error);
       toast({
         title: 'Erreur',
         description: 'Impossible de charger les dernières données.',

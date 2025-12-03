@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 
 /**
@@ -49,7 +50,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       setAppointments(transformed);
       return transformed;
     } catch (err) {
-      console.error('Erreur chargement appointments:', err);
+      logger.error('Erreur chargement appointments:', { error: err.message });
       throw err;
     }
   };
@@ -60,7 +61,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       setError(null);
       await fetchAppointments();
     } catch (err) {
-      console.error('Erreur chargement agenda:', err);
+      logger.error('Erreur chargement agenda:', { error: err.message });
       setError(err.message);
       toast({
         title: "Erreur",
@@ -234,8 +235,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
       return transformed;
     } catch (err) {
-      console.error('Erreur ajout appointment:', err);
-      console.error('Détails erreur:', JSON.stringify(err, null, 2));
+      logger.error('Erreur ajout appointment', { error: err.message });
+      logger.error('Détails erreur', { details: JSON.stringify(err, null, 2) });
       toast({
         title: "Erreur",
         description: err.message || "Impossible d'ajouter le rendez-vous.",
@@ -297,7 +298,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
       return data;
     } catch (err) {
-      console.error('Erreur update appointment:', err);
+      logger.error('Erreur update appointment:', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de modifier le rendez-vous.",
@@ -324,7 +325,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         className: "bg-green-500 text-white",
       });
     } catch (err) {
-      console.error('Erreur suppression appointment:', err);
+      logger.error('Erreur suppression appointment:', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de supprimer le rendez-vous.",

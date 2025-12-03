@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
 import { useSupabaseProjectHistory } from "@/hooks/useSupabaseProjectHistory";
@@ -51,7 +52,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
 
       setNoteContent("");
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 

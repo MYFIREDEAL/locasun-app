@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -369,7 +370,7 @@ const ProjectDetails = ({ project, onBack }) => {
           setStepsFromSupabase(data.steps);
         }
       } catch (err) {
-        console.error('❌ Error fetching initial steps:', err);
+        logger.error('❌ Error fetching initial steps:', err);
       } finally {
         setStepsLoading(false);
       }

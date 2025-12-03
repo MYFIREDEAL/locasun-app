@@ -89,7 +89,7 @@ export function useSupabaseGlobalPipeline() {
 
       setGlobalPipelineSteps(data || []);
     } catch (err) {
-      console.error('❌ Erreur fetch global pipeline steps:', err);
+      logger.error('❌ Erreur fetch global pipeline steps:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -135,7 +135,7 @@ export function useSupabaseGlobalPipeline() {
 
       return data;
     } catch (err) {
-      console.error('❌ Erreur création colonne pipeline:', err);
+      logger.error('❌ Erreur création colonne pipeline:', err);
       isLocalUpdate.current = false;
       throw err;
     }
@@ -167,7 +167,7 @@ export function useSupabaseGlobalPipeline() {
 
       return data;
     } catch (err) {
-      console.error('❌ Erreur modification colonne pipeline:', err);
+      logger.error('❌ Erreur modification colonne pipeline:', err);
       isLocalUpdate.current = false;
       throw err;
     }
@@ -192,7 +192,7 @@ export function useSupabaseGlobalPipeline() {
       // Mise à jour immédiate du state local
       setGlobalPipelineSteps(prev => prev.filter(step => step.id !== id));
     } catch (err) {
-      console.error('❌ Erreur suppression colonne pipeline:', err);
+      logger.error('❌ Erreur suppression colonne pipeline:', err);
       isLocalUpdate.current = false;
       throw err;
     }
@@ -226,7 +226,7 @@ export function useSupabaseGlobalPipeline() {
       // Mise à jour immédiate du state local
       setGlobalPipelineSteps(newOrder);
     } catch (err) {
-      console.error('❌ Erreur réorganisation colonnes pipeline:', err);
+      logger.error('❌ Erreur réorganisation colonnes pipeline:', err);
       isLocalUpdate.current = false;
       throw err;
     }

@@ -72,7 +72,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) {
-          console.error('Supabase SELECT error:', error.message);
+          logger.error('Supabase SELECT error:', error.message);
           throw error;
         }
 
@@ -82,7 +82,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
-        console.error('❌ [useSupabaseClientFormPanels] Exception chargement:', err.message || err);
+        logger.error('❌ [useSupabaseClientFormPanels] Exception chargement:', err.message || err);
         setFormPanels([]); // ✅ Garantir tableau vide en cas d'erreur
         setError(err.message || 'Erreur inconnue');
       } finally {
@@ -129,7 +129,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
               });
             }
           } catch (err) {
-            console.error('❌ [useSupabaseClientFormPanels] Erreur real-time:', err);
+            logger.error('❌ [useSupabaseClientFormPanels] Erreur real-time:', err);
           }
         }
       )
@@ -159,7 +159,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       return { success: true, data: transformFromDB(data) };
     } catch (err) {
-      console.error('❌ Erreur mise à jour form panel:', err);
+      logger.error('❌ Erreur mise à jour form panel:', err);
       return { success: false, error: err.message };
     }
   };
@@ -176,7 +176,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       return { success: true };
     } catch (err) {
-      console.error('❌ Erreur suppression form panel:', err);
+      logger.error('❌ Erreur suppression form panel:', err);
       return { success: false, error: err.message };
     }
   };
@@ -199,7 +199,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
       return { success: true };
     } catch (err) {
-      console.error('❌ Erreur suppression form panels:', err);
+      logger.error('❌ Erreur suppression form panels:', err);
       return { success: false, error: err.message };
     }
   };
@@ -228,14 +228,14 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         });
 
       if (error) {
-        console.error('Supabase INSERT error:', error.message);
+        logger.error('Supabase INSERT error:', error.message);
         throw error;
       }
       
       logger.debug('Form panel created successfully');
       return { success: true };
     } catch (err) {
-      console.error('Form panel insertion error:', err.message || err);
+      logger.error('Form panel insertion error:', err.message || err);
       return { success: false, error: err.message || 'Erreur inconnue' };
     }
   };

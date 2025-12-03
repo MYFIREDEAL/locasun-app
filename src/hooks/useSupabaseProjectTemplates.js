@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook Supabase pour gérer les modèles de projets (templates)
@@ -108,7 +109,7 @@ export function useSupabaseProjectTemplates() {
 
       setProjectTemplates(transformedData);
     } catch (err) {
-      console.error('❌ Erreur fetch project templates:', err);
+      logger.error('Erreur fetch project templates:', { error: err.message });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -143,7 +144,7 @@ export function useSupabaseProjectTemplates() {
       setProjectTemplates(prev => [...prev, transformedData]);
       return transformedData;
     } catch (err) {
-      console.error('❌ Erreur création template:', err);
+      logger.error('Erreur création template:', { error: err.message });
       isLocalUpdate.current = false;
       throw err;
     }
@@ -180,7 +181,7 @@ export function useSupabaseProjectTemplates() {
       );
       return transformedData;
     } catch (err) {
-      console.error('❌ Erreur modification template:', err);
+      logger.error('Erreur modification template:', { error: err.message });
       isLocalUpdate.current = false;
       throw err;
     }
@@ -202,7 +203,7 @@ export function useSupabaseProjectTemplates() {
 
       setProjectTemplates(prev => prev.filter(template => template.id !== id));
     } catch (err) {
-      console.error('❌ Erreur suppression template:', err);
+      logger.error('Erreur suppression template:', { error: err.message });
       isLocalUpdate.current = false;
       throw err;
     }

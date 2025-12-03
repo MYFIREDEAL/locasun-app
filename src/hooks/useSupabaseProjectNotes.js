@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { logger } from '@/lib/logger';
 
 export function useSupabaseProjectNotes({ projectType, prospectId, enabled = true }) {
   const [notes, setNotes] = useState([]);
@@ -29,7 +30,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
       if (error) throw error;
       setNotes(data || []);
     } catch (err) {
-      console.error("Error fetching project notes:", err);
+      logger.error('Erreur récupération project notes:', { error: err.message });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -106,7 +107,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
         setNotes((prev) => [data, ...prev]);
         return data;
       } catch (err) {
-        console.error("Error adding project note:", err);
+        logger.error('Erreur ajout project note:', { error: err.message });
         setError(err.message);
         throw err;
       } finally {
@@ -137,7 +138,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
       setNotes((prev) => prev.map((n) => (n.id === id ? data : n)));
       return data;
     } catch (err) {
-      console.error("Error updating project note:", err);
+      logger.error('Erreur update project note:', { error: err.message });
       setError(err.message);
       throw err;
     } finally {
@@ -160,7 +161,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
       if (error) throw error;
       setNotes((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      console.error("Error deleting project note:", err);
+      logger.error('Erreur suppression project note:', { error: err.message });
       setError(err.message);
       throw err;
     } finally {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour charger les infos de l'utilisateur authentifié depuis Supabase
@@ -40,7 +41,7 @@ export const useSupabaseUser = () => {
 
         // ✅ On ne change RIEN - supabaseUserId reste sur l'auth UUID
       } catch (err) {
-        console.error('❌ Erreur useSupabaseUser:', err);
+        logger.error('Erreur useSupabaseUser:', { error: err.message });
         setError(err.message);
       } finally {
         setLoading(false);

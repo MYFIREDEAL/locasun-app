@@ -52,7 +52,7 @@ export default function TestSupabasePage() {
         
         console.log('✅ Tous les tests sont passés!');
       } catch (error) {
-        console.error('❌ Erreur:', error);
+        logger.error('❌ Erreur:', error);
         setResults(prev => ({ ...prev, loading: false, error }));
       }
     }

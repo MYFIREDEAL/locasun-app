@@ -32,7 +32,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       const { data, error: fetchError } = await supabase.rpc('get_prospects_safe');
 
       if (fetchError) {
-        console.error('Fetch error:', fetchError);
+        logger.error('Erreur fetch prospects', { error: fetchError.message });
         throw fetchError;
       }
 
@@ -59,7 +59,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       setProspects(transformedProspects);
       setError(null);
     } catch (err) {
-      console.error('Erreur chargement prospects:', err);
+      logger.error('Erreur chargement prospects', { error: err.message });
       setError(err.message);
       toast({
         title: "Erreur",
@@ -220,7 +220,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       logger.debug('User in users table', { userData, error: userCheckError });
       
       if (userCheckError || !userData) {
-        console.error('User not found in users table:', userCheckError);
+        logger.error('Utilisateur non trouvé dans table users', { error: userCheckError?.message });
         throw new Error('Utilisateur non autorisé à créer des prospects');
       }
 
@@ -293,7 +293,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         });
 
         if (magicLinkError) {
-          console.error('Magic Link send error:', magicLinkError);
+          logger.error('Erreur envoi Magic Link', { error: magicLinkError.message });
           
           // Afficher un toast informatif (ne pas bloquer la création du prospect)
           toast({
@@ -310,7 +310,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
               .eq('id', data.id);
             
             if (updateError) {
-              console.error('Error linking user_id:', updateError);
+              logger.error('Erreur liaison user_id', { error: updateError.message });
             } else {
               logger.debug('Prospect linked to user_id', { userId: otpData.user.id });
             }
@@ -326,13 +326,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
           });
         }
       } catch (emailErr) {
-        console.error('Magic Link send error:', emailErr);
+        logger.error('Erreur envoi Magic Link', { error: emailErr.message });
         // Ne pas bloquer si l'email échoue - le prospect est créé
       }
 
       return transformed;
     } catch (err) {
-      console.error('Erreur ajout prospect:', err);
+      logger.error('Erreur ajout prospect', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible d'ajouter le prospect.",
@@ -415,8 +415,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       }
 
       if (updateError) {
-        console.error('RPC Error:', updateError);
-        console.error('Error details:', JSON.stringify(updateError));
+        logger.error('Erreur RPC', { error: updateError.message });
+        logger.error('Détails erreur', { details: JSON.stringify(updateError) });
         throw updateError;
       }
 
@@ -461,7 +461,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
       return data;
     } catch (err) {
-      console.error('Erreur update prospect:', err);
+      logger.error('Erreur update prospect', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de modifier le prospect.",
@@ -490,7 +490,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         className: "bg-green-500 text-white",
       });
     } catch (err) {
-      console.error('Erreur suppression prospect:', err);
+      logger.error('Erreur suppression prospect', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de supprimer le prospect.",

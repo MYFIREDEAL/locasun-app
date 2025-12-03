@@ -55,7 +55,7 @@ const OfferCard = ({ project, projectStatus }) => {
       setTimeout(() => window.location.reload(), 1000);
 
     } catch (error) {
-      console.error('Erreur réactivation:', error);
+      logger.error('Erreur réactivation:', error);
       toast({
         title: "Erreur",
         description: "Impossible de réactiver le projet.",
@@ -115,7 +115,7 @@ const OfferCard = ({ project, projectStatus }) => {
           });
         
         if (stepsError) {
-          console.error('⚠️ Erreur initialisation steps:', stepsError);
+          logger.error('⚠️ Erreur initialisation steps:', stepsError);
           // Ne pas bloquer l'ajout du projet si les steps échouent
         } else {
           console.log('✅ Étapes initialisées dans Supabase pour', project.type);
@@ -133,7 +133,7 @@ const OfferCard = ({ project, projectStatus }) => {
         navigate('/dashboard');
       }, 500);
     } catch (error) {
-      console.error('Erreur ajout projet:', error);
+      logger.error('Erreur ajout projet:', error);
       toast({
         title: "Erreur",
         description: "Impossible d'ajouter le projet. Veuillez réessayer.",

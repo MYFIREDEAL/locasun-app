@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook Supabase pour gérer les étapes de projets par prospect
@@ -93,7 +94,7 @@ export function useSupabaseProjectStepsStatus(prospectId) {
 
       setProjectStepsStatus(stepsMap);
     } catch (err) {
-      console.error('❌ Erreur fetch project steps:', err);
+      logger.error('Erreur fetch project steps:', { error: err.message });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -133,7 +134,7 @@ export function useSupabaseProjectStepsStatus(prospectId) {
 
       return data;
     } catch (err) {
-      console.error('❌ Erreur update project steps:', err);
+      logger.error('Erreur update project steps:', { error: err.message });
       isLocalUpdate.current = false;
       throw err;
     }
@@ -159,7 +160,7 @@ export function useSupabaseProjectStepsStatus(prospectId) {
         return rest;
       });
     } catch (err) {
-      console.error('❌ Erreur delete project steps:', err);
+      logger.error('Erreur delete project steps:', { error: err.message });
       isLocalUpdate.current = false;
       throw err;
     }

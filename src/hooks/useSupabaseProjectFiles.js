@@ -32,7 +32,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
       setFiles(data || []);
 
     } catch (err) {
-      console.error("Error fetching project files:", err);
+      logger.error("Error fetching project files:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -127,7 +127,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
         return data;
 
       } catch (err) {
-        console.error("Error uploading file:", err);
+        logger.error("Error uploading file:", err);
         setError(err.message);
         throw err;
       } finally {
@@ -163,7 +163,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
         if (error) throw error;
 
       } catch (err) {
-        console.error("Error deleting file:", err);
+        logger.error("Error deleting file:", err);
         setError(err.message);
         throw err;
       } finally {

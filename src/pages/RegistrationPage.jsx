@@ -130,7 +130,7 @@ const RegistrationPage = () => {
         .rpc('get_first_pipeline_step_id');
       
       if (stepError) {
-        console.error('❌ Erreur récupération step_id:', stepError);
+        logger.error('❌ Erreur récupération step_id:', stepError);
       }
 
       const { data: prospectData, error: prospectError } = await supabase
@@ -151,7 +151,7 @@ const RegistrationPage = () => {
         .single();
 
       if (prospectError) {
-        console.error('❌ Erreur création prospect:', prospectError);
+        logger.error('❌ Erreur création prospect:', prospectError);
         throw prospectError;
       }
 
@@ -176,7 +176,7 @@ const RegistrationPage = () => {
       });
 
       if (signUpError) {
-        console.error('❌ Erreur création Auth + OTP:', signUpError);
+        logger.error('❌ Erreur création Auth + OTP:', signUpError);
         throw signUpError;
       }
 
@@ -197,7 +197,7 @@ const RegistrationPage = () => {
         navigate('/dashboard');
       }, 1500);
     } catch (error) {
-      console.error('❌ Erreur inscription:', error);
+      logger.error('❌ Erreur inscription:', error);
       toast({
         title: "Erreur",
         description: error.message || "Une erreur est survenue lors de l'inscription.",
@@ -402,7 +402,7 @@ const RegistrationPageOLD = () => {
         .rpc('get_first_pipeline_step_id');
       
       if (stepError) {
-        console.error('❌ Erreur récupération step_id:', stepError);
+        logger.error('❌ Erreur récupération step_id:', stepError);
       }
 
       // 🔥 ÉTAPE 1: Créer le prospect
@@ -424,7 +424,7 @@ const RegistrationPageOLD = () => {
         .single();
 
       if (prospectError) {
-        console.error('❌ Erreur création prospect:', prospectError);
+        logger.error('❌ Erreur création prospect:', prospectError);
         toast({
           title: "Erreur",
           description: prospectError.message === 'duplicate key value violates unique constraint "prospects_email_key"'
@@ -446,7 +446,7 @@ const RegistrationPageOLD = () => {
       });
 
       if (magicLinkError) {
-        console.error('❌ Erreur Magic Link:', magicLinkError);
+        logger.error('❌ Erreur Magic Link:', magicLinkError);
         toast({
           title: "Erreur",
           description: "Impossible d'envoyer le lien. Veuillez réessayer.",
@@ -475,7 +475,7 @@ const RegistrationPageOLD = () => {
       setMagicLinkSent(true);
 
     } catch (error) {
-      console.error('❌ Erreur inscription:', error);
+      logger.error('❌ Erreur inscription:', error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de l'inscription. Veuillez réessayer.",

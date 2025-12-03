@@ -236,7 +236,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             });
 
             if (!result.success) {
-              console.error('❌ Échec enregistrement formulaire:', result.error);
+              logger.error('❌ Échec enregistrement formulaire:', result.error);
               toast({
                 title: "Erreur",
                 description: "Le formulaire n'a pas pu être enregistré.",
@@ -255,11 +255,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 });
               } catch (historyErr) {
                 // Ne pas bloquer si l'événement échoue
-                console.error('⚠️ Erreur ajout événement historique:', historyErr);
+                logger.error('⚠️ Erreur ajout événement historique:', historyErr);
               }
             }
           } catch (err) {
-            console.error('❌ Exception enregistrement formulaire:', err);
+            logger.error('❌ Exception enregistrement formulaire:', err);
             toast({
               title: "Erreur",
               description: "Le formulaire n'a pas pu être enregistré.",
@@ -603,7 +603,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
         const { projectType, formId } = _meta || {};
         
         if (!projectType || !formId) {
-            console.error('❌ Métadonnées manquantes pour la sauvegarde');
+            logger.error('❌ Métadonnées manquantes pour la sauvegarde');
             return;
         }
         
@@ -626,7 +626,7 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
             .eq('id', prospect.id);
 
         if (error) {
-            console.error('❌ Erreur sauvegarde formulaire:', error);
+            logger.error('❌ Erreur sauvegarde formulaire:', error);
             toast({
                 title: 'Erreur',
                 description: 'Impossible de sauvegarder les modifications.',
@@ -989,7 +989,7 @@ const ProspectDetailsAdmin = ({
         });
       
       if (historyError) {
-        console.error('Erreur historique:', historyError);
+        logger.error('Erreur historique:', historyError);
       }
       
       // Mettre à jour projectInfo dans le context
@@ -1011,7 +1011,7 @@ const ProspectDetailsAdmin = ({
       });
       
     } catch (error) {
-      console.error('Erreur lors du changement de statut:', error);
+      logger.error('Erreur lors du changement de statut:', error);
       setProjectStatus(oldStatus); // Rollback
       toast({
         title: "❌ Erreur",
@@ -1207,7 +1207,7 @@ const ProspectDetailsAdmin = ({
           
           logger.debug('Steps initialized in Supabase', { projectType });
         } catch (error) {
-          console.error('Steps initialization error:', error);
+          logger.error('Steps initialization error:', error);
         }
       }
       
@@ -1293,7 +1293,7 @@ const ProspectDetailsAdmin = ({
         description: "Les informations du prospect ont été enregistrées."
       });
     } catch (err) {
-      console.error('❌ Erreur sauvegarde:', err);
+      logger.error('❌ Erreur sauvegarde:', err);
       toast({
         title: "❌ Erreur",
         description: err.message,

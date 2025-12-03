@@ -82,7 +82,7 @@ export function useSupabaseNotifications(userId) {
       const transformed = (data || []).map(transformFromDb)
       setNotifications(transformed)
     } catch (error) {
-      console.error('❌ Error loading admin notifications:', error)
+      logger.error('❌ Error loading admin notifications:', error)
     } finally {
       setLoading(false)
     }
@@ -98,7 +98,7 @@ export function useSupabaseNotifications(userId) {
       const { prospectId, projectType, prospectName, projectName, ownerId } = notificationData
 
       if (!ownerId) {
-        console.error('ownerId is REQUIRED for notifications');
+        logger.error('ownerId is REQUIRED for notifications');
         return;
       }
 
@@ -116,7 +116,7 @@ export function useSupabaseNotifications(userId) {
       logger.debug('Existing notification check', { found: !!existing, error: !!selectError });
 
       if (selectError) {
-        console.error('❌ Error checking existing notification:', selectError);
+        logger.error('❌ Error checking existing notification:', selectError);
         return;
       }
 
@@ -132,7 +132,7 @@ export function useSupabaseNotifications(userId) {
           .eq('id', existing.id)
 
         if (error) {
-          console.error('Error updating notification:', error);
+          logger.error('Error updating notification:', error);
           throw error;
         }
         logger.debug('Notification count incremented successfully');
@@ -152,13 +152,13 @@ export function useSupabaseNotifications(userId) {
           })
 
         if (error) {
-          console.error('Error creating notification:', error);
+          logger.error('Error creating notification:', error);
           throw error;
         }
         logger.debug('New notification created');
       }
     } catch (error) {
-      console.error('Error creating/updating notification:', error)
+      logger.error('Error creating/updating notification:', error)
     }
   }
 
@@ -174,7 +174,7 @@ export function useSupabaseNotifications(userId) {
 
       if (error) throw error
     } catch (error) {
-      console.error('Error marking notification as read:', error)
+      logger.error('Error marking notification as read:', error)
     }
   }
 

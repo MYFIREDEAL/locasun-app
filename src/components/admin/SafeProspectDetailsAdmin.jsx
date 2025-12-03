@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Phone, Mail, Edit, Save, X, User, Building } from 'lucide-react';
@@ -38,7 +39,7 @@ const EditModal = ({ open, onOpenChange, prospect, users, onSave }) => {
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Erreur:', error);
+      logger.error('Erreur:', error);
     }
   };
 

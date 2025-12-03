@@ -497,7 +497,7 @@ function App() {
               .single();
 
             if (insertError) {
-              console.error('Prospect creation error:', insertError);
+              logger.error('Erreur création prospect', { error: insertError.message });
             } else {
               logger.debug('Prospect created automatically', { prospectId: newProspect?.id });
               prospect = newProspect;
@@ -532,7 +532,7 @@ function App() {
       setAuthLoading(false);
 
     } catch (err) {
-      console.error("loadAuthUser error:", err);
+      logger.error('Erreur chargement utilisateur authentifié', { error: err.message });
       setAuthLoading(false);
     } finally {
       isLoadingAuthRef.current = false;
@@ -689,7 +689,7 @@ function App() {
         }
       }
     } catch (error) {
-      console.error('❌ Erreur handleSetProjectsData:', error);
+      logger.error('Erreur handleSetProjectsData', { error: error.message });
       throw error;
     }
   };
@@ -713,7 +713,7 @@ function App() {
     try {
       await updateFormContactConfig(nextConfig);
     } catch (error) {
-      console.error('❌ Error updating form contact config:', error);
+      logger.error('Erreur update config formulaire contact', { error: error.message });
     }
   };
 
@@ -750,10 +750,10 @@ function App() {
         });
       
       if (error) {
-        console.error('Erreur sauvegarde project_infos:', error);
+        logger.error('Erreur sauvegarde project_infos', { error: error.message });
       }
     } catch (err) {
-      console.error('Erreur updateProjectInfo Supabase:', err);
+      logger.error('Erreur updateProjectInfo Supabase', { error: err.message });
     }
   };
 
@@ -804,7 +804,7 @@ function App() {
         }
       }
     } catch (error) {
-      console.error('❌ Error updating pipeline steps:', error);
+      logger.error('Erreur update pipeline steps', { error: error.message });
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour les colonnes du pipeline.",
@@ -959,7 +959,7 @@ function App() {
         });
       }
     } catch (err) {
-      console.error('❌ Erreur lors de l\'envoi du message:', err);
+      logger.error('Erreur envoi message', { error: err.message });
       toast({
         title: "Erreur",
         description: "Impossible d'envoyer le message. Vérifiez votre connexion.",
@@ -1075,7 +1075,7 @@ function App() {
         .single();
 
       if (error) {
-        console.error('❌ Error saving to Supabase:', error);
+        logger.error('Erreur sauvegarde Supabase', { error: error.message });
         toast({
           title: "Erreur",
           description: "Impossible de sauvegarder les étapes",
@@ -1084,7 +1084,7 @@ function App() {
         throw error;
       }
     } catch (err) {
-      console.error('❌ Failed to save project steps:', err);
+      logger.error('Erreur sauvegarde project steps', { error: err.message });
     }
   };
   
@@ -1137,7 +1137,7 @@ function App() {
     logger.debug('Steps retrieved', { count: steps?.length });
     
     if (currentStepIndex < 0 || currentStepIndex >= steps.length) {
-      console.error('Invalid step index:', currentStepIndex, 'steps.length:', steps.length);
+      logger.error('Index étape invalide', { currentStepIndex, stepsLength: steps.length });
       return;
     }
 
@@ -1226,7 +1226,7 @@ function App() {
         }
       }
     } catch (error) {
-      console.error('❌ Error update prospect:', error);
+      logger.error('Erreur update prospect', { error: error.message });
       toast({
         title: "Erreur",
         description: error.message || "Impossible de modifier le prospect.",

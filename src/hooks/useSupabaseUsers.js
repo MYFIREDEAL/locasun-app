@@ -33,14 +33,14 @@ export const useSupabaseUsers = () => {
           .rpc('get_accessible_users');
 
         if (fetchError) {
-          console.error('useSupabaseUsers RPC error:', fetchError);
+          logger.error('useSupabaseUsers RPC error:', fetchError);
           throw fetchError;
         }
         
         logger.debug('useSupabaseUsers loaded', { count: data?.length || 0 });
         setUsers(data || []);
       } catch (err) {
-        console.error('❌ Erreur chargement utilisateurs:', err);
+        logger.error('❌ Erreur chargement utilisateurs:', err);
         setError(err.message);
       } finally {
         setLoading(false);

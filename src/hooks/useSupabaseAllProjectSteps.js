@@ -27,7 +27,7 @@ export function useSupabaseAllProjectSteps() {
 
         setAllProjectSteps(stepsMap);
       } catch (err) {
-        console.error('❌ Error loading all project steps:', err);
+        logger.error('❌ Error loading all project steps:', err);
       } finally {
         setLoading(false);
       }

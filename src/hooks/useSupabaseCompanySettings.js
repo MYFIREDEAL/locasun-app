@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 
 /**
@@ -39,7 +40,7 @@ export const useSupabaseCompanySettings = () => {
       setCompanySettings(data);
       setError(null);
     } catch (err) {
-      console.error('❌ Erreur chargement company settings:', err);
+      logger.error('Erreur chargement company settings:', { error: err.message });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -105,7 +106,7 @@ export const useSupabaseCompanySettings = () => {
         .eq('id', COMPANY_SETTINGS_ID);
 
       if (updateError) {
-        console.error('❌ Supabase update error details:', updateError);
+        logger.error('Supabase update error details:', { error: updateError.message });
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
@@ -126,7 +127,7 @@ export const useSupabaseCompanySettings = () => {
       // Pas besoin de retourner les données, le real-time s'en charge
       return true;
     } catch (err) {
-      console.error('❌ Erreur update logo:', err);
+      logger.error('Erreur update logo:', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de mettre à jour le logo.",
@@ -153,7 +154,7 @@ export const useSupabaseCompanySettings = () => {
         .eq('id', COMPANY_SETTINGS_ID);
 
       if (updateError) {
-        console.error('❌ Supabase remove error details:', updateError);
+        logger.error('Supabase remove error details:', { error: updateError.message });
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
@@ -174,7 +175,7 @@ export const useSupabaseCompanySettings = () => {
       // Pas besoin de retourner les données, le real-time s'en charge
       return true;
     } catch (err) {
-      console.error('❌ Erreur suppression logo:', err);
+      logger.error('Erreur suppression logo:', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de supprimer le logo.",
@@ -202,7 +203,7 @@ export const useSupabaseCompanySettings = () => {
         .eq('id', COMPANY_SETTINGS_ID);
 
       if (updateError) {
-        console.error('❌ Supabase settings update error details:', updateError);
+        logger.error('Supabase settings update error details:', { error: updateError.message });
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
       }
@@ -217,7 +218,7 @@ export const useSupabaseCompanySettings = () => {
       // Pas besoin de retourner les données, le real-time s'en charge
       return true;
     } catch (err) {
-      console.error('❌ Erreur update settings:', err);
+      logger.error('Erreur update settings:', { error: err.message });
       toast({
         title: "Erreur",
         description: err.message || "Impossible de mettre à jour les paramètres.",
@@ -252,7 +253,7 @@ export const useSupabaseCompanySettings = () => {
         .eq('id', COMPANY_SETTINGS_ID);
 
       if (updateError) {
-        console.error('❌ Supabase form contact update error:', updateError);
+        logger.error('Supabase form contact update error:', { error: updateError.message });
         isLocalUpdate.current = false;
         throw updateError;
       }
@@ -267,7 +268,7 @@ export const useSupabaseCompanySettings = () => {
       // Pas besoin de toast pour les changements de config
       return true;
     } catch (err) {
-      console.error('❌ Erreur update form contact config:', err);
+      logger.error('Erreur update form contact config:', { error: err.message });
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour le formulaire de contact.",
@@ -310,7 +311,7 @@ export const useSupabaseCompanySettings = () => {
         .eq('id', COMPANY_SETTINGS_ID);
 
       if (updateError) {
-        console.error('❌ Supabase global pipeline update error:', updateError);
+        logger.error('Supabase global pipeline update error:', { error: updateError.message });
         isLocalUpdate.current = false;
         throw updateError;
       }
@@ -324,7 +325,7 @@ export const useSupabaseCompanySettings = () => {
 
       return true;
     } catch (err) {
-      console.error('❌ Erreur update global pipeline steps:', err);
+      logger.error('Erreur update global pipeline steps:', { error: err.message });
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour les pipelines globaux.",

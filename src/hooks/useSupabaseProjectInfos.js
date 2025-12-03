@@ -70,7 +70,7 @@ export const useSupabaseProjectInfos = () => {
           .order('created_at', { ascending: false });
 
         if (fetchError) {
-          console.error('Error loading project_infos:', fetchError);
+          logger.error('Erreur chargement project_infos:', { error: fetchError.message });
           setError(fetchError);
           return;
         }
@@ -80,7 +80,7 @@ export const useSupabaseProjectInfos = () => {
         logger.debug('project_infos loaded from Supabase', { count: Object.keys(transformed).length });
 
       } catch (err) {
-        console.error('❌ Erreur fetchProjectInfos:', err);
+        logger.error('Erreur fetchProjectInfos:', { error: err.message });
         setError(err);
       } finally {
         setIsLoading(false);
@@ -234,14 +234,14 @@ export const useSupabaseProjectInfos = () => {
         );
 
       if (upsertError) {
-        console.error('Error upserting project_infos:', upsertError);
+        logger.error('Erreur upsert project_infos:', { error: upsertError.message });
         throw upsertError;
       }
 
       logger.debug('project_info updated', { prospectId, projectType });
 
     } catch (err) {
-      console.error('Error updateProjectInfo:', err);
+      logger.error('Error updateProjectInfo:', { error: err.message });
       
       // En cas d'erreur, recharger depuis Supabase pour synchroniser
       const { data } = await supabase

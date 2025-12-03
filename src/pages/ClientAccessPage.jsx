@@ -121,7 +121,7 @@ const ClientAccessPage = () => {
       });
 
     } catch (error) {
-      console.error('Error sending magic link:', error);
+      logger.error('Error sending magic link:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible d'envoyer le lien. Veuillez réessayer.",

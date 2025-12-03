@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { logger } from '@/lib/logger';
 
 /**
  * Hook pour gérer les notifications client avec Supabase
@@ -72,7 +73,7 @@ export function useSupabaseClientNotifications(prospectId) {
       const transformed = (data || []).map(transformFromDb)
       setNotifications(transformed)
     } catch (error) {
-      console.error('❌ Error loading client notifications:', error)
+      logger.error('Erreur chargement client notifications:', { error: error.message })
     } finally {
       setLoading(false)
     }
@@ -87,7 +88,7 @@ export function useSupabaseClientNotifications(prospectId) {
       const { prospectId, projectType, projectName, message } = notificationData
 
       if (!prospectId || !projectType) {
-        console.error('❌ Missing required fields:', { prospectId, projectType });
+        logger.error('Missing required fields:', { error: { prospectId, projectType }.message });
         return;
       }
 
@@ -101,7 +102,7 @@ export function useSupabaseClientNotifications(prospectId) {
         .maybeSingle() // maybeSingle() accepte 0 ligne sans erreur 406
 
       if (selectError) {
-        console.error('❌ Error checking existing notification:', selectError);
+        logger.error('Error checking existing notification:', { error: selectError.message });
         return;
       }
 
@@ -117,7 +118,7 @@ export function useSupabaseClientNotifications(prospectId) {
           .eq('id', existing.id)
 
         if (error) {
-          console.error('❌ Error updating notification:', error);
+          logger.error('Erreur update notification:', { error: error.message });
           throw error;
         }
       } else {
@@ -135,12 +136,12 @@ export function useSupabaseClientNotifications(prospectId) {
           .select()
 
         if (error) {
-          console.error('❌ Error inserting notification:', error);
+          logger.error('Error inserting notification:', { error: error.message });
           throw error;
         }
       }
     } catch (error) {
-      console.error('❌ Error creating/updating client notification:', error)
+      logger.error('Erreur création/updating client notification:', { error: error.message })
     }
   }
 
@@ -156,7 +157,7 @@ export function useSupabaseClientNotifications(prospectId) {
 
       if (error) throw error
     } catch (error) {
-      console.error('Error marking client notification as read:', error)
+      logger.error('Error marking client notification as read:', { error: error.message })
     }
   }
 
