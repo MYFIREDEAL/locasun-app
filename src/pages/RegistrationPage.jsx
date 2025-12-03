@@ -104,14 +104,22 @@ const RegistrationPage = () => {
       setLoading(true);
       const finalProjects = [...new Set(selectedProjects)];
 
-      // 🔥 ÉTAPE 1: Vérifier si prospect existe déjà
-      const { data: existingProspect } = await supabase
-        .from('prospects')
-        .select('*')
-        .eq('email', formData.email.trim())
-        .maybeSingle();
+      // 🔥 ÉTAPE 1: Vérifier si prospect existe déjà (RPC pour éviter 403)
+      const { data: prospectExists, error: checkError } = await supabase
+        .rpc('check_prospect_exists', { p_email: formData.email.trim() });
 
-      if (existingProspect) {
+      if (checkError) {
+        console.error('Error checking prospect:', checkError);
+        toast({
+          title: "Erreur",
+          description: "Impossible de vérifier l'email. Réessayez.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (prospectExists) {
         toast({
           title: "Compte existant",
           description: "Un compte existe déjà avec cet email. Connectez-vous plutôt.",
