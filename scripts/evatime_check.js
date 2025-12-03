@@ -56,15 +56,17 @@ async function run() {
 
   console.log("🟢 Anonyme SELECT bloqué (OK)");
 
-  const { error: errUpdateAnon } = await sb
+  const updateAnon = await sb
     .from("prospects")
     .update({ name: "Hack" })
     .eq("email", "test_inscription_auto@evatime.fr");
 
-  if (!errUpdateAnon) {
+  // 🔥 Si une ligne a été modifiée → FAIL RLS
+  if (updateAnon.data && updateAnon.data.length > 0) {
     console.error("❌ Anonyme : UPDATE autorisé (fail RLS)");
     process.exit(1);
   }
+
   console.log("🟢 Anonyme UPDATE bloqué (OK)");
 
   // 2️⃣ TESTS CLIENT CONNECTÉ
