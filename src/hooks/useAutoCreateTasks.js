@@ -84,7 +84,7 @@ export function useAutoCreateTasks(prompts) {
                   .from('appointments')
                   .insert({
                     type: 'task',
-                    title: action.taskTitle || 'Action requise pour ce client',
+                    title: action.taskTitle || 'Tâche automatique',
                     assigned_user_id: prospect.owner_id,
                     contact_id: prospect_id,
                     project_id: project_type,
@@ -92,7 +92,7 @@ export function useAutoCreateTasks(prompts) {
                     start_time: taskTime.toISOString(),
                     end_time: endTime.toISOString(),
                     status: 'pending',
-                    notes: `Tâche créée automatiquement par le prompt "${prompt.name}"\n\nAction: ${action.message || 'Aucun message'}`,
+                    notes: `${action.taskTitle || 'Action requise pour ce client'}\n\nTâche créée automatiquement par le prompt "${prompt.name}"\nAction: ${action.message || 'Aucun message'}`,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                   });
