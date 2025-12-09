@@ -76,6 +76,8 @@ export function useAutoCreateTasks(prompts) {
 
                 // Calculer l'heure de création (règles 9h-19h)
                 const taskTime = calculateTaskCreationTime(new Date());
+                const endTime = new Date(taskTime);
+                endTime.setMinutes(endTime.getMinutes() + 30); // +30 minutes
 
                 // Créer la tâche
                 const { error: taskError } = await supabase
@@ -88,6 +90,7 @@ export function useAutoCreateTasks(prompts) {
                     project_id: project_type,
                     step: steps[currentStepIndex].name,
                     start_time: taskTime.toISOString(),
+                    end_time: endTime.toISOString(),
                     status: 'pending',
                     notes: `Tâche créée automatiquement par le prompt "${prompt.name}"\n\nAction: ${action.message || 'Aucun message'}`,
                     created_at: new Date().toISOString(),
