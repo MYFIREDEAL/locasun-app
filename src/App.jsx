@@ -539,6 +539,19 @@ function App() {
 
   // 🟣 4 — Déclencher loadAuthUser quand la session change
   useEffect(() => {
+    // 🔥 ISOLATION: Ne jamais charger activeAdminUser sur les routes publiques
+    const isPublicRoute =
+      location.pathname.startsWith("/inscription") ||
+      location.pathname.startsWith("/register") ||
+      location.pathname === "/";
+
+    if (isPublicRoute) {
+      setActiveAdminUser(null);
+      setAuthLoading(false);
+      console.log('⚠️ Route publique détectée → activeAdminUser bloqué');
+      return;
+    }
+
     if (!session) {
       setActiveAdminUser(null);
       setCurrentUser(null);
@@ -1227,7 +1240,8 @@ function App() {
     // Les composants doivent utiliser useSupabaseUsers() et passer l'objet complet
     if (userObject && userObject.id) {
         setActiveAdminUser(userObject);
-        localStorage.setItem('activeAdminUser', JSON.stringify(userObject));
+        // 🔥 SUPPRIMÉ: localStorage.setItem - Cause des réapparitions sur routes publiques
+        // localStorage.setItem('activeAdminUser', JSON.stringify(userObject));
         toast({
             title: `Connecté en tant que ${userObject.name}`,
             description: `Vous naviguez maintenant avec le profil de ${userObject.name}.`,

@@ -24,8 +24,14 @@ const RegistrationPage = () => {
 
   // 🔥 PROTECTION: Empêche toute session admin de polluer l'inscription client
   useEffect(() => {
+    // Purger TOUT state admin du localStorage au montage
+    localStorage.removeItem("activeAdminUser");
+    localStorage.removeItem("adminUser");
+    localStorage.removeItem("users");
+    console.log('🧹 localStorage admin purgé sur /inscription');
+    
     if (activeAdminUser) {
-      console.log('⚠️ activeAdminUser détecté sur /inscription → suppression pour éviter pollution owner_id');
+      console.log('⚠️ activeAdminUser détecté → suppression pour éviter pollution owner_id');
       setActiveAdminUser(null);
     }
   }, [activeAdminUser, setActiveAdminUser]);
