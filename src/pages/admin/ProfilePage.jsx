@@ -853,6 +853,85 @@ const ActionEditor = ({
                             </Select>
                         </motion.div>}
                 </AnimatePresence>
+
+                <div className="space-y-2">
+                    <Label>Mode de gestion</Label>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleActionChange('managementMode', 'automatic')}
+                            className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                (action.managementMode || 'automatic') === 'automatic'
+                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="text-lg">🤖</span>
+                                <span className="font-medium text-sm">Géré par l'IA</span>
+                            </div>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleActionChange('managementMode', 'manual')}
+                            className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                action.managementMode === 'manual'
+                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="text-lg">👤</span>
+                                <span className="font-medium text-sm">Géré par commercial</span>
+                            </div>
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {(action.managementMode || 'automatic') === 'automatic' 
+                            ? '⚡ Envoyé automatiquement par Charly AI'
+                            : '👨‍💼 Le commercial devra envoyer manuellement'}
+                    </p>
+                    
+                    <AnimatePresence>
+                        {action.managementMode === 'manual' && <motion.div initial={{
+            opacity: 0,
+            height: 0
+          }} animate={{
+            opacity: 1,
+            height: 'auto'
+          }} exit={{
+            opacity: 0,
+            height: 0
+          }} className="pt-3 border-t overflow-hidden space-y-3">
+                                <div className="flex items-start space-x-2">
+                                    <Checkbox 
+                                        id={`create-task-${action.id}`}
+                                        checked={action.createTask !== false}
+                                        onCheckedChange={checked => handleActionChange('createTask', checked)}
+                                    />
+                                    <div className="space-y-1 flex-1">
+                                        <Label htmlFor={`create-task-${action.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                                            Créer automatiquement une tâche pour le commercial
+                                        </Label>
+                                        <p className="text-xs text-gray-500">
+                                            Une tâche sera envoyée au commercial dès que cette étape devient l'étape en cours.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {action.createTask !== false && <div className="space-y-2 ml-6">
+                                        <Label className="text-sm">Titre de la tâche</Label>
+                                        <input
+                                            type="text"
+                                            value={action.taskTitle || 'Action requise pour ce client'}
+                                            onChange={(e) => handleActionChange('taskTitle', e.target.value)}
+                                            placeholder="Action requise pour ce client"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>}
+                            </motion.div>}
+                    </AnimatePresence>
+                </div>
             </div>;
 };
 const PromptCreatorDialog = ({
@@ -1061,12 +1140,12 @@ const PromptCreatorDialog = ({
                                                             <Button variant="outline" size="sm" onClick={() => addAction(index)} className="w-full border-dashed">
                                                                 <Plus className="h-4 w-4 mr-2" /> Ajouter un message + action
                                                             </Button>
-                                                            <div className="flex items-center space-x-2 pt-4 border-t mt-4">
+                                                            {(promptData.stepsConfig[index]?.actions || []).some(action => action.type === 'show_form') && <div className="flex items-center space-x-2 pt-4 border-t mt-4">
                                                                 <Checkbox id={`form-complete-step-${index}`} checked={promptData.stepsConfig[index]?.autoCompleteStep || false} onCheckedChange={checked => handleStepConfigChange(index, 'autoCompleteStep', checked)} />
                                                                 <Label htmlFor={`form-complete-step-${index}`} className="text-sm text-gray-600">
                                                                     Quand ce formulaire est complété, passer automatiquement cette étape en “Terminée” et activer la suivante.
                                                                 </Label>
-                                                            </div>
+                                                            </div>}
                                                         </div>
                                                     </motion.div>}
                                             </AnimatePresence>
