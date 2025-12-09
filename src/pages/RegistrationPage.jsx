@@ -145,7 +145,9 @@ const RegistrationPage = () => {
       const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
       const { data: firstStepId } = await supabase.rpc('get_first_pipeline_step_id');
 
-      const { data: prospectData, error: prospectError } = await supabase
+      // ✅ INSERT simple sans .select() pour éviter l'erreur 409
+      // L'utilisateur anonyme peut INSERT mais pas SELECT immédiatement
+      const { error: prospectError } = await supabase
         .from('prospects')
         .insert([{
           name: formData.name,
@@ -158,13 +160,14 @@ const RegistrationPage = () => {
           tags: finalProjects,
           has_appointment: false,
           affiliate_name: affiliateInfo.name || 'Jack Luc',
-        }])
-        .select()
-        .single();
+        }]);
 
       if (prospectError) {
+        console.error('❌ Erreur création prospect:', prospectError);
         throw prospectError;
       }
+      
+      console.log('✅ Prospect créé avec succès (owner_id:', affiliateInfo.id || DEFAULT_JACK_USER_ID, ')');
 
       // 🔥 ÉTAPE 3: Envoyer le Magic Link
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
