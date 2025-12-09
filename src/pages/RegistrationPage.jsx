@@ -14,13 +14,21 @@ import { supabase } from '@/lib/supabase';
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
-  const { projectsData, currentUser } = useAppContext();
+  const { projectsData, currentUser, activeAdminUser, setActiveAdminUser } = useAppContext();
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [errors, setErrors] = useState({});
   const [affiliateInfo, setAffiliateInfo] = useState({ id: null, name: null });
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false); // État pour afficher le message de succès
+
+  // 🔥 PROTECTION: Empêche toute session admin de polluer l'inscription client
+  useEffect(() => {
+    if (activeAdminUser) {
+      console.log('⚠️ activeAdminUser détecté sur /inscription → suppression pour éviter pollution owner_id');
+      setActiveAdminUser(null);
+    }
+  }, [activeAdminUser, setActiveAdminUser]);
 
   const projectOptions = useMemo(() => {
     if (!projectsData || Object.keys(projectsData).length === 0) return [];
