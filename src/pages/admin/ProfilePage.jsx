@@ -804,134 +804,247 @@ const ActionEditor = ({
       [field]: value
     });
   };
+  
+  const addChecklistItem = () => {
+    const newChecklist = [...(action.checklist || []), {
+      id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: ''
+    }];
+    handleActionChange('checklist', newChecklist);
+  };
+  
+  const updateChecklistItem = (index, text) => {
+    const newChecklist = [...(action.checklist || [])];
+    newChecklist[index].text = text;
+    handleActionChange('checklist', newChecklist);
+  };
+  
+  const deleteChecklistItem = (index) => {
+    const newChecklist = [...(action.checklist || [])];
+    newChecklist.splice(index, 1);
+    handleActionChange('checklist', newChecklist);
+  };
+  
   return <div className="p-4 bg-white rounded-lg border space-y-4">
                 <div className="flex justify-between items-start">
-                    <div className="space-y-2 flex-grow">
-                        <Label>Message à dire</Label>
-                        <Textarea placeholder="Ex: Bonjour, merci de compléter les informations..." value={action.message} onChange={e => handleActionChange('message', e.target.value)} />
+                    <div className="flex items-center space-x-2 flex-grow">
+                        <Checkbox 
+                            id={`has-client-action-${action.id}`}
+                            checked={action.hasClientAction !== false}
+                            onCheckedChange={checked => handleActionChange('hasClientAction', checked)}
+                        />
+                        <Label htmlFor={`has-client-action-${action.id}`} className="text-sm font-semibold text-gray-700 cursor-pointer">
+                            Action associée au client
+                        </Label>
                     </div>
                     <Button variant="ghost" size="icon" onClick={onDelete} className="ml-2">
                         <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                 </div>
                 
-                <div className="space-y-2">
-                    <Label>Action à associer</Label>
-                    <Select value={action.type} onValueChange={value => handleActionChange('type', value)}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Choisir une action" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">Aucune</SelectItem>
-                            <SelectItem value="show_form">Afficher un formulaire</SelectItem>
-                            <SelectItem value="start_signature">Lancer une signature</SelectItem>
-                            <SelectItem value="request_document">Demander un document</SelectItem>
-                            <SelectItem value="open_payment">Ouvrir un paiement</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <AnimatePresence>
-                    {action.type === 'show_form' && <motion.div initial={{
-        opacity: 0,
-        height: 0
-      }} animate={{
-        opacity: 1,
-        height: 'auto'
-      }} exit={{
-        opacity: 0,
-        height: 0
-      }} className="space-y-2 overflow-hidden">
-                            <Label>Formulaire à afficher</Label>
-                            <Select value={action.formId} onValueChange={value => handleActionChange('formId', value)}>
+                {action.hasClientAction !== false ? (
+                    <>
+                        <div className="space-y-2">
+                            <Label>Message à dire</Label>
+                            <Textarea placeholder="Ex: Bonjour, merci de compléter les informations..." value={action.message} onChange={e => handleActionChange('message', e.target.value)} />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Action à associer</Label>
+                            <Select value={action.type} onValueChange={value => handleActionChange('type', value)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Choisir un formulaire" />
+                                    <SelectValue placeholder="Choisir une action" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {Object.values(forms).map(form => <SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>)}
+                                    <SelectItem value="none">Aucune</SelectItem>
+                                    <SelectItem value="show_form">Afficher un formulaire</SelectItem>
+                                    <SelectItem value="start_signature">Lancer une signature</SelectItem>
+                                    <SelectItem value="request_document">Demander un document</SelectItem>
+                                    <SelectItem value="open_payment">Ouvrir un paiement</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </motion.div>}
-                </AnimatePresence>
+                        </div>
 
-                <div className="space-y-2">
-                    <Label>Mode de gestion</Label>
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={() => handleActionChange('managementMode', 'automatic')}
-                            className={`flex-1 p-3 rounded-lg border-2 transition-all ${
-                                (action.managementMode || 'automatic') === 'automatic'
-                                    ? 'border-green-500 bg-green-50 text-green-700'
-                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                            }`}
-                        >
-                            <div className="flex items-center justify-center gap-2">
-                                <span className="text-lg">🤖</span>
-                                <span className="font-medium text-sm">Géré par l'IA</span>
-                            </div>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleActionChange('managementMode', 'manual')}
-                            className={`flex-1 p-3 rounded-lg border-2 transition-all ${
-                                action.managementMode === 'manual'
-                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                            }`}
-                        >
-                            <div className="flex items-center justify-center gap-2">
-                                <span className="text-lg">👤</span>
-                                <span className="font-medium text-sm">Géré par commercial</span>
-                            </div>
-                        </button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                        {(action.managementMode || 'automatic') === 'automatic' 
-                            ? '⚡ Envoyé automatiquement par Charly AI'
-                            : '👨‍💼 Le commercial devra envoyer manuellement'}
-                    </p>
-                    
-                    <AnimatePresence>
-                        {action.managementMode === 'manual' && <motion.div initial={{
-            opacity: 0,
-            height: 0
-          }} animate={{
-            opacity: 1,
-            height: 'auto'
-          }} exit={{
-            opacity: 0,
-            height: 0
-          }} className="pt-3 border-t overflow-hidden space-y-3">
-                                <div className="flex items-start space-x-2">
-                                    <Checkbox 
-                                        id={`create-task-${action.id}`}
-                                        checked={action.createTask !== false}
-                                        onCheckedChange={checked => handleActionChange('createTask', checked)}
-                                    />
-                                    <div className="space-y-1 flex-1">
-                                        <Label htmlFor={`create-task-${action.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
-                                            Créer automatiquement une tâche pour le commercial
-                                        </Label>
-                                        <p className="text-xs text-gray-500">
-                                            Une tâche sera envoyée au commercial dès que cette étape devient l'étape en cours.
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                {action.createTask !== false && <div className="space-y-2 ml-6">
-                                        <Label className="text-sm">Titre de la tâche</Label>
+                        <AnimatePresence>
+                            {action.type === 'show_form' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Formulaire à afficher</Label>
+                                    <Select value={action.formId} onValueChange={value => handleActionChange('formId', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choisir un formulaire" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.values(forms).map(form => <SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </motion.div>}
+                            
+                            {action.type === 'request_document' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-3 overflow-hidden">
+                                    <div className="space-y-2">
+                                        <Label>Type de document attendu</Label>
                                         <input
                                             type="text"
-                                            value={action.taskTitle || 'Action requise pour ce client'}
-                                            onChange={(e) => handleActionChange('taskTitle', e.target.value)}
-                                            placeholder="Action requise pour ce client"
+                                            value={action.documentType || ''}
+                                            onChange={(e) => handleActionChange('documentType', e.target.value)}
+                                            placeholder="Ex: Facture EDF, RIB, Titre de propriété..."
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
-                                    </div>}
-                            </motion.div>}
-                    </AnimatePresence>
-                </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <Label>Vérification du document</Label>
+                                        <Select value={action.verificationMode || 'none'} onValueChange={value => handleActionChange('verificationMode', value)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Choisir le mode de vérification" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Pas de vérification (auto-validation)</SelectItem>
+                                                <SelectItem value="ai">IA automatique</SelectItem>
+                                                <SelectItem value="human">Humain (commercial vérifie)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-gray-500">
+                                            {action.verificationMode === 'none' && '✅ Le document sera validé automatiquement dès réception'}
+                                            {action.verificationMode === 'ai' && '🤖 L\'IA analysera et validera le document automatiquement'}
+                                            {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie le document'}
+                                        </p>
+                                    </div>
+                                </motion.div>}
+                        </AnimatePresence>
+
+                        <div className="space-y-2">
+                            <Label>Mode de gestion</Label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleActionChange('managementMode', 'automatic')}
+                                    className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                        (action.managementMode || 'automatic') === 'automatic'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-lg">🤖</span>
+                                        <span className="font-medium text-sm">Géré par l'IA</span>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleActionChange('managementMode', 'manual')}
+                                    className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                        action.managementMode === 'manual'
+                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-lg">👤</span>
+                                        <span className="font-medium text-sm">Géré par commercial</span>
+                                    </div>
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {(action.managementMode || 'automatic') === 'automatic' 
+                                    ? '⚡ Envoyé automatiquement par Charly AI'
+                                    : '👨‍💼 Le commercial devra envoyer manuellement'}
+                            </p>
+                            
+                            <AnimatePresence>
+                                {action.managementMode === 'manual' && <motion.div initial={{
+                    opacity: 0,
+                    height: 0
+                  }} animate={{
+                    opacity: 1,
+                    height: 'auto'
+                  }} exit={{
+                    opacity: 0,
+                    height: 0
+                  }} className="pt-3 border-t overflow-hidden space-y-3">
+                                        <div className="flex items-start space-x-2">
+                                            <Checkbox 
+                                                id={`create-task-${action.id}`}
+                                                checked={action.createTask !== false}
+                                                onCheckedChange={checked => handleActionChange('createTask', checked)}
+                                            />
+                                            <div className="space-y-1 flex-1">
+                                                <Label htmlFor={`create-task-${action.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                                                    Créer automatiquement une tâche pour le commercial
+                                                </Label>
+                                                <p className="text-xs text-gray-500">
+                                                    Une tâche sera envoyée au commercial dès que cette étape devient l'étape en cours.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {action.createTask !== false && <div className="space-y-2 ml-6">
+                                                <Label className="text-sm">Titre de la tâche</Label>
+                                                <input
+                                                    type="text"
+                                                    value={action.taskTitle || 'Action requise pour ce client'}
+                                                    onChange={(e) => handleActionChange('taskTitle', e.target.value)}
+                                                    placeholder="Action requise pour ce client"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>}
+                                    </motion.div>}
+                            </AnimatePresence>
+                        </div>
+                    </>
+                ) : (
+                    <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700">Checklist de tâches pour le commercial</Label>
+                        <p className="text-xs text-gray-500">Liste des tâches à effectuer manuellement pour cette action</p>
+                        
+                        <div className="space-y-2">
+                            {(action.checklist || []).map((item, index) => (
+                                <div key={item.id} className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={item.text}
+                                        onChange={(e) => updateChecklistItem(index, e.target.value)}
+                                        placeholder="Ex: Vérifier le document"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => deleteChecklistItem(index)}
+                                        className="h-8 w-8"
+                                    >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={addChecklistItem}
+                            className="w-full border-dashed"
+                        >
+                            <Plus className="h-4 w-4 mr-2" /> Ajouter une tâche
+                        </Button>
+                    </div>
+                )}
             </div>;
 };
 const PromptCreatorDialog = ({
@@ -1011,7 +1124,8 @@ const PromptCreatorDialog = ({
     newStepsConfig[stepIndex].actions.push({
       id: `action-${Date.now()}`,
       message: '',
-      type: 'none'
+      type: 'none',
+      hasClientAction: true
     });
     setPromptData(prev => ({
       ...prev,
