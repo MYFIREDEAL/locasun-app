@@ -896,36 +896,15 @@ const ActionEditor = ({
               }} exit={{
                 opacity: 0,
                 height: 0
-              }} className="space-y-3 overflow-hidden">
-                                    <div className="space-y-2">
-                                        <Label>Type de document attendu</Label>
-                                        <input
-                                            type="text"
-                                            value={action.documentType || ''}
-                                            onChange={(e) => handleActionChange('documentType', e.target.value)}
-                                            placeholder="Ex: Facture EDF, RIB, Titre de propriété..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                        <Label>Vérification du document</Label>
-                                        <Select value={action.verificationMode || 'none'} onValueChange={value => handleActionChange('verificationMode', value)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Choisir le mode de vérification" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Pas de vérification (auto-validation)</SelectItem>
-                                                <SelectItem value="ai">IA automatique</SelectItem>
-                                                <SelectItem value="human">Humain (commercial vérifie)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs text-gray-500">
-                                            {action.verificationMode === 'none' && '✅ Le document sera validé automatiquement dès réception'}
-                                            {action.verificationMode === 'ai' && '🤖 L\'IA analysera et validera le document automatiquement'}
-                                            {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie le document'}
-                                        </p>
-                                    </div>
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Type de document attendu</Label>
+                                    <input
+                                        type="text"
+                                        value={action.documentType || ''}
+                                        onChange={(e) => handleActionChange('documentType', e.target.value)}
+                                        placeholder="Ex: Facture EDF, RIB, Titre de propriété..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
                                 </motion.div>}
                         </AnimatePresence>
 
@@ -1007,6 +986,27 @@ const ActionEditor = ({
                                     </motion.div>}
                             </AnimatePresence>
                         </div>
+                        
+                        {action.type !== 'none' && (
+                            <div className="space-y-2">
+                                <Label>Mode de vérification</Label>
+                                <Select value={action.verificationMode || 'human'} onValueChange={value => handleActionChange('verificationMode', value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Choisir le mode de vérification" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Pas de vérification (auto-validation)</SelectItem>
+                                        <SelectItem value="ai">IA automatique</SelectItem>
+                                        <SelectItem value="human">Humain (commercial vérifie)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-gray-500">
+                                    {action.verificationMode === 'none' && '✅ Validé automatiquement dès que le client termine'}
+                                    {action.verificationMode === 'ai' && '🤖 L\'IA analysera et validera automatiquement'}
+                                    {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie'}
+                                </p>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="space-y-3">
