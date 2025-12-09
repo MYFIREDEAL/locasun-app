@@ -1617,16 +1617,24 @@ const ProfilePage = () => {
   const handleCopyLink = user => {
     if (!user?.id) return;
     
-    const { origin, pathname } = window.location;
-    const cleanedPath = pathname
-      .replace(/\/index\.html$/, '')
-      .replace(/\/+$/, '');
-    const baseUrl = `${origin}${cleanedPath}`;
-    const link = `${baseUrl}/#/${user.id}`;
+    // 🔥 Trouver le user dans supabaseUsers pour récupérer affiliate_slug
+    const fullUser = supabaseUsers.find(u => u.id === user.id || u.user_id === user.user_id);
+    
+    if (!fullUser?.affiliate_slug) {
+      toast({
+        title: "Erreur",
+        description: "Ce commercial n'a pas de lien d'affiliation (affiliate_slug manquant).",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // ✅ Générer le VRAI lien d'affiliation pointant vers /inscription/{slug}
+    const link = `${window.location.origin}/inscription/${fullUser.affiliate_slug}`;
 
     navigator.clipboard.writeText(link).then(() => {
       toast({
-        title: "Lien copié !",
+        title: "Lien d'affiliation copié !",
         description: "Envoyez-le à votre client pour qu'il s'inscrive avec votre affiliation.",
         className: "bg-green-500 text-white"
       });

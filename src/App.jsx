@@ -1325,14 +1325,16 @@ function App() {
       </Helmet>
       
       <Routes>
+        {/* ⚠️ IMPORTANT : Routes spécifiques AVANT la route wildcard /:slugUser */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/:slugUser" element={<HomePage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
         <Route path="/inscription/:slugUser" element={<RegistrationPage />} />
         <Route path="/producteurs" element={<ProducerLandingPage />} />
         <Route path="/test-supabase" element={<TestSupabasePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        {/* Route wildcard pour les liens d'affiliation HomePage (doit être APRÈS les routes spécifiques) */}
+        <Route path="/:slugUser" element={<HomePage />} />
         <Route path="/client/activation" element={<ActivationPage />} />
         <Route path="/client/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
