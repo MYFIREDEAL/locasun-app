@@ -46,9 +46,9 @@ begin
 
   -- Récupérer le step_id de la première colonne du pipeline
   if p_status is null then
-    select step_id into v_first_step_id
+    select id into v_first_step_id
     from public.global_pipeline_steps
-    order by display_order asc
+    order by created_at asc
     limit 1;
     
     if v_first_step_id is null then
