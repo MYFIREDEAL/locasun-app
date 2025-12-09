@@ -147,33 +147,27 @@ const RegistrationPage = () => {
         return;
       }
 
-      // 🔥 ÉTAPE 2: Créer le prospect dans Supabase
-      const DEFAULT_JACK_USER_ID = '82be903d-9600-4c53-9cd4-113bfaaac12e';
-      const { data: firstStepId } = await supabase.rpc('get_first_pipeline_step_id');
-
-      // ✅ INSERT simple sans .select() pour éviter l'erreur 409
-      // L'utilisateur anonyme peut INSERT mais pas SELECT immédiatement
-      const { error: prospectError } = await supabase
-        .from('prospects')
-        .insert([{
-          name: formData.name,
-          email: formData.email.trim(),
-          phone: null,
-          company_name: null,
-          address: '',
-          owner_id: affiliateInfo.id || DEFAULT_JACK_USER_ID,
-          status: firstStepId || 'default-global-pipeline-step-0',
-          tags: finalProjects,
-          has_appointment: false,
-          affiliate_name: affiliateInfo.name || 'Jack Luc',
-        }]);
+      // 🔥 ÉTAPE 2: Créer le prospect via RPC server-side
+      // La RPC s'exécute avec SECURITY DEFINER (droits admin)
+      // Contourne les limites RLS du client anonyme
+      const { data: prospectId, error: prospectError } = await supabase
+        .rpc('create_affiliated_prospect', {
+          p_name: formData.name,
+          p_email: formData.email.trim(),
+          p_phone: null,
+          p_company: null,
+          p_address: '',
+          p_affiliate_slug: slugUser || null,
+          p_tags: finalProjects,
+          p_status: null // null = auto-detect first pipeline step
+        });
 
       if (prospectError) {
         console.error('❌ Erreur création prospect:', prospectError);
         throw prospectError;
       }
       
-      console.log('✅ Prospect créé avec succès (owner_id:', affiliateInfo.id || DEFAULT_JACK_USER_ID, ')');
+      console.log('✅ Prospect créé avec succès (ID:', prospectId, ')via RPC create_affiliated_prospect');
 
       // 🔥 ÉTAPE 3: Envoyer le Magic Link
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
