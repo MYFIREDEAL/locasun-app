@@ -51,10 +51,53 @@ export function useAutoCreateTasks(prompts) {
               return;
             }
 
+            // Récupérer le prospect une seule fois pour toutes les actions
+            const { data: prospect, error: prospectError } = await supabase
+              .from('prospects')
+              .select('owner_id, name')
+              .eq('id', prospect_id)
+              .single();
+
+            if (prospectError) {
+              logger.error('Error fetching prospect', { error: prospectError });
+              return;
+            }
+
             // Parcourir les actions de cette étape
             for (const action of stepConfig.actions || []) {
-              // Si mode manuel + création de tâche activée
-              if (action.managementMode === 'manual' && action.createTask !== false) {
+              // CAS 1: Action sans client (checklist) → Créer tâche avec checklist
+              if (action.hasClientAction === false) {
+                logger.debug('Creating checklist task', {
+                  prospect_id,
+                  project_type,
+                  currentStepIndex,
+                  actionId: action.id
+                });
+
+                const checklistText = (action.checklist || [])
+                  .map(item => `☐ ${item.text}`)
+                  .join('\n');
+
+                const taskTime = calculateTaskCreationTime(new Date());
+                const endTime = new Date(taskTime);
+                endTime.setMinutes(endTime.getMinutes() + 30);
+
+                await createTask({
+                  prospect,
+                  prospect_id,
+                  project_type,
+                  stepName: steps[currentStepIndex].name,
+                  title: `Tâche pour ${prospect.name}`,
+                  notes: checklistText || 'Tâches à effectuer',
+                  taskTime,
+                  endTime
+                });
+
+                continue;
+              }
+
+              // CAS 2: Action avec client + Mode Commercial → Créer tâche
+              if (action.hasClientAction !== false && action.managementMode === 'manual' && action.createTask !== false) {
                 logger.debug('Creating task for manual action', {
                   prospect_id,
                   project_type,
@@ -62,63 +105,25 @@ export function useAutoCreateTasks(prompts) {
                   actionId: action.id
                 });
 
-                // Récupérer le prospect pour avoir l'owner_id
-                const { data: prospect, error: prospectError } = await supabase
-                  .from('prospects')
-                  .select('owner_id, name')
-                  .eq('id', prospect_id)
-                  .single();
-
-                if (prospectError) {
-                  logger.error('Error fetching prospect', { error: prospectError });
-                  continue;
-                }
-
-                // Calculer l'heure de création (règles 9h-19h)
                 const taskTime = calculateTaskCreationTime(new Date());
                 const endTime = new Date(taskTime);
-                endTime.setMinutes(endTime.getMinutes() + 30); // +30 minutes
+                endTime.setMinutes(endTime.getMinutes() + 30);
 
-                // Créer la tâche
-                const { error: taskError } = await supabase
-                  .from('appointments')
-                  .insert({
-                    type: 'task',
-                    title: `Tâche pour ${prospect.name}`,
-                    assigned_user_id: prospect.owner_id,
-                    contact_id: prospect_id,
-                    project_id: project_type,
-                    step: steps[currentStepIndex].name,
-                    start_time: taskTime.toISOString(),
-                    end_time: endTime.toISOString(),
-                    status: 'pending',
-                    notes: action.taskTitle || 'Action requise pour ce client',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                  });
-
-                if (taskError) {
-                  logger.error('Error creating task', { error: taskError });
-                  toast({
-                    title: 'Erreur',
-                    description: 'Impossible de créer la tâche automatique',
-                    variant: 'destructive'
-                  });
-                } else {
-                  logger.info('✅ Task created automatically', {
-                    prospect: prospect.name,
-                    project_type,
-                    step: steps[currentStepIndex].name,
-                    scheduled_for: taskTime.toISOString()
-                  });
-
-                  toast({
-                    title: '✅ Tâche créée',
-                    description: `Une tâche a été créée pour ${prospect.name}`,
-                    className: 'bg-green-500 text-white'
-                  });
-                }
+                await createTask({
+                  prospect,
+                  prospect_id,
+                  project_type,
+                  stepName: steps[currentStepIndex].name,
+                  title: `Tâche pour ${prospect.name}`,
+                  notes: action.taskTitle || 'Action requise pour ce client',
+                  taskTime,
+                  endTime
+                });
               }
+
+              // CAS 3: Mode de vérification "Humain" → Sera géré par un autre hook
+              // qui écoute les soumissions de formulaires/documents
+              // (à implémenter dans un hook séparé: useAutoVerificationTasks)
             }
           } catch (error) {
             logger.error('Error in auto-create-tasks listener', { error });
@@ -131,6 +136,53 @@ export function useAutoCreateTasks(prompts) {
       supabase.removeChannel(channel);
     };
   }, [prompts]);
+}
+
+/**
+ * Crée une tâche dans la table appointments
+ */
+async function createTask({ prospect, prospect_id, project_type, stepName, title, notes, taskTime, endTime }) {
+  const { error: taskError } = await supabase
+    .from('appointments')
+    .insert({
+      type: 'task',
+      title,
+      assigned_user_id: prospect.owner_id,
+      contact_id: prospect_id,
+      project_id: project_type,
+      step: stepName,
+      start_time: taskTime.toISOString(),
+      end_time: endTime.toISOString(),
+      status: 'pending',
+      notes,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+  if (taskError) {
+    logger.error('Error creating task', { error: taskError });
+    toast({
+      title: 'Erreur',
+      description: 'Impossible de créer la tâche automatique',
+      variant: 'destructive'
+    });
+    return false;
+  }
+
+  logger.info('✅ Task created automatically', {
+    prospect: prospect.name,
+    project_type,
+    step: stepName,
+    scheduled_for: taskTime.toISOString()
+  });
+
+  toast({
+    title: '✅ Tâche créée',
+    description: `Une tâche a été créée pour ${prospect.name}`,
+    className: 'bg-green-500 text-white'
+  });
+
+  return true;
 }
 
 /**
