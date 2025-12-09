@@ -48,18 +48,22 @@ const RegistrationPage = () => {
 
   // 🔥 Charger l'info d'affiliation directement depuis Supabase (pas besoin de hook)
   useEffect(() => {
-    const affiliateId = slugUser || sessionStorage.getItem('affiliateUser');
-    if (!affiliateId) return;
+    const affiliateSlug = slugUser || sessionStorage.getItem('affiliateUser');
+    if (!affiliateSlug) return;
 
     // Requête directe sans session (table users est accessible en lecture)
+    // ✅ FIX: Chercher par affiliate_slug au lieu de id
     supabase
       .from('users')
-      .select('id, name')
-      .eq('id', affiliateId)
+      .select('id, name, affiliate_slug')
+      .eq('affiliate_slug', affiliateSlug)
       .single()
       .then(({ data, error }) => {
         if (data && !error) {
+          console.log('✅ Commercial trouvé via affiliate_slug:', data);
           setAffiliateInfo({ id: data.id, name: data.name });
+        } else {
+          console.error('❌ Commercial non trouvé pour le slug:', affiliateSlug, error);
         }
       });
   }, [slugUser]);
