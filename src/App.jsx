@@ -38,6 +38,7 @@ import { useSupabaseClientNotifications } from '@/hooks/useSupabaseClientNotific
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels'; // 🔥 AJOUT
 import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps'; // 🔥 Précharger au niveau App
 import { useSupabaseProjectInfos } from '@/hooks/useSupabaseProjectInfos';
+import { useAutoCreateTasks } from '@/hooks/useAutoCreateTasks';
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -312,6 +313,9 @@ function App() {
       setPrompts(supabasePrompts);
     }
   }, [supabasePrompts, promptsLoading, authLoading]);
+
+  // 🔥 Système de création automatique de tâches (écoute les changements d'étape)
+  useAutoCreateTasks(supabasePrompts);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
   const {
