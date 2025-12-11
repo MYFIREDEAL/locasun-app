@@ -1086,8 +1086,12 @@ function App() {
     logger.debug('getProjectSteps called', { 
       prospectId, 
       projectType, 
+      key,
       hasSavedSteps: !!savedSteps,
-      templateStepsCount: templateSteps?.length 
+      savedStepsLength: savedSteps?.length,
+      savedSteps: savedSteps ? JSON.stringify(savedSteps.map(s => ({ name: s.name, status: s.status }))) : 'null',
+      templateStepsCount: templateSteps?.length,
+      projectStepsStatusKeys: Object.keys(projectStepsStatus)
     });
 
     // ✅ TOUJOURS utiliser la structure du template Supabase (ordre à jour)
