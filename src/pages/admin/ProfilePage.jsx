@@ -827,15 +827,38 @@ const ActionEditor = ({
   
   return <div className="p-4 bg-white rounded-lg border space-y-4">
                 <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-2 flex-grow">
-                        <Checkbox 
-                            id={`has-client-action-${action.id}`}
-                            checked={action.hasClientAction !== false}
-                            onCheckedChange={checked => handleActionChange('hasClientAction', checked)}
-                        />
-                        <Label htmlFor={`has-client-action-${action.id}`} className="text-sm font-semibold text-gray-700 cursor-pointer">
-                            Action associée au client
-                        </Label>
+                    <div className="flex-grow">
+                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">Type d'action</Label>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleActionChange('hasClientAction', true)}
+                                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                    action.hasClientAction !== false
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-lg">👤</span>
+                                    <span className="font-medium text-sm">Associée au client</span>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleActionChange('hasClientAction', false)}
+                                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                    action.hasClientAction === false
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-lg">💼</span>
+                                    <span className="font-medium text-sm">Associée au commercial</span>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={onDelete} className="ml-2">
                         <Trash2 className="h-4 w-4 text-red-500" />
