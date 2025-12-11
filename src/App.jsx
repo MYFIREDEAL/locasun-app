@@ -1129,7 +1129,7 @@ function App() {
     return currentSteps;
   };
 
-  const completeStepAndProceed = (prospectId, projectType, currentStepIndex) => {
+  const completeStepAndProceed = async (prospectId, projectType, currentStepIndex) => {
     logger.debug('completeStepAndProceed START', { prospectId, projectType, currentStepIndex });
     
     const steps = getProjectSteps(prospectId, projectType);
@@ -1156,7 +1156,9 @@ function App() {
       nextStep: nextStepName 
     });
     
-    updateProjectSteps(prospectId, projectType, newSteps);
+    // 🔥 FIX: Attendre que la sauvegarde Supabase soit terminée
+    // AVANT que React ne re-render et rappelle getProjectSteps
+    await updateProjectSteps(prospectId, projectType, newSteps);
     
     // TODO: Ajouter événement dans project_history
     logger.debug('project_history event not yet implemented');
