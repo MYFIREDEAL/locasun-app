@@ -1054,14 +1054,22 @@ const ProspectDetailsAdmin = ({
   const projectSteps = useMemo(() => {
     if (!activeProjectTag) return [];
     
-    // Si on a des steps depuis Supabase, les utiliser
+    // 🔥 FIX: Utiliser UNIQUEMENT supabaseSteps (real-time)
+    // Ne JAMAIS fallback sur getProjectSteps qui utilise un state global vide
     if (supabaseSteps[activeProjectTag]) {
       return supabaseSteps[activeProjectTag];
     }
     
-    // Sinon fallback sur l'ancienne méthode
-    return getProjectSteps(prospect.id, activeProjectTag);
-  }, [activeProjectTag, supabaseSteps, prospect.id, getProjectSteps]);
+    // Si pas de steps Supabase, retourner template avec première étape en in_progress
+    const templateSteps = projectsData[activeProjectTag]?.steps;
+    if (templateSteps && templateSteps.length > 0) {
+      const initialSteps = JSON.parse(JSON.stringify(templateSteps));
+      initialSteps[0].status = 'in_progress';
+      return initialSteps;
+    }
+    
+    return [];
+  }, [activeProjectTag, supabaseSteps, projectsData]);
 
   const currentStepIndex = projectSteps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = projectSteps[currentStepIndex] || projectSteps.find(s => s.status === STATUS_PENDING) || projectSteps[0];
