@@ -29,36 +29,17 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   });
 
   const relevantForms = useMemo(() => {
-    console.log('🔍 [ClientFormPanel] currentUser:', currentUser?.id, currentUser?.name);
-    console.log('🔍 [ClientFormPanel] projectType:', projectType);
-    console.log('🔍 [ClientFormPanel] clientFormPanels total:', clientFormPanels?.length || 0);
-    
     if (!currentUser) {
-      console.log('❌ [ClientFormPanel] Pas de currentUser');
       return [];
     }
     
-    const filtered = clientFormPanels
+    return clientFormPanels
       .filter(panel => {
-        // Filtre par prospect
-        if (panel.prospectId !== currentUser.id) {
-          console.log('❌ [ClientFormPanel] Panel ignoré (mauvais prospect):', panel.prospectId, '!==', currentUser.id);
-          return false;
-        }
-        
-        // ✅ NOUVEAU: Filtre par projet spécifique si projectType fourni
-        if (projectType && panel.projectType !== projectType) {
-          console.log('❌ [ClientFormPanel] Panel ignoré (mauvais projet):', panel.projectType, '!==', projectType);
-          return false;
-        }
-        
-        console.log('✅ [ClientFormPanel] Panel retenu:', panel.formId, panel.projectType);
+        if (panel.prospectId !== currentUser.id) return false;
+        if (projectType && panel.projectType !== projectType) return false;
         return true;
       })
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    
-    console.log('📋 [ClientFormPanel] relevantForms final:', filtered.length);
-    return filtered;
   }, [clientFormPanels, currentUser, projectType]);
 
   // ✅ Client: currentUser EST le prospect, pas besoin de chercher dans prospects
@@ -75,8 +56,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       setFormDrafts({});
       return;
     }
-    console.log('🔍 [ClientFormPanel] prospect.form_data:', prospect.form_data);
-    console.log('🔍 [ClientFormPanel] prospect.formData:', prospect.formData);
+    
     setFormDrafts(prev => {
       const next = { ...prev };
       relevantForms.forEach(panel => {
@@ -84,17 +64,14 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           const formDefinition = forms[panel.formId];
           const hydrated = {};
           const formData = prospect.form_data || prospect.formData || {};
-          console.log('🔍 [ClientFormPanel] formData pour', panel.panelId, ':', formData);
           
-          // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
+          // Accéder à la structure correcte projectType > formId > fields
           const projectFormData = formData[panel.projectType] || {};
           const formFields = projectFormData[panel.formId] || {};
-          console.log('🔍 [ClientFormPanel] formFields extraits:', formFields);
           
           formDefinition?.fields?.forEach(field => {
             if (formFields[field.id]) {
               hydrated[field.id] = formFields[field.id];
-              console.log('✅ [ClientFormPanel] Champ hydraté:', field.id, '=', formFields[field.id]);
             }
           });
           next[panel.panelId] = hydrated;
@@ -180,18 +157,16 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       return;
     }
     
-    // 🔥 FIX: Mettre à jour currentUser immédiatement pour que le client voit ses changements
-    // App.jsx updateProspect attend un objet avec id, pas (id, updates)
+    // Mettre à jour currentUser immédiatement pour que le client voit ses changements
     try {
       await updateProspect({ 
         id: prospectId,
         formData: updatedFormData,
         form_data: updatedFormData,
-        tags: currentUser?.tags || [] // ✅ FIX: Préserver les tags existants
+        tags: currentUser?.tags || []
       });
-      console.log('✅ [ClientFormPanel] currentUser mis à jour avec form_data:', updatedFormData);
     } catch (err) {
-      console.warn('⚠️ Erreur mise à jour currentUser (non bloquant):', err);
+      logger.warn('⚠️ Erreur mise à jour currentUser (non bloquant):', err);
     }
 
     // ✅ Envoyer le message de complétion (déduplication gérée par Supabase)
@@ -200,15 +175,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       text: `A complété le formulaire : ${formDefinition?.name || 'Formulaire'}.`,
       completedFormId: formId,
       relatedMessageTimestamp: messageTimestamp,
-    });
-
-    console.log('🎬 [ClientFormPanel] DÉBUT vérification auto-complete avec:', {
-      promptId,
-      promptsKeys: Object.keys(prompts || {}),
-      promptsCount: Object.keys(prompts || {}).length,
-      projectType,
-      formId,
-      currentStepIndex
     });
 
     if (!prompts || Object.keys(prompts).length === 0) {
@@ -225,27 +191,10 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           );
         });
 
-    console.log('🔍 [ClientFormPanel] DEBUG Auto-Complete:', {
-      promptId,
-      relatedPrompt: relatedPrompt ? { id: relatedPrompt.id, name: relatedPrompt.name } : null,
-      currentStepIndex,
-      stepConfig: relatedPrompt?.stepsConfig?.[currentStepIndex],
-      autoCompleteStep: relatedPrompt?.stepsConfig?.[currentStepIndex]?.autoCompleteStep,
-      projectType,
-      formId
-    });
-
     if (relatedPrompt) {
       const stepConfig = relatedPrompt.stepsConfig?.[currentStepIndex];
-      console.log('✅ [ClientFormPanel] Prompt trouvé, stepConfig:', stepConfig);
-      console.log('🎯 [ClientFormPanel] autoCompleteStep value:', stepConfig?.autoCompleteStep);
       
       if (stepConfig?.autoCompleteStep) {
-        console.log('🚀 [ClientFormPanel] Appel completeStepAndProceed avec:', {
-          prospectId,
-          projectType,
-          currentStepIndex
-        });
         completeStepAndProceed(prospectId, projectType, currentStepIndex);
         toast({
           title: 'Étape terminée !',
@@ -253,8 +202,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           className: 'bg-green-500 text-white',
         });
       } else {
-        console.log('❌ [ClientFormPanel] autoCompleteStep est false ou undefined');
-
         toast({
           title: 'Formulaire envoyé',
           description: 'Vos informations ont été transmises à votre conseiller.',

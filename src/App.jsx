@@ -1083,19 +1083,7 @@ function App() {
     const savedSteps = projectStepsStatus[key];
     const templateSteps = projectsData[projectType]?.steps;
 
-    console.log('🔍 getProjectSteps called', { 
-      prospectId, 
-      projectType, 
-      key,
-      hasSavedSteps: !!savedSteps,
-      savedStepsLength: savedSteps?.length,
-      savedSteps: savedSteps ? savedSteps.map(s => ({ name: s.name, status: s.status })) : null,
-      templateStepsCount: templateSteps?.length,
-      projectStepsStatusKeys: Object.keys(projectStepsStatus),
-      willEnterElse: !(savedSteps && savedSteps.length > 0)
-    });
-
-    // ✅ TOUJOURS utiliser la structure du template Supabase (ordre à jour)
+    // TOUJOURS utiliser la structure du template Supabase (ordre à jour)
     if (!templateSteps || templateSteps.length === 0) {
       return [];
     }
@@ -1105,7 +1093,6 @@ function App() {
 
     // Si des steps ont déjà été sauvegardés dans le state, restaurer les statuts
     if (savedSteps && savedSteps.length > 0) {
-      console.log('✅ Restoring step statuses from savedSteps');
       // Matcher les steps par name pour préserver les statuts
       currentSteps.forEach((step, index) => {
         const savedStep = savedSteps.find(s => s.name === step.name);
@@ -1114,14 +1101,8 @@ function App() {
         }
       });
     } else {
-      console.log('⚠️ NO savedSteps! Entering else block', {
-        firstStepStatus: currentSteps[0]?.status,
-        willModify: currentSteps.length > 0 && currentSteps[0].status === 'pending'
-      });
       // Nouveau prospect : initialiser UNIQUEMENT si première étape est pending
-      // 🔥 FIX: Ne pas écraser le status si l'étape a déjà un status défini
       if (currentSteps.length > 0 && currentSteps[0].status === 'pending') {
-        console.log('🔥 FORCING first step to in_progress');
         currentSteps[0].status = 'in_progress';
       }
     }
