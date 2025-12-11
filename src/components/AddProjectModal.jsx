@@ -19,8 +19,8 @@ const AddProjectModal = ({ isOpen, onClose }) => {
       color: p.color,
     }));
 
-  const handleProjectTypeClick = (projectType, projectTitle) => {
-    const success = addProject(projectType);
+  const handleProjectTypeClick = async (projectType, projectTitle) => {
+    const success = await addProject(projectType);
     if (success) {
       toast({
         title: "Projet ajouté avec succès ! ✅",

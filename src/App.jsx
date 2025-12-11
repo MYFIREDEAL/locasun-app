@@ -1153,7 +1153,7 @@ function App() {
     logger.debug('project_history event not yet implemented');
   };
 
-  const addProject = (projectType) => {
+  const addProject = async (projectType) => {
     if (userProjects.includes(projectType)) {
       return false;
     }
@@ -1162,21 +1162,28 @@ function App() {
     // 🔥 PHASE 4: localStorage.setItem('userProjects') supprimé - currentUser.tags est la source
 
     if (currentUser) {
-      setProspects(prevProspects => {
-        const updatedProspects = prevProspects.map(prospect => {
-          if (prospect.id === currentUser.id) {
-            if (prospect.tags.includes(projectType)) {
-              return prospect;
-            }
-            const newTags = [...prospect.tags, projectType];
-            return { ...prospect, tags: newTags };
-          }
-          return prospect;
+      // 🔥 FIX: Sauvegarder les tags dans Supabase (pas seulement en mémoire)
+      const updatedTags = [...(currentUser.tags || []), projectType];
+      
+      // Mettre à jour le prospect dans Supabase (via RPC update_prospect_safe)
+      try {
+        await updateProspect({
+          id: currentUser.id,
+          tags: updatedTags,
         });
-        // 🔥 PHASE 6: localStorage supprimé - prospects synchronisés automatiquement via useSupabaseProspects()
-        return updatedProspects;
-      });
+        
+        logger.debug('✅ Tags updated in Supabase', { projectType, updatedTags });
+      } catch (error) {
+        logger.error('❌ Failed to update tags in Supabase', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter le projet. Veuillez réessayer.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
+      // Initialiser les étapes avec première étape en "in_progress"
       const defaultSteps = projectsData[projectType]?.steps;
       if (defaultSteps && defaultSteps.length > 0) {
         const newSteps = JSON.parse(JSON.stringify(defaultSteps));
