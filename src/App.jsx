@@ -1109,10 +1109,9 @@ function App() {
         }
       });
     } else {
-      // Nouveau prospect : initialiser la première étape avec status 'pending'
-      // ⚠️ NE PAS sauvegarder automatiquement pour éviter les multiples appels
-      // La sauvegarde sera faite uniquement quand l'utilisateur modifie explicitement une étape
-      if (currentSteps.length > 0) {
+      // Nouveau prospect : initialiser UNIQUEMENT si première étape est pending
+      // 🔥 FIX: Ne pas écraser le status si l'étape a déjà un status défini
+      if (currentSteps.length > 0 && currentSteps[0].status === 'pending') {
         currentSteps[0].status = 'in_progress';
       }
     }
