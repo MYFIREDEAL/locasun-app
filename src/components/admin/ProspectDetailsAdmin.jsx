@@ -367,8 +367,63 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
 const ProjectTimeline = ({
   steps,
   onUpdateStatus,
+  prompts,
+  projectType,
+  currentStepIndex,
+  prospectId,
+  completeStepAndProceed,
 }) => {
+  const [checklistStates, setChecklistStates] = useState({});
+  
   if (!steps) return null;
+  
+  // Récupérer le prompt pour ce projet
+  const prompt = prompts ? Object.values(prompts).find(p => p.projectId === projectType) : null;
+  const currentStepConfig = prompt?.stepsConfig?.[currentStepIndex];
+  
+  // Gérer le clic sur une checkbox
+  const handleCheckboxToggle = (actionId, itemId) => {
+    setChecklistStates(prev => {
+      const actionState = prev[actionId] || {};
+      const newActionState = {
+        ...actionState,
+        [itemId]: !actionState[itemId]
+      };
+      
+      const newState = {
+        ...prev,
+        [actionId]: newActionState
+      };
+      
+      // Vérifier si tous les items sont cochés
+      const action = currentStepConfig?.actions?.find(a => a.id === actionId);
+      if (action && action.checklist) {
+        const allChecked = action.checklist.every(item => newActionState[item.id]);
+        
+        // Si tous cochés + autoCompleteStep activé → passer à l'étape suivante
+        if (allChecked && currentStepConfig?.autoCompleteStep) {
+          logger.debug('All checklist items checked, auto-completing step', {
+            prospectId,
+            projectType,
+            currentStepIndex
+          });
+          
+          toast({
+            title: '✅ Checklist complétée !',
+            description: 'Passage automatique à l\'étape suivante...',
+            className: 'bg-green-500 text-white',
+          });
+          
+          // Passer à l'étape suivante après un court délai (pour voir le toast)
+          setTimeout(() => {
+            completeStepAndProceed(prospectId, projectType, currentStepIndex);
+          }, 1000);
+        }
+      }
+      
+      return newState;
+    });
+  };
   return <div className="relative">
           <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-gray-200" aria-hidden="true"></div>
           <div className="space-y-6">
@@ -451,6 +506,65 @@ const ProjectTimeline = ({
                         </div>
                       </div>
                     </div>
+                    
+                    {/* 🔥 CHECKLIST: Afficher sous l'étape en cours si action sans client */}
+                    {step.status === STATUS_CURRENT && index === currentStepIndex && currentStepConfig?.actions && (
+                      <div className="mt-4 space-y-2">
+                        {currentStepConfig.actions
+                          .filter(action => action.hasClientAction === false && action.checklist && action.checklist.length > 0)
+                          .map(action => {
+                            const actionState = checklistStates[action.id] || {};
+                            const totalItems = action.checklist.length;
+                            const checkedItems = action.checklist.filter(item => actionState[item.id]).length;
+                            const allChecked = checkedItems === totalItems;
+                            
+                            return (
+                              <div key={action.id} className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="text-sm font-medium text-purple-900">📋 Checklist à compléter</h4>
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    allChecked 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-purple-100 text-purple-700'
+                                  }`}>
+                                    {checkedItems}/{totalItems}
+                                  </span>
+                                </div>
+                                <div className="space-y-2">
+                                  {action.checklist.map(item => {
+                                    const isChecked = actionState[item.id] || false;
+                                    return (
+                                      <label 
+                                        key={item.id} 
+                                        className="flex items-start gap-3 cursor-pointer hover:bg-purple-100 rounded p-2 transition-colors"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() => handleCheckboxToggle(action.id, item.id)}
+                                          className="mt-0.5 h-4 w-4 text-purple-600 rounded focus:ring-purple-500 focus:ring-2"
+                                        />
+                                        <p className={`text-sm flex-1 ${
+                                          isChecked 
+                                            ? 'text-purple-500 line-through' 
+                                            : 'text-purple-800'
+                                        }`}>
+                                          {item.text}
+                                        </p>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                {currentStepConfig?.autoCompleteStep && (
+                                  <p className="text-xs text-purple-600 mt-3 italic flex items-center gap-1">
+                                    ⚡ Passage automatique à l'étape suivante quand tout est coché
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
                 </motion.div>;
       })}
@@ -862,7 +976,7 @@ const ProspectDetailsAdmin = ({
   onUpdate,
   onEditingChange
 }) => {
-  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, activeAdminUser } = useAppContext();
+  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, activeAdminUser, prompts } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
@@ -1721,7 +1835,15 @@ const ProspectDetailsAdmin = ({
                     </Select>
                   </div>
                 </div>
-                <ProjectTimeline steps={projectSteps} onUpdateStatus={handleUpdateStatus} />
+                <ProjectTimeline 
+                  steps={projectSteps} 
+                  onUpdateStatus={handleUpdateStatus} 
+                  prompts={prompts}
+                  projectType={activeProjectTag}
+                  currentStepIndex={currentStepIndex}
+                  prospectId={prospect.id}
+                  completeStepAndProceed={completeStepAndProceed}
+                />
               </div>
             </div>
           </div>
