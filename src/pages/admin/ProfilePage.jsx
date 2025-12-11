@@ -1277,12 +1277,12 @@ const PromptCreatorDialog = ({
                                                             <Button variant="outline" size="sm" onClick={() => addAction(index)} className="w-full border-dashed">
                                                                 <Plus className="h-4 w-4 mr-2" /> Ajouter un message + action
                                                             </Button>
-                                                            {(promptData.stepsConfig[index]?.actions || []).some(action => action.type === 'show_form') && <div className="flex items-center space-x-2 pt-4 border-t mt-4">
+                                                            <div className="flex items-center space-x-2 pt-4 border-t mt-4">
                                                                 <Checkbox id={`form-complete-step-${index}`} checked={promptData.stepsConfig[index]?.autoCompleteStep || false} onCheckedChange={checked => handleStepConfigChange(index, 'autoCompleteStep', checked)} />
                                                                 <Label htmlFor={`form-complete-step-${index}`} className="text-sm text-gray-600">
-                                                                    Quand ce formulaire est complété, passer automatiquement cette étape en “Terminée” et activer la suivante.
+                                                                    Si action validée, passer automatiquement à l'étape suivante
                                                                 </Label>
-                                                            </div>}
+                                                            </div>
                                                         </div>
                                                     </motion.div>}
                                             </AnimatePresence>

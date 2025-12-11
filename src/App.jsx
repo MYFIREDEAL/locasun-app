@@ -39,6 +39,7 @@ import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels
 import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps'; // 🔥 Précharger au niveau App
 import { useSupabaseProjectInfos } from '@/hooks/useSupabaseProjectInfos';
 import { useAutoCreateTasks } from '@/hooks/useAutoCreateTasks';
+import { useAutoVerificationTasks } from '@/hooks/useAutoVerificationTasks'; // 🔥 AJOUT: Tâches de vérification
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -316,6 +317,9 @@ function App() {
 
   // 🔥 Système de création automatique de tâches (écoute les changements d'étape)
   useAutoCreateTasks(supabasePrompts);
+  
+  // 🔥 Système de création automatique de tâches de vérification (écoute les soumissions client)
+  useAutoVerificationTasks(supabasePrompts);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
   const {
