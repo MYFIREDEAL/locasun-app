@@ -660,16 +660,39 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
                 autoComplete: relatedPrompt?.stepsConfig?.[panel.currentStepIndex]?.autoCompleteStep 
             });
 
+            // 🔥 FILTRE: Auto-complétion seulement si verificationMode = 'none'
             if (relatedPrompt) {
                 const stepConfig = relatedPrompt.stepsConfig?.[panel.currentStepIndex];
-                if (stepConfig?.autoCompleteStep) {
-                    logger.debug('Triggering completeStepAndProceed', { prospect: prospect.name });
+                
+                // Trouver l'action correspondant au formulaire soumis
+                const formAction = stepConfig?.actions?.find(
+                    action => action.type === 'show_form' && action.formId === panel.formId
+                );
+                
+                const verificationMode = formAction?.verificationMode || 'human';
+                
+                logger.debug('Checking auto-complete conditions', {
+                    autoCompleteStep: stepConfig?.autoCompleteStep,
+                    verificationMode: verificationMode
+                });
+                
+                // Auto-complétion UNIQUEMENT si verificationMode = 'none'
+                if (stepConfig?.autoCompleteStep && verificationMode === 'none') {
+                    logger.debug('Triggering completeStepAndProceed (no verification needed)', { 
+                        prospect: prospect.name 
+                    });
+                    
                     completeStepAndProceed(prospect.id, panel.projectType, panel.currentStepIndex);
                     
                     toast({
-                        title: 'Étape terminée !',
-                        description: `${prospect.name} a complété le formulaire. L'étape a été automatiquement validée.`,
+                        title: '✅ Étape terminée !',
+                        description: `${prospect.name} a complété le formulaire. Passage automatique à l'étape suivante.`,
                         className: 'bg-green-500 text-white',
+                    });
+                } else if (verificationMode === 'human' || verificationMode === 'ai') {
+                    logger.debug('Waiting for validation', { 
+                        verificationMode,
+                        message: 'Auto-complete will trigger after commercial validation'
                     });
                 }
             }
