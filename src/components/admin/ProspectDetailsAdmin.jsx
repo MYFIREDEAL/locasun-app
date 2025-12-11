@@ -414,9 +414,9 @@ const ProjectTimeline = ({
             className: 'bg-green-500 text-white',
           });
           
-          // 🔥 FIX: Appel direct sans setTimeout pour éviter race condition
-          // Le setTimeout causait un re-render qui réinitialisait l'étape 1
-          completeStepAndProceed(prospectId, projectType, currentStepIndex);
+          // 🔥 FIX SOLUTION A: Passer projectSteps (depuis supabaseSteps) en paramètre
+          // Garantit d'utiliser les vraies données Supabase au lieu du state global vide
+          completeStepAndProceed(prospectId, projectType, currentStepIndex, steps);
         }
       }
       
@@ -571,7 +571,7 @@ const ProjectTimeline = ({
         </div>;
 };
 
-const ProspectForms = ({ prospect, projectType, onUpdate }) => {
+const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
     const { forms, prompts, completeStepAndProceed } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
     const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(null);
@@ -816,11 +816,18 @@ const ProspectForms = ({ prospect, projectType, onUpdate }) => {
                         stepIndex: panel.currentStepIndex
                     });
                     
-                    await completeStepAndProceed(
-                        prospect.id,
-                        panel.projectType,
-                        panel.currentStepIndex
-                    );
+                    // 🔥 FIX SOLUTION A: Récupérer les steps depuis supabaseSteps pour ce projectType
+                    const currentSteps = supabaseSteps?.[panel.projectType];
+                    if (currentSteps) {
+                        await completeStepAndProceed(
+                            prospect.id,
+                            panel.projectType,
+                            panel.currentStepIndex,
+                            currentSteps
+                        );
+                    } else {
+                        logger.error('No steps found in supabaseSteps for projectType', { projectType: panel.projectType });
+                    }
                 }
             }
 
@@ -1692,7 +1699,8 @@ const ProspectDetailsAdmin = ({
 
               <ProspectForms 
                 prospect={editableProspect} 
-                projectType={activeProjectTag} 
+                projectType={activeProjectTag}
+                supabaseSteps={supabaseSteps}
                 onUpdate={(updated) => {
                   // 🔥 FIX: Mettre à jour editableProspect immédiatement
                   setEditableProspect(updated);

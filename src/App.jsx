@@ -1129,18 +1129,24 @@ function App() {
     return currentSteps;
   };
 
-  const completeStepAndProceed = async (prospectId, projectType, currentStepIndex) => {
+  const completeStepAndProceed = async (prospectId, projectType, currentStepIndex, currentSteps) => {
     logger.debug('completeStepAndProceed START', { prospectId, projectType, currentStepIndex });
     
-    const steps = getProjectSteps(prospectId, projectType);
-    logger.debug('Steps retrieved', { count: steps?.length });
+    // 🔥 FIX SOLUTION A: Recevoir les steps en paramètre au lieu d'appeler getProjectSteps
+    // Évite d'utiliser le state global vide et garantit d'avoir les vraies données depuis Supabase
+    if (!currentSteps || currentSteps.length === 0) {
+      logger.error('No steps provided', { prospectId, projectType });
+      return;
+    }
     
-    if (currentStepIndex < 0 || currentStepIndex >= steps.length) {
-      logger.error('Index étape invalide', { currentStepIndex, stepsLength: steps.length });
+    logger.debug('Steps received from caller', { count: currentSteps.length });
+    
+    if (currentStepIndex < 0 || currentStepIndex >= currentSteps.length) {
+      logger.error('Index étape invalide', { currentStepIndex, stepsLength: currentSteps.length });
       return;
     }
 
-    const newSteps = JSON.parse(JSON.stringify(steps));
+    const newSteps = JSON.parse(JSON.stringify(currentSteps));
     
     const completedStepName = newSteps[currentStepIndex].name;
     newSteps[currentStepIndex].status = 'completed';
@@ -1156,8 +1162,6 @@ function App() {
       nextStep: nextStepName 
     });
     
-    // 🔥 FIX: Attendre que la sauvegarde Supabase soit terminée
-    // AVANT que React ne re-render et rappelle getProjectSteps
     await updateProjectSteps(prospectId, projectType, newSteps);
     
     // TODO: Ajouter événement dans project_history
