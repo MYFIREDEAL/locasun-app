@@ -414,10 +414,9 @@ const ProjectTimeline = ({
             className: 'bg-green-500 text-white',
           });
           
-          // Passer à l'étape suivante après un court délai (pour voir le toast)
-          setTimeout(() => {
-            completeStepAndProceed(prospectId, projectType, currentStepIndex);
-          }, 1000);
+          // 🔥 FIX: Appel direct sans setTimeout pour éviter race condition
+          // Le setTimeout causait un re-render qui réinitialisait l'étape 1
+          completeStepAndProceed(prospectId, projectType, currentStepIndex);
         }
       }
       
