@@ -348,34 +348,124 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
         {relevantForms.map(panel => {
           const formDefinition = forms[panel.formId];
           const isSubmitted = panel.status === 'submitted';
+          const isApproved = panel.status === 'approved';
+          const isRejected = panel.status === 'rejected';
           const draft = formDrafts[panel.panelId] || {};
+
+          // 🔍 Déterminer le mode de vérification depuis le prompt
+          let verificationMode = 'human'; // default
+          if (panel.promptId && prompts) {
+            const relatedPrompt = Object.values(prompts).find(p => p.id === panel.promptId);
+            if (relatedPrompt) {
+              const stepConfig = relatedPrompt.stepsConfig?.[panel.currentStepIndex];
+              const formAction = stepConfig?.actions?.find(
+                action => action.type === 'show_form' && action.formId === panel.formId
+              );
+              verificationMode = formAction?.verificationMode || 'human';
+            }
+          }
 
           if (!formDefinition) {
             return null;
           }
 
+          // 🎨 Déterminer le badge de statut
+          let statusBadge = {
+            text: 'À compléter',
+            className: 'bg-blue-100 text-blue-700'
+          };
+
+          if (isApproved) {
+            statusBadge = {
+              text: '✅ Approuvé',
+              className: 'bg-green-100 text-green-700'
+            };
+          } else if (isRejected) {
+            statusBadge = {
+              text: '❌ Rejeté',
+              className: 'bg-red-100 text-red-700'
+            };
+          } else if (isSubmitted) {
+            if (verificationMode === 'none') {
+              statusBadge = {
+                text: '✅ Validé automatiquement',
+                className: 'bg-green-100 text-green-700'
+              };
+            } else {
+              statusBadge = {
+                text: '🕐 En attente de validation',
+                className: 'bg-yellow-100 text-yellow-700'
+              };
+            }
+          }
+
           return (
             <div key={panel.panelId} className="border border-gray-200 rounded-xl p-4 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">{formDefinition.name}</h3>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900 truncate">{formDefinition.name}</h3>
                   <p className="text-xs text-gray-500 mt-1">
                     Étape : {panel.stepName || 'Suivi du projet'}
                   </p>
                 </div>
                 <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    isSubmitted ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                  }`}
+                  className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0 ${statusBadge.className}`}
                 >
-                  {isSubmitted ? 'Envoyé' : 'À compléter'}
+                  {statusBadge.text}
                 </span>
               </div>
 
-              {isSubmitted ? (
+              {isApproved ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                    <span className="text-sm font-medium text-green-700">Formulaire envoyé</span>
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">✅</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-700">Formulaire approuvé</p>
+                        <p className="text-xs text-green-600 mt-1">
+                          Votre conseiller a validé les informations
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : isRejected ? (
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">❌</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-700">Formulaire rejeté</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          Veuillez modifier les informations et renvoyer
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleEdit(panel)}
+                    className="w-full"
+                  >
+                    Modifier et renvoyer
+                  </Button>
+                </div>
+              ) : isSubmitted ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-blue-700">
+                        {verificationMode === 'none' 
+                          ? 'Formulaire validé automatiquement' 
+                          : 'Formulaire envoyé à votre conseiller'}
+                      </span>
+                      {verificationMode !== 'none' && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Vous pouvez encore le modifier si nécessaire
+                        </p>
+                      )}
+                    </div>
                     <Button variant="outline" size="sm" onClick={() => handleEdit(panel)}>
                       Modifier
                     </Button>
