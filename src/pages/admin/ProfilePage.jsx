@@ -2250,8 +2250,21 @@ const ProfilePage = () => {
                   <Input id="nom" name="name" value={userInfo.name} onChange={handleUserInfoChange} />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" value={userInfo.email} onChange={handleUserInfoChange} />
+                  <Label htmlFor="email">Email de connexion</Label>
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    value={userInfo.email} 
+                    disabled 
+                    className="bg-gray-100 cursor-not-allowed" 
+                  />
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Pour changer votre email de connexion, contactez un Global Admin
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
