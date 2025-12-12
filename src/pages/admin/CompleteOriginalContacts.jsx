@@ -12,6 +12,7 @@ import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmi
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 // Import des composants originaux avec gestion d'erreur
 let ProspectDetailsAdmin;
@@ -437,11 +438,44 @@ const CompleteOriginalContacts = () => {
       // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
       const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
       
-      await addSupabaseProspect({ 
+      const createdProspect = await addSupabaseProspect({ 
         ...newProspectData, 
         status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
         ownerId: activeAdminUser?.id
       });
+
+      // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
+      if (createdProspect && newProspectData.tags && newProspectData.tags.length > 0) {
+        for (const projectType of newProspectData.tags) {
+          const defaultSteps = projectsData[projectType]?.steps;
+          if (defaultSteps && defaultSteps.length > 0) {
+            try {
+              const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
+              initialSteps[0].status = 'in_progress'; // Première étape active
+              
+              const { error: stepsError } = await supabase
+                .from('project_steps_status')
+                .upsert({
+                  prospect_id: createdProspect.id,
+                  project_type: projectType,
+                  steps: initialSteps,
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'prospect_id,project_type'
+                });
+              
+              if (stepsError) {
+                logger.error('Erreur initialisation steps', { projectType, error: stepsError });
+              } else {
+                logger.debug('Steps initialized for project', { projectType, prospectId: createdProspect.id });
+              }
+            } catch (err) {
+              logger.error('Erreur initialisation steps', { projectType, error: err });
+            }
+          }
+        }
+      }
+
       setAddModalOpen(false);
     } catch (error) {
       toast({
