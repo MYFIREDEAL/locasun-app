@@ -2254,16 +2254,18 @@ const ProfilePage = () => {
                   <Input id="email" name="email" type="email" value={userInfo.email} onChange={handleUserInfoChange} />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="phone">Téléphone</Label>
-                <div className="relative mt-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="phone" name="phone" type="tel" value={userInfo.phone} onChange={handleUserInfoChange} className="pl-10" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <div className="relative mt-1">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Input id="phone" name="phone" type="tel" value={userInfo.phone} onChange={handleUserInfoChange} className="pl-10" />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="role">Rôle</Label>
-                <Input id="role" name="role" value={userInfo.role === 'Admin' ? 'Admin' : userInfo.role === 'Global Admin' ? 'Admin Global (tous les droits)' : userInfo.role} disabled className="bg-gray-100" />
+                <div>
+                  <Label htmlFor="role">Rôle</Label>
+                  <Input id="role" name="role" value={userInfo.role === 'Admin' ? 'Admin' : userInfo.role === 'Global Admin' ? 'Admin Global (tous les droits)' : userInfo.role} disabled className="bg-gray-100" />
+                </div>
               </div>
             </div>
 
@@ -2324,7 +2326,7 @@ const ProfilePage = () => {
               );
             })()}
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
               <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
