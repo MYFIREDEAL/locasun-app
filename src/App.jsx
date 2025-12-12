@@ -479,8 +479,12 @@ function App() {
         
         setAdminReady(true);
         setCurrentUser(null);
-        setAuthLoading(false);
-        isLoadingAuthRef.current = false;
+        // 🔥 FIX React Error #310: Attendre un tick pour que activeAdminUser
+        // soit bien appliqué AVANT de désactiver authLoading
+        setTimeout(() => {
+          setAuthLoading(false);
+          isLoadingAuthRef.current = false;
+        }, 0);
         return;
       }
 
@@ -527,19 +531,28 @@ function App() {
           setUserProjects(prospect.tags);
         }
         
-        setAuthLoading(false);
-        isLoadingAuthRef.current = false;
+        // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
+        setTimeout(() => {
+          setAuthLoading(false);
+          isLoadingAuthRef.current = false;
+        }, 0);
         return;
       }
 
       // Aucun rôle trouvé
       setCurrentUser(null);
       setActiveAdminUser(null);
-      setAuthLoading(false);
+      // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
+      setTimeout(() => {
+        setAuthLoading(false);
+      }, 0);
 
     } catch (err) {
       logger.error('Erreur chargement utilisateur authentifié', { error: err.message });
-      setAuthLoading(false);
+      // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
+      setTimeout(() => {
+        setAuthLoading(false);
+      }, 0);
     } finally {
       isLoadingAuthRef.current = false;
     }
@@ -555,7 +568,10 @@ function App() {
 
     if (isPublicRoute) {
       setActiveAdminUser(null);
-      setAuthLoading(false);
+      // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
+      setTimeout(() => {
+        setAuthLoading(false);
+      }, 0);
       console.log('⚠️ Route publique détectée → activeAdminUser bloqué');
       return;
     }
@@ -563,7 +579,10 @@ function App() {
     if (!session) {
       setActiveAdminUser(null);
       setCurrentUser(null);
-      setAuthLoading(false);
+      // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
+      setTimeout(() => {
+        setAuthLoading(false);
+      }, 0);
       return;
     }
 
