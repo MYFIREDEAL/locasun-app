@@ -182,6 +182,26 @@ const RegistrationPage = () => {
         throw magicLinkError;
       }
 
+      // 🔥 ÉTAPE 4: Initialiser les étapes de chaque projet avec étape 1 en "in_progress"
+      for (const projectType of finalProjects) {
+        const defaultSteps = projectsData[projectType]?.steps;
+        if (defaultSteps && defaultSteps.length > 0) {
+          const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
+          initialSteps[0].status = 'in_progress'; // Première étape en cours
+          
+          // Sauvegarder dans project_steps_status
+          await supabase
+            .from('project_steps_status')
+            .upsert({
+              prospect_id: prospectId,
+              project_type: projectType,
+              steps: initialSteps
+            });
+          
+          console.log(`✅ Steps initialisées pour ${projectType}, étape 1 en "in_progress"`);
+        }
+      }
+
       sessionStorage.removeItem('affiliateUser');
 
       // ✅ AFFICHER LE MESSAGE "MAGIC LINK ENVOYÉ"
