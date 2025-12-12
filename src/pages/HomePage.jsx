@@ -95,7 +95,11 @@ const ProLoginModal = ({ isOpen, onOpenChange }) => {
       
       setActiveAdminUser(transformedUserData);
       onOpenChange(false);
-      setTimeout(() => navigate('/admin'), 500);
+      
+      // 🔥 Hard reload pour éviter React Error #310 (hooks mismatch)
+      setTimeout(() => {
+        window.location.href = '/admin';
+      }, 500);
     } catch (error) {
       logger.error('Pro login error:', error);
       toast({
