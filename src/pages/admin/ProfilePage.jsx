@@ -2266,6 +2266,64 @@ const ProfilePage = () => {
                 <Input id="role" name="role" value={userInfo.role === 'Admin' ? 'Admin' : userInfo.role === 'Global Admin' ? 'Admin Global (tous les droits)' : userInfo.role} disabled className="bg-gray-100" />
               </div>
             </div>
+
+            {/* 🔗 Lien d'affiliation personnel */}
+            {(() => {
+              const currentUserFull = supabaseUsers.find(u => u.user_id === activeAdminUser?.id || u.email === userInfo.email);
+              const affiliateSlug = currentUserFull?.affiliate_slug;
+              const affiliateLink = affiliateSlug ? `${window.location.origin}/inscription/${affiliateSlug}` : null;
+
+              if (!affiliateLink) return null;
+
+              return (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Label className="text-blue-900 font-semibold mb-2 flex items-center gap-2">
+                        <Copy className="h-4 w-4" />
+                        Votre lien d'affiliation personnel
+                      </Label>
+                      <p className="text-xs text-blue-700 mb-3">
+                        Partagez ce lien avec vos clients. Quand ils s'inscrivent via ce lien, ils vous seront automatiquement attribués.
+                      </p>
+                      <div className="flex items-center gap-2 bg-white p-3 rounded-lg border border-blue-300">
+                        <Input 
+                          value={affiliateLink} 
+                          readOnly 
+                          className="flex-1 font-mono text-sm bg-transparent border-none focus:ring-0 cursor-pointer select-all" 
+                          onClick={(e) => e.target.select()}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(affiliateLink).then(() => {
+                              toast({
+                                title: "✅ Lien copié !",
+                                description: "Le lien d'affiliation a été copié dans votre presse-papiers.",
+                                className: "bg-green-500 text-white"
+                              });
+                            }).catch(() => {
+                              toast({
+                                title: "Erreur",
+                                description: "Impossible de copier le lien automatiquement. Copiez-le manuellement.",
+                                variant: "destructive"
+                              });
+                            });
+                          }}
+                          className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copier
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4">
               <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
                 <DialogTrigger asChild>
