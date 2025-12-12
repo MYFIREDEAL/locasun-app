@@ -1379,10 +1379,16 @@ const ProfilePage = () => {
 
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isInviteUserOpen, setIsInviteUserOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
   const [isAccessRightsOpen, setIsAccessRightsOpen] = useState(false);
   const [isCreateCompanyOpen, setIsCreateCompanyOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [editUserData, setEditUserData] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedManager, setSelectedManager] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
@@ -2157,6 +2163,64 @@ const ProfilePage = () => {
       logger.error('Erreur invitation utilisateur', { error: err.message });
     }
   };
+
+  const openEditUserDialog = (user) => {
+    setEditingUser(user);
+    setEditUserData({
+      name: user.name || '',
+      email: user.email || '',
+      password: '' // Mot de passe vide par défaut (optionnel lors de l'édition)
+    });
+    setIsEditUserOpen(true);
+  };
+
+  const handleEditUserChange = (field, value) => {
+    setEditUserData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    
+    if (!editUserData.name) {
+      toast({
+        title: "Champ manquant",
+        description: "Le nom est obligatoire.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const updates = {
+        name: editUserData.name
+      };
+
+      // ⚠️ L'email ne peut pas être changé pour éviter désynchronisation auth.users ↔ public.users
+      // Si besoin, l'admin doit passer par Supabase Dashboard ou Edge Function
+
+      // Mettre à jour les infos dans public.users
+      await updateUser(editingUser.id, updates);
+
+      setIsEditUserOpen(false);
+      setEditingUser(null);
+      setEditUserData({
+        name: '',
+        email: '',
+        password: ''
+      });
+    } catch (err) {
+      logger.error('Erreur modification utilisateur', { error: err.message });
+      toast({
+        title: "Erreur",
+        description: err.message || "Impossible de modifier l'utilisateur.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const containerVariants = {
     hidden: {
       opacity: 0
@@ -2947,6 +3011,67 @@ const ProfilePage = () => {
                     </DialogContent>
                   </Dialog>
                 </div>
+
+                {/* Dialog pour éditer un utilisateur existant */}
+                <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Modifier l'utilisateur</DialogTitle>
+                      <DialogDescription>
+                        Modifiez le nom de {editingUser?.name}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 px-6">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-nom" className="text-right col-span-1">Nom</Label>
+                        <Input 
+                          id="edit-nom" 
+                          className="col-span-3" 
+                          value={editUserData.name} 
+                          onChange={e => handleEditUserChange('name', e.target.value)} 
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-email" className="text-right col-span-1">Email</Label>
+                        <div className="col-span-3 space-y-1">
+                          <Input 
+                            id="edit-email" 
+                            type="email" 
+                            value={editUserData.email} 
+                            disabled 
+                            className="bg-gray-100 cursor-not-allowed" 
+                          />
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            L'email de connexion ne peut pas être modifié depuis cette interface
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right col-span-1">Mot de passe</Label>
+                        <div className="col-span-3 space-y-1">
+                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p className="text-xs text-amber-800 flex items-start gap-2">
+                              <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span>Pour réinitialiser le mot de passe de cet utilisateur, envoyez-lui un lien "Mot de passe oublié" ou demandez-lui de le faire depuis la page de connexion.</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter className="px-6 pb-4">
+                      <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>Annuler</Button>
+                      <Button onClick={handleSaveEditUser} className="bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <div className="mb-4">
                   <Input type="text" placeholder="Rechercher par nom ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="max-w-sm" />
                 </div>
@@ -2971,7 +3096,10 @@ const ProfilePage = () => {
                           <td className="px-6 py-4">{user.role}</td>
                           <td className="px-6 py-4">{user.manager || 'N/A'}</td>
                           <td className="px-6 py-4">
-                            <Button variant="outline" size="sm" onClick={() => openChangeRoleDialog(user)} disabled={user.role === 'Admin' || user.role === 'Global Admin'}>Changer le rôle</Button>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => openEditUserDialog(user)}>Modifier</Button>
+                              <Button variant="outline" size="sm" onClick={() => openChangeRoleDialog(user)} disabled={user.role === 'Admin' || user.role === 'Global Admin'}>Changer le rôle</Button>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <Button variant="outline" size="sm" onClick={() => openAccessRightsDialog(user)}>Modifier droits</Button>
