@@ -4,18 +4,30 @@ import { X, User, Users, UserCheck, LogOut, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
+import { supabase } from '@/lib/supabase';
 
 const ProfileSidebar = ({ isOpen, onClose }) => {
   const [activeView, setActiveView] = useState('menu');
   const { setCurrentUser } = useAppContext();
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    onClose();
-    toast({
-      title: "Déconnexion réussie",
-      description: "Vous avez été déconnecté de votre compte.",
-    });
+  const handleLogout = async () => {
+    try {
+      // 1. Sign out de Supabase
+      await supabase.auth.signOut();
+      
+      // 2. Clear state
+      setCurrentUser(null);
+      
+      // 3. Forcer un hard refresh pour reset tous les hooks
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de se déconnecter. Rechargez la page.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleFeatureClick = (featureName) => {
