@@ -1010,7 +1010,7 @@ const ActionEditor = ({
                             </AnimatePresence>
                         </div>
                         
-                        {action.type !== 'none' && (
+                        {action.type === 'show_form' && (
                             <div className="space-y-2">
                                 <Label>Mode de vérification</Label>
                                 <Select value={action.verificationMode || 'human'} onValueChange={value => handleActionChange('verificationMode', value)}>
@@ -1028,6 +1028,41 @@ const ActionEditor = ({
                                     {action.verificationMode === 'ai' && '🤖 L\'IA analysera et validera automatiquement'}
                                     {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie'}
                                 </p>
+                                
+                                {/* 🆕 Messages automatiques de validation/rejet */}
+                                {(!action.verificationMode || action.verificationMode === 'human') && (
+                                    <div className="space-y-4 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium text-gray-700">
+                                                ✅ Message si validé
+                                            </Label>
+                                            <p className="text-xs text-gray-500">
+                                                Ce message sera envoyé automatiquement dans le chat quand le commercial valide le formulaire
+                                            </p>
+                                            <Textarea
+                                                value={action.approvalMessage || 'Merci ! Votre formulaire a été validé.'}
+                                                onChange={(e) => handleActionChange('approvalMessage', e.target.value)}
+                                                placeholder="Merci ! Votre formulaire a été validé."
+                                                className="min-h-[60px]"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium text-gray-700">
+                                                ❌ Message si rejeté
+                                            </Label>
+                                            <p className="text-xs text-gray-500">
+                                                Message prédéfini affiché au commercial. Il pourra ajouter sa raison de refus avant d'envoyer dans le chat.
+                                            </p>
+                                            <Textarea
+                                                value={action.rejectionMessage || 'Oups !! Votre formulaire a été rejeté pour la raison suivante :'}
+                                                onChange={(e) => handleActionChange('rejectionMessage', e.target.value)}
+                                                placeholder="Oups !! Votre formulaire a été rejeté pour la raison suivante :"
+                                                className="min-h-[60px]"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>

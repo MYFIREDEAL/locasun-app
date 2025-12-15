@@ -663,9 +663,20 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
     const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(null);
     // 🔥 Hook pour mettre à jour les tâches - CORRIGER: Passer activeAdminUser
     const { appointments, updateAppointment } = useSupabaseAgenda(activeAdminUser);
+    // 🆕 Hook pour envoyer des messages dans le chat
+    const { sendMessage } = useSupabaseChatMessages(prospect.id, projectType);
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
+    // 🆕 State pour la modal de rejet
+    const [rejectModalOpen, setRejectModalOpen] = useState(false);
+    const [rejectingPanel, setRejectingPanel] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState('');
     const [processedPanels, setProcessedPanels] = useState(new Set());
+
+    // 🔴 Debug: Log du state de la modal
+    useEffect(() => {
+        console.log('🔴 rejectModalOpen changed:', rejectModalOpen);
+    }, [rejectModalOpen]);
 
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
@@ -882,6 +893,16 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
         setEditedData(prev => ({ ...prev, [fieldId]: value }));
     };
 
+    // 🆕 Helper pour récupérer l'action du prompt correspondant au panel
+    const getActionForPanel = (panel) => {
+        const prompt = Object.values(prompts).find(p => 
+            p.id === panel.promptId || p.projectId === panel.projectType
+        );
+        
+        const stepConfig = prompt?.stepsConfig?.[panel.currentStepIndex];
+        return stepConfig?.actions?.find(a => a.formId === panel.formId);
+    };
+
     // 🔥 NOUVEAU: Valider un formulaire
     const handleApprove = async (panel) => {
         try {
@@ -979,9 +1000,19 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 }
             }
 
+            // 🆕 ENVOYER MESSAGE AUTO dans le chat
+            const action = getActionForPanel(panel);
+            const approvalMessage = action?.approvalMessage || 'Merci ! Votre formulaire a été validé.';
+            
+            await sendMessage({
+                sender: 'admin',
+                text: approvalMessage,
+                relatedMessageTimestamp: new Date().toISOString()
+            });
+
             toast({
                 title: '✅ Formulaire validé',
-                description: 'Le formulaire a été approuvé avec succès.',
+                description: 'Un message a été envoyé au client.',
                 className: 'bg-green-500 text-white',
             });
         } catch (error) {
@@ -995,8 +1026,12 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
     };
 
     // 🔥 NOUVEAU: Rejeter un formulaire
-    const handleReject = async (panel) => {
+    const handleReject = async (customReason = '') => {
+        if (!rejectingPanel) return;
+        
         try {
+            const panel = rejectingPanel;
+            
             // Mettre à jour le statut du panel
             await updateFormPanel(panel.panelId, { status: 'rejected' });
 
@@ -1024,29 +1059,29 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                     title: relatedTask.title
                 });
                 await updateAppointment(relatedTask.id, { status: 'effectue' });
-                toast({
-                    title: '✅ Tâche mise à jour',
-                    description: 'La tâche de vérification a été marquée comme effectuée.',
-                    className: 'bg-blue-500 text-white',
-                });
-            } else {
-                logger.warn('⚠️ No related task found (reject)', {
-                    searchCriteria: {
-                        type: 'task',
-                        contactId: prospect.id,
-                        projectId: panel.projectType,
-                        step: panel.stepName,
-                        status: 'pending',
-                        titleContains: 'Vérifier le formulaire'
-                    }
-                });
             }
+
+            // 🆕 ENVOYER MESSAGE dans le chat
+            const action = getActionForPanel(panel);
+            const rejectionMessage = action?.rejectionMessage || 'Oups !! Votre formulaire a été rejeté pour la raison suivante :';
+            const fullMessage = `${rejectionMessage}\n\n${customReason}`;
+            
+            await sendMessage({
+                sender: 'admin',
+                text: fullMessage,
+                relatedMessageTimestamp: new Date().toISOString()
+            });
 
             toast({
                 title: '❌ Formulaire rejeté',
-                description: 'Le client devra resoumettre le formulaire.',
+                description: 'Un message a été envoyé au client.',
                 className: 'bg-red-500 text-white',
             });
+            
+            // Fermer la modal
+            setRejectModalOpen(false);
+            setRejectingPanel(null);
+            setRejectionReason('');
         } catch (error) {
             logger.error('❌ Erreur rejet formulaire:', error);
             toast({
@@ -1118,7 +1153,12 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                                         <Button 
                                             size="sm" 
                                             variant="outline"
-                                            onClick={() => handleReject(panel)}
+                                            onClick={() => {
+                                                console.log('🔴 Bouton Rejeter cliqué', { panel });
+                                                setRejectingPanel(panel);
+                                                setRejectModalOpen(true);
+                                                console.log('🔴 State mis à jour - rejectModalOpen devrait être true');
+                                            }}
                                             className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                                         >
                                             <X className="h-4 w-4 mr-1" />
@@ -1172,6 +1212,64 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                     );
                 })}
             </div>
+            
+            {/* 🆕 MODAL DE REJET */}
+            <Dialog open={rejectModalOpen} onOpenChange={(open) => {
+                console.log('🔴 Dialog onOpenChange:', open);
+                setRejectModalOpen(open);
+            }}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Rejeter le formulaire</DialogTitle>
+                        <DialogDescription>
+                            Expliquez au client pourquoi le formulaire est rejeté
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        {rejectingPanel && (
+                            <>
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <p className="text-sm text-red-700 font-medium">
+                                        {getActionForPanel(rejectingPanel)?.rejectionMessage || 
+                                         'Oups !! Votre formulaire a été rejeté pour la raison suivante :'}
+                                    </p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label>Raison du refus</Label>
+                                    <textarea
+                                        value={rejectionReason}
+                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                        placeholder="Ex: Le RIB n'est pas lisible, veuillez en fournir un nouveau"
+                                        className="w-full min-h-[120px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setRejectModalOpen(false);
+                                setRejectingPanel(null);
+                                setRejectionReason('');
+                            }}
+                        >
+                            Annuler
+                        </Button>
+                        <Button 
+                            onClick={() => handleReject(rejectionReason)}
+                            disabled={!rejectionReason.trim()}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Envoyer dans le chat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
