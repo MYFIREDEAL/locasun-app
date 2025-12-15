@@ -673,11 +673,6 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
     const [rejectionReason, setRejectionReason] = useState('');
     const [processedPanels, setProcessedPanels] = useState(new Set());
 
-    // 🔴 Debug: Log du state de la modal
-    useEffect(() => {
-        console.log('🔴 rejectModalOpen changed:', rejectModalOpen);
-    }, [rejectModalOpen]);
-
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
         if (!clientFormPanels) return [];
@@ -1154,10 +1149,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                                             size="sm" 
                                             variant="outline"
                                             onClick={() => {
-                                                console.log('🔴 Bouton Rejeter cliqué', { panel });
                                                 setRejectingPanel(panel);
                                                 setRejectModalOpen(true);
-                                                console.log('🔴 State mis à jour - rejectModalOpen devrait être true');
                                             }}
                                             className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                                         >
@@ -1214,10 +1207,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             </div>
             
             {/* 🆕 MODAL DE REJET */}
-            <Dialog open={rejectModalOpen} onOpenChange={(open) => {
-                console.log('🔴 Dialog onOpenChange:', open);
-                setRejectModalOpen(open);
-            }}>
+            <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Rejeter le formulaire</DialogTitle>
