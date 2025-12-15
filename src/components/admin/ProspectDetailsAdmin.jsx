@@ -375,12 +375,29 @@ const ProjectTimeline = ({
   completeStepAndProceed,
 }) => {
   const [checklistStates, setChecklistStates] = useState({});
+  const { activeAdminUser } = useAppContext();
+  
+  // 🔥 Récupérer les tâches du commercial pour ce prospect
+  const { appointments } = useSupabaseAgenda(activeAdminUser);
   
   if (!steps) return null;
   
   // Récupérer le prompt pour ce projet
   const prompt = prompts ? Object.values(prompts).find(p => p.projectId === projectType) : null;
   const currentStepConfig = prompt?.stepsConfig?.[currentStepIndex];
+  
+  // Filtrer les tâches pour l'étape en cours
+  const currentStepTasks = useMemo(() => {
+    if (!steps[currentStepIndex]) return [];
+    const stepName = steps[currentStepIndex].name;
+    
+    return appointments.filter(apt => 
+      apt.type === 'task' &&
+      apt.contactId === prospectId &&
+      apt.projectId === projectType &&
+      apt.step === stepName
+    );
+  }, [appointments, prospectId, projectType, currentStepIndex, steps]);
   
   // Gérer le clic sur une checkbox
   const handleCheckboxToggle = (actionId, itemId) => {
@@ -563,6 +580,38 @@ const ProjectTimeline = ({
                               </div>
                             );
                           })}
+                      </div>
+                    )}
+                    
+                    {/* 🔥 TÂCHES: Afficher les tâches du commercial pour cette étape */}
+                    {step.status === STATUS_CURRENT && index === currentStepIndex && currentStepTasks.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {currentStepTasks.map(task => {
+                          const isDone = task.status === 'effectue';
+                          const taskDate = new Date(task.startTime);
+                          
+                          return (
+                            <div 
+                              key={task.id}
+                              className="bg-green-100 border-l-4 border-green-500 text-green-800 rounded-lg p-3 flex items-center justify-between shadow-sm"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''} truncate`}>
+                                  {task.title || 'Tâche'}
+                                </p>
+                                <p className="text-xs text-green-600 mt-1">
+                                  📅 {format(taskDate, 'dd/MM/yyyy à HH:mm', { locale: fr })}
+                                </p>
+                                {task.notes && (
+                                  <p className="text-xs text-gray-600 mt-1 italic truncate">
+                                    {task.notes}
+                                  </p>
+                                )}
+                              </div>
+                              {isDone && <Check className="h-5 w-5 text-green-600 ml-2 flex-shrink-0" />}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
