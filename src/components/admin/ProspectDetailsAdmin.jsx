@@ -804,6 +804,31 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             await updateFormPanel(panel.panelId, { status: 'approved' });
 
             // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante
+            logger.debug('🔍 Searching for related task', {
+                totalAppointments: appointments?.length || 0,
+                prospectId: prospect.id,
+                projectType: panel.projectType,
+                stepName: panel.stepName,
+                panel: panel
+            });
+
+            // Filtrer les tâches pour debug
+            const allTasks = appointments?.filter(apt => apt.type === 'task') || [];
+            const prospectTasks = allTasks.filter(apt => apt.contactId === prospect.id);
+            
+            logger.debug('🔍 Task filtering debug', {
+                allTasks: allTasks.length,
+                prospectTasks: prospectTasks.length,
+                prospectTasksData: prospectTasks.map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    contactId: t.contactId,
+                    projectId: t.projectId,
+                    step: t.step,
+                    status: t.status
+                }))
+            });
+
             const relatedTask = appointments?.find(apt => 
                 apt.type === 'task' &&
                 apt.contactId === prospect.id &&
@@ -814,11 +839,28 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             );
 
             if (relatedTask) {
-                logger.debug('Marking verification task as completed', {
+                logger.info('✅ Found verification task, marking as completed', {
                     taskId: relatedTask.id,
-                    prospectId: prospect.id
+                    prospectId: prospect.id,
+                    title: relatedTask.title
                 });
                 await updateAppointment(relatedTask.id, { status: 'effectue' });
+                toast({
+                    title: '✅ Tâche mise à jour',
+                    description: 'La tâche de vérification a été marquée comme effectuée.',
+                    className: 'bg-blue-500 text-white',
+                });
+            } else {
+                logger.warn('⚠️ No related task found', {
+                    searchCriteria: {
+                        type: 'task',
+                        contactId: prospect.id,
+                        projectId: panel.projectType,
+                        step: panel.stepName,
+                        status: 'pending',
+                        titleContains: 'Vérifier le formulaire'
+                    }
+                });
             }
 
             // Récupérer le prompt pour vérifier autoCompleteStep
@@ -874,6 +916,13 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             await updateFormPanel(panel.panelId, { status: 'rejected' });
 
             // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante
+            logger.debug('🔍 Searching for related task (reject)', {
+                totalAppointments: appointments?.length || 0,
+                prospectId: prospect.id,
+                projectType: panel.projectType,
+                stepName: panel.stepName
+            });
+
             const relatedTask = appointments?.find(apt => 
                 apt.type === 'task' &&
                 apt.contactId === prospect.id &&
@@ -884,11 +933,28 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             );
 
             if (relatedTask) {
-                logger.debug('Marking verification task as completed (rejected)', {
+                logger.info('✅ Found verification task, marking as completed (rejected)', {
                     taskId: relatedTask.id,
-                    prospectId: prospect.id
+                    prospectId: prospect.id,
+                    title: relatedTask.title
                 });
                 await updateAppointment(relatedTask.id, { status: 'effectue' });
+                toast({
+                    title: '✅ Tâche mise à jour',
+                    description: 'La tâche de vérification a été marquée comme effectuée.',
+                    className: 'bg-blue-500 text-white',
+                });
+            } else {
+                logger.warn('⚠️ No related task found (reject)', {
+                    searchCriteria: {
+                        type: 'task',
+                        contactId: prospect.id,
+                        projectId: panel.projectType,
+                        step: panel.stepName,
+                        status: 'pending',
+                        titleContains: 'Vérifier le formulaire'
+                    }
+                });
             }
 
             toast({
