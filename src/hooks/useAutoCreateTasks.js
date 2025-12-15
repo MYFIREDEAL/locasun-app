@@ -13,6 +13,8 @@ export function useAutoCreateTasks(prompts) {
       return;
     }
 
+    logger.debug('🔔 useAutoCreateTasks: Setting up subscription');
+
     // Écouter les changements dans project_steps_status
     const channel = supabase
       .channel('auto-create-tasks')
@@ -142,6 +144,33 @@ export function useAutoCreateTasks(prompts) {
  * Crée une tâche dans la table appointments
  */
 async function createTask({ prospect, prospect_id, project_type, stepName, title, notes, taskTime, endTime }) {
+  // 🔥 VÉRIFIER SI UNE TÂCHE IDENTIQUE EXISTE DÉJÀ
+  const { data: existingTasks, error: checkError } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('type', 'task')
+    .eq('contact_id', prospect_id)
+    .eq('project_id', project_type)
+    .eq('step', stepName)
+    .eq('title', title)
+    .eq('status', 'pending')
+    .gte('created_at', new Date(Date.now() - 60000).toISOString()); // Créée dans la dernière minute
+
+  if (checkError) {
+    logger.error('❌ Erreur vérification tâches existantes:', checkError);
+  }
+
+  // Si une tâche identique existe déjà (créée il y a moins d'1 minute), ne pas en créer une nouvelle
+  if (existingTasks && existingTasks.length > 0) {
+    logger.warn('⚠️ Tâche déjà existante, skip création:', {
+      prospect: prospect.name,
+      project_type,
+      step: stepName,
+      existing_tasks: existingTasks.length
+    });
+    return true; // Retourner true car ce n'est pas une erreur
+  }
+
   const { error: taskError } = await supabase
     .from('appointments')
     .insert({

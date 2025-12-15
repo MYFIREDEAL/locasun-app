@@ -13,6 +13,8 @@ export function useAutoVerificationTasks(prompts) {
       return;
     }
 
+    logger.debug('🔔 useAutoVerificationTasks: Setting up subscription');
+
     // Écouter les soumissions de formulaires par les clients
     const channel = supabase
       .channel('auto-verification-tasks')
@@ -115,6 +117,32 @@ async function handleFormSubmission(formPanel, prompts) {
     .single();
 
   const stepName = projectSteps?.steps?.[current_step_index]?.name || `Étape ${current_step_index + 1}`;
+
+  // 🔥 VÉRIFIER SI UNE TÂCHE EXISTE DÉJÀ pour ce formulaire
+  const { data: existingTasks, error: checkError } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('type', 'task')
+    .eq('contact_id', prospect_id)
+    .eq('project_id', project_type)
+    .eq('step', stepName)
+    .eq('title', `Vérifier le formulaire de ${prospect.name}`)
+    .eq('status', 'pending')
+    .gte('created_at', new Date(Date.now() - 60000).toISOString()); // Créée dans la dernière minute
+
+  if (checkError) {
+    logger.error('❌ Erreur vérification tâches existantes:', checkError);
+  }
+
+  // Si une tâche identique existe déjà (créée il y a moins d'1 minute), ne pas en créer une nouvelle
+  if (existingTasks && existingTasks.length > 0) {
+    logger.warn('⚠️ Tâche de vérification déjà existante, skip création:', {
+      prospect: prospect.name,
+      form: formName,
+      existing_tasks: existingTasks.length
+    });
+    return;
+  }
 
   // Créer la tâche de vérification
   const taskTitle = `Vérifier le formulaire de ${prospect.name}`;
