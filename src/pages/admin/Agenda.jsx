@@ -670,6 +670,11 @@ const AgendaSidebar = ({
       const isVisible = allowedIds ? allowedIds.includes(task.assignedUserId) : true;
       const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
       return isVisible && isSameDay(taskStart, currentDate) && task.assignedUserId === selectedUserId;
+    }).sort((a, b) => {
+      // Trier par statut : pending d'abord, puis effectue
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return 0;
     });
   }, [tasks, currentDate, selectedUserId, activeAdminUser]);
 
@@ -683,14 +688,18 @@ const AgendaSidebar = ({
     const endOfToday = new Date(currentDate);
     endOfToday.setHours(23, 59, 59, 999);
     
+    // Inclure toutes les tâches futures (même effectuées)
     return tasks.filter(task => {
       const isVisible = allowedIds ? allowedIds.includes(task.assignedUserId) : true;
       const taskStart = task.start instanceof Date ? task.start : new Date(task.start);
       return isVisible && 
              taskStart > endOfToday && 
-             task.assignedUserId === selectedUserId &&
-             task.status !== 'effectue';
+             task.assignedUserId === selectedUserId;
     }).sort((a, b) => {
+      // 1. Trier par statut : pending d'abord, puis effectue
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      // 2. Si même statut, trier par date
       const dateA = a.start instanceof Date ? a.start : new Date(a.start);
       const dateB = b.start instanceof Date ? b.start : new Date(b.start);
       return dateA - dateB;
