@@ -378,7 +378,7 @@ const ProjectTimeline = ({
   const { activeAdminUser } = useAppContext();
   
   // 🔥 Récupérer les tâches du commercial pour ce prospect
-  const { appointments } = useSupabaseAgenda(activeAdminUser);
+  const { appointments, updateAppointment } = useSupabaseAgenda(activeAdminUser);
   
   if (!steps) return null;
   
@@ -391,12 +391,32 @@ const ProjectTimeline = ({
     if (!steps[currentStepIndex]) return [];
     const stepName = steps[currentStepIndex].name;
     
-    return appointments.filter(apt => 
+    const filtered = appointments.filter(apt => 
       apt.type === 'task' &&
       apt.contactId === prospectId &&
       apt.projectId === projectType &&
       apt.step === stepName
     );
+    
+    // Debug
+    if (filtered.length > 0) {
+      logger.debug('🔍 Tâches filtrées pour cette étape:', {
+        prospectId,
+        projectType,
+        stepName,
+        totalAppointments: appointments.length,
+        filteredTasks: filtered.length,
+        tasks: filtered.map(t => ({
+          id: t.id,
+          title: t.title,
+          contactId: t.contactId,
+          projectId: t.projectId,
+          step: t.step
+        }))
+      });
+    }
+    
+    return filtered;
   }, [appointments, prospectId, projectType, currentStepIndex, steps]);
   
   // Gérer le clic sur une checkbox
@@ -588,28 +608,44 @@ const ProjectTimeline = ({
                       <div className="mt-4 space-y-2">
                         {currentStepTasks.map(task => {
                           const isDone = task.status === 'effectue';
-                          const taskDate = new Date(task.startTime);
+                          const taskDate = task.startTime ? new Date(task.startTime) : null;
+                          const isValidDate = taskDate && !isNaN(taskDate.getTime());
+                          
+                          const handleTaskToggle = async () => {
+                            const newStatus = isDone ? 'pending' : 'effectue';
+                            await updateAppointment(task.id, { status: newStatus });
+                            toast({
+                              title: isDone ? '🔄 Tâche réouverte' : '✅ Tâche terminée',
+                              description: isDone ? 'La tâche a été remise en cours' : 'La tâche a été marquée comme terminée',
+                              className: isDone ? 'bg-blue-500 text-white' : 'bg-green-500 text-white',
+                            });
+                          };
                           
                           return (
-                            <div 
+                            <label 
                               key={task.id}
-                              className="bg-green-100 border-l-4 border-green-500 text-green-800 rounded-lg p-3 flex items-center justify-between shadow-sm"
+                              className="bg-green-100 border-l-4 border-green-500 text-green-800 rounded-lg p-3 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-green-200 transition-colors"
                             >
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''} truncate`}>
-                                  {task.title || 'Tâche'}
-                                </p>
-                                <p className="text-xs text-green-600 mt-1">
-                                  📅 {format(taskDate, 'dd/MM/yyyy à HH:mm', { locale: fr })}
-                                </p>
-                                {task.notes && (
-                                  <p className="text-xs text-gray-600 mt-1 italic truncate">
-                                    {task.notes}
+                              <input
+                                type="checkbox"
+                                checked={isDone}
+                                onChange={handleTaskToggle}
+                                className="mt-0.5 h-4 w-4 text-green-600 rounded focus:ring-green-500 focus:ring-2 flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-medium ${isDone ? 'line-through text-gray-500' : ''} truncate flex-1`}>
+                                    {task.title || 'Tâche'}
+                                  </p>
+                                  {isDone && <Check className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                                </div>
+                                {isValidDate && (
+                                  <p className="text-xs text-green-600 mt-1 truncate">
+                                    📅 {format(taskDate, 'dd/MM/yyyy à HH:mm', { locale: fr })}
                                   </p>
                                 )}
                               </div>
-                              {isDone && <Check className="h-5 w-5 text-green-600 ml-2 flex-shrink-0" />}
-                            </div>
+                            </label>
                           );
                         })}
                       </div>
