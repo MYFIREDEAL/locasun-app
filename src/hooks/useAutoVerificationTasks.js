@@ -176,6 +176,17 @@ async function handleFormSubmission(formPanel, prompts) {
     .insert(taskData);
 
   if (insertError) {
+    // 🔒 Si l'erreur est une violation de contrainte unique (code 23505), c'est normal (doublon bloqué par la DB)
+    if (insertError.code === '23505') {
+      logger.warn('⚠️ Tâche déjà existante (bloquée par contrainte unique DB):', {
+        prospect: prospect.name,
+        form: formName,
+        constraint: 'unique_pending_task_per_prospect_step'
+      });
+      return; // Pas d'erreur affichée à l'utilisateur, c'est voulu
+    }
+    
+    // Pour les autres erreurs, on affiche un message
     logger.error('❌ Erreur création tâche de vérification:', insertError);
     toast({
       title: 'Erreur',

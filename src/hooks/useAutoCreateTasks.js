@@ -189,6 +189,18 @@ async function createTask({ prospect, prospect_id, project_type, stepName, title
     });
 
   if (taskError) {
+    // 🔒 Si l'erreur est une violation de contrainte unique (code 23505), c'est normal (doublon bloqué par la DB)
+    if (taskError.code === '23505') {
+      logger.warn('⚠️ Tâche déjà existante (bloquée par contrainte unique DB):', {
+        prospect: prospect.name,
+        project_type,
+        step: stepName,
+        constraint: 'unique_pending_task_per_prospect_step'
+      });
+      return true; // Retourner true car ce n'est pas une vraie erreur
+    }
+    
+    // Pour les autres erreurs, on affiche un message
     logger.error('Error creating task', { error: taskError });
     toast({
       title: 'Erreur',
