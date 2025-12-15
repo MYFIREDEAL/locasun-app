@@ -573,11 +573,11 @@ const ProjectTimeline = ({
 };
 
 const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
-    const { forms, prompts, completeStepAndProceed } = useAppContext();
+    const { forms, prompts, completeStepAndProceed, activeAdminUser } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
     const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(null);
-    // 🔥 Hook pour mettre à jour les tâches
-    const { appointments, updateAppointment } = useSupabaseAgenda();
+    // 🔥 Hook pour mettre à jour les tâches - CORRIGER: Passer activeAdminUser
+    const { appointments, updateAppointment } = useSupabaseAgenda(activeAdminUser);
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
     const [processedPanels, setProcessedPanels] = useState(new Set());
