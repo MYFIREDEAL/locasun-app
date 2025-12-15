@@ -24,6 +24,7 @@ import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsSt
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
+import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -575,6 +576,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
     const { forms, prompts, completeStepAndProceed } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
     const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(null);
+    // 🔥 Hook pour mettre à jour les tâches
+    const { appointments, updateAppointment } = useSupabaseAgenda();
     const [editingPanelId, setEditingPanelId] = useState(null);
     const [editedData, setEditedData] = useState({});
     const [processedPanels, setProcessedPanels] = useState(new Set());
@@ -800,6 +803,24 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             // Mettre à jour le statut du panel
             await updateFormPanel(panel.panelId, { status: 'approved' });
 
+            // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante
+            const relatedTask = appointments?.find(apt => 
+                apt.type === 'task' &&
+                apt.contactId === prospect.id &&
+                apt.projectId === panel.projectType &&
+                apt.step === panel.stepName &&
+                apt.status === 'pending' &&
+                apt.title?.includes('Vérifier le formulaire')
+            );
+
+            if (relatedTask) {
+                logger.debug('Marking verification task as completed', {
+                    taskId: relatedTask.id,
+                    prospectId: prospect.id
+                });
+                await updateAppointment(relatedTask.id, { status: 'effectue' });
+            }
+
             // Récupérer le prompt pour vérifier autoCompleteStep
             const prompt = Object.values(prompts).find(p => 
                 p.id === panel.promptId || p.projectId === panel.projectType
@@ -851,6 +872,24 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
         try {
             // Mettre à jour le statut du panel
             await updateFormPanel(panel.panelId, { status: 'rejected' });
+
+            // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante
+            const relatedTask = appointments?.find(apt => 
+                apt.type === 'task' &&
+                apt.contactId === prospect.id &&
+                apt.projectId === panel.projectType &&
+                apt.step === panel.stepName &&
+                apt.status === 'pending' &&
+                apt.title?.includes('Vérifier le formulaire')
+            );
+
+            if (relatedTask) {
+                logger.debug('Marking verification task as completed (rejected)', {
+                    taskId: relatedTask.id,
+                    prospectId: prospect.id
+                });
+                await updateAppointment(relatedTask.id, { status: 'effectue' });
+            }
 
             toast({
                 title: '❌ Formulaire rejeté',
