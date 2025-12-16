@@ -411,8 +411,20 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
           }
 
           if (!formDefinition) {
+            console.error('❌ [ClientFormPanel] Formulaire non trouvé:', { 
+              formId: panel.formId, 
+              availableForms: Object.keys(forms),
+              panel 
+            });
             return null;
           }
+          
+          console.log('✅ [ClientFormPanel] Formulaire chargé:', {
+            formId: panel.formId,
+            formName: formDefinition.name,
+            fieldsCount: formDefinition.fields?.length,
+            fields: formDefinition.fields
+          });
 
           // 🎨 Déterminer le badge de statut
           let statusBadge = {
