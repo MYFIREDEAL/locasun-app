@@ -619,7 +619,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                           <Input
                             id={`${panel.panelId}-${field.id}`}
                             type={field.type || 'text'}
-                            value={fieldValue || ''}
+                            value={typeof fieldValue === 'object' ? '' : (fieldValue || '')}
                             onChange={(event) => handleFieldChange(panel.panelId, field.id, event.target.value)}
                             placeholder={field.placeholder || ''}
                           />
