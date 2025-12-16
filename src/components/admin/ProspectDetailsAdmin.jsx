@@ -80,7 +80,7 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
                     <Input
                         id={`${form.id}-${field.id}`}
                         type={field.type}
-                        value={formData[field.id] || ''}
+                        value={typeof formData[field.id] === 'object' ? '' : (formData[field.id] || '')}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                         placeholder={field.placeholder || ''}
                     />
@@ -1280,23 +1280,63 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                             )}
 
                             <div className="space-y-3 pt-2">
-                                {(formDefinition.fields || []).map(field => (
-                                    <div key={field.id} className="space-y-1">
-                                        <Label className="text-sm font-medium text-gray-600">{field.label}</Label>
-                                        {editingPanelId === panel.panelId ? (
-                                            <Input
-                                                type={field.type || 'text'}
-                                                value={editedData[field.id] || ''}
-                                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                                placeholder={field.placeholder || ''}
-                                            />
-                                        ) : (
-                                            <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center">
-                                                {formData[field.id] || <span className="text-gray-400 italic">Non renseigné</span>}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
+                                {(formDefinition.fields || []).map(field => {
+                                    const fieldValue = formData[field.id];
+                                    const isFile = field.type === 'file' && typeof fieldValue === 'object' && fieldValue?.storagePath;
+                                    
+                                    return (
+                                        <div key={field.id} className="space-y-1">
+                                            <Label className="text-sm font-medium text-gray-600">{field.label}</Label>
+                                            {editingPanelId === panel.panelId ? (
+                                                isFile ? (
+                                                    <div className="text-sm text-gray-700 p-2 bg-gray-50 rounded-md">
+                                                        <FileText className="inline h-4 w-4 mr-2" />
+                                                        {fieldValue.name}
+                                                        <span className="text-xs text-gray-500 ml-2">
+                                                            (Fichier non modifiable)
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <Input
+                                                        type={field.type || 'text'}
+                                                        value={editedData[field.id] || ''}
+                                                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                                        placeholder={field.placeholder || ''}
+                                                    />
+                                                )
+                                            ) : (
+                                                <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center">
+                                                    {isFile ? (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const { data, error } = await supabase.storage
+                                                                        .from('project-files')
+                                                                        .createSignedUrl(fieldValue.storagePath, 3600);
+                                                                    if (error) throw error;
+                                                                    window.open(data.signedUrl, '_blank');
+                                                                } catch (err) {
+                                                                    toast({
+                                                                        title: '❌ Erreur',
+                                                                        description: 'Impossible de télécharger le fichier.',
+                                                                        variant: 'destructive',
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline"
+                                                        >
+                                                            <FileText className="h-4 w-4" />
+                                                            <span>{fieldValue.name}</span>
+                                                            <Download className="h-3 w-3" />
+                                                        </button>
+                                                    ) : (
+                                                        fieldValue || <span className="text-gray-400 italic">Non renseigné</span>
+                                                    )}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             {/* Boutons d'action admin */}
