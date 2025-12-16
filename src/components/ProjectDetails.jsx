@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
+import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import ClientFormPanel from '@/components/client/ClientFormPanel';
 import useWindowSize from '@/hooks/useWindowSize';
 
@@ -58,6 +59,12 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const { addChatMessage, currentUser, forms } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
+  // 🔥 Hook pour uploader les fichiers vers Supabase Storage
+  const { uploadFile, uploading } = useSupabaseProjectFiles({ 
+    projectType, 
+    prospectId, 
+    enabled: true 
+  });
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const chatEndRef = useRef(null);
@@ -69,21 +76,77 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     });
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachedFile) return;
 
-    const message = {
-      sender: 'client',
-      text: newMessage,
-      file: attachedFile ? { name: attachedFile.name, size: attachedFile.size } : null,
-    };
+    try {
+      let fileData = null;
 
-    addChatMessage(prospectId, projectType, message);
-    setNewMessage('');
-    setAttachedFile(null);
-    requestAnimationFrame(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    });
+      // 🔥 Si un fichier est attaché, l'uploader d'abord vers Supabase Storage
+      if (attachedFile) {
+        // Vérifier la taille (max 10 MB)
+        const maxSize = 10 * 1024 * 1024; // 10 MB
+        if (attachedFile.size > maxSize) {
+          toast({
+            title: '❌ Fichier trop volumineux',
+            description: 'La taille maximale est de 10 MB.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        logger.debug('📤 Uploading file from client chat', {
+          name: attachedFile.name,
+          size: attachedFile.size,
+          type: attachedFile.type,
+        });
+
+        const uploadedFile = await uploadFile({
+          file: attachedFile,
+          uploadedBy: currentUser?.id,
+        });
+
+        if (uploadedFile) {
+          fileData = {
+            id: uploadedFile.id,
+            name: uploadedFile.file_name,
+            size: uploadedFile.file_size,
+            type: uploadedFile.file_type,
+            storagePath: uploadedFile.storage_path,
+          };
+
+          logger.debug('✅ File uploaded successfully', fileData);
+        }
+      }
+
+      const message = {
+        sender: 'client',
+        text: newMessage,
+        file: fileData,
+      };
+
+      addChatMessage(prospectId, projectType, message);
+      setNewMessage('');
+      setAttachedFile(null);
+      
+      requestAnimationFrame(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      });
+
+      if (fileData) {
+        toast({
+          title: '✅ Fichier envoyé',
+          description: `${fileData.name} a été envoyé avec succès.`,
+        });
+      }
+    } catch (error) {
+      logger.error('❌ Error sending message with file', error);
+      toast({
+        title: '❌ Erreur',
+        description: `Impossible d'envoyer le fichier : ${error.message}`,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleFileChange = (e) => {
@@ -92,11 +155,41 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     }
   };
 
-  const handleFileClick = () => {
-    toast({
-      title: "🚧 Fonctionnalité non implémentée",
-      description: "Le téléchargement de fichiers n'est pas encore disponible.",
-    });
+  const handleFileClick = async (file) => {
+    if (!file || !file.storagePath) {
+      toast({
+        title: "❌ Erreur",
+        description: "Le fichier n'est pas disponible.",
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      logger.debug('📥 Downloading file', { storagePath: file.storagePath });
+
+      // Récupérer l'URL publique signée (valide 1 heure)
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(file.storagePath, 3600); // 1 heure
+
+      if (error) throw error;
+
+      // Ouvrir le fichier dans un nouvel onglet
+      window.open(data.signedUrl, '_blank');
+
+      toast({
+        title: '✅ Téléchargement',
+        description: `${file.name} s'ouvre dans un nouvel onglet.`,
+      });
+    } catch (error) {
+      logger.error('❌ Error downloading file', error);
+      toast({
+        title: '❌ Erreur',
+        description: `Impossible de télécharger le fichier : ${error.message}`,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -112,7 +205,10 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             <div className={`max-w-xs lg:max-w-md rounded-2xl ${msg.sender === 'client' ? 'bg-blue-500 text-white rounded-br-none p-2.5' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
               {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
               {msg.file && (
-                <button onClick={handleFileClick} className="mt-2 flex items-center gap-2 text-xs bg-white/20 p-2 rounded-lg w-full text-left">
+                <button 
+                  onClick={() => handleFileClick(msg.file)} 
+                  className="mt-2 flex items-center gap-2 text-xs bg-white/20 hover:bg-white/30 p-2 rounded-lg w-full text-left transition-colors"
+                >
                   <FileText className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{msg.file.name}</span>
                   <Download className="w-3 h-3 ml-auto flex-shrink-0" />
@@ -153,12 +249,33 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-          <Button variant="ghost" size="icon" onClick={() => fileInputRef.current.click()}>
-            <Paperclip className="h-5 w-5 text-gray-500" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => fileInputRef.current.click()}
+            disabled={uploading}
+          >
+            <Paperclip className={`h-5 w-5 ${uploading ? 'text-gray-300' : 'text-gray-500'}`} />
           </Button>
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-          <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 w-8 h-8">
-            <Send className="h-4 w-4" />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden"
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+            disabled={uploading}
+          />
+          <Button 
+            onClick={handleSendMessage} 
+            size="icon" 
+            className="bg-green-500 hover:bg-green-600 w-8 h-8"
+            disabled={uploading}
+          >
+            {uploading ? (
+              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
