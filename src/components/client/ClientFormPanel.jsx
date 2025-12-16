@@ -7,6 +7,8 @@ import { useAppContext } from '@/App';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase'; // 🔥 Import Supabase
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory'; // 🔥 Import hook history
+import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles'; // 🔥 Import hook files
+import { Upload, FileText, X } from 'lucide-react';
 
 const ClientFormPanel = ({ isDesktop, projectType }) => {
   const {
@@ -26,6 +28,13 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     projectType: projectType,
     prospectId: currentUser?.id,
     enabled: !!projectType && !!currentUser?.id,
+  });
+
+  // 🔥 Hook pour uploader les fichiers vers Supabase Storage
+  const { uploadFile, uploading } = useSupabaseProjectFiles({ 
+    projectType, 
+    prospectId: currentUser?.id, 
+    enabled: true 
   });
 
   const relevantForms = useMemo(() => {
@@ -117,7 +126,62 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     }
 
     const formDefinition = forms[formId];
-    const draft = formDrafts[panelId] || {};
+    let draft = { ...(formDrafts[panelId] || {}) };
+
+    // 🔥 NOUVEAU: Uploader les fichiers avant de soumettre le formulaire
+    try {
+      const fileFields = formDefinition?.fields?.filter(f => f.type === 'file') || [];
+      
+      for (const field of fileFields) {
+        const fileValue = draft[field.id];
+        
+        // Si c'est un objet File (fichier réel sélectionné)
+        if (fileValue && fileValue instanceof File) {
+          // Vérifier la taille (max 10 MB)
+          const maxSize = 10 * 1024 * 1024;
+          if (fileValue.size > maxSize) {
+            toast({
+              title: '❌ Fichier trop volumineux',
+              description: `${field.label}: La taille maximale est de 10 MB.`,
+              variant: 'destructive',
+            });
+            return;
+          }
+
+          logger.debug('📤 Uploading file from form', {
+            fieldId: field.id,
+            name: fileValue.name,
+            size: fileValue.size,
+          });
+
+          // Upload vers Supabase Storage
+          const uploadedFile = await uploadFile({
+            file: fileValue,
+            uploadedBy: currentUser?.id,
+          });
+
+          if (uploadedFile) {
+            // Remplacer le File par les métadonnées
+            draft[field.id] = {
+              id: uploadedFile.id,
+              name: uploadedFile.file_name,
+              size: uploadedFile.file_size,
+              type: uploadedFile.file_type,
+              storagePath: uploadedFile.storage_path,
+            };
+            logger.debug('✅ File uploaded for form field', { fieldId: field.id, fileData: draft[field.id] });
+          }
+        }
+      }
+    } catch (uploadError) {
+      logger.error('❌ Error uploading form files', uploadError);
+      toast({
+        title: '❌ Erreur d\'upload',
+        description: `Impossible d'uploader les fichiers : ${uploadError.message}`,
+        variant: 'destructive',
+      });
+      return;
+    }
     
     // 🔥 AMÉLIORATION: Recharger les données DEPUIS Supabase avant le merge
     const { data: currentData, error: fetchError } = await supabase
@@ -235,6 +299,40 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     } catch (historyErr) {
       // Ne pas bloquer si l'événement échoue
       logger.error('⚠️ Erreur ajout événement historique:', historyErr);
+    }
+  };
+
+  // 🔥 NOUVEAU: Helper pour télécharger un fichier
+  const handleDownloadFile = async (fileData) => {
+    if (!fileData || !fileData.storagePath) {
+      toast({
+        title: "❌ Erreur",
+        description: "Le fichier n'est pas disponible.",
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(fileData.storagePath, 3600);
+
+      if (error) throw error;
+
+      window.open(data.signedUrl, '_blank');
+      
+      toast({
+        title: '✅ Téléchargement',
+        description: `${fileData.name} s'ouvre dans un nouvel onglet.`,
+      });
+    } catch (error) {
+      logger.error('❌ Error downloading file', error);
+      toast({
+        title: '❌ Erreur',
+        description: `Impossible de télécharger le fichier.`,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -375,6 +473,32 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                       </div>
                     </div>
                   </div>
+                  {/* Afficher les valeurs soumises */}
+                  <div className="space-y-2 text-sm">
+                    {formDefinition.fields?.map(field => {
+                      const value = draft[field.id];
+                      if (!value) return null;
+                      
+                      const isFile = field.type === 'file' && value.storagePath;
+                      
+                      return (
+                        <div key={field.id} className="flex justify-between items-start gap-2 py-2 border-b border-gray-100 last:border-0">
+                          <span className="text-gray-600 font-medium">{field.label}:</span>
+                          {isFile ? (
+                            <button
+                              onClick={() => handleDownloadFile(value)}
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="text-sm">{value.name}</span>
+                            </button>
+                          ) : (
+                            <span className="text-gray-900 text-right">{value}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : isRejected ? (
                 <div className="space-y-3">
@@ -420,23 +544,99 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(formDefinition.fields || []).map(field => (
-                    <div key={field.id} className="space-y-2">
-                      <Label htmlFor={`${panel.panelId}-${field.id}`}>{field.label}</Label>
-                      <Input
-                        id={`${panel.panelId}-${field.id}`}
-                        type={field.type || 'text'}
-                        value={draft[field.id] || ''}
-                        onChange={(event) => handleFieldChange(panel.panelId, field.id, event.target.value)}
-                        placeholder={field.placeholder || ''}
-                      />
-                    </div>
-                  ))}
+                  {(formDefinition.fields || []).map(field => {
+                    const isFileField = field.type === 'file';
+                    const fieldValue = draft[field.id];
+                    const hasFile = isFileField && (fieldValue instanceof File || (fieldValue?.storagePath));
+
+                    return (
+                      <div key={field.id} className="space-y-2">
+                        <Label htmlFor={`${panel.panelId}-${field.id}`}>
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        
+                        {isFileField ? (
+                          <div className="space-y-2">
+                            {/* Afficher le fichier sélectionné */}
+                            {hasFile && (
+                              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-blue-900 truncate">
+                                    {fieldValue instanceof File ? fieldValue.name : fieldValue.name}
+                                  </p>
+                                  <p className="text-xs text-blue-600">
+                                    {fieldValue instanceof File 
+                                      ? `${(fieldValue.size / 1024).toFixed(1)} KB` 
+                                      : `${(fieldValue.size / 1024).toFixed(1)} KB`}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleFieldChange(panel.panelId, field.id, null)}
+                                  className="p-1 hover:bg-red-100 rounded-full transition-colors"
+                                >
+                                  <X className="h-4 w-4 text-red-600" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Bouton d'upload */}
+                            <label 
+                              htmlFor={`${panel.panelId}-${field.id}`}
+                              className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                hasFile 
+                                  ? 'border-gray-300 bg-gray-50 hover:border-gray-400' 
+                                  : 'border-blue-300 bg-blue-50 hover:border-blue-400 hover:bg-blue-100'
+                              }`}
+                            >
+                              <Upload className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-900">
+                                {hasFile ? 'Changer le fichier' : 'Choisir un fichier'}
+                              </span>
+                            </label>
+                            <Input
+                              id={`${panel.panelId}-${field.id}`}
+                              type="file"
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (file) {
+                                  handleFieldChange(panel.panelId, field.id, file);
+                                }
+                              }}
+                              className="hidden"
+                              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Formats acceptés: PDF, PNG, JPG, DOCX (max 10 MB)
+                            </p>
+                          </div>
+                        ) : (
+                          <Input
+                            id={`${panel.panelId}-${field.id}`}
+                            type={field.type || 'text'}
+                            value={fieldValue || ''}
+                            onChange={(event) => handleFieldChange(panel.panelId, field.id, event.target.value)}
+                            placeholder={field.placeholder || ''}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                   <Button
                     onClick={() => handleSubmit(panel)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={uploading}
                   >
-                    Envoyer
+                    {uploading ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Upload en cours...
+                      </>
+                    ) : (
+                      'Envoyer'
+                    )}
                   </Button>
                 </div>
               )}
