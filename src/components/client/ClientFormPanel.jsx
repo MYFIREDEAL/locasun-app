@@ -479,7 +479,8 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                       const value = draft[field.id];
                       if (!value) return null;
                       
-                      const isFile = field.type === 'file' && value.storagePath;
+                      // Vérifier si c'est un fichier (objet avec storagePath)
+                      const isFile = field.type === 'file' && typeof value === 'object' && value.storagePath;
                       
                       return (
                         <div key={field.id} className="flex justify-between items-start gap-2 py-2 border-b border-gray-100 last:border-0">
@@ -493,7 +494,9 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                               <span className="text-sm">{value.name}</span>
                             </button>
                           ) : (
-                            <span className="text-gray-900 text-right">{value}</span>
+                            <span className="text-gray-900 text-right">
+                              {typeof value === 'object' ? JSON.stringify(value) : value}
+                            </span>
                           )}
                         </div>
                       );
