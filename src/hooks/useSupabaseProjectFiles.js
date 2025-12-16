@@ -88,7 +88,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
 
   // Upload
   const uploadFile = useCallback(
-    async ({ file, uploadedBy }) => {
+    async ({ file, uploadedBy, fieldLabel = null }) => {
       if (!file || !projectType) return;
 
       try {
@@ -106,7 +106,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
 
         if (uploadError) throw uploadError;
 
-        // 2. Insert dans la table
+        // 2. Insert dans la table avec field_label
         const { data, error } = await supabase
           .from("project_files")
           .insert([
@@ -118,6 +118,7 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
               file_size: file.size,
               storage_path: storagePath,
               uploaded_by: uploadedBy || null,
+              field_label: fieldLabel, // 🔥 AJOUT: Label du champ formulaire
             },
           ])
           .select()

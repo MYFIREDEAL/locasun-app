@@ -150,24 +150,27 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
 
           logger.debug('📤 Uploading file from form', {
             fieldId: field.id,
+            fieldLabel: field.label,
             name: fileValue.name,
             size: fileValue.size,
           });
 
-          // Upload vers Supabase Storage
+          // Upload vers Supabase Storage avec le label du champ
           const uploadedFile = await uploadFile({
             file: fileValue,
             uploadedBy: currentUser?.id,
+            fieldLabel: field.label, // 🔥 AJOUT: Passer le label du champ
           });
 
           if (uploadedFile) {
-            // Remplacer le File par les métadonnées
+            // Remplacer le File par les métadonnées + label du champ
             draft[field.id] = {
               id: uploadedFile.id,
               name: uploadedFile.file_name,
               size: uploadedFile.file_size,
               type: uploadedFile.file_type,
               storagePath: uploadedFile.storage_path,
+              fieldLabel: field.label, // 🔥 AJOUT: Label du champ pour l'affichage
             };
             logger.debug('✅ File uploaded for form field', { fieldId: field.id, fileData: draft[field.id] });
           }

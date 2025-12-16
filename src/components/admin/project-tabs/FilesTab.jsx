@@ -206,9 +206,20 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
                 <div className="flex-shrink-0">{getFileIcon(file.file_type)}</div>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {file.file_name}
-                  </p>
+                  {file.field_label ? (
+                    <>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {file.field_label}
+                      </p>
+                      <p className="text-xs text-gray-600 truncate">
+                        {file.file_name}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {file.file_name}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500">
                     {formatFileSize(file.file_size)} • {formatDate(file.created_at)}
                   </p>
