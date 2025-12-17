@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { useSupabaseProjectNotes } from "@/hooks/useSupabaseProjectNotes";
 import { useSupabaseProjectHistory } from "@/hooks/useSupabaseProjectHistory";
+import { useSupabaseProjectTemplates } from "@/hooks/useSupabaseProjectTemplates";
 import { useAppContext } from "@/App";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
@@ -9,6 +10,11 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
   const { activeAdminUser } = useAppContext();
   const [noteContent, setNoteContent] = useState("");
   const [showAllNotes, setShowAllNotes] = useState(false);
+
+  // 🔥 Récupérer le vrai nom du projet depuis project_templates
+  const { getTemplateByType } = useSupabaseProjectTemplates();
+  const projectTemplate = getTemplateByType(projectType);
+  const projectDisplayName = projectTemplate?.title || projectType;
 
   const {
     notes,
@@ -66,7 +72,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
               Notes internes du projet
             </h3>
             <span className="text-xs text-gray-400">
-              {projectType ? `Projet ${projectType}` : "Aucun projet sélectionné"}
+              {projectType ? `Projet ${projectDisplayName}` : "Aucun projet sélectionné"}
             </span>
           </div>
 
