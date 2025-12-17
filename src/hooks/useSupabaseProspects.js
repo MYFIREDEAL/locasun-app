@@ -131,12 +131,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
             });
           } else if (payload.eventType === 'UPDATE') {
             // Prospect modifié
-            logger.debug('🔄 Real-time UPDATE prospect', { 
-              id: payload.new.id, 
-              name: payload.new.name,
-              tags: payload.new.tags 
-            });
-            
             const updatedProspect = {
               id: payload.new.id,
               name: payload.new.name,
