@@ -1222,6 +1222,18 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                     const projectFormData = fullFormData[panel.projectType] || {};
                     const formData = projectFormData[panel.formId] || {};
                     
+                    // 🔍 DEBUG: Logger les données du formulaire
+                    logger.info('🔍 [ProspectForms] Rendering panel', {
+                        panelId: panel.panelId,
+                        formId: panel.formId,
+                        projectType: panel.projectType,
+                        prospectHasFormData: !!prospect.form_data,
+                        fullFormDataKeys: Object.keys(fullFormData),
+                        projectFormDataKeys: Object.keys(projectFormData),
+                        formDataKeys: Object.keys(formData),
+                        formData: formData,
+                    });
+                    
                     if (!formDefinition) return null;
 
                     return (
@@ -1466,7 +1478,13 @@ const ProspectDetailsAdmin = ({
   
   // 🔥 SYNCHRONISER editableProspect avec prospect (real-time updates)
   useEffect(() => {
-    logger.debug('Prospect updated via real-time', { name: prospect.name, tags: prospect?.tags });
+    logger.info('🔄 [ProspectDetailsAdmin] Prospect prop changed', { 
+      name: prospect.name, 
+      tags: prospect?.tags,
+      hasFormData: !!prospect.form_data,
+      formDataKeys: prospect.form_data ? Object.keys(prospect.form_data) : [],
+      prospectRef: prospect,
+    });
     setEditableProspect(prospect);
   }, [prospect]);
   

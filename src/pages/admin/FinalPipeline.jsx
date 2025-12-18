@@ -199,8 +199,12 @@ const FinalPipeline = () => {
   // 🔥 FIX CHATGPT : Dériver selectedProspect depuis le contexte (source de vérité unique)
   // Le hook useSupabaseProspects gère déjà le real-time global, donc selectedProspect
   // se met à jour automatiquement quand supabaseProspects change
+  // 🔥 FIX: Utiliser spread operator pour forcer nouvelle référence et déclencher re-render
   const selectedProspect = useMemo(
-    () => supabaseProspects?.find(p => p.id === selectedProspectId) || null,
+    () => {
+      const found = supabaseProspects?.find(p => p.id === selectedProspectId);
+      return found ? { ...found } : null;
+    },
     [supabaseProspects, selectedProspectId]
   );
 
