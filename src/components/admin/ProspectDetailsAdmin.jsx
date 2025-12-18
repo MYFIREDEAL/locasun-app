@@ -3033,7 +3033,19 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
 
 
 // ✅ Mémoïser le composant pour éviter les re-renders inutiles
-export default React.memo(ProspectDetailsAdmin, (prevProps, nextProps) => {
-  // Ne re-render QUE si le prospect.id change (pas les autres props)
-  return prevProps.prospect.id === nextProps.prospect.id;
-});
+// 🔥 FIX: Comparer aussi updatedAt pour détecter les changements de form_data en real-time
+function arePropsEqual(prevProps, nextProps) {
+  const prevP = prevProps.prospect;
+  const nextP = nextProps.prospect;
+  
+  // Si pas de prospect, laisser React décider
+  if (!prevP || !nextP) return false;
+  
+  // Re-render si changement d'id ou de timestamp d'update
+  return (
+    prevP.id === nextP.id &&
+    (prevP.updatedAt || prevP.updated_at) === (nextP.updatedAt || nextP.updated_at)
+  );
+}
+
+export default React.memo(ProspectDetailsAdmin, arePropsEqual);
