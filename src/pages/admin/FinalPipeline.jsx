@@ -608,7 +608,8 @@ const FinalPipeline = () => {
   };
 
   // Vue détail d'un prospect
-  if (selectedProspect) {
+  // 🔥 FIX: Attendre que prospect ET ses données soient chargés pour éviter React #310
+  if (selectedProspect && selectedProspect.id) {
     return (
       <motion.div
         initial={{ opacity: 0, x: 20 }}
