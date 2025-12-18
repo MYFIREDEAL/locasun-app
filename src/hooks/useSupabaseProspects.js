@@ -163,7 +163,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
             setProspects(prev => {
               const newProspects = prev.map(p => p.id === payload.new.id ? updatedProspect : p);
               logger.info('✅ [useSupabaseProspects] State updated, new array length:', newProspects.length);
-              return newProspects;
+              // 🔥 FIX: Forcer un nouveau tableau pour déclencher le re-render des useMemo
+              return [...newProspects];
             });
           } else if (payload.eventType === 'DELETE') {
             // Prospect supprimé
