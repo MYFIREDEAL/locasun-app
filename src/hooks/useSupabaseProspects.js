@@ -153,7 +153,18 @@ export const useSupabaseProspects = (activeAdminUser) => {
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at,
             };
-            setProspects(prev => prev.map(p => p.id === payload.new.id ? updatedProspect : p));
+            logger.info('📦 [useSupabaseProspects] updatedProspect after transform', {
+              id: updatedProspect.id,
+              name: updatedProspect.name,
+              hasFormData: !!updatedProspect.formData,
+              formDataProjects: Object.keys(updatedProspect.formData),
+              fullObject: updatedProspect
+            });
+            setProspects(prev => {
+              const newProspects = prev.map(p => p.id === payload.new.id ? updatedProspect : p);
+              logger.info('✅ [useSupabaseProspects] State updated, new array length:', newProspects.length);
+              return newProspects;
+            });
           } else if (payload.eventType === 'DELETE') {
             // Prospect supprimé
             setProspects(prev => prev.filter(p => p.id !== payload.old.id));
