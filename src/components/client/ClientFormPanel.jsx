@@ -31,7 +31,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   });
 
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
-  const { uploadFile, uploading } = useSupabaseProjectFiles({ 
+  const { uploadFile, uploading, deleteFile } = useSupabaseProjectFiles({ 
     projectType, 
     prospectId: currentUser?.id, 
     enabled: true 
@@ -128,14 +128,24 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     const formDefinition = forms[formId];
     let draft = { ...(formDrafts[panelId] || {}) };
 
-    // 🔥 NOUVEAU: Uploader les fichiers avant de soumettre le formulaire
+    // 🔥 ÉTAPE 1: Récupérer les données existantes AVANT upload pour détecter les remplacements
+    const { data: existingData, error: fetchExistingError } = await supabase
+      .from('prospects')
+      .select('form_data')
+      .eq('id', prospectId)
+      .single();
+    
+    const existingFormData = existingData?.form_data || currentUser.formData || {};
+    const existingFieldsData = existingFormData[projectType]?.[formId] || {};
+
+    // 🔥 ÉTAPE 2: Uploader les fichiers ET supprimer les anciens si remplacés
     try {
       const fileFields = formDefinition?.fields?.filter(f => f.type === 'file') || [];
       
       for (const field of fileFields) {
         const fileValue = draft[field.id];
         
-        // Si c'est un objet File (fichier réel sélectionné)
+        // Si c'est un objet File (fichier réel sélectionné = nouveau fichier)
         if (fileValue && fileValue instanceof File) {
           // Vérifier la taille (max 10 MB)
           const maxSize = 10 * 1024 * 1024;
@@ -148,7 +158,59 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
             return;
           }
 
-          logger.debug('📤 Uploading file from form', {
+          // 🔥 ÉTAPE 3: SUPPRESSION de l'ancien fichier SI il existe pour CE champ
+          const existingFile = existingFieldsData[field.id];
+          if (existingFile && typeof existingFile === 'object' && existingFile.id && existingFile.storagePath) {
+            logger.debug('� Replacing existing file for field', {
+              fieldId: field.id,
+              fieldLabel: field.label,
+              oldFileName: existingFile.name,
+              oldFileId: existingFile.id,
+              newFileName: fileValue.name,
+            });
+
+            try {
+              // ⚠️ SÉCURITÉ: Vérifier que c'est bien un fichier de formulaire (field_label existe)
+              const { data: fileCheck, error: checkError } = await supabase
+                .from('project_files')
+                .select('field_label')
+                .eq('id', existingFile.id)
+                .single();
+
+              if (!checkError && fileCheck?.field_label) {
+                // Supprimer l'ancien fichier du Storage
+                const { error: storageError } = await supabase.storage
+                  .from('project-files')
+                  .remove([existingFile.storagePath]);
+
+                if (storageError) {
+                  logger.error('❌ Error deleting old file from storage', storageError);
+                } else {
+                  logger.info('✅ Old file deleted from storage', { storagePath: existingFile.storagePath });
+                }
+
+                // Supprimer l'ancien fichier de la table
+                const { error: dbError } = await supabase
+                  .from('project_files')
+                  .delete()
+                  .eq('id', existingFile.id);
+
+                if (dbError) {
+                  logger.error('❌ Error deleting old file from database', dbError);
+                } else {
+                  logger.info('✅ Old file deleted from database', { fileId: existingFile.id });
+                }
+              } else {
+                logger.warn('⚠️ Old file is not a form file (no field_label), skipping deletion', { fileId: existingFile.id });
+              }
+            } catch (deleteError) {
+              logger.error('❌ Error during old file deletion', deleteError);
+              // Continuer même si suppression échoue
+            }
+          }
+
+          // 🔥 ÉTAPE 4: Upload du NOUVEAU fichier
+          logger.debug('�📤 Uploading new file from form', {
             fieldId: field.id,
             fieldLabel: field.label,
             name: fileValue.name,
@@ -172,7 +234,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
               storagePath: uploadedFile.storage_path,
               fieldLabel: field.label, // 🔥 AJOUT: Label du champ pour l'affichage
             };
-            logger.debug('✅ File uploaded for form field', { fieldId: field.id, fileData: draft[field.id] });
+            logger.debug('✅ New file uploaded for form field', { fieldId: field.id, fileData: draft[field.id] });
           }
         }
       }

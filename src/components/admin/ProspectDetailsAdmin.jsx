@@ -1146,84 +1146,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
         try {
             const panel = rejectingPanel;
             
-            // 🔥 ÉTAPE 1: Supprimer les fichiers uploadés pour ce formulaire AVANT le rejet
-            logger.debug('🗑️ Deleting files for rejected form submission', {
-                panelId: panel.panelId,
-                formId: panel.formId,
-                prospectId: prospect.id,
-                projectType: panel.projectType
-            });
-
-            // Récupérer les données du formulaire depuis form_data
-            const formDefinition = forms[panel.formId];
-            const fullFormData = prospect.form_data || prospect.formData || {};
-            const formData = fullFormData[panel.projectType]?.[panel.formId];
-
-            if (formData && formDefinition?.fields) {
-                const fileFields = formDefinition.fields.filter(f => f.type === 'file');
-                
-                for (const field of fileFields) {
-                    const fileValue = formData[field.id];
-                    
-                    // Vérifier si c'est un fichier uploadé (objet avec storagePath et id)
-                    if (fileValue && typeof fileValue === 'object' && fileValue.storagePath && fileValue.id) {
-                        logger.debug('🗑️ Deleting file from form field', {
-                            fieldId: field.id,
-                            fieldLabel: field.label,
-                            fileName: fileValue.name,
-                            fileId: fileValue.id,
-                            storagePath: fileValue.storagePath
-                        });
-
-                        try {
-                            // ⚠️ SÉCURITÉ: Vérifier que le fichier a un field_label (= uploadé via formulaire)
-                            // Les fichiers du chat n'ont PAS de field_label
-                            const { data: fileCheck, error: checkError } = await supabase
-                                .from('project_files')
-                                .select('field_label')
-                                .eq('id', fileValue.id)
-                                .single();
-
-                            if (checkError) {
-                                logger.warn('⚠️ File not found in database, skipping', { fileId: fileValue.id });
-                                continue;
-                            }
-
-                            // ✅ SAFE: Ne supprimer QUE si field_label existe (fichier de formulaire)
-                            if (fileCheck.field_label) {
-                                // 1. Supprimer du Storage
-                                const { error: storageError } = await supabase.storage
-                                    .from('project-files')
-                                    .remove([fileValue.storagePath]);
-
-                                if (storageError) {
-                                    logger.error('❌ Error deleting file from storage', storageError);
-                                } else {
-                                    logger.info('✅ File deleted from storage', { storagePath: fileValue.storagePath });
-                                }
-
-                                // 2. Supprimer de la table
-                                const { error: dbError } = await supabase
-                                    .from('project_files')
-                                    .delete()
-                                    .eq('id', fileValue.id);
-
-                                if (dbError) {
-                                    logger.error('❌ Error deleting file from database', dbError);
-                                } else {
-                                    logger.info('✅ File deleted from database', { fileId: fileValue.id });
-                                }
-                            } else {
-                                logger.warn('⚠️ File has no field_label (chat file), skipping deletion', { fileId: fileValue.id });
-                            }
-
-                        } catch (deleteError) {
-                            logger.error('❌ Error during file deletion', deleteError);
-                            // Continuer même si la suppression échoue
-                        }
-                    }
-                }
-            }
+            // ❌ SUPPRIMÉ: Aucune suppression de fichiers au rejet
+            // Les fichiers ne sont supprimés QUE lors du remplacement par le client
             
             // Mettre à jour le statut du panel
             await updateFormPanel(panel.panelId, { status: 'rejected' });
@@ -1267,7 +1191,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
 
             toast({
                 title: '❌ Formulaire rejeté',
-                description: 'Les fichiers ont été supprimés et un message a été envoyé au client.',
+                description: 'Un message a été envoyé au client.',
                 className: 'bg-red-500 text-white',
             });
             
