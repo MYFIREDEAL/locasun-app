@@ -199,19 +199,15 @@ const FinalPipeline = () => {
   // 🔥 FIX CHATGPT : Dériver selectedProspect depuis le contexte (source de vérité unique)
   // Le hook useSupabaseProspects gère déjà le real-time global, donc selectedProspect
   // se met à jour automatiquement quand supabaseProspects change
-  // 🔥 FIX: Deep clone pour forcer nouvelle référence sur objets imbriqués (form_data, formData)
+  // 🔥 FIX: Deep clone COMPLET pour forcer nouvelle référence sur tous les objets imbriqués
   const selectedProspect = useMemo(
     () => {
       const found = supabaseProspects?.find(p => p.id === selectedProspectId);
       if (!found) return null;
       
-      // Deep clone pour forcer re-render du useEffect dans ProspectDetailsAdmin
-      return {
-        ...found,
-        form_data: found.form_data ? { ...found.form_data } : {},
-        formData: found.formData ? { ...found.formData } : {},
-        tags: found.tags ? [...found.tags] : [],
-      };
+      // Deep clone COMPLET avec JSON pour éviter toute référence partagée
+      // Garantit que useEffect dans ProspectDetailsAdmin se déclenche
+      return JSON.parse(JSON.stringify(found));
     },
     [supabaseProspects, selectedProspectId]
   );
