@@ -49,7 +49,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         tags: prospect.tags || [],
         hasAppointment: prospect.has_appointment || false,
         affiliateName: prospect.affiliate_name,
-        formData: prospect.form_data || {}, // 🔥 Réponses aux formulaires
+        formData: prospect.form_data || {}, // 🔥 Réponses aux formulaires (camelCase)
+        form_data: prospect.form_data || {}, // 🔥 AUSSI en snake_case pour compatibilité
         // Ajouter les champs manquants si nécessaire
         createdAt: prospect.created_at,
         updatedAt: prospect.updated_at,
@@ -119,7 +120,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
               tags: payload.new.tags || [],
               hasAppointment: payload.new.has_appointment || false,
               affiliateName: payload.new.affiliate_name,
-              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires
+              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires (camelCase)
+              form_data: payload.new.form_data || {}, // 🔥 AUSSI en snake_case pour compatibilité
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at,
             };
@@ -149,7 +151,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
               tags: payload.new.tags || [],
               hasAppointment: payload.new.has_appointment || false,
               affiliateName: payload.new.affiliate_name,
-              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires
+              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires (camelCase)
+              form_data: payload.new.form_data || {}, // 🔥 AUSSI en snake_case pour compatibilité
               createdAt: payload.new.created_at,
               updatedAt: payload.new.updated_at,
             };
