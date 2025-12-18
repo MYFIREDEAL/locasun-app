@@ -492,13 +492,14 @@ const ProjectTimeline = ({
   prospectId,
   completeStepAndProceed,
 }) => {
+  // ✅ FIX: Déplacer le return AVANT les hooks
+  if (!steps) return null;
+  
   const [checklistStates, setChecklistStates] = useState({});
   const { activeAdminUser } = useAppContext();
   
   // 🔥 Récupérer les tâches du commercial pour ce prospect
   const { appointments, updateAppointment } = useSupabaseAgenda(activeAdminUser);
-  
-  if (!steps) return null;
   
   // Récupérer le prompt pour ce projet
   const prompt = prompts ? Object.values(prompts).find(p => p.projectId === projectType) : null;
@@ -1452,9 +1453,9 @@ const ProspectDetailsAdmin = ({
 
   const [activeProjectTag, setActiveProjectTag] = useState(initialProject || (prospect.tags && prospect.tags.length > 0 ? prospect.tags[0] : null));
   
-  // ✅ Hook appelé APRÈS la définition de activeProjectTag
+  // ✅ Hook TOUJOURS appelé (règle des Hooks React) mais désactivé si pas de projet
   const { addHistoryEvent, addProjectEvent } = useSupabaseProjectHistory({
-    projectType: activeProjectTag,
+    projectType: activeProjectTag || '', // ⚠️ Ne jamais passer null/undefined
     prospectId: prospect.id,
     enabled: !!activeProjectTag && !!prospect.id,
   });
@@ -1467,7 +1468,7 @@ const ProspectDetailsAdmin = ({
   useEffect(() => {
     logger.debug('Prospect updated via real-time', { name: prospect.name, tags: prospect?.tags });
     setEditableProspect(prospect);
-  }, [prospect, JSON.stringify(prospect?.tags), prospect?.status]);
+  }, [prospect]);
   
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
 
