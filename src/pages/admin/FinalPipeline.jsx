@@ -199,7 +199,7 @@ const FinalPipeline = () => {
   // 🔥 FIX CHATGPT : Dériver selectedProspect depuis le contexte (source de vérité unique)
   // Le hook useSupabaseProspects gère déjà le real-time global, donc selectedProspect
   // se met à jour automatiquement quand supabaseProspects change
-  // 🔥 FIX: Deep clone COMPLET pour forcer nouvelle référence sur tous les objets imbriqués
+  // 🔥 FIX ULTIME: Ajouter updatedAt comme dépendance pour forcer recalcul
   const selectedProspect = useMemo(
     () => {
       const found = supabaseProspects?.find(p => p.id === selectedProspectId);
@@ -209,7 +209,12 @@ const FinalPipeline = () => {
       // Garantit que useEffect dans ProspectDetailsAdmin se déclenche
       return JSON.parse(JSON.stringify(found));
     },
-    [supabaseProspects, selectedProspectId]
+    [
+      supabaseProspects, 
+      selectedProspectId,
+      // 🔥 AJOUT CRITIQUE: updatedAt force recalcul quand prospect change
+      supabaseProspects?.find(p => p.id === selectedProspectId)?.updatedAt
+    ]
   );
 
   // 🔥 Construire les colonnes à partir des globalPipelineSteps depuis Supabase
