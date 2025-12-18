@@ -131,6 +131,12 @@ export const useSupabaseProspects = (activeAdminUser) => {
             });
           } else if (payload.eventType === 'UPDATE') {
             // Prospect modifié
+            logger.info('🔄 [useSupabaseProspects] Real-time UPDATE received', {
+              prospectId: payload.new.id,
+              name: payload.new.name,
+              hasFormData: !!payload.new.form_data,
+              formDataKeys: payload.new.form_data ? Object.keys(payload.new.form_data) : []
+            });
             const updatedProspect = {
               id: payload.new.id,
               name: payload.new.name,

@@ -224,6 +224,50 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       return;
     }
     
+    // 🔥 BROADCAST MANUEL: Notifier les admins du changement de form_data
+    try {
+      // Recharger le prospect avec les données fraîches
+      const { data: freshProspect, error: fetchError } = await supabase
+        .from('prospects')
+        .select('*')
+        .eq('id', prospectId)
+        .single();
+      
+      if (!fetchError && freshProspect) {
+        // Transformer pour le format app
+        const transformedProspect = {
+          id: freshProspect.id,
+          name: freshProspect.name,
+          email: freshProspect.email,
+          phone: freshProspect.phone,
+          company: freshProspect.company_name,
+          address: freshProspect.address,
+          ownerId: freshProspect.owner_id,
+          status: freshProspect.status,
+          tags: freshProspect.tags || [],
+          hasAppointment: freshProspect.has_appointment || false,
+          affiliateName: freshProspect.affiliate_name,
+          formData: freshProspect.form_data || {},
+          form_data: freshProspect.form_data || {},
+          createdAt: freshProspect.created_at,
+          updatedAt: freshProspect.updated_at,
+        };
+        
+        // Broadcaster sur le canal global
+        const broadcastChannel = supabase.channel('prospects-broadcast-global');
+        await broadcastChannel.send({
+          type: 'broadcast',
+          event: 'prospect-updated',
+          payload: transformedProspect
+        });
+        
+        logger.info('✅ Broadcast envoyé aux admins', { prospectId, name: freshProspect.name });
+      }
+    } catch (broadcastError) {
+      // Ne pas bloquer si le broadcast échoue
+      logger.warn('⚠️ Erreur broadcast (non bloquant):', broadcastError);
+    }
+    
     // Mettre à jour currentUser immédiatement pour que le client voit ses changements
     try {
       await updateProspect({ 
