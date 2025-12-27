@@ -520,7 +520,7 @@ const WorkflowsCharlyPage = () => {
   return (
     <div className="flex h-[calc(100vh-80px)] gap-6 p-6">
       {/* Colonne gauche - Liste des prompts */}
-      <div className="w-[35%] flex-shrink-0">
+      <div className="w-[25%] flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-card h-full flex flex-col">
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Workflows Charly</h2>
