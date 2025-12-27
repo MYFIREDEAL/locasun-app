@@ -4,12 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAppContext } from '@/App';
-import { Trash2, Plus, Bot, ChevronDown, ChevronRight, Edit } from 'lucide-react';
+import { Trash2, Plus, Bot, ChevronDown, ChevronRight } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 
@@ -250,7 +249,6 @@ const ActionEditor = ({
                                     {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie'}
                                 </p>
                                 
-                                {/* 🆕 Messages automatiques de validation/rejet */}
                                 {(!action.verificationMode || action.verificationMode === 'human') && (
                                     <div className="space-y-4 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                         <div className="space-y-2">
@@ -327,16 +325,22 @@ const ActionEditor = ({
             </div>;
 };
 
-const PromptCreatorDialog = ({
-  open,
-  onOpenChange,
-  onSave,
-  existingPrompt
-}) => {
+const WorkflowsCharlyPage = () => {
+  const { projectsData, forms } = useAppContext();
+  
   const {
-    projectsData,
-    forms
-  } = useAppContext();
+    prompts: supabasePrompts,
+    loading: promptsLoading,
+    savePrompt: savePromptToSupabase,
+    deletePrompt: deletePromptFromSupabase
+  } = useSupabasePrompts();
+
+  const prompts = useMemo(() => {
+    return supabasePrompts;
+  }, [supabasePrompts]);
+
+  const [editingPrompt, setEditingPrompt] = useState(null);
+
   const [promptData, setPromptData] = useState({
     name: '',
     tone: '',
@@ -344,9 +348,10 @@ const PromptCreatorDialog = ({
     stepsConfig: {}
   });
   const [activeStep, setActiveStep] = useState(null);
+
   useEffect(() => {
-    if (existingPrompt) {
-      setPromptData(JSON.parse(JSON.stringify(existingPrompt)));
+    if (editingPrompt) {
+      setPromptData(JSON.parse(JSON.stringify(editingPrompt)));
     } else {
       setPromptData({
         name: '',
@@ -355,15 +360,18 @@ const PromptCreatorDialog = ({
         stepsConfig: {}
       });
     }
-  }, [existingPrompt, open]);
+  }, [editingPrompt]);
+
   const projectOptions = useMemo(() => Object.values(projectsData).map(p => ({
     value: p.type,
     label: p.title
   })), [projectsData]);
+
   const projectSteps = useMemo(() => {
     if (!promptData.projectId) return [];
     return projectsData[promptData.projectId]?.steps || [];
   }, [promptData.projectId, projectsData]);
+
   const handleProjectChange = projectId => {
     setPromptData(prev => ({
       ...prev,
@@ -372,9 +380,11 @@ const PromptCreatorDialog = ({
     }));
     setActiveStep(null);
   };
+
   const toggleStep = stepIndex => {
     setActiveStep(activeStep === stepIndex ? null : stepIndex);
   };
+
   const handleActionChange = (stepIndex, actionIndex, newAction) => {
     const newStepsConfig = {
       ...promptData.stepsConfig
@@ -391,6 +401,7 @@ const PromptCreatorDialog = ({
       stepsConfig: newStepsConfig
     }));
   };
+
   const addAction = stepIndex => {
     const newStepsConfig = {
       ...promptData.stepsConfig
@@ -412,6 +423,7 @@ const PromptCreatorDialog = ({
       stepsConfig: newStepsConfig
     }));
   };
+
   const deleteAction = (stepIndex, actionIndex) => {
     const newStepsConfig = {
       ...promptData.stepsConfig
@@ -424,6 +436,7 @@ const PromptCreatorDialog = ({
       stepsConfig: newStepsConfig
     }));
   };
+
   const handleStepConfigChange = (stepIndex, field, value) => {
     const newStepsConfig = {
       ...promptData.stepsConfig
@@ -440,7 +453,8 @@ const PromptCreatorDialog = ({
       stepsConfig: newStepsConfig
     }));
   };
-  const handleSave = () => {
+
+  const handleSavePrompt = async () => {
     if (!promptData.name || !promptData.tone || !promptData.projectId) {
       toast({
         title: "Champs manquants",
@@ -449,130 +463,12 @@ const PromptCreatorDialog = ({
       });
       return;
     }
-    onSave({
+
+    const promptToSave = {
       ...promptData,
-      id: existingPrompt?.id || `prompt-${Date.now()}`
-    });
-    onOpenChange(false);
-  };
-  return <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>{existingPrompt ? "Modifier le prompt" : "Créer un nouveau prompt"}</DialogTitle>
-                        <DialogDescription>Paramétrez votre prompt pour générer des communications personnalisées.</DialogDescription>
-                    </DialogHeader>
-                    <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                        <div>
-                            <Label htmlFor="prompt-name">Nom du prompt</Label>
-                            <Input id="prompt-name" placeholder="Ex: Relance après RDV" value={promptData.name} onChange={e => setPromptData(p => ({
-            ...p,
-            name: e.target.value
-          }))} />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="prompt-tone">Ton</Label>
-                                <Select value={promptData.tone} onValueChange={value => setPromptData(p => ({
-              ...p,
-              tone: value
-            }))}>
-                                    <SelectTrigger id="prompt-tone">
-                                        <SelectValue placeholder="Choisir un ton" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="professionnel">Professionnel</SelectItem>
-                                        <SelectItem value="detendu">Détendu</SelectItem>
-                                        <SelectItem value="humain">Humain</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label htmlFor="prompt-project">Projet</Label>
-                                <Select value={promptData.projectId} onValueChange={handleProjectChange}>
-                                    <SelectTrigger id="prompt-project">
-                                        <SelectValue placeholder="Choisir un projet" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {projectOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        {promptData.projectId && <motion.div initial={{
-          opacity: 0,
-          y: 10
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} className="pt-4 border-t">
-                                <h4 className="font-semibold text-gray-700 mb-3">Étapes du projet "{projectsData[promptData.projectId]?.title}"</h4>
-                                <div className="space-y-2">
-                                    {projectSteps.map((step, index) => <div key={index}>
-                                            <button onClick={() => toggleStep(index)} className="w-full flex items-center justify-between gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-lg">{step.icon}</span>
-                                                    <span className="text-sm font-medium text-gray-800">{step.name}</span>
-                                                </div>
-                                                {activeStep === index ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                                            </button>
-                                            <AnimatePresence>
-                                                {activeStep === index && <motion.div initial={{
-                  opacity: 0,
-                  height: 0,
-                  marginTop: 0
-                }} animate={{
-                  opacity: 1,
-                  height: 'auto',
-                  marginTop: '0.5rem'
-                }} exit={{
-                  opacity: 0,
-                  height: 0,
-                  marginTop: 0
-                }} className="pl-8 bg-gray-50/50 rounded-b-md">
-                                                        <div className="p-4 space-y-4">
-                                                            {(promptData.stepsConfig[index]?.actions || []).map((action, actionIndex) => <ActionEditor key={action.id} action={action} onChange={newAction => handleActionChange(index, actionIndex, newAction)} onDelete={() => deleteAction(index, actionIndex)} forms={forms} />)}
-                                                            <Button variant="outline" size="sm" onClick={() => addAction(index)} className="w-full border-dashed">
-                                                                <Plus className="h-4 w-4 mr-2" /> Ajouter un message + action
-                                                            </Button>
-                                                            <div className="flex items-center space-x-2 pt-4 border-t mt-4">
-                                                                <Checkbox id={`form-complete-step-${index}`} checked={promptData.stepsConfig[index]?.autoCompleteStep || false} onCheckedChange={checked => handleStepConfigChange(index, 'autoCompleteStep', checked)} />
-                                                                <Label htmlFor={`form-complete-step-${index}`} className="text-sm text-gray-600">
-                                                                    Si action validée, passer automatiquement à l'étape suivante
-                                                                </Label>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>}
-                                            </AnimatePresence>
-                                        </div>)}
-                                </div>
-                            </motion.div>}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-                        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">Enregistrer le prompt</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>;
-};
+      id: editingPrompt?.id || `prompt-${Date.now()}`
+    };
 
-const WorkflowsCharlyPage = () => {
-  const { projectsData, forms } = useAppContext();
-  
-  const {
-    prompts: supabasePrompts,
-    loading: promptsLoading,
-    savePrompt: savePromptToSupabase,
-    deletePrompt: deletePromptFromSupabase
-  } = useSupabasePrompts();
-
-  const prompts = useMemo(() => {
-    return supabasePrompts;
-  }, [supabasePrompts]);
-
-  const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
-  const [editingPrompt, setEditingPrompt] = useState(null);
-
-  const handleSavePrompt = async (promptToSave) => {
     const promptId = promptToSave.id || `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     
     const result = await savePromptToSupabase(promptId, {
@@ -590,7 +486,6 @@ const WorkflowsCharlyPage = () => {
       });
       
       setEditingPrompt(null);
-      setIsPromptCreatorOpen(false);
     } else {
       toast({
         title: "❌ Erreur",
@@ -620,59 +515,203 @@ const WorkflowsCharlyPage = () => {
 
   const openPromptCreator = prompt => {
     setEditingPrompt(prompt);
-    setIsPromptCreatorOpen(true);
   };
 
   return (
-    <div className="p-6">
-      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="creation-prompt">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-          <h2 className="text-xl font-semibold text-gray-800">Création de Prompt</h2>
-          <Button onClick={() => openPromptCreator(null)} className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" /> Créer un nouveau prompt
-          </Button>
-        </div>
-        <div className="space-y-3">
-          {Object.values(prompts).length > 0 ? Object.values(prompts).map(p => <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+    <div className="flex h-[calc(100vh-80px)] gap-6 p-6">
+      {/* Colonne gauche - Liste des prompts */}
+      <div className="w-[35%] flex-shrink-0">
+        <div className="bg-white rounded-2xl shadow-card h-full flex flex-col">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Workflows Charly</h2>
+            <Button onClick={() => openPromptCreator(null)} className="bg-indigo-600 hover:bg-indigo-700 w-full">
+              <Plus className="mr-2 h-4 w-4" /> Créer un nouveau prompt
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-3">
+            {Object.values(prompts).length > 0 ? Object.values(prompts).map(p => (
+              <div 
+                key={p.id} 
+                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                  editingPrompt?.id === p.id 
+                    ? 'bg-indigo-50 border-2 border-indigo-500' 
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+                onClick={() => openPromptCreator(p)}
+              >
                 <div className="flex items-center gap-3">
-                    <Bot className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="font-medium">{p.name}</p>
-                      <p className="text-xs text-gray-500">{projectsData[p.projectId]?.title || 'Projet inconnu'}</p>
-                    </div>
+                  <Bot className="h-5 w-5 text-gray-500" />
+                  <div>
+                    <p className="font-medium">{p.name}</p>
+                    <p className="text-xs text-gray-500">{projectsData[p.projectId]?.title || 'Projet inconnu'}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPromptCreator(p)}>
-                        <Edit className="h-4 w-4" />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="icon" className="h-8 w-8">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Supprimer "{p.name}" ?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Cette action est irréversible.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeletePrompt(p.id)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-              </div>) : <div className="text-center text-gray-500 py-4">
-              <Bot className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2">Aucun prompt créé. Cliquez sur le bouton pour en ajouter un.</p>
-            </div>}
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer "{p.name}" ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action est irréversible.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeletePrompt(p.id)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )) : (
+              <div className="text-center text-gray-500 py-8">
+                <Bot className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2">Aucun prompt créé. Cliquez sur le bouton pour en ajouter un.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <PromptCreatorDialog open={isPromptCreatorOpen} onOpenChange={setIsPromptCreatorOpen} onSave={handleSavePrompt} existingPrompt={editingPrompt} />
+      {/* Colonne droite - Workflow détaillé */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="bg-white rounded-2xl shadow-card p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              {editingPrompt ? "Modifier le prompt" : "Créer un nouveau prompt"}
+            </h2>
+            <p className="text-sm text-gray-500">
+              Paramétrez votre prompt pour générer des communications personnalisées.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="prompt-name">Nom du prompt</Label>
+              <Input 
+                id="prompt-name" 
+                placeholder="Ex: Relance après RDV" 
+                value={promptData.name} 
+                onChange={e => setPromptData(p => ({
+                  ...p,
+                  name: e.target.value
+                }))} 
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="prompt-tone">Ton</Label>
+                <Select value={promptData.tone} onValueChange={value => setPromptData(p => ({
+                  ...p,
+                  tone: value
+                }))}>
+                  <SelectTrigger id="prompt-tone">
+                    <SelectValue placeholder="Choisir un ton" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professionnel">Professionnel</SelectItem>
+                    <SelectItem value="detendu">Détendu</SelectItem>
+                    <SelectItem value="humain">Humain</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="prompt-project">Projet</Label>
+                <Select value={promptData.projectId} onValueChange={handleProjectChange}>
+                  <SelectTrigger id="prompt-project">
+                    <SelectValue placeholder="Choisir un projet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {promptData.projectId && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="pt-4 border-t"
+              >
+                <h4 className="font-semibold text-gray-700 mb-3">
+                  Étapes du projet "{projectsData[promptData.projectId]?.title}"
+                </h4>
+                <div className="space-y-2">
+                  {projectSteps.map((step, index) => (
+                    <div key={index}>
+                      <button 
+                        onClick={() => toggleStep(index)} 
+                        className="w-full flex items-center justify-between gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{step.icon}</span>
+                          <span className="text-sm font-medium text-gray-800">{step.name}</span>
+                        </div>
+                        {activeStep === index ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </button>
+                      <AnimatePresence>
+                        {activeStep === index && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0, marginTop: 0 }} 
+                            animate={{ opacity: 1, height: 'auto', marginTop: '0.5rem' }} 
+                            exit={{ opacity: 0, height: 0, marginTop: 0 }} 
+                            className="pl-8 bg-gray-50/50 rounded-b-md"
+                          >
+                            <div className="p-4 space-y-4">
+                              {(promptData.stepsConfig[index]?.actions || []).map((action, actionIndex) => (
+                                <ActionEditor 
+                                  key={action.id} 
+                                  action={action} 
+                                  onChange={newAction => handleActionChange(index, actionIndex, newAction)} 
+                                  onDelete={() => deleteAction(index, actionIndex)} 
+                                  forms={forms} 
+                                />
+                              ))}
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => addAction(index)} 
+                                className="w-full border-dashed"
+                              >
+                                <Plus className="h-4 w-4 mr-2" /> Ajouter un message + action
+                              </Button>
+                              <div className="flex items-center space-x-2 pt-4 border-t mt-4">
+                                <Checkbox 
+                                  id={`form-complete-step-${index}`} 
+                                  checked={promptData.stepsConfig[index]?.autoCompleteStep || false} 
+                                  onCheckedChange={checked => handleStepConfigChange(index, 'autoCompleteStep', checked)} 
+                                />
+                                <Label htmlFor={`form-complete-step-${index}`} className="text-sm text-gray-600">
+                                  Si action validée, passer automatiquement à l'étape suivante
+                                </Label>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setEditingPrompt(null)}>Annuler</Button>
+              <Button onClick={handleSavePrompt} className="bg-green-600 hover:bg-green-700">Enregistrer le prompt</Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
