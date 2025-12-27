@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
     import AdminHeader from '@/components/admin/AdminHeader';
     import Chatbot from '@/components/Chatbot'; 
     import useWindowSize from '@/hooks/useWindowSize';
-    import CharlyChat from '@/components/admin/CharlyChat';
     import { useAppContext } from '@/App';
     import { supabase } from '@/lib/supabase';
 
@@ -20,8 +19,7 @@ import React, { useEffect } from 'react';
       const isPipelinePage = location.pathname.startsWith('/admin/pipeline') || location.pathname === '/admin';
       const isContactsPage = location.pathname.startsWith('/admin/contacts');
       const isConfigurationIAPage = location.pathname.startsWith('/admin/configuration-ia');
-
-      const showAside = isDesktop && !isCharlyPage && !isAgendaPage && !isProfilePage && !isPipelinePage && !isContactsPage && !isConfigurationIAPage;
+      const isWorkflowsCharlyPage = location.pathname.startsWith('/admin/workflows-charly');
 
       // 🔥 BLOQUER LE RENDU TANT QUE adminReady N'EST PAS TRUE
       if (!adminReady) {
@@ -105,11 +103,6 @@ import React, { useEffect } from 'react';
             <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
               <Outlet />
             </main>
-            {showAside && (
-              <aside className="w-[250px] flex-shrink-0 space-y-6 p-6 pr-8 hidden lg:block"> 
-                <CharlyChat />
-              </aside>
-            )}
             {isConfigurationIAPage && isDesktop && (
               <aside className="w-[300px] flex-shrink-0 space-y-6 p-6 pr-8 hidden lg:block">
                 <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
