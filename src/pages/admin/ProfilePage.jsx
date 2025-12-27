@@ -2968,53 +2968,6 @@ const ProfilePage = () => {
                         </AnimatePresence>}
                 </div>
               </motion.div>
-              
-              <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="creation-prompt">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                  <h2 className="text-xl font-semibold text-gray-800">Création de Prompt</h2>
-                  <Button onClick={() => openPromptCreator(null)} className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" /> Créer un nouveau prompt
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {Object.values(prompts).length > 0 ? Object.values(prompts).map(p => <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                            <Bot className="h-5 w-5 text-gray-500" />
-                            <div>
-                              <p className="font-medium">{p.name}</p>
-                              <p className="text-xs text-gray-500">{projectsData[p.projectId]?.title || 'Projet inconnu'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPromptCreator(p)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="h-8 w-8">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Supprimer "{p.name}" ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeletePrompt(p.id)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                      </div>) : <div className="text-center text-gray-500 py-4">
-                      <Bot className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2">Aucun prompt créé. Cliquez sur le bouton pour en ajouter un.</p>
-                    </div>}
-                </div>
-              </motion.div>
 
               <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-utilisateurs">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">

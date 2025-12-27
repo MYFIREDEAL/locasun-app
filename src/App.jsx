@@ -8,6 +8,8 @@ import FinalPipeline from '@/pages/admin/FinalPipeline';
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
 import Agenda from '@/pages/admin/Agenda';
 import CharlyPage from '@/pages/admin/CharlyPage';
+import ConfigurationIA from '@/pages/admin/ConfigurationIA';
+import WorkflowsCharlyPage from '@/pages/admin/WorkflowsCharlyPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
@@ -1398,6 +1400,8 @@ function App() {
           <Route path="agenda" element={<Agenda />} />
           <Route path="contacts" element={<CompleteOriginalContacts />} />
           <Route path="charly" element={<CharlyPage />} />
+          <Route path="configuration-ia" element={<ConfigurationIA />} />
+          <Route path="workflows-charly" element={<WorkflowsCharlyPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>

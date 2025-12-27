@@ -25,6 +25,7 @@ const navItems = [
   { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
   { name: 'Contacts', path: '/admin/contacts', icon: Users },
   { name: 'Charly AI', path: '/admin/charly', icon: Bot }, // Updated label
+  { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings },
 ];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;

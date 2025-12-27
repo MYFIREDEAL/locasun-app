@@ -19,8 +19,9 @@ import React, { useEffect } from 'react';
       const isProfilePage = location.pathname.startsWith('/admin/profil');
       const isPipelinePage = location.pathname.startsWith('/admin/pipeline') || location.pathname === '/admin';
       const isContactsPage = location.pathname.startsWith('/admin/contacts');
+      const isConfigurationIAPage = location.pathname.startsWith('/admin/configuration-ia');
 
-      const showAside = isDesktop && !isCharlyPage && !isAgendaPage && !isProfilePage && !isPipelinePage && !isContactsPage;
+      const showAside = isDesktop && !isCharlyPage && !isAgendaPage && !isProfilePage && !isPipelinePage && !isContactsPage && !isConfigurationIAPage;
 
       // 🔥 BLOQUER LE RENDU TANT QUE adminReady N'EST PAS TRUE
       if (!adminReady) {
@@ -107,6 +108,30 @@ import React, { useEffect } from 'react';
             {showAside && (
               <aside className="w-[250px] flex-shrink-0 space-y-6 p-6 pr-8 hidden lg:block"> 
                 <CharlyChat />
+              </aside>
+            )}
+            {isConfigurationIAPage && isDesktop && (
+              <aside className="w-[300px] flex-shrink-0 space-y-6 p-6 pr-8 hidden lg:block">
+                <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                  <h2 className="mb-4 text-lg font-semibold">
+                    🧩 Workflows Charly
+                  </h2>
+
+                  <p className="mb-6 text-sm text-gray-600">
+                    Créez et gérez les scénarios que Charly utilise pour parler aux clients et déclencher des actions.
+                  </p>
+
+                  <a
+                    href="/admin/workflows-charly"
+                    className="block w-full rounded-lg bg-green-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-green-700"
+                  >
+                    🟢 Créer / gérer les workflows
+                  </a>
+
+                  <p className="mt-4 text-xs text-gray-400">
+                    Les workflows définissent quoi dire, quand, et quelle action déclencher.
+                  </p>
+                </div>
               </aside>
             )}
           </div>

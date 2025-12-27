@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, Bot } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Bot, Settings } from 'lucide-react';
 import Chatbot from '@/components/Chatbot';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { name: 'Contacts', path: '/admin/contacts', icon: Users },
   { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
   { name: 'Charly', path: '/admin/charly', icon: Bot },
+  { name: 'Config IA', path: '/admin/configuration-ia', icon: Settings },
 ];
 
 export const MobileNav = () => {
