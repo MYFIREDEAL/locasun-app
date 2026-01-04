@@ -372,30 +372,43 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           // 🔥 CRITICAL: Mettre à jour l'entrée project_history existante avec le nouveau statut
           if (hasStatusChange) {
             try {
-              const { error: updateHistoryError } = await supabase
+              // 1. Récupérer toutes les entrées project_history liées à cet appointment
+              const { data: historyEntries, error: fetchError } = await supabase
                 .from('project_history')
-                .update({
-                  metadata: supabase.raw(`
-                    jsonb_set(
-                      metadata,
-                      '{status}',
-                      '"${data.status}"'::jsonb,
-                      true
-                    )
-                  `)
-                })
+                .select('*')
                 .eq('prospect_id', data.contact_id)
                 .eq('project_type', data.project_id)
                 .contains('metadata', { appointment_id: id });
 
-              if (updateHistoryError) {
-                logger.error('⚠️ Erreur update metadata.status dans project_history', {
-                  error: updateHistoryError.message,
+              if (fetchError) {
+                logger.error('⚠️ Erreur fetch project_history pour sync status', {
+                  error: fetchError.message,
                 });
-              } else {
+              } else if (historyEntries && historyEntries.length > 0) {
+                // 2. Mettre à jour le metadata.status de chaque entrée
+                for (const entry of historyEntries) {
+                  const updatedMetadata = {
+                    ...entry.metadata,
+                    status: data.status, // Nouveau statut
+                  };
+
+                  const { error: updateError } = await supabase
+                    .from('project_history')
+                    .update({ metadata: updatedMetadata })
+                    .eq('id', entry.id);
+
+                  if (updateError) {
+                    logger.error('⚠️ Erreur update metadata.status dans project_history', {
+                      entryId: entry.id,
+                      error: updateError.message,
+                    });
+                  }
+                }
+
                 logger.debug('✅ Metadata.status synchronisé dans project_history existant', {
                   appointmentId: id,
                   newStatus: data.status,
+                  updatedEntries: historyEntries.length,
                 });
               }
             } catch (syncError) {
