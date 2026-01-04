@@ -54,15 +54,25 @@ const ActivityTab = ({ prospectId, projectType }) => {
     });
     
     // Pour chaque appointment, prendre le dernier event (statut courant)
-    return Object.entries(grouped).map(([appointmentId, events]) => {
+    const result = Object.entries(grouped).map(([appointmentId, events]) => {
       const sortedEvents = events.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       const latestEvent = sortedEvents[0];
+      
+      console.log(`📋 Appointment ${appointmentId}:`, {
+        totalEvents: events.length,
+        latestTitle: latestEvent.title,
+        latestStatus: latestEvent.metadata?.status,
+        allTitles: events.map(e => e.title)
+      });
       
       return {
         ...latestEvent,
         currentStatus: latestEvent.metadata?.status || 'pending'
       };
     });
+    
+    console.log('🎯 Total activités agrégées:', result.length);
+    return result;
   }, [activityEvents]);
 
   // 🔥 Séparer EN COURS / PASSÉES selon le statut courant
