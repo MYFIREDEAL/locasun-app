@@ -71,8 +71,8 @@ const ActivityTab = ({ prospectId, projectType }) => {
     return activities.filter(activity => {
       const status = activity.currentStatus;
       
-      // PASSÉES = effectue, annule, completed
-      if (status === 'effectue' || status === 'annule' || status === 'completed') {
+      // PASSÉES = effectue, annule, completed, deleted
+      if (status === 'effectue' || status === 'annule' || status === 'completed' || status === 'deleted') {
         return false;
       }
       
@@ -85,8 +85,8 @@ const ActivityTab = ({ prospectId, projectType }) => {
     return activities.filter(activity => {
       const status = activity.currentStatus;
       
-      // PASSÉES = effectue, annule, completed
-      if (status === 'effectue' || status === 'annule' || status === 'completed') {
+      // PASSÉES = effectue, annule, completed, deleted
+      if (status === 'effectue' || status === 'annule' || status === 'completed' || status === 'deleted') {
         return true;
       }
       
