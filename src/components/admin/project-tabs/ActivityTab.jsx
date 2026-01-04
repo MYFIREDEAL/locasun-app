@@ -233,30 +233,41 @@ const ActivityTab = ({ prospectId, projectType }) => {
           <p className="text-sm text-gray-400 italic">Aucune activité passée</p>
         ) : (
           <div className="space-y-2">
-            {pastActivities.map((activity) => (
-              <div
-                key={activity.id}
-                onClick={() => handleActivityClick(activity)}
-                className="flex items-center space-x-3 p-3 bg-gray-50 border border-gray-100 rounded-lg opacity-75 hover:opacity-100 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.metadata)}`}>
-                  {getActivityIcon(activity.metadata)}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-700">
-                    {activity.title || 'Activité'}
-                  </p>
-                  {activity.description && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {activity.description}
+            {pastActivities.map((activity) => {
+              // Récupérer le vrai appointment pour afficher son titre
+              const appointment = findAppointmentFromActivity(activity);
+              const displayTitle = appointment?.title || activity.title || 'Activité';
+              const displayDate = appointment?.start ? new Date(appointment.start) : new Date(activity.created_at);
+              
+              // Labels de statut clairs
+              const statusLabel = {
+                'effectue': '✅ Effectué',
+                'annule': '❌ Annulé',
+                'reporte': '📅 Reporté',
+                'deleted': '🗑️ Supprimé',
+                'completed': '✅ Terminé'
+              }[activity.currentStatus] || activity.currentStatus;
+              
+              return (
+                <div
+                  key={activity.id}
+                  onClick={() => handleActivityClick(activity)}
+                  className="flex items-center space-x-3 p-3 bg-gray-50 border border-gray-100 rounded-lg opacity-75 hover:opacity-100 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.metadata)}`}>
+                    {getActivityIcon(activity.metadata)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">
+                      {displayTitle}
                     </p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    {format(new Date(activity.created_at), "d MMM 'à' HH:mm", { locale: fr })}
-                  </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {statusLabel} • {format(displayDate, "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
