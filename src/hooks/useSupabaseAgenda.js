@@ -369,6 +369,42 @@ export const useSupabaseAgenda = (activeAdminUser) => {
                                 updates.notes !== undefined ||
                                 updates.location !== undefined;
 
+          // 🔥 CRITICAL: Mettre à jour l'entrée project_history existante avec le nouveau statut
+          if (hasStatusChange) {
+            try {
+              const { error: updateHistoryError } = await supabase
+                .from('project_history')
+                .update({
+                  metadata: supabase.raw(`
+                    jsonb_set(
+                      metadata,
+                      '{status}',
+                      '"${data.status}"'::jsonb,
+                      true
+                    )
+                  `)
+                })
+                .eq('prospect_id', data.contact_id)
+                .eq('project_type', data.project_id)
+                .contains('metadata', { appointment_id: id });
+
+              if (updateHistoryError) {
+                logger.error('⚠️ Erreur update metadata.status dans project_history', {
+                  error: updateHistoryError.message,
+                });
+              } else {
+                logger.debug('✅ Metadata.status synchronisé dans project_history existant', {
+                  appointmentId: id,
+                  newStatus: data.status,
+                });
+              }
+            } catch (syncError) {
+              logger.error('⚠️ Erreur sync status dans project_history (non-bloquant)', {
+                error: syncError.message,
+              });
+            }
+          }
+
           // Ne journaliser que si changement significatif
           if (hasStatusChange || hasDateChange || hasOtherChange) {
             let description = 'Activité mise à jour : ';
