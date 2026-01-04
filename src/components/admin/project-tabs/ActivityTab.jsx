@@ -1,52 +1,55 @@
-import React, { useState } from 'react';
-import { Plus, Calendar, Phone, CheckSquare } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Calendar, Phone, CheckSquare, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
 const ActivityTab = ({ prospectId, projectType }) => {
   const [showAddActivity, setShowAddActivity] = useState(false);
 
-  // TODO: Récupérer les vraies activités depuis useSupabaseAgenda
-  // Pour l'instant, données mockées
-  const currentActivities = [
-    {
-      id: '1',
-      type: 'appointment',
-      name: 'Rendez-vous de suivi',
-      date: new Date(2025, 10, 20, 14, 0),
-      status: 'pending',
-    },
-    {
-      id: '2',
-      type: 'call',
-      name: 'Appel de relance',
-      date: new Date(2025, 10, 19, 10, 30),
-      status: 'pending',
-    },
-  ];
+  // 🔥 Utiliser le hook Supabase pour récupérer la vraie timeline
+  const { history, loading } = useSupabaseProjectHistory({
+    projectType,
+    prospectId,
+    enabled: !!projectType && !!prospectId
+  });
 
-  const pastActivities = [
-    {
-      id: '3',
-      type: 'task',
-      name: 'Envoyer le devis',
-      date: new Date(2025, 10, 15, 9, 0),
-      status: 'completed',
-    },
-    {
-      id: '4',
-      type: 'appointment',
-      name: 'RDV de découverte',
-      date: new Date(2025, 10, 10, 15, 0),
-      status: 'completed',
-    },
-  ];
+  // 🔥 Filtrer uniquement les événements de type 'activity' et trier par date
+  const activities = useMemo(() => {
+    if (!history || history.length === 0) return [];
+    
+    return history
+      .filter(event => event.event_type === 'activity')
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }, [history]);
 
-  const getActivityIcon = (type) => {
-    switch (type) {
+  // 🔥 Séparer les activités futures et passées
+  const now = new Date();
+  const currentActivities = useMemo(() => {
+    return activities.filter(activity => {
+      const activityDate = new Date(activity.created_at);
+      return activityDate >= now || activity.metadata?.status === 'pending';
+    });
+  }, [activities]);
+
+  const pastActivities = useMemo(() => {
+    return activities.filter(activity => {
+      const activityDate = new Date(activity.created_at);
+      return activityDate < now && activity.metadata?.status !== 'pending';
+    });
+  }, [activities]);
+
+  // 🔥 Déterminer l'icône selon le type d'activité (depuis metadata.activity_type)
+  const getActivityIcon = (metadata) => {
+    const activityType = metadata?.activity_type || 'appointment';
+    
+    switch (activityType) {
+      case 'physical':
       case 'appointment':
         return <Calendar className="h-4 w-4" />;
+      case 'virtual':
+        return <Video className="h-4 w-4" />;
       case 'call':
         return <Phone className="h-4 w-4" />;
       case 'task':
@@ -56,13 +59,23 @@ const ActivityTab = ({ prospectId, projectType }) => {
     }
   };
 
-  const getActivityColor = (type, status) => {
-    if (status === 'completed') return 'text-green-600 bg-green-50';
-    switch (type) {
+  // 🔥 Déterminer la couleur selon le type et le statut
+  const getActivityColor = (metadata) => {
+    const activityType = metadata?.activity_type || 'appointment';
+    const status = metadata?.status;
+    
+    if (status === 'effectue' || status === 'completed') return 'text-green-600 bg-green-50';
+    if (status === 'annule') return 'text-red-600 bg-red-50';
+    if (status === 'reporte') return 'text-yellow-600 bg-yellow-50';
+    
+    switch (activityType) {
+      case 'physical':
       case 'appointment':
         return 'text-blue-600 bg-blue-50';
-      case 'call':
+      case 'virtual':
         return 'text-purple-600 bg-purple-50';
+      case 'call':
+        return 'text-green-600 bg-green-50';
       case 'task':
         return 'text-orange-600 bg-orange-50';
       default:
@@ -99,24 +112,37 @@ const ActivityTab = ({ prospectId, projectType }) => {
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           En cours ({currentActivities.length})
         </h4>
-        <div className="space-y-2">
-          {currentActivities.map((activity) => (
-            <div
-              key={activity.id}
-              className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.type, activity.status)}`}>
-                {getActivityIcon(activity.type)}
+        {loading ? (
+          <p className="text-sm text-gray-400 italic">Chargement des activités...</p>
+        ) : currentActivities.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Aucune activité en cours</p>
+        ) : (
+          <div className="space-y-2">
+            {currentActivities.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.metadata)}`}>
+                  {getActivityIcon(activity.metadata)}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {activity.title || 'Activité'}
+                  </p>
+                  {activity.description && (
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      {activity.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {format(new Date(activity.created_at), "d MMM 'à' HH:mm", { locale: fr })}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{activity.name}</p>
-                <p className="text-xs text-gray-500">
-                  {format(activity.date, "d MMM 'à' HH:mm", { locale: fr })}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Activités passées */}
@@ -124,28 +150,37 @@ const ActivityTab = ({ prospectId, projectType }) => {
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Passées ({pastActivities.length})
         </h4>
-        <div className="space-y-2">
-          {pastActivities.map((activity) => (
-            <div
-              key={activity.id}
-              className="flex items-center space-x-3 p-3 bg-gray-50 border border-gray-100 rounded-lg opacity-75"
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.type, activity.status)}`}>
-                {getActivityIcon(activity.type)}
+        {loading ? (
+          <p className="text-sm text-gray-400 italic">Chargement...</p>
+        ) : pastActivities.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Aucune activité passée</p>
+        ) : (
+          <div className="space-y-2">
+            {pastActivities.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex items-center space-x-3 p-3 bg-gray-50 border border-gray-100 rounded-lg opacity-75"
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.metadata)}`}>
+                  {getActivityIcon(activity.metadata)}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-700">
+                    {activity.title || 'Activité'}
+                  </p>
+                  {activity.description && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {activity.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {format(new Date(activity.created_at), "d MMM 'à' HH:mm", { locale: fr })}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-700">{activity.name}</p>
-                <p className="text-xs text-gray-400">
-                  {format(activity.date, "d MMM 'à' HH:mm", { locale: fr })}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="text-center py-4 text-sm text-gray-400">
-        <p>Les activités seront synchronisées avec useSupabaseAgenda</p>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
