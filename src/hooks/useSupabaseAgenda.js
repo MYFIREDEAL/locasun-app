@@ -373,18 +373,25 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           if (hasStatusChange) {
             try {
               // 1. Récupérer toutes les entrées project_history liées à cet appointment
+              // Utiliser filter sur metadata->>'appointment_id' au lieu de contains
               const { data: historyEntries, error: fetchError } = await supabase
                 .from('project_history')
                 .select('*')
                 .eq('prospect_id', data.contact_id)
                 .eq('project_type', data.project_id)
-                .contains('metadata', { appointment_id: id });
+                .eq('metadata->>appointment_id', id);
 
               if (fetchError) {
                 logger.error('⚠️ Erreur fetch project_history pour sync status', {
                   error: fetchError.message,
                 });
               } else if (historyEntries && historyEntries.length > 0) {
+                logger.debug('🔍 Entrées project_history trouvées pour sync', {
+                  appointmentId: id,
+                  count: historyEntries.length,
+                  entries: historyEntries.map(e => ({ id: e.id, title: e.title, currentStatus: e.metadata?.status }))
+                });
+
                 // 2. Mettre à jour le metadata.status de chaque entrée
                 for (const entry of historyEntries) {
                   const updatedMetadata = {
@@ -402,6 +409,13 @@ export const useSupabaseAgenda = (activeAdminUser) => {
                       entryId: entry.id,
                       error: updateError.message,
                     });
+                  } else {
+                    logger.debug('✅ Entrée mise à jour', {
+                      entryId: entry.id,
+                      title: entry.title,
+                      oldStatus: entry.metadata?.status,
+                      newStatus: data.status,
+                    });
                   }
                 }
 
@@ -409,6 +423,12 @@ export const useSupabaseAgenda = (activeAdminUser) => {
                   appointmentId: id,
                   newStatus: data.status,
                   updatedEntries: historyEntries.length,
+                });
+              } else {
+                logger.warn('⚠️ Aucune entrée project_history trouvée pour sync', {
+                  appointmentId: id,
+                  prospectId: data.contact_id,
+                  projectType: data.project_id,
                 });
               }
             } catch (syncError) {
