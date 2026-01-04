@@ -81,13 +81,8 @@ const ActivityTab = ({ prospectId, projectType }) => {
     return activities.filter(activity => {
       const status = activity.currentStatus;
       
-      // PASSÉES = effectue, annule, completed, deleted
-      if (status === 'effectue' || status === 'annule' || status === 'completed' || status === 'deleted') {
-        return false;
-      }
-      
-      // EN COURS = pending, reporte
-      return true;
+      // EN COURS = UNIQUEMENT pending
+      return status === 'pending';
     });
   }, [activities]);
 
@@ -95,12 +90,8 @@ const ActivityTab = ({ prospectId, projectType }) => {
     return activities.filter(activity => {
       const status = activity.currentStatus;
       
-      // PASSÉES = effectue, annule, completed, deleted
-      if (status === 'effectue' || status === 'annule' || status === 'completed' || status === 'deleted') {
-        return true;
-      }
-      
-      return false;
+      // PASSÉES = tout sauf pending
+      return status !== 'pending';
     });
   }, [activities]);
 
