@@ -2675,7 +2675,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Note</span>
-              <span className="font-medium text-gray-800 text-right">{event.description || 'Aucune'}</span>
+              <span className="font-medium text-gray-800 text-right">{event.notes || 'Aucune'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Interlocuteur</span>
@@ -2694,8 +2694,10 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Voulez-vous vraiment supprimer ce rendez-vous ?</AlertDialogTitle>
-                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                <AlertDialogTitle>Voulez-vous vraiment supprimer ce RDV ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action est irréversible. Le rendez-vous sera définitivement supprimé.
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
