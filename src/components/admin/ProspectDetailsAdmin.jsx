@@ -2362,10 +2362,10 @@ const ProspectDetailsAdmin = ({
 
 // Composant réutilisant les mêmes cartes et modal que l'Agenda
 const ProspectActivities = ({ prospectId }) => {
-  const { activeAdminUser } = useAppContext();
+  const { activeAdminUser, prospects, projectsData } = useAppContext();
   
   // 🔥 Utiliser le hook Supabase pour récupérer les vraies activités
-  const { appointments: allAppointments, loading: agendaLoading } = useSupabaseAgenda(activeAdminUser);
+  const { appointments: allAppointments, loading: agendaLoading, updateAppointment, deleteAppointment } = useSupabaseAgenda(activeAdminUser);
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
   
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -2512,6 +2512,11 @@ const ProspectActivities = ({ prospectId }) => {
         onClose={handleCloseModal}
         onReport={() => {}} // Pas de report depuis le prospect pour l'instant
         onEdit={() => {}} // Pas d'édition depuis le prospect pour l'instant
+        prospects={prospects}
+        supabaseUsers={supabaseUsers}
+        updateAppointment={updateAppointment}
+        deleteAppointment={deleteAppointment}
+        projectsData={projectsData}
       />
 
     </>
@@ -2519,11 +2524,7 @@ const ProspectActivities = ({ prospectId }) => {
 };
 
 // Copie exacte du composant EventDetailsPopup de l'Agenda pour les RDV
-const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
-  const { prospects, projectsData, activeAdminUser } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
-  // 🔥 Utiliser le hook Supabase pour updateAppointment et deleteAppointment
-  const { updateAppointment, deleteAppointment } = useSupabaseAgenda(activeAdminUser);
+const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supabaseUsers, updateAppointment, deleteAppointment, projectsData }) => {
   const [status, setStatus] = useState(event?.status || 'pending');
 
   useEffect(() => {
@@ -2535,7 +2536,9 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
   if (!event) return null;
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = supabaseUsers.find(u => u.user_id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
+  // 🔥 event.assignedUserId = users.id (UUID PK), donc chercher par u.id
+  // contact.ownerId = users.user_id (auth UUID), donc chercher par u.user_id
+  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   // Fonction pour capitaliser la première lettre
   const capitalizeFirstLetter = (string) => {
