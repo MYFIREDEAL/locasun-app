@@ -2362,53 +2362,42 @@ const ProspectDetailsAdmin = ({
 
 // Composant réutilisant les mêmes cartes et modal que l'Agenda
 const ProspectActivities = ({ prospectId }) => {
-  const { appointments, calls, tasks, prospects } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
+  const { activeAdminUser } = useAppContext();
+  
+  // 🔥 Utiliser le hook Supabase pour récupérer les vraies activités
+  const { appointments: allAppointments, loading: agendaLoading } = useSupabaseAgenda(activeAdminUser);
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedActivityType, setSelectedActivityType] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [isAddActivityModalOpen, setIsAddActivityModalOpen] = useState(false);
 
-  // Filtrer toutes les activités pour ce prospect
+  // 🔥 Filtrer les activités pour ce prospect (futures uniquement)
   const prospectActivities = useMemo(() => {
-    const activities = [];
+    if (!allAppointments || allAppointments.length === 0) return [];
     
-    // Ajouter les rendez-vous
-    appointments.forEach(appointment => {
-      if (appointment.contactId === prospectId) {
-        activities.push({ ...appointment, activityType: 'appointment' });
-      }
+    const now = new Date();
+    
+    // Filtrer par prospect ET date future
+    const filtered = allAppointments.filter(apt => {
+      // Vérifier que c'est le bon prospect
+      if (apt.contactId !== prospectId) return false;
+      
+      // Vérifier que c'est une activité future ou en cours
+      const startDate = new Date(apt.start);
+      return startDate >= now || apt.status === 'pending';
     });
     
-    // Ajouter les appels
-    calls.forEach(call => {
-      if (call.contactId === prospectId) {
-        activities.push({ ...call, activityType: 'call' });
-      }
-    });
-    
-    // Ajouter les tâches
-    tasks.forEach(task => {
-      if (task.contactId === prospectId) {
-        activities.push({ ...task, activityType: 'task' });
-      }
-    });
-    
-    // Trier par date
-    return activities.sort((a, b) => {
-      const dateA = new Date(a.start || a.date);
-      const dateB = new Date(b.start || b.date);
+    // Trier par date croissante (plus proche en premier)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.start);
+      const dateB = new Date(b.start);
       return dateA - dateB;
     });
-  }, [appointments, calls, tasks, prospectId]);
+  }, [allAppointments, prospectId]);
 
   const handleActivityClick = (activity, type) => {
-    if (type === 'appointment') {
-      setSelectedEvent(activity);
-    } else {
-      setSelectedActivity(activity);
-      setSelectedActivityType(type);
-    }
+    setSelectedEvent(activity);
   };
 
   const handleCloseModal = () => {
@@ -2417,429 +2406,115 @@ const ProspectActivities = ({ prospectId }) => {
     setSelectedEvent(null);
   };
 
+  // 🔥 Affichage pendant le chargement
+  if (agendaLoading) {
+    return (
+      <div className="bg-white rounded-2xl p-4 shadow mt-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Activité en cours</h3>
+        <p className="text-gray-400 italic">Chargement des activités...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="bg-white rounded-2xl p-4 shadow mt-4">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-gray-800">Activité en cours</h3>
-          {/* 🚧 Bouton temporairement désactivé pour éviter le crash */}
-          {/* <Button size="icon" className="rounded-full" onClick={() => setIsAddActivityModalOpen(true)}>
-            <Plus className="h-5 w-5"/>
-          </Button> */}
+          <h3 className="text-lg font-semibold text-gray-800">Activités à venir</h3>
         </div>
         
         {prospectActivities.length === 0 ? (
-          <p className="text-gray-400 italic">Aucune activité planifiée pour ce prospect.</p>
+          <p className="text-gray-400 italic">Aucune activité future planifiée pour ce prospect.</p>
         ) : (
           <div className="space-y-3">
             {prospectActivities.map((activity) => {
-              if (activity.activityType === 'appointment') {
-                // Réutilisation du style des rendez-vous de l'Agenda
-                const startDate = new Date(activity.start);
-                
-                // Configuration des badges de statut (identique à l'Agenda)
-                const statusBadgeStyles = {
-                  effectue: 'bg-green-500 text-white',
-                  annule: 'bg-red-500 text-white',
-                  reporte: 'bg-yellow-400 text-black',
-                };
-                
-                const statusLabels = {
-                  effectue: 'Effectué',
-                  annule: 'Annulé',
-                  reporte: 'Reporté',
-                };
-                
-                return (
-                  <div 
-                    key={`appointment-${activity.id}`} 
-                    onClick={() => handleActivityClick(activity, 'appointment')}
-                    className="bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-blue-500 relative"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start space-x-3 flex-1">
-                        <div className="flex-shrink-0">
-                          <Calendar className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {activity.summary || activity.title || 'RDV'}
+              const startDate = new Date(activity.start);
+              
+              // Déterminer l'icône et la couleur selon le type
+              const typeConfig = {
+                'physical': { icon: Calendar, color: 'blue', label: '📍 RDV' },
+                'virtual': { icon: Calendar, color: 'purple', label: '🎥 Visio' },
+                'call': { icon: Phone, color: 'green', label: '📞 Appel' },
+                'task': { icon: Check, color: 'yellow', label: '✅ Tâche' },
+              };
+              
+              const config = typeConfig[activity.type] || typeConfig['physical'];
+              const IconComponent = config.icon;
+              
+              // Configuration des badges de statut
+              const statusBadgeStyles = {
+                effectue: 'bg-green-500 text-white',
+                annule: 'bg-red-500 text-white',
+                reporte: 'bg-yellow-400 text-black',
+                pending: 'bg-gray-200 text-gray-700',
+              };
+              
+              const statusLabels = {
+                effectue: 'Effectué',
+                annule: 'Annulé',
+                reporte: 'Reporté',
+                pending: 'Prévu',
+              };
+              
+              return (
+                <div 
+                  key={activity.id} 
+                  onClick={() => handleActivityClick(activity, activity.type)}
+                  className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-${config.color}-500 relative transition-all`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className="flex-shrink-0">
+                        <IconComponent className={`h-5 w-5 text-${config.color}-600`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {activity.title || config.label}
+                        </p>
+                        {activity.notes && (
+                          <p className="text-xs text-gray-600 truncate mt-1">
+                            {activity.notes}
                           </p>
-                          {activity.description && (
-                            <p className="text-xs text-gray-600 truncate">
-                              {activity.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end ml-2">
-                        <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full whitespace-nowrap">
-                          {format(startDate, 'dd/MM')}
-                        </span>
-                        <span className="text-xs text-gray-500 mt-1">
-                          {format(startDate, 'HH:mm')}
-                        </span>
+                        )}
+                        {activity.step && (
+                          <span className="text-xs text-gray-500 mt-1 block">
+                            📍 {activity.step}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    
-                    {/* Badge de statut (identique à l'Agenda) */}
-                    {statusLabels[activity.status] && (
-                      <span className={`absolute bottom-1 right-1 text-xs font-bold px-2 py-0.5 rounded-full ${statusBadgeStyles[activity.status]}`}>
-                        {statusLabels[activity.status]}
+                    <div className="flex flex-col items-end ml-2">
+                      <span className={`text-xs font-semibold text-${config.color}-700 bg-${config.color}-100 px-2 py-1 rounded-full whitespace-nowrap`}>
+                        {format(startDate, 'dd/MM')}
                       </span>
-                    )}
-                  </div>
-                );
-              } else if (activity.activityType === 'call') {
-                // Réutilisation du style des appels de l'Agenda
-                const callStatusBadges = {
-                  effectue: 'bg-green-500 text-white',
-                  annule: 'bg-red-500 text-white',
-                };
-                
-                const callStatusLabels = {
-                  effectue: 'Effectué',
-                  annule: 'Annulé',
-                };
-                
-                return (
-                  <div 
-                    key={`call-${activity.id}`} 
-                    onClick={() => handleActivityClick(activity, 'call')}
-                    className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-green-500 relative"
-                  >
-                    <div className="flex items-center">
-                      <Phone className="mr-2 h-4 w-4 text-green-500" />
-                      <p className={`font-medium text-sm text-gray-800 ${activity.status === 'effectue' || activity.status === 'annule' ? 'line-through text-gray-400' : ''}`}>
-                        {activity.name}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">
-                        {activity.time}
+                      <span className="text-xs text-gray-500 mt-1">
+                        {format(startDate, 'HH:mm')}
                       </span>
-                      {/* Badge de statut pour les appels */}
-                      {callStatusLabels[activity.status] && (
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${callStatusBadges[activity.status]}`}>
-                          {callStatusLabels[activity.status]}
-                        </span>
-                      )}
                     </div>
                   </div>
-                );
-              } else if (activity.activityType === 'task') {
-                // Réutilisation du style des tâches de l'Agenda
-                return (
-                  <div 
-                    key={`task-${activity.id}`} 
-                    onClick={() => handleActivityClick(activity, 'task')}
-                    className="bg-white rounded-lg p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-yellow-500 relative"
-                  >
-                    <p className={`text-sm font-medium ${activity.done ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                      {activity.text}
-                    </p>
-                    <div className="flex items-center space-x-2">
-                      {activity.done && <Check className="h-5 w-5 text-green-500" />}
-                      {/* Badge pour tâche terminée */}
-                      {activity.done && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500 text-white">
-                          Terminé
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-              return null;
+                  
+                  {/* Badge de statut */}
+                  {statusLabels[activity.status] && (
+                    <span className={`absolute bottom-1 right-1 text-xs font-bold px-2 py-0.5 rounded-full ${statusBadgeStyles[activity.status]}`}>
+                      {statusLabels[activity.status]}
+                    </span>
+                  )}
+                </div>
+              );
             })}
           </div>
         )}
       </div>
 
-      {/* Modal pour les appels et tâches */}
-      <OtherActivityDetailsPopup 
-        activity={selectedActivity} 
-        type={selectedActivityType}
-        onClose={handleCloseModal}
-        onEdit={() => {}} // Pas d'édition depuis le prospect pour l'instant
-      />
-      
-      {/* Modal pour les rendez-vous */}
+      {/* Modal pour afficher les détails */}
       <EventDetailsPopup 
         event={selectedEvent}
         onClose={handleCloseModal}
         onReport={() => {}} // Pas de report depuis le prospect pour l'instant
         onEdit={() => {}} // Pas d'édition depuis le prospect pour l'instant
       />
-      
-      {/* 🚧 Modal temporairement désactivé pour éviter le crash */}
-      {/* <AddActivityModal 
-        open={isAddActivityModalOpen}
-        onOpenChange={setIsAddActivityModalOpen}
-        initialData={null}
-        defaultAssignedUserId="user-1"
-      /> */}
 
     </>
-  );
-};
-
-// Copie exacte du composant OtherActivityDetailsPopup de l'Agenda
-const OtherActivityDetailsPopup = ({ activity, type, onClose, onEdit }) => {
-  const { prospects, updateCall, deleteCall, updateTask, deleteTask, projectsData } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
-  const [status, setStatus] = useState(activity?.status || 'pending');
-  const [done, setDone] = useState(activity?.done || false);
-
-  useEffect(() => {
-    if (activity) {
-      if (type === 'call') setStatus(activity.status || 'pending');
-      if (type === 'task') setDone(activity.done || false);
-    }
-  }, [activity, type]);
-
-  if (!activity) return null;
-
-  const contact = prospects.find(p => p.id === activity.contactId);
-  const assignedUser = supabaseUsers.find(u => u.user_id === activity.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
-  
-  // Fonction pour capitaliser la première lettre
-  const capitalizeFirstLetter = (string) => {
-    if (!string) return '';
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  };
-
-  const handleStatusChange = (newStatus) => {
-    setStatus(newStatus);
-    const updatedActivity = { ...activity, status: newStatus };
-    if (type === 'call') {
-      updateCall(updatedActivity);
-    }
-    setTimeout(() => onClose(), 300);
-  };
-
-  const handleDoneChange = (newDone) => {
-    setDone(newDone);
-    const updatedActivity = { ...activity, done: newDone };
-    if (type === 'task') {
-      updateTask(updatedActivity);
-    }
-    setTimeout(() => onClose(), 300);
-  };
-
-  const handleDelete = () => {
-    if (type === 'call') {
-      deleteCall(activity.id);
-      toast({ title: "✅ Appel supprimé", description: "L'appel a été retiré de votre agenda." });
-    } else if (type === 'task') {
-      deleteTask(activity.id);
-      toast({ title: "✅ Tâche supprimée", description: "La tâche a été retirée de votre agenda." });
-    }
-    onClose();
-  };
-
-  const handleActionClick = (action) => {
-    if (!contact) {
-      toast({ title: "Contact non trouvé", variant: "destructive" });
-      return;
-    }
-    switch (action) {
-      case 'Appel':
-        if (contact.phone) window.location.href = `tel:${contact.phone}`;
-        break;
-      case 'Mail':
-        if (contact.email) window.location.href = `mailto:${contact.email}`;
-        break;
-      case 'WhatsApp':
-        if (contact.phone) {
-          let phoneNumber = contact.phone.replace(/\D/g, '');
-          if (phoneNumber.startsWith('0')) {
-            phoneNumber = `33${phoneNumber.substring(1)}`;
-          }
-          const prefilledMessage = encodeURIComponent("Bonjour");
-          window.open(`https://wa.me/${phoneNumber}?text=${prefilledMessage}`, '_blank');
-        }
-        break;
-      case 'GPS':
-        if (contact.address) {
-          const encodedAddress = encodeURIComponent(contact.address);
-          const isAppleDevice = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-          if (isAppleDevice) {
-            window.location.href = `maps://?q=${encodedAddress}`;
-          } else {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
-          }
-        }
-        break;
-      default:
-        toast({
-          title: `Action: ${action}`,
-          description: "🚧 Cette fonctionnalité n'est pas encore implémentée."
-        });
-    }
-  };
-
-  const isCall = type === 'call';
-  const isTask = type === 'task';
-
-  const title = isCall ? `Appel: ${activity.name}` : `Tâche: ${activity.text}`;
-  const description = `Prévu le ${capitalizeFirstLetter(format(new Date(activity.date), "eeee d MMMM 'à' HH:mm", { locale: fr }))}`;
-
-  const callStatusConfig = {
-    pending: { color: 'bg-blue-500', label: 'Qualifier votre activité' },
-    effectue: { color: 'bg-green-500', label: 'Effectué' },
-    annule: { color: 'bg-red-500', label: 'Annulé' },
-  };
-
-  return (
-    <Dialog open={!!activity} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md p-0">
-        <div className="p-6 space-y-4">
-          <DialogHeader className="p-0 text-left space-y-1">
-            <DialogTitle className="text-2xl font-bold text-gray-900">{title}</DialogTitle>
-            <DialogDescription className="text-base text-gray-500">{description}</DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex items-start space-x-3 text-gray-600">
-            <Users className="h-5 w-5 text-gray-400 mt-1" />
-            <div>
-              <p className="font-medium">Participants</p>
-              {contact && <p className="text-sm">{contact.name} (Client)</p>}
-              {assignedUser && <p className="text-sm">{assignedUser.name} (Assigné)</p>}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-200 p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Actions rapides</h3>
-          <div className="grid grid-cols-4 gap-2 text-center">
-            {[{ icon: Phone, label: 'Appel' }, { icon: Mail, label: 'Mail' }, { icon: MessageCircle, label: 'WhatsApp' }, { icon: MapPin, label: 'GPS' }].map(({ icon: Icon, label }) => (
-              <button key={label} onClick={() => handleActionClick(label)} className="flex flex-col items-center space-y-1 text-gray-600 hover:text-blue-600 transition-colors group">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100">
-                  <Icon className="h-6 w-6" />
-                </div>
-                <span className="text-xs font-medium">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {isCall && (
-          <div className={`p-4 text-white transition-colors ${callStatusConfig[status].color}`}>
-            <Select onValueChange={handleStatusChange} value={status}>
-              <SelectTrigger className="w-full bg-transparent border-none text-white text-lg font-semibold focus:ring-0 focus:ring-offset-0 h-auto p-0 text-center justify-center" iconClassName="h-8 w-8 opacity-100">
-                <SelectValue placeholder="Qualifier votre activité" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending" disabled>Qualifier votre activité</SelectItem>
-                <SelectItem value="effectue">Effectué</SelectItem>
-                <SelectItem value="annule">Annulé</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {isTask && (
-          <div className="p-6 bg-green-500 text-white">
-            <div className="flex items-center space-x-3">
-              <Switch
-                id="task-done"
-                checked={done}
-                onCheckedChange={handleDoneChange}
-                className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-300 ${
-                  done ? 'bg-white border border-gray-300' : 'bg-gray-500'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full transition-transform duration-300 ${
-                    done ? 'translate-x-6 bg-gray-300' : 'translate-x-1 bg-white'
-                  }`}
-                />
-              </Switch>
-              <Label htmlFor="task-done" className="text-lg font-semibold text-white">{done ? 'Tâche effectuée' : 'Marquer comme effectuée'}</Label>
-            </div>
-          </div>
-        )}
-
-        <div className="border-t border-gray-200 p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Infos activité</h3>
-          <div className="space-y-3 text-sm">
-            {isCall && (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Projet</span>
-                  <span className="font-medium text-gray-800">
-                    {projectsData[activity.projectId]?.title || 'Aucun'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Étape</span>
-                  <span className="font-medium text-gray-800">
-                    {activity.step || 'Aucune'}
-                  </span>
-                </div>
-              </>
-            )}
-            {isTask && (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Projet</span>
-                  <span className="font-medium text-gray-800">
-                    {projectsData[activity.projectId]?.title || 'Aucun'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Étape</span>
-                  <span className="font-medium text-gray-800">
-                    {activity.step || 'Aucune'}
-                  </span>
-                </div>
-              </>
-            )}
-             <div className="flex justify-between">
-              <span className="text-gray-500">Note</span>
-              <span className="font-medium text-gray-800 text-right">{activity.details || (isTask ? activity.text : 'Aucune')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Interlocuteur</span>
-              <span className="font-medium text-gray-800">{contact?.name || 'N/A'}</span>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter className="p-6 bg-gray-50 sm:justify-between">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Supprimer
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Voulez-vous vraiment supprimer cette activité ?</AlertDialogTitle>
-                <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-           <Button 
-              className={
-                (type === 'call' && activity?.status && activity.status !== 'pending') ||
-                (type === 'task' && activity?.done)
-                  ? "bg-gray-400 hover:bg-gray-500 text-gray-700" 
-                  : "bg-blue-600 hover:bg-blue-700"
-              }
-              onClick={() => onEdit(activity, type)}
-            >
-              Modifier l'activité
-            </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 };
 
