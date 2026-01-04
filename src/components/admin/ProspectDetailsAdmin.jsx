@@ -2392,9 +2392,8 @@ const ProspectActivities = ({ prospectId, projectType }) => {
         return false;
       }
       
-      // Vérifier que c'est une activité future
-      const startDate = new Date(apt.start);
-      return startDate >= now;
+      // Afficher si future OU si en retard (passée mais toujours pending)
+      return true;
     });
     
     // Trier par date croissante (plus proche en premier)
