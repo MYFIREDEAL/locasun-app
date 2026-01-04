@@ -2134,7 +2134,7 @@ const ProspectDetailsAdmin = ({
               </div>
 
               {/* Bloc Activité en cours */}
-              <ProspectActivities prospectId={prospect.id} />
+              <ProspectActivities prospectId={prospect.id} projectType={activeProjectTag} />
 
               <ProspectForms 
                 prospect={editableProspect} 
@@ -2361,7 +2361,7 @@ const ProspectDetailsAdmin = ({
 };
 
 // Composant réutilisant les mêmes cartes et modal que l'Agenda
-const ProspectActivities = ({ prospectId }) => {
+const ProspectActivities = ({ prospectId, projectType }) => {
   const { activeAdminUser, prospects, projectsData } = useAppContext();
   
   // 🔥 Utiliser le hook Supabase pour récupérer les vraies activités
@@ -2372,16 +2372,19 @@ const ProspectActivities = ({ prospectId }) => {
   const [selectedActivityType, setSelectedActivityType] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // 🔥 Filtrer les activités pour ce prospect (futures uniquement)
+  // 🔥 Filtrer les activités pour ce prospect ET ce projet (futures uniquement)
   const prospectActivities = useMemo(() => {
     if (!allAppointments || allAppointments.length === 0) return [];
     
     const now = new Date();
     
-    // Filtrer par prospect ET date future
+    // Filtrer par prospect ET projet ET date future
     const filtered = allAppointments.filter(apt => {
       // Vérifier que c'est le bon prospect
       if (apt.contactId !== prospectId) return false;
+      
+      // 🔥 NOUVEAU: Filtrer par projet actif
+      if (projectType && apt.projectId !== projectType) return false;
       
       // Vérifier que c'est une activité future ou en cours
       const startDate = new Date(apt.start);
@@ -2394,7 +2397,7 @@ const ProspectActivities = ({ prospectId }) => {
       const dateB = new Date(b.start);
       return dateA - dateB;
     });
-  }, [allAppointments, prospectId]);
+  }, [allAppointments, prospectId, projectType]);
 
   const handleActivityClick = (activity, type) => {
     setSelectedEvent(activity);
@@ -2420,11 +2423,13 @@ const ProspectActivities = ({ prospectId }) => {
     <>
       <div className="bg-white rounded-2xl p-4 shadow mt-4">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-gray-800">Activités à venir</h3>
+          <h3 className="text-lg font-semibold text-gray-800">
+            Activités à venir {projectType && `(${projectsData[projectType]?.title})`}
+          </h3>
         </div>
         
         {prospectActivities.length === 0 ? (
-          <p className="text-gray-400 italic">Aucune activité future planifiée pour ce prospect.</p>
+          <p className="text-gray-400 italic">Aucune activité future planifiée pour ce projet.</p>
         ) : (
           <div className="space-y-3">
             {prospectActivities.map((activity) => {
