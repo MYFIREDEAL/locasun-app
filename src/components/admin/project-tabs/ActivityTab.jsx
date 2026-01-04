@@ -30,8 +30,8 @@ const ActivityTab = ({ prospectId, projectType }) => {
     enabled: !!projectType && !!prospectId
   });
 
-  // 🔥 Filtrer uniquement les événements de type 'activity' et trier par date
-  const activities = useMemo(() => {
+  // 🔥 Filtrer uniquement les événements de type 'activity'
+  const activityEvents = useMemo(() => {
     if (!history || history.length === 0) return [];
     
     return history
@@ -39,43 +39,58 @@ const ActivityTab = ({ prospectId, projectType }) => {
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [history]);
 
-  // 🔥 Séparer les activités futures et passées
+  // 🔥 Grouper par appointment_id et dériver le statut courant du DERNIER event
+  const activities = useMemo(() => {
+    const grouped = {};
+    
+    activityEvents.forEach(event => {
+      const appointmentId = event.metadata?.appointment_id;
+      if (!appointmentId) return;
+      
+      if (!grouped[appointmentId]) {
+        grouped[appointmentId] = [];
+      }
+      grouped[appointmentId].push(event);
+    });
+    
+    // Pour chaque appointment, prendre le dernier event (statut courant)
+    return Object.entries(grouped).map(([appointmentId, events]) => {
+      const sortedEvents = events.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const latestEvent = sortedEvents[0];
+      
+      return {
+        ...latestEvent,
+        currentStatus: latestEvent.metadata?.status || 'pending'
+      };
+    });
+  }, [activityEvents]);
+
+  // 🔥 Séparer EN COURS / PASSÉES selon le statut courant
   const now = new Date();
   const currentActivities = useMemo(() => {
     return activities.filter(activity => {
-      const status = activity.metadata?.status;
+      const status = activity.currentStatus;
       
-      // Si l'activité est terminée (effectue/annule), elle va dans "Passées"
+      // PASSÉES = effectue, annule, completed
       if (status === 'effectue' || status === 'annule' || status === 'completed') {
         return false;
       }
       
-      // Utiliser la vraie date de l'activité (depuis metadata) au lieu de created_at
-      const activityDateStr = activity.metadata?.start_time || activity.metadata?.activity_date;
-      if (!activityDateStr) return false; // Pas de date = on n'affiche pas
-      
-      const activityDate = new Date(activityDateStr);
-      // Activité future OU en attente
-      return activityDate >= now || status === 'pending';
+      // EN COURS = pending, reporte
+      return true;
     });
   }, [activities]);
 
   const pastActivities = useMemo(() => {
     return activities.filter(activity => {
-      const status = activity.metadata?.status;
+      const status = activity.currentStatus;
       
-      // Si l'activité est terminée (effectue/annule), elle va dans "Passées"
+      // PASSÉES = effectue, annule, completed
       if (status === 'effectue' || status === 'annule' || status === 'completed') {
         return true;
       }
       
-      // Utiliser la vraie date de l'activité (depuis metadata) au lieu de created_at
-      const activityDateStr = activity.metadata?.start_time || activity.metadata?.activity_date;
-      if (!activityDateStr) return false; // Pas de date = on n'affiche pas
-      
-      const activityDate = new Date(activityDateStr);
-      // Activité passée (non terminée = reportée probablement)
-      return activityDate < now && status !== 'pending';
+      return false;
     });
   }, [activities]);
 
