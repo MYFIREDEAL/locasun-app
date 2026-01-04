@@ -43,25 +43,39 @@ const ActivityTab = ({ prospectId, projectType }) => {
   const now = new Date();
   const currentActivities = useMemo(() => {
     return activities.filter(activity => {
+      const status = activity.metadata?.status;
+      
+      // Si l'activité est terminée (effectue/annule), elle va dans "Passées"
+      if (status === 'effectue' || status === 'annule' || status === 'completed') {
+        return false;
+      }
+      
       // Utiliser la vraie date de l'activité (depuis metadata) au lieu de created_at
       const activityDateStr = activity.metadata?.start_time || activity.metadata?.activity_date;
       if (!activityDateStr) return false; // Pas de date = on n'affiche pas
       
       const activityDate = new Date(activityDateStr);
       // Activité future OU en attente
-      return activityDate >= now || activity.metadata?.status === 'pending';
+      return activityDate >= now || status === 'pending';
     });
   }, [activities]);
 
   const pastActivities = useMemo(() => {
     return activities.filter(activity => {
+      const status = activity.metadata?.status;
+      
+      // Si l'activité est terminée (effectue/annule), elle va dans "Passées"
+      if (status === 'effectue' || status === 'annule' || status === 'completed') {
+        return true;
+      }
+      
       // Utiliser la vraie date de l'activité (depuis metadata) au lieu de created_at
       const activityDateStr = activity.metadata?.start_time || activity.metadata?.activity_date;
       if (!activityDateStr) return false; // Pas de date = on n'affiche pas
       
       const activityDate = new Date(activityDateStr);
-      // Activité passée ET complétée/annulée
-      return activityDate < now && activity.metadata?.status !== 'pending';
+      // Activité passée (non terminée = reportée probablement)
+      return activityDate < now && status !== 'pending';
     });
   }, [activities]);
 
