@@ -56,6 +56,20 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
           setHistory((current) => [payload.new, ...current]);
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "project_history",
+          filter: `project_type=eq.${projectType}`,
+        },
+        (payload) => {
+          setHistory((current) =>
+            current.map((item) => (item.id === payload.new.id ? payload.new : item))
+          );
+        }
+      )
       .subscribe();
 
     return () => {
