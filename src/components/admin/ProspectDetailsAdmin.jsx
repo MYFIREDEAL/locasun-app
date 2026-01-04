@@ -2378,23 +2378,23 @@ const ProspectActivities = ({ prospectId, projectType }) => {
     
     const now = new Date();
     
-    // Filtrer par prospect ET projet ET date future
+    // Filtrer par prospect ET projet ET statut actif uniquement
     const filtered = allAppointments.filter(apt => {
       // Vérifier que c'est le bon prospect
       if (apt.contactId !== prospectId) return false;
       
-      // 🔥 NOUVEAU: Filtrer par projet actif
+      // 🔥 Filtrer par projet actif
       if (projectType && apt.projectId !== projectType) return false;
       
-      // 🔥 Exclure les activités terminées (effectué, annulé, complété)
+      // 🔥 N'afficher QUE les activités actives (pending, prevu)
       const status = apt.status?.toLowerCase();
-      if (status === 'effectue' || status === 'annule' || status === 'completed') {
+      if (status !== 'pending' && status !== 'prevu') {
         return false;
       }
       
-      // Vérifier que c'est une activité future ou en cours
+      // Vérifier que c'est une activité future
       const startDate = new Date(apt.start);
-      return startDate >= now || apt.status === 'pending';
+      return startDate >= now;
     });
     
     // Trier par date croissante (plus proche en premier)
