@@ -497,6 +497,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
               event_type: 'activity',
               activity_type: appointmentToDelete.type,
               appointment_id: id,
+              status: 'deleted',
               deleted_at: new Date().toISOString(),
               source: 'agenda',
             },

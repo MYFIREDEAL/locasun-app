@@ -67,7 +67,7 @@ const ActivityTab = ({ prospectId, projectType }) => {
       
       return {
         ...latestEvent,
-        currentStatus: latestEvent.metadata?.status || 'pending'
+        currentStatus: latestEvent.metadata?.status || (latestEvent.title === 'Activité supprimée' ? 'deleted' : 'pending')
       };
     });
     
