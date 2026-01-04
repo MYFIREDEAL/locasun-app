@@ -2549,6 +2549,19 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
+  // 🔥 Fonction pour formater une date en toute sécurité
+  const safeFormatDate = (dateValue, formatString, options = {}) => {
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return 'Date invalide';
+      }
+      return format(date, formatString, options);
+    } catch (error) {
+      return 'Date invalide';
+    }
+  };
+
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
     // 🔥 Appeler avec (id, updates) comme dans l'Agenda
@@ -2623,7 +2636,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
           <DialogHeader className="p-0 text-left space-y-1">
             <DialogTitle className="text-2xl font-bold text-gray-900">{event.summary}</DialogTitle>
             <DialogDescription className="text-base text-gray-500">
-              {capitalizeFirstLetter(format(event.start, "eeee d MMMM, HH:mm", { locale: fr }))} - {format(event.end, "HH:mm", { locale: fr })}
+              {capitalizeFirstLetter(safeFormatDate(event.start, "eeee d MMMM, HH:mm", { locale: fr }))} - {safeFormatDate(event.end, "HH:mm", { locale: fr })}
             </DialogDescription>
           </DialogHeader>
           
