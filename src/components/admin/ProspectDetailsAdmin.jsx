@@ -2533,7 +2533,10 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
     }
   }, [event]);
 
-  if (!event) return null;
+  // 🔥 Guard: Ne rien afficher si les données nécessaires ne sont pas chargées
+  if (!event || !prospects || !supabaseUsers || !updateAppointment || !deleteAppointment || !projectsData) {
+    return null;
+  }
 
   const contact = prospects.find(p => p.id === event.contactId);
   // 🔥 event.assignedUserId = users.id (UUID PK), donc chercher par u.id
