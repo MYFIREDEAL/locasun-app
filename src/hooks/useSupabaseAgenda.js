@@ -18,8 +18,9 @@ export const useSupabaseAgenda = (activeAdminUser) => {
   const [realtimeChannel, setRealtimeChannel] = useState(null);
 
   // 🔥 Hook pour journaliser les activités dans project_history
-  const { addHistoryEvent } = useSupabaseProjectHistory({
-    projectType: null, // Pas de filtre, on écrit pour tous les projets
+  // UTILISER addProjectEvent qui accepte projectType et prospectId en paramètres
+  const { addProjectEvent } = useSupabaseProjectHistory({
+    projectType: null, // Pas de filtre sur le hook
     enabled: false, // Pas besoin de charger l'historique, juste d'écrire
   });
 
@@ -256,11 +257,14 @@ export const useSupabaseAgenda = (activeAdminUser) => {
             minute: '2-digit'
           });
 
-          await addHistoryEvent({
-            event_type: 'activity',
+          // 🔥 Utiliser addProjectEvent qui accepte projectType et prospectId en paramètres
+          await addProjectEvent({
+            prospectId: data.contact_id,
+            projectType: data.project_id,
             title: 'Activité planifiée',
             description: `${activityTypeLabel} programmé pour le ${formattedDate}`,
             metadata: {
+              event_type: 'activity',
               activity_type: data.type,
               appointment_id: data.id,
               start_time: data.start_time,
@@ -399,11 +403,14 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
             const { data: { user } } = await supabase.auth.getUser();
 
-            await addHistoryEvent({
-              event_type: 'activity',
+            // 🔥 Utiliser addProjectEvent qui accepte projectType et prospectId en paramètres
+            await addProjectEvent({
+              prospectId: data.contact_id,
+              projectType: data.project_id,
               title: 'Activité mise à jour',
               description,
               metadata: {
+                event_type: 'activity',
                 activity_type: data.type,
                 appointment_id: data.id,
                 start_time: data.start_time,
@@ -480,11 +487,14 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
           const { data: { user } } = await supabase.auth.getUser();
 
-          await addHistoryEvent({
-            event_type: 'activity',
+          // 🔥 Utiliser addProjectEvent qui accepte projectType et prospectId en paramètres
+          await addProjectEvent({
+            prospectId: appointmentToDelete.contactId,
+            projectType: appointmentToDelete.projectId,
             title: 'Activité supprimée',
             description: `${activityTypeLabel} supprimé de l'agenda`,
             metadata: {
+              event_type: 'activity',
               activity_type: appointmentToDelete.type,
               appointment_id: id,
               deleted_at: new Date().toISOString(),

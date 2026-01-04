@@ -105,7 +105,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
 
   // 🔥 AJOUT: Fonction simplifiée pour ajouter un événement projet
   const addProjectEvent = useCallback(
-    async ({ prospectId, projectType, title, description, createdBy }) => {
+    async ({ prospectId, projectType, title, description, metadata, createdBy, createdByName }) => {
       if (!projectType || !prospectId) {
         logger.error('prospectId and projectType required');
         return { success: false, error: 'Paramètres manquants' };
@@ -114,23 +114,28 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
       try {
         logger.debug('Adding project event', { prospectId, projectType, title });
 
+        // 🔥 Extraire event_type depuis metadata si présent, sinon utiliser 'form_event' par défaut
+        const eventType = metadata?.event_type || 'form_event';
+
         const { data, error } = await supabase
           .from("project_history")
           .insert([
             {
               project_type: projectType,
               prospect_id: prospectId,
-              event_type: 'form_event', // Type générique pour formulaires
+              event_type: eventType,
               title,
               description,
-              created_by_name: createdBy || null,
+              metadata: metadata || null,
+              created_by: createdBy || null,
+              created_by_name: createdByName || createdBy || null,
             },
           ])
           .select()
           .single();
 
         if (error) {
-          logger.error('Supabase error:', { error: error.message.message });
+          logger.error('Supabase error:', error.message);
           throw error;
         }
 
@@ -138,7 +143,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         return { success: true, data };
 
       } catch (err) {
-        logger.error('[addProjectEvent] Exception:', { error: err.message || err.message });
+        logger.error('[addProjectEvent] Exception:', { error: err.message || err });
         return { success: false, error: err.message || 'Erreur inconnue' };
       }
     },
