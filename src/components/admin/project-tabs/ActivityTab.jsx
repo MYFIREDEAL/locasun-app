@@ -43,14 +43,24 @@ const ActivityTab = ({ prospectId, projectType }) => {
   const now = new Date();
   const currentActivities = useMemo(() => {
     return activities.filter(activity => {
-      const activityDate = new Date(activity.created_at);
+      // Utiliser la vraie date de l'activité (depuis metadata) au lieu de created_at
+      const activityDateStr = activity.metadata?.start_time || activity.metadata?.activity_date;
+      if (!activityDateStr) return false; // Pas de date = on n'affiche pas
+      
+      const activityDate = new Date(activityDateStr);
+      // Activité future OU en attente
       return activityDate >= now || activity.metadata?.status === 'pending';
     });
   }, [activities]);
 
   const pastActivities = useMemo(() => {
     return activities.filter(activity => {
-      const activityDate = new Date(activity.created_at);
+      // Utiliser la vraie date de l'activité (depuis metadata) au lieu de created_at
+      const activityDateStr = activity.metadata?.start_time || activity.metadata?.activity_date;
+      if (!activityDateStr) return false; // Pas de date = on n'affiche pas
+      
+      const activityDate = new Date(activityDateStr);
+      // Activité passée ET complétée/annulée
       return activityDate < now && activity.metadata?.status !== 'pending';
     });
   }, [activities]);
