@@ -187,30 +187,37 @@ const ActivityTab = ({ prospectId, projectType }) => {
           <p className="text-sm text-gray-400 italic">Aucune activité en cours</p>
         ) : (
           <div className="space-y-2">
-            {currentActivities.map((activity) => (
-              <div
-                key={activity.id}
-                onClick={() => handleActivityClick(activity)}
-                className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.metadata)}`}>
-                  {getActivityIcon(activity.metadata)}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">
-                    {activity.title || 'Activité'}
-                  </p>
-                  {activity.description && (
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {activity.description}
+            {currentActivities.map((activity) => {
+              // Récupérer le vrai appointment pour afficher son titre
+              const appointment = findAppointmentFromActivity(activity);
+              const displayTitle = appointment?.title || activity.title || 'Activité';
+              const displayDate = appointment?.start ? new Date(appointment.start) : new Date(activity.created_at);
+              
+              return (
+                <div
+                  key={activity.id}
+                  onClick={() => handleActivityClick(activity)}
+                  className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getActivityColor(activity.metadata)}`}>
+                    {getActivityIcon(activity.metadata)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {displayTitle}
                     </p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    {format(new Date(activity.created_at), "d MMM 'à' HH:mm", { locale: fr })}
-                  </p>
+                    {appointment?.notes && (
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {appointment.notes}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {format(displayDate, "d MMM 'à' HH:mm", { locale: fr })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
