@@ -2520,8 +2520,10 @@ const ProspectActivities = ({ prospectId }) => {
 
 // Copie exacte du composant EventDetailsPopup de l'Agenda pour les RDV
 const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
-  const { prospects, updateAppointment, deleteAppointment, projectsData } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
+  const { prospects, projectsData, activeAdminUser } = useAppContext();
+  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  // 🔥 Utiliser le hook Supabase pour updateAppointment et deleteAppointment
+  const { updateAppointment, deleteAppointment } = useSupabaseAgenda(activeAdminUser);
   const [status, setStatus] = useState(event?.status || 'pending');
 
   useEffect(() => {
@@ -2543,9 +2545,15 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit }) => {
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
-    const updatedEvent = { ...event, status: newStatus };
-    updateAppointment(updatedEvent);
-    setTimeout(() => onClose(), 300);
+    // 🔥 Appeler avec (id, updates) comme dans l'Agenda
+    updateAppointment(event.id, { status: newStatus });
+    
+    setTimeout(() => {
+      onClose();
+      if (newStatus === 'reporte') {
+        onReport(event);
+      }
+    }, 300);
   };
 
   const handleDelete = () => {
