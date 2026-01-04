@@ -2386,6 +2386,12 @@ const ProspectActivities = ({ prospectId, projectType }) => {
       // 🔥 NOUVEAU: Filtrer par projet actif
       if (projectType && apt.projectId !== projectType) return false;
       
+      // 🔥 Exclure les activités terminées (effectué, annulé, complété)
+      const status = apt.status?.toLowerCase();
+      if (status === 'effectue' || status === 'annule' || status === 'completed') {
+        return false;
+      }
+      
       // Vérifier que c'est une activité future ou en cours
       const startDate = new Date(apt.start);
       return startDate >= now || apt.status === 'pending';
