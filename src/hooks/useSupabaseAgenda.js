@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
+import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
 /**
  * Hook personnalisé pour gérer l'agenda via Supabase
@@ -15,6 +16,12 @@ export const useSupabaseAgenda = (activeAdminUser) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [realtimeChannel, setRealtimeChannel] = useState(null);
+
+  // 🔥 Hook pour journaliser les activités dans project_history
+  const { addHistoryEvent } = useSupabaseProjectHistory({
+    projectType: null, // Pas de filtre, on écrit pour tous les projets
+    enabled: false, // Pas besoin de charger l'historique, juste d'écrire
+  });
 
   // ==================== FETCH DATA ====================
 
@@ -233,6 +240,52 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         className: "bg-green-500 text-white",
       });
 
+      // 🔥 Journalisation dans project_history
+      if (data.project_id && data.contact_id) {
+        try {
+          const activityTypeLabel = data.type === 'physical' ? 'RDV Physique' : 
+                                   data.type === 'virtual' ? 'RDV Visio' :
+                                   data.type === 'call' ? 'Appel' : 'Tâche';
+          
+          const startDate = new Date(data.start_time);
+          const formattedDate = startDate.toLocaleDateString('fr-FR', { 
+            day: '2-digit', 
+            month: 'long', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          await addHistoryEvent({
+            event_type: 'activity',
+            title: 'Activité planifiée',
+            description: `${activityTypeLabel} programmé pour le ${formattedDate}`,
+            metadata: {
+              activity_type: data.type,
+              appointment_id: data.id,
+              start_time: data.start_time,
+              end_time: data.end_time,
+              status: data.status,
+              step: data.step,
+              source: 'agenda',
+            },
+            createdBy: user?.id || null,
+            createdByName: activeAdminUser?.name || 'Système',
+          });
+          
+          logger.debug('✅ Activité journalisée dans project_history', {
+            appointmentId: data.id,
+            projectId: data.project_id,
+            type: data.type,
+          });
+        } catch (historyError) {
+          logger.error('⚠️ Erreur journalisation project_history (non-bloquant)', {
+            error: historyError.message,
+            appointmentId: data.id,
+          });
+        }
+      }
+
       return transformed;
     } catch (err) {
       logger.error('Erreur ajout appointment', { error: err.message });
@@ -248,6 +301,9 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
   const updateAppointment = async (id, updates) => {
     try {
+      // 🔥 Récupérer l'appointment actuel pour comparer les changements
+      const currentAppointment = appointments.find(apt => apt.id === id);
+      
       const dbUpdates = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
@@ -296,6 +352,93 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         )
       );
 
+      // 🔥 Journalisation dans project_history (uniquement si changement métier)
+      if (data.project_id && data.contact_id && currentAppointment) {
+        try {
+          // Détecter les changements métier (pas juste des updates techniques)
+          const hasStatusChange = updates.status !== undefined && 
+                                 currentAppointment.status !== data.status;
+          const hasDateChange = (updates.startTime !== undefined || updates.endTime !== undefined) &&
+                               (currentAppointment.start !== data.start_time || 
+                                currentAppointment.end !== data.end_time);
+          const hasOtherChange = updates.step !== undefined || 
+                                updates.notes !== undefined ||
+                                updates.location !== undefined;
+
+          // Ne journaliser que si changement significatif
+          if (hasStatusChange || hasDateChange || hasOtherChange) {
+            let description = 'Activité mise à jour : ';
+            const changes = [];
+
+            if (hasStatusChange) {
+              const statusLabels = {
+                'pending': 'En attente',
+                'effectue': 'Effectué',
+                'annule': 'Annulé',
+                'reporte': 'Reporté',
+              };
+              changes.push(`statut changé en "${statusLabels[data.status] || data.status}"`);
+            }
+
+            if (hasDateChange) {
+              const newDate = new Date(data.start_time);
+              const formattedDate = newDate.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              changes.push(`reprogrammé le ${formattedDate}`);
+            }
+
+            if (hasOtherChange && !hasStatusChange && !hasDateChange) {
+              changes.push('informations modifiées');
+            }
+
+            description += changes.join(', ');
+
+            const { data: { user } } = await supabase.auth.getUser();
+
+            await addHistoryEvent({
+              event_type: 'activity',
+              title: 'Activité mise à jour',
+              description,
+              metadata: {
+                activity_type: data.type,
+                appointment_id: data.id,
+                start_time: data.start_time,
+                end_time: data.end_time,
+                status: data.status,
+                step: data.step,
+                changes: {
+                  status: hasStatusChange ? { 
+                    from: currentAppointment.status, 
+                    to: data.status 
+                  } : undefined,
+                  date: hasDateChange ? {
+                    from: currentAppointment.start,
+                    to: data.start_time
+                  } : undefined,
+                },
+                source: 'agenda',
+              },
+              createdBy: user?.id || null,
+              createdByName: activeAdminUser?.name || 'Système',
+            });
+
+            logger.debug('✅ Modification activité journalisée dans project_history', {
+              appointmentId: data.id,
+              changes: { hasStatusChange, hasDateChange, hasOtherChange },
+            });
+          }
+        } catch (historyError) {
+          logger.error('⚠️ Erreur journalisation project_history (non-bloquant)', {
+            error: historyError.message,
+            appointmentId: data.id,
+          });
+        }
+      }
+
       return data;
     } catch (err) {
       logger.error('Erreur update appointment:', { error: err.message });
@@ -310,6 +453,9 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
   const deleteAppointment = async (id) => {
     try {
+      // 🔥 Récupérer l'appointment avant suppression pour la journalisation
+      const appointmentToDelete = appointments.find(apt => apt.id === id);
+      
       const { error: deleteError } = await supabase
         .from('appointments')
         .delete()
@@ -324,6 +470,41 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         description: "Rendez-vous supprimé avec succès !",
         className: "bg-green-500 text-white",
       });
+
+      // 🔥 Journalisation dans project_history
+      if (appointmentToDelete?.projectId && appointmentToDelete?.contactId) {
+        try {
+          const activityTypeLabel = appointmentToDelete.type === 'physical' ? 'RDV Physique' : 
+                                   appointmentToDelete.type === 'virtual' ? 'RDV Visio' :
+                                   appointmentToDelete.type === 'call' ? 'Appel' : 'Tâche';
+
+          const { data: { user } } = await supabase.auth.getUser();
+
+          await addHistoryEvent({
+            event_type: 'activity',
+            title: 'Activité supprimée',
+            description: `${activityTypeLabel} supprimé de l'agenda`,
+            metadata: {
+              activity_type: appointmentToDelete.type,
+              appointment_id: id,
+              deleted_at: new Date().toISOString(),
+              source: 'agenda',
+            },
+            createdBy: user?.id || null,
+            createdByName: activeAdminUser?.name || 'Système',
+          });
+
+          logger.debug('✅ Suppression activité journalisée dans project_history', {
+            appointmentId: id,
+            type: appointmentToDelete.type,
+          });
+        } catch (historyError) {
+          logger.error('⚠️ Erreur journalisation project_history (non-bloquant)', {
+            error: historyError.message,
+            appointmentId: id,
+          });
+        }
+      }
     } catch (err) {
       logger.error('Erreur suppression appointment:', { error: err.message });
       toast({
