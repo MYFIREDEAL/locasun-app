@@ -2503,8 +2503,8 @@ const ProspectActivities = ({ prospectId, projectType }) => {
                     </div>
                   </div>
                   
-                  {/* Badge de statut */}
-                  {statusLabels[activity.status] && (
+                  {/* Badge de statut - Ne pas afficher pour "Prévu" */}
+                  {statusLabels[activity.status] && activity.status !== 'pending' && (
                     <span className={`absolute bottom-1 right-1 text-xs font-bold px-2 py-0.5 rounded-full ${statusBadgeStyles[activity.status]}`}>
                       {statusLabels[activity.status]}
                     </span>
