@@ -129,11 +129,18 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
     <Dialog open={!!event} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-md p-0">
         <div className="p-6 space-y-4">
+          {/* 🔥 Date/Heure en haut, centré et mis en évidence */}
+          <div className="text-center py-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-lg font-semibold text-blue-900">
+              {capitalizeFirstLetter(format(event.start, "eeee d MMMM", { locale: fr }))}
+            </p>
+            <p className="text-2xl font-bold text-blue-600 mt-1">
+              {format(event.start, "HH:mm", { locale: fr })} - {format(event.end, "HH:mm", { locale: fr })}
+            </p>
+          </div>
+
           <DialogHeader className="p-0 text-left space-y-1">
-            <DialogTitle className="text-2xl font-bold text-gray-900">{event.summary}</DialogTitle>
-            <DialogDescription className="text-base text-gray-500">
-              {capitalizeFirstLetter(format(event.start, "eeee d MMMM, HH:mm", { locale: fr }))} - {format(event.end, "HH:mm", { locale: fr })}
-            </DialogDescription>
+            <DialogTitle className="text-xl font-bold text-gray-900">{event.summary}</DialogTitle>
           </DialogHeader>
           
           <div className="flex items-start space-x-3 text-gray-600">
