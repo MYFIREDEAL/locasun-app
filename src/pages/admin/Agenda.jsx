@@ -167,7 +167,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
               <Button
                 onClick={() => {
                   onClose();
-                  navigate(`/admin/contacts?prospect=${contact.id}&project=${event.projectId}`);
+                  navigate(`/admin/pipeline?prospect=${contact.id}&project=${event.projectId}`);
                 }}
                 size="sm"
                 variant="outline"

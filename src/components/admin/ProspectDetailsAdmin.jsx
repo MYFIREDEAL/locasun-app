@@ -2674,22 +2674,14 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
                 {assignedUser && <p className="text-sm">{assignedUser.name} (Assigné)</p>}
               </div>
             </div>
-            
-            {/* 🔥 Bouton "Ouvrir le projet" */}
-            {contact && event.projectId && (
-              <Button
-                onClick={() => {
-                  onClose();
-                  window.location.href = `#/admin/contacts?prospect=${contact.id}&project=${event.projectId}`;
-                }}
-                size="sm"
-                variant="outline"
-                className="flex items-center gap-2 text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Ouvrir le projet
-              </Button>
-            )}
+          
+          <div className="flex items-start space-x-3 text-gray-600">
+            <Users className="h-5 w-5 text-gray-400 mt-1" />
+            <div>
+              <p className="font-medium">Participants</p>
+              {contact && <p className="text-sm">{contact.name} (Client)</p>}
+              {assignedUser && <p className="text-sm">{assignedUser.name} (Assigné)</p>}
+            </div>
           </div>
         </div>
 
