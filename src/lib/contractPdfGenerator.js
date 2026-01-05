@@ -106,6 +106,7 @@ export async function generateContractPDF({
       pdfFile,
       prospectId,
       projectType,
+      fileName,
     });
 
     if (!uploadResult.success) {
@@ -115,6 +116,7 @@ export async function generateContractPDF({
     return {
       success: true,
       fileData: uploadResult.fileData,
+      fileName,
     };
   } catch (error) {
     logger.error('Erreur génération PDF contract', { error: error.message });
