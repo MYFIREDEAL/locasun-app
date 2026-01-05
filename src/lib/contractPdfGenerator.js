@@ -115,7 +115,7 @@ export async function generateContractPDF({
 
     return {
       success: true,
-      fileData: uploadResult.fileData,
+      fileData: uploadResult.data, // Retourner la ligne project_files, pas le pdfFile
       fileName,
     };
   } catch (error) {
@@ -337,7 +337,7 @@ export async function executeContractSignatureAction({
       throw new Error(`Prospect introuvable: ${prospectId}`);
     }
 
-    // 3. Générer le PDF
+    // 3. Générer le PDF (inclut upload automatique)
     const pdfResult = await generateContractPDF({
       templateHtml: template.content_html,
       prospectData: prospect,
@@ -349,23 +349,11 @@ export async function executeContractSignatureAction({
       throw new Error(`Erreur génération PDF: ${pdfResult.error}`);
     }
 
-    // 4. Upload le PDF
-    const uploadResult = await uploadContractPDF({
-      pdfFile: pdfResult.fileData,
-      projectType,
-      prospectId,
-      fileName: pdfResult.fileName,
-    });
-
-    if (!uploadResult.success) {
-      throw new Error(`Erreur upload PDF: ${uploadResult.error}`);
-    }
-
-    logger.debug('Action launch_signature exécutée avec succès', { fileId: uploadResult.data.id });
+    logger.debug('Action launch_signature exécutée avec succès', { fileId: pdfResult.fileData.id });
 
     return {
       success: true,
-      data: uploadResult.data,
+      data: pdfResult.fileData,
     };
   } catch (error) {
     logger.error('Erreur exécution action launch_signature', { 
