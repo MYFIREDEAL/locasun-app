@@ -2365,12 +2365,25 @@ const ProspectActivities = ({ prospectId, projectType }) => {
   const { activeAdminUser, prospects, projectsData } = useAppContext();
   
   // 🔥 Utiliser le hook Supabase pour récupérer les vraies activités
-  const { appointments: allAppointments, loading: agendaLoading, updateAppointment, deleteAppointment } = useSupabaseAgenda(activeAdminUser);
+  const { 
+    appointments: allAppointments, 
+    loading: agendaLoading, 
+    updateAppointment, 
+    deleteAppointment,
+    addAppointment,
+    addCall,
+    addTask,
+    updateCall,
+    updateTask
+  } = useSupabaseAgenda(activeAdminUser);
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  const { supabaseUserId } = useSupabaseUser();
   
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedActivityType, setSelectedActivityType] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showAddActivity, setShowAddActivity] = useState(false);
+  const [activityModalData, setActivityModalData] = useState(null);
 
   // 🔥 Filtrer les activités pour ce prospect ET ce projet (futures uniquement)
   const prospectActivities = useMemo(() => {
@@ -2412,6 +2425,13 @@ const ProspectActivities = ({ prospectId, projectType }) => {
     setSelectedActivity(null);
     setSelectedActivityType(null);
     setSelectedEvent(null);
+  };
+
+  // 🔥 Fonction pour éditer une activité
+  const handleEdit = (activityToEdit) => {
+    setSelectedEvent(null); // Fermer le popup de détails
+    setActivityModalData({ ...activityToEdit, type: activityToEdit.type });
+    setShowAddActivity(true);
   };
 
   // 🔥 Affichage pendant le chargement
@@ -2521,13 +2541,40 @@ const ProspectActivities = ({ prospectId, projectType }) => {
         event={selectedEvent}
         onClose={handleCloseModal}
         onReport={() => {}} // Pas de report depuis le prospect pour l'instant
-        onEdit={() => {}} // Pas d'édition depuis le prospect pour l'instant
+        onEdit={handleEdit} // 🔥 Utiliser handleEdit pour permettre la modification
         prospects={prospects}
         supabaseUsers={supabaseUsers}
         updateAppointment={updateAppointment}
         deleteAppointment={deleteAppointment}
         projectsData={projectsData}
       />
+
+      {/* 🔥 Modal pour ajouter/éditer une activité */}
+      {showAddActivity && (
+        <AddActivityModal
+          open={showAddActivity}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setActivityModalData(null); // Reset les données quand on ferme
+            }
+            setShowAddActivity(isOpen);
+          }}
+          initialData={activityModalData || {
+            contactId: prospectId,
+            projectId: projectType,
+          }}
+          defaultAssignedUserId={supabaseUserId}
+          addAppointment={addAppointment}
+          addCall={addCall}
+          addTask={addTask}
+          updateAppointment={updateAppointment}
+          updateCall={updateCall}
+          updateTask={updateTask}
+          prospects={prospects || []}
+          users={supabaseUsers || []}
+          projectsData={projectsData || {}}
+        />
+      )}
 
     </>
   );
