@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { format, add, sub, startOfWeek, isSameDay, addDays, set } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Users, Video, Phone, Check, Book, Share2, ChevronDown, Plus, MapPin, X, FileText, CheckSquare, Mail, MessageCircle, Trash2, Zap, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,7 +44,7 @@ const SidebarToggleIcon = ({ className }) => (
 
 const hours = Array.from({ length: 15 }, (_, i) => `${8 + i}:00`);
 
-const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supabaseUsers, updateAppointment, deleteAppointment, projectsData }) => {
+const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supabaseUsers, updateAppointment, deleteAppointment, projectsData, navigate }) => {
   const [status, setStatus] = useState(event?.status || 'pending');
 
   useEffect(() => {
@@ -162,11 +163,11 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
             </div>
             
             {/* 🔥 Bouton "Ouvrir le projet" */}
-            {contact && event.projectId && (
+            {contact && event.projectId && navigate && (
               <Button
                 onClick={() => {
                   onClose();
-                  window.location.href = `#/admin/contacts?prospect=${contact.id}&project=${event.projectId}`;
+                  navigate(`/admin/contacts?prospect=${contact.id}&project=${event.projectId}`);
                 }}
                 size="sm"
                 variant="outline"
@@ -1468,6 +1469,7 @@ const AddActivityModal = ({
 
 const Agenda = () => {
   const { activeAdminUser, projectsData } = useAppContext();
+  const navigate = useNavigate();
   
   // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
   const { supabaseUserId, authUserId, loading: userIdLoading } = useSupabaseUser();
@@ -1999,6 +2001,7 @@ const Agenda = () => {
         updateAppointment={updateAppointment}
         deleteAppointment={deleteSupabaseAppointment}
         projectsData={projectsData}
+        navigate={navigate}
       />
       <OtherActivityDetailsPopup 
         activity={selectedOtherActivity.data} 
