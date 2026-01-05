@@ -27,6 +27,20 @@ const ActivityTab = ({ prospectId, projectType }) => {
   const { users: supabaseUsers } = useSupabaseUsers();
   const { supabaseUserId } = useSupabaseUser();
 
+  // 🔥 Debug : Vérifier que toutes les données sont chargées
+  useEffect(() => {
+    if (showAddActivity) {
+      console.log('📊 AddActivityModal props:', {
+        prospects: prospects?.length,
+        users: supabaseUsers?.length,
+        projectsData: Object.keys(projectsData || {}).length,
+        supabaseUserId,
+        prospectId,
+        projectType,
+      });
+    }
+  }, [showAddActivity, prospects, supabaseUsers, projectsData, supabaseUserId, prospectId, projectType]);
+
   // 🔥 Utiliser le hook Supabase pour récupérer la vraie timeline
   const { history, loading } = useSupabaseProjectHistory({
     projectType,
@@ -82,6 +96,7 @@ const ActivityTab = ({ prospectId, projectType }) => {
   // 🔥 Séparer EN COURS / PASSÉES selon le statut courant
   const now = new Date();
   const currentActivities = useMemo(() => {
+    if (!activities) return [];
     return activities.filter(activity => {
       const status = activity.currentStatus;
       
@@ -91,6 +106,7 @@ const ActivityTab = ({ prospectId, projectType }) => {
   }, [activities]);
 
   const pastActivities = useMemo(() => {
+    if (!activities) return [];
     return activities.filter(activity => {
       const status = activity.currentStatus;
       
@@ -162,7 +178,18 @@ const ActivityTab = ({ prospectId, projectType }) => {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700">Activités du projet</h3>
         <Button
-          onClick={() => setShowAddActivity(!showAddActivity)}
+          onClick={() => {
+            console.log('🔍 Avant ouverture modal:', {
+              prospects: !!prospects,
+              prospectsLength: prospects?.length,
+              supabaseUsers: !!supabaseUsers,
+              usersLength: supabaseUsers?.length,
+              projectsData: !!projectsData,
+              projectsDataKeys: Object.keys(projectsData || {}).length,
+              supabaseUserId,
+            });
+            setShowAddActivity(!showAddActivity);
+          }}
           size="sm"
           variant="outline"
           className="text-blue-600 border-blue-600 hover:bg-blue-50"
