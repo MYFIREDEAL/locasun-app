@@ -4,7 +4,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
 import { logger } from '@/lib/logger';
-import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, FileText, Download, Edit, Save, X, Building, User, Send, Paperclip, Bot, Tag, GripVertical, Hash, Calendar, Check, Users, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, FileText, Download, Edit, Save, X, Building, User, Send, Paperclip, Bot, Tag, GripVertical, Hash, Calendar, Check, Users, Trash2, Plus, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -2642,6 +2642,14 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
   return (
     <Dialog open={!!event} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-md p-0">
+        {/* 🔥 Bouton fermer customisé - Plus gros et plus visible */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full p-2 bg-gray-100 hover:bg-gray-200 transition-colors z-10 group"
+        >
+          <X className="h-6 w-6 text-gray-600 group-hover:text-gray-900" />
+        </button>
+
         <div className="p-6 space-y-4">
           {/* 🔥 Date/Heure en haut, centré et mis en évidence */}
           <div className="text-center py-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -2657,13 +2665,31 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
             <DialogTitle className="text-xl font-bold text-gray-900">{event.summary}</DialogTitle>
           </DialogHeader>
           
-          <div className="flex items-start space-x-3 text-gray-600">
-            <Users className="h-5 w-5 text-gray-400 mt-1" />
-            <div>
-              <p className="font-medium">Participants</p>
-              {contact && <p className="text-sm">{contact.name} (Client)</p>}
-              {assignedUser && <p className="text-sm">{assignedUser.name} (Assigné)</p>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start space-x-3 text-gray-600 flex-1">
+              <Users className="h-5 w-5 text-gray-400 mt-1" />
+              <div>
+                <p className="font-medium">Participants</p>
+                {contact && <p className="text-sm">{contact.name} (Client)</p>}
+                {assignedUser && <p className="text-sm">{assignedUser.name} (Assigné)</p>}
+              </div>
             </div>
+            
+            {/* 🔥 Bouton "Ouvrir le projet" */}
+            {contact && event.projectId && (
+              <Button
+                onClick={() => {
+                  onClose();
+                  window.location.href = `#/admin/contacts?prospect=${contact.id}&project=${event.projectId}`;
+                }}
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2 text-blue-600 border-blue-600 hover:bg-blue-50"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Ouvrir le projet
+              </Button>
+            )}
           </div>
         </div>
 
