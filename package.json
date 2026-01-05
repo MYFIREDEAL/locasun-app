@@ -40,6 +40,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "framer-motion": "^10.16.4",
+    "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.12.1",
     "jspdf": "^4.0.0",
     "lucide-react": "^0.285.0",

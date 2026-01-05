@@ -1,4 +1,5 @@
-import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { supabase } from './supabase';
 import { logger } from './logger';
 
@@ -17,6 +18,8 @@ export async function generateContractPDF({
   projectType,
   prospectId,
 }) {
+  let tempContainer = null;
+  
   try {
     logger.debug('Génération PDF contract', { projectType, prospectId });
 
@@ -28,73 +31,90 @@ export async function generateContractPDF({
       htmlPreview: htmlWithData.substring(0, 200)
     });
 
-    // 2. Créer un wrapper avec styles de base
-    const wrappedHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-          }
-          h1, h2, h3 { margin-top: 20px; margin-bottom: 10px; }
-          p { margin: 10px 0; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          td, th { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        </style>
-      </head>
-      <body>
-        ${htmlWithData}
-      </body>
-      </html>
+    // 2. Créer un conteneur temporaire VISIBLE
+    tempContainer = document.createElement('div');
+    tempContainer.id = 'pdf-temp-container';
+    tempContainer.innerHTML = htmlWithData;
+    
+    // Style pour rendre visible mais hors écran
+    tempContainer.style.cssText = `
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 794px;
+      min-height: 1123px;
+      padding: 40px;
+      background: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #000;
+      z-index: 9999;
+      visibility: visible;
+      opacity: 1;
     `;
+    
+    document.body.appendChild(tempContainer);
+    
+    // 3. Attendre le rendu
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    logger.debug('Conteneur créé et rendu', { 
+      width: tempContainer.offsetWidth,
+      height: tempContainer.offsetHeight 
+    });
 
-    // 3. Options de génération PDF optimisées
-    const options = {
-      margin: [15, 15, 15, 15],
-      filename: `contrat-${projectType}-${Date.now()}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: true, // Activer les logs pour debug
-        letterRendering: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff'
-      },
-      jsPDF: { 
-        unit: 'mm', 
-        format: 'a4', 
-        orientation: 'portrait',
-        compress: true
-      },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
+    // 4. Capturer avec html2canvas
+    const canvas = await html2canvas(tempContainer, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: true,
+      width: 794,
+      windowWidth: 794,
+    });
 
-    logger.debug('Génération PDF avec html2pdf...', { options });
+    logger.debug('Canvas créé', { 
+      width: canvas.width, 
+      height: canvas.height 
+    });
 
-    // 4. Générer le PDF directement depuis le HTML string
-    const pdfBlob = await html2pdf()
-      .set(options)
-      .from(wrappedHtml)
-      .outputPdf('blob');
+    // 5. Créer le PDF avec jsPDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
+    });
 
-    logger.debug('PDF blob généré', { size: pdfBlob.size });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdfWidth = 210; // A4 width in mm
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    // 5. Convertir en File
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+    // 6. Convertir en Blob puis File
+    const pdfBlob = pdf.output('blob');
     const fileName = `contrat-${projectType}-${Date.now()}.pdf`;
     const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
     logger.debug('PDF généré avec succès', { fileName, size: pdfFile.size });
 
+    // 7. Uploader vers Supabase Storage
+    const uploadResult = await uploadContractPDF({
+      pdfFile,
+      prospectId,
+      projectType,
+    });
+
+    if (!uploadResult.success) {
+      throw new Error(uploadResult.error);
+    }
+
     return {
       success: true,
-      fileData: pdfFile,
-      fileName,
+      fileData: uploadResult.fileData,
     };
   } catch (error) {
     logger.error('Erreur génération PDF contract', { error: error.message });
@@ -102,13 +122,18 @@ export async function generateContractPDF({
       success: false,
       error: error.message,
     };
+  } finally {
+    // Nettoyer le conteneur temporaire
+    if (tempContainer && tempContainer.parentNode) {
+      document.body.removeChild(tempContainer);
+    }
   }
 }
 
 /**
  * Injecte les données du prospect dans le template HTML
  * @param {string} html - Template HTML
- * @param {Object} prospect - Données du prospect
+ * @param {Object} prospect - Données du prospect (depuis Supabase)
  * @returns {string} - HTML avec données injectées
  */
 function injectProspectData(html, prospect) {
@@ -117,25 +142,62 @@ function injectProspectData(html, prospect) {
     return '<div style="padding: 40px; font-family: Arial;"><h1>Contrat</h1><p>Template non configuré</p></div>';
   }
 
+  logger.debug('Injection données prospect', { 
+    name: prospect.name, 
+    email: prospect.email,
+    phone: prospect.phone 
+  });
+
+  // Parser l'adresse complète (peut contenir ville, code postal)
+  const addressParts = (prospect.address || '').split(',').map(p => p.trim());
+  const street = addressParts[0] || '';
+  const cityZip = addressParts[1] || '';
+  
+  // Essayer d'extraire code postal et ville du format "75001 Paris"
+  const cityZipMatch = cityZip.match(/(\d{5})\s+(.+)/);
+  const zipCode = cityZipMatch ? cityZipMatch[1] : '';
+  const city = cityZipMatch ? cityZipMatch[2] : cityZip;
+
+  // Séparer nom et prénom si possible (format: "Prénom Nom")
+  const nameParts = (prospect.name || '').split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
   let result = html;
 
-  // Variables disponibles
+  // Variables disponibles (mapping avec colonnes Supabase)
   const variables = {
-    '{nom}': prospect.name || '',
-    '{prenom}': prospect.first_name || '',
-    '{nom_complet}': `${prospect.first_name || ''} ${prospect.name || ''}`.trim(),
+    '{nom}': lastName || prospect.name || '',
+    '{prenom}': firstName || '',
+    '{nom_complet}': prospect.name || '',
     '{email}': prospect.email || '',
     '{telephone}': prospect.phone || '',
-    '{adresse}': prospect.address || '',
-    '{ville}': prospect.city || '',
-    '{code_postal}': prospect.zip || '',
-    '{date_du_jour}': new Date().toLocaleDateString('fr-FR'),
-    '{date_signature}': new Date().toLocaleDateString('fr-FR'),
+    '{adresse}': street || prospect.address || '',
+    '{adresse_complete}': prospect.address || '',
+    '{ville}': city || '',
+    '{code_postal}': zipCode || '',
+    '{entreprise}': prospect.company_name || '',
+    '{date_du_jour}': new Date().toLocaleDateString('fr-FR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }),
+    '{date_signature}': new Date().toLocaleDateString('fr-FR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }),
   };
 
   // Remplacer toutes les variables
   Object.entries(variables).forEach(([placeholder, value]) => {
-    result = result.replace(new RegExp(placeholder, 'g'), value);
+    const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
+    result = result.replace(regex, value);
+  });
+
+  logger.debug('HTML après injection', { 
+    variables: Object.fromEntries(Object.entries(variables).map(([k, v]) => [k, v.substring(0, 50)])),
+    resultLength: result.length 
   });
 
   return result;
