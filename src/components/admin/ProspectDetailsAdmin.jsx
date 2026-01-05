@@ -2645,7 +2645,7 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
         {/* 🔥 Bouton fermer customisé - Plus gros et plus visible */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 bg-gray-100 hover:bg-gray-200 transition-colors z-10 group"
+          className="absolute right-2 top-2 rounded-full p-2 bg-gray-100 hover:bg-gray-200 transition-colors z-10 group"
         >
           <X className="h-6 w-6 text-gray-600 group-hover:text-gray-900" />
         </button>
