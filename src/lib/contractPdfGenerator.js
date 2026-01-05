@@ -52,7 +52,21 @@ export async function generateContractPDF({
       z-index: 9999;
       visibility: visible;
       opacity: 1;
+      text-decoration: none !important;
     `;
+    
+    // Ajouter CSS global pour désactiver les décorations de texte
+    const style = document.createElement('style');
+    style.textContent = `
+      #pdf-temp-container * {
+        text-decoration: none !important;
+        border: none;
+      }
+      #pdf-temp-container hr {
+        display: none;
+      }
+    `;
+    tempContainer.appendChild(style);
     
     document.body.appendChild(tempContainer);
     
