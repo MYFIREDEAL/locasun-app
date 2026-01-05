@@ -2641,16 +2641,16 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
 
   return (
     <Dialog open={!!event} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md p-0 relative">
-        {/* 🔥 Bouton fermer customisé - Positionné par rapport à DialogContent */}
+      <DialogContent className="sm:max-w-md p-0">
+        {/* 🔥 Bouton fermer customisé - Plus gros et plus visible */}
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-full p-2 bg-gray-100 hover:bg-gray-200 transition-colors z-50 group"
+          className="absolute right-2 top-2 rounded-full p-2 bg-gray-100 hover:bg-gray-200 transition-colors z-10 group"
         >
           <X className="h-6 w-6 text-gray-600 group-hover:text-gray-900" />
         </button>
 
-        <div className="p-6 space-y-4 pt-12">
+        <div className="p-6 space-y-4">
           {/* 🔥 Date/Heure en haut, centré et mis en évidence */}
           <div className="text-center py-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-lg font-semibold text-blue-900">
