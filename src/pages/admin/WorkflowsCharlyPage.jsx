@@ -11,12 +11,14 @@ import { useAppContext } from '@/App';
 import { Trash2, Plus, Bot, ChevronDown, ChevronRight } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
+import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 
 const ActionEditor = ({
   action,
   onChange,
   onDelete,
-  forms
+  forms,
+  contractTemplates
 }) => {
   const handleActionChange = (field, value) => {
     onChange({
@@ -148,6 +150,36 @@ const ActionEditor = ({
                                         placeholder="Ex: Facture EDF, RIB, Titre de propriété..."
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
+                                </motion.div>}
+
+                            {action.type === 'start_signature' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Template de contrat à utiliser</Label>
+                                    <Select value={action.templateId} onValueChange={value => handleActionChange('templateId', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner un template" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {contractTemplates
+                                                .filter(template => template.isActive)
+                                                .map(template => (
+                                                    <SelectItem key={template.id} value={template.id}>
+                                                        {template.name}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {!action.templateId && (
+                                        <p className="text-xs text-red-500">⚠️ Template obligatoire pour sauvegarder</p>
+                                    )}
                                 </motion.div>}
                         </AnimatePresence>
 
@@ -334,6 +366,11 @@ const WorkflowsCharlyPage = () => {
     savePrompt: savePromptToSupabase,
     deletePrompt: deletePromptFromSupabase
   } = useSupabasePrompts();
+
+  const {
+    templates: contractTemplates,
+    loading: templatesLoading
+  } = useSupabaseContractTemplates();
 
   const prompts = useMemo(() => {
     return supabasePrompts;
@@ -674,7 +711,8 @@ const WorkflowsCharlyPage = () => {
                                   action={action} 
                                   onChange={newAction => handleActionChange(index, actionIndex, newAction)} 
                                   onDelete={() => deleteAction(index, actionIndex)} 
-                                  forms={forms} 
+                                  forms={forms}
+                                  contractTemplates={contractTemplates || []}
                                 />
                               ))}
                               <Button 

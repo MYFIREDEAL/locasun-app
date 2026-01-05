@@ -975,6 +975,36 @@ const ActionEditor = ({
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </motion.div>}
+
+                            {action.type === 'start_signature' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Template de contrat à utiliser</Label>
+                                    <Select value={action.templateId} onValueChange={value => handleActionChange('templateId', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner un template" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {contractTemplates
+                                                .filter(template => template.isActive)
+                                                .map(template => (
+                                                    <SelectItem key={template.id} value={template.id}>
+                                                        {template.name}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {!action.templateId && (
+                                        <p className="text-xs text-red-500">⚠️ Template obligatoire pour sauvegarder</p>
+                                    )}
+                                </motion.div>}
                         </AnimatePresence>
 
                         <div className="space-y-2">
