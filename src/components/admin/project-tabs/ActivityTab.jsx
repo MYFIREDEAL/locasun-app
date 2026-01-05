@@ -21,6 +21,7 @@ const ActivityTab = ({ prospectId, projectType }) => {
   const { activeAdminUser, projectsData } = useAppContext();
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [activityModalData, setActivityModalData] = useState(null);
 
   // 🔥 Charger les données nécessaires pour EventDetailsPopup et AddActivityModal
   const { appointments, updateAppointment, deleteAppointment, addAppointment, addCall, addTask, updateCall, updateTask } = useSupabaseAgenda(activeAdminUser);
@@ -173,9 +174,15 @@ const ActivityTab = ({ prospectId, projectType }) => {
     }
   };
 
+  // 🔥 Fonction pour éditer une activité
+  const handleEdit = (activityToEdit) => {
+    setSelectedActivity(null); // Fermer le popup de détails
+    setActivityModalData({ ...activityToEdit, type: activityToEdit.type });
+    setShowAddActivity(true);
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header avec bouton d'ajout */}
+    <div className="space-y-6">{/* Header avec bouton d'ajout */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700">Activités du projet</h3>
         <Button
@@ -204,8 +211,13 @@ const ActivityTab = ({ prospectId, projectType }) => {
       {showAddActivity && (
         <AddActivityModal
           open={showAddActivity}
-          onOpenChange={setShowAddActivity}
-          initialData={{
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setActivityModalData(null); // Reset les données quand on ferme
+            }
+            setShowAddActivity(isOpen);
+          }}
+          initialData={activityModalData || {
             contactId: prospectId,
             projectId: projectType,
           }}
@@ -324,7 +336,7 @@ const ActivityTab = ({ prospectId, projectType }) => {
           event={selectedActivity}
           onClose={() => setSelectedActivity(null)}
           onReport={() => {}} // Pas de report depuis l'onglet activité
-          onEdit={() => {}} // Pas d'édition depuis l'onglet activité
+          onEdit={handleEdit} // 🔥 Utiliser handleEdit pour permettre la modification
           prospects={prospects}
           supabaseUsers={supabaseUsers}
           updateAppointment={updateAppointment}
