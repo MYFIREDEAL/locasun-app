@@ -1043,6 +1043,14 @@ const AddActivityModal = ({
   users: usersProp, // 🔥 Recevoir les users Supabase en props
   projectsData, // 🔥 Recevoir projectsData du Context
 }) => {
+    // 🔥 Debug : Log au montage
+    console.log('🎬 AddActivityModal MOUNTED', { 
+      open, 
+      initialData, 
+      prospectsPropLength: prospectsProp?.length,
+      usersPropLength: usersProp?.length 
+    });
+    
     // État local pour le contact sélectionné (besoin avant le hook)
     const [selectedContact, setSelectedContact] = useState(null);
     const [selectedProject, setSelectedProject] = useState('');
@@ -1091,11 +1099,14 @@ const AddActivityModal = ({
         setDetails(initialData.notes || initialData.description || initialData.details || initialData.text || '');
         setShare(initialData.share || false);
         
+        // 🔥 CORRECTION : Ne parser la date que si elle existe vraiment
         const initialDate = initialData.start || initialData.date;
-        const initialStartDate = initialDate instanceof Date ? initialDate : new Date(initialDate);
+        if (initialDate) {
+          const initialStartDate = initialDate instanceof Date ? initialDate : new Date(initialDate);
+          setDate(initialStartDate);
+          setTime(format(initialStartDate, 'HH:mm'));
+        }
         
-        setDate(initialStartDate);
-        setTime(format(initialStartDate, 'HH:mm'));
         setAssignedUserId(initialData.assignedUserId || defaultAssignedUserId || null);
         
         const type = initialData.type || (initialData.color?.includes('blue') ? 'physical' : 'virtual');
