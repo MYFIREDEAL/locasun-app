@@ -60,10 +60,18 @@ export async function generateContractPDF({
     style.textContent = `
       #pdf-temp-container * {
         text-decoration: none !important;
-        border: none;
       }
       #pdf-temp-container hr {
-        display: none;
+        height: 1px;
+        background-color: #000;
+        border: none;
+        margin: 20px 0;
+        display: block;
+        position: relative;
+      }
+      #pdf-temp-container p {
+        position: relative;
+        z-index: 2;
       }
     `;
     tempContainer.appendChild(style);
