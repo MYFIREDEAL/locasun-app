@@ -1505,17 +1505,22 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
         }
     };
 
-    if (internalForms.length === 0) {
-        return null;
-    }
-
+    // 🔥 Ne pas masquer le bloc s'il est vide (règle métier)
     return (
         <div className="bg-white rounded-2xl shadow-card p-6">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Formulaires internes</h2>
                 <span className="text-xs text-gray-500">{internalForms.length} formulaire(s)</span>
             </div>
-            <div className="space-y-4">
+            
+            {internalForms.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">
+                    Aucun formulaire interne pour ce projet.
+                    <br />
+                    <span className="text-xs">Créez un formulaire avec "Interne (équipe)" dans Gestion des Formulaires.</span>
+                </p>
+            ) : (
+                <div className="space-y-4">
                 {internalForms.map(form => {
                     const currentFormData = formData[form.id] || {};
                     const isEditing = editingFormId === form.id;
@@ -1593,7 +1598,8 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
                         </div>
                     );
                 })}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
