@@ -1426,6 +1426,178 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
     );
 };
 
+// 🆕 Composant pour afficher les formulaires internes (audience='internal')
+const InternalForms = ({ prospect, projectType, onUpdate }) => {
+    const { forms } = useAppContext();
+    const [editingFormId, setEditingFormId] = useState(null);
+    const [formData, setFormData] = useState({});
+
+    // Filtrer les formulaires internes pour ce type de projet
+    const internalForms = useMemo(() => {
+        return Object.values(forms).filter(form => 
+            form.audience === 'internal' && 
+            (form.projectIds || []).includes(projectType)
+        );
+    }, [forms, projectType]);
+
+    // Charger les données existantes du prospect
+    useEffect(() => {
+        if (prospect && prospect.form_data) {
+            const projectFormData = prospect.form_data[projectType] || {};
+            setFormData(projectFormData);
+        }
+    }, [prospect, projectType]);
+
+    const handleStartEdit = (formId) => {
+        setEditingFormId(formId);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingFormId(null);
+        // Recharger les données du prospect
+        if (prospect && prospect.form_data) {
+            const projectFormData = prospect.form_data[projectType] || {};
+            setFormData(projectFormData);
+        }
+    };
+
+    const handleFieldChange = (formId, fieldId, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [formId]: {
+                ...(prev[formId] || {}),
+                [fieldId]: value
+            }
+        }));
+    };
+
+    const handleSave = async () => {
+        try {
+            // Construire la structure form_data complète
+            const updatedFormData = {
+                ...(prospect.form_data || {}),
+                [projectType]: formData
+            };
+
+            // Mettre à jour le prospect
+            const updatedProspect = {
+                ...prospect,
+                form_data: updatedFormData,
+                formData: updatedFormData // Pour compatibilité
+            };
+
+            await onUpdate(updatedProspect);
+
+            toast({
+                title: '✅ Formulaire enregistré',
+                description: 'Les données du formulaire interne ont été sauvegardées.',
+                className: 'bg-green-500 text-white'
+            });
+
+            setEditingFormId(null);
+        } catch (error) {
+            logger.error('Erreur sauvegarde formulaire interne:', error);
+            toast({
+                title: '❌ Erreur',
+                description: 'Impossible de sauvegarder le formulaire.',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    if (internalForms.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="bg-white rounded-2xl shadow-card p-6">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Formulaires internes</h2>
+                <span className="text-xs text-gray-500">{internalForms.length} formulaire(s)</span>
+            </div>
+            <div className="space-y-4">
+                {internalForms.map(form => {
+                    const currentFormData = formData[form.id] || {};
+                    const isEditing = editingFormId === form.id;
+
+                    return (
+                        <div key={form.id} className="border border-gray-200 rounded-xl p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">{form.name}</h3>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Formulaire interne (équipe uniquement)
+                                    </p>
+                                </div>
+                                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                                    Interne
+                                </span>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                {(form.fields || []).map(field => {
+                                    const fieldValue = currentFormData[field.id] || '';
+
+                                    return (
+                                        <div key={field.id} className="space-y-1">
+                                            <Label className="text-sm font-medium text-gray-600">
+                                                {field.label}
+                                                {field.required && <span className="text-red-500 ml-1">*</span>}
+                                            </Label>
+                                            {isEditing ? (
+                                                field.type === 'textarea' ? (
+                                                    <textarea
+                                                        value={fieldValue}
+                                                        onChange={(e) => handleFieldChange(form.id, field.id, e.target.value)}
+                                                        placeholder={field.placeholder || ''}
+                                                        className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                                    />
+                                                ) : (
+                                                    <Input
+                                                        type={field.type || 'text'}
+                                                        value={fieldValue}
+                                                        onChange={(e) => handleFieldChange(form.id, field.id, e.target.value)}
+                                                        placeholder={field.placeholder || ''}
+                                                    />
+                                                )
+                                            ) : (
+                                                <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center">
+                                                    {fieldValue || <span className="text-gray-400 italic">Non renseigné</span>}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Boutons d'action */}
+                            <div className="flex items-center justify-end space-x-2 pt-2 border-t">
+                                {isEditing ? (
+                                    <>
+                                        <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                                            <X className="h-4 w-4 mr-1" />
+                                            Annuler
+                                        </Button>
+                                        <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                                            <Save className="h-4 w-4 mr-1" />
+                                            Sauvegarder
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button variant="outline" size="sm" onClick={() => handleStartEdit(form.id)}>
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Modifier
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
 const getFieldIcon = (field) => {
   switch (field.type) {
     case 'email': return <Mail className="h-4 w-4 text-gray-400" />;
@@ -2146,6 +2318,16 @@ const ProspectDetailsAdmin = ({
                   // Et aussi appeler onUpdate du parent pour Supabase
                   if (onUpdate) onUpdate(updated);
                 }} 
+              />
+
+              {/* 🆕 Bloc Formulaires Internes (juste en dessous de "Formulaires soumis") */}
+              <InternalForms
+                prospect={editableProspect}
+                projectType={activeProjectTag}
+                onUpdate={(updated) => {
+                  setEditableProspect(updated);
+                  if (onUpdate) onUpdate(updated);
+                }}
               />
               
               <div className="bg-white rounded-2xl shadow-card p-6">

@@ -20,6 +20,7 @@ export function useSupabaseForms() {
         name: form.name,
         fields: form.fields || [],
         projectIds: form.project_ids || [],
+        audience: form.audience || 'client', // 🔥 AJOUT: Audience du formulaire
         createdAt: new Date(form.created_at).getTime(),
         updatedAt: new Date(form.updated_at).getTime(),
       };
@@ -72,6 +73,7 @@ export function useSupabaseForms() {
                 name: newForm.name,
                 fields: newForm.fields || [],
                 projectIds: newForm.project_ids || [],
+                audience: newForm.audience || 'client', // 🔥 AJOUT: Audience
                 createdAt: new Date(newForm.created_at).getTime(),
                 updatedAt: new Date(newForm.updated_at).getTime(),
               },
@@ -85,6 +87,7 @@ export function useSupabaseForms() {
                 name: updatedForm.name,
                 fields: updatedForm.fields || [],
                 projectIds: updatedForm.project_ids || [],
+                audience: updatedForm.audience || 'client', // 🔥 AJOUT: Audience
                 createdAt: new Date(updatedForm.created_at).getTime(),
                 updatedAt: new Date(updatedForm.updated_at).getTime(),
               },
@@ -113,6 +116,7 @@ export function useSupabaseForms() {
         name: formData.name,
         fields: formData.fields || [],
         project_ids: formData.projectIds || [],
+        audience: formData.audience || 'client', // 🔥 AJOUT: Audience du formulaire
       };
 
       const { data, error } = await supabase

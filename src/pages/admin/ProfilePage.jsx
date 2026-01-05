@@ -335,6 +335,51 @@ const FormEditor = ({
                 </div>
 
                 <div>
+                    <Label>À qui est destiné ce formulaire ?</Label>
+                    <div className="flex gap-4 mt-2">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="audience-client"
+                                name="audience"
+                                value="client"
+                                checked={(editedForm.audience || 'client') === 'client'}
+                                onChange={(e) => setEditedForm(prev => ({
+                                    ...prev,
+                                    audience: e.target.value
+                                }))}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                            />
+                            <Label htmlFor="audience-client" className="font-normal cursor-pointer">
+                                Client
+                            </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="audience-internal"
+                                name="audience"
+                                value="internal"
+                                checked={editedForm.audience === 'internal'}
+                                onChange={(e) => setEditedForm(prev => ({
+                                    ...prev,
+                                    audience: e.target.value
+                                }))}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                            />
+                            <Label htmlFor="audience-internal" className="font-normal cursor-pointer">
+                                Interne (équipe)
+                            </Label>
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {(editedForm.audience || 'client') === 'client' 
+                            ? 'Ce formulaire sera envoyable au client via le chat' 
+                            : 'Ce formulaire sera visible uniquement dans la fiche prospect (équipe)'}
+                    </p>
+                </div>
+
+                <div>
                     <Label>Projets associés</Label>
                     <MultiSelectSearch options={projectOptions} selected={selectedProjects} onChange={selected => setEditedForm(prev => ({
         ...prev,
@@ -2055,6 +2100,7 @@ const ProfilePage = () => {
       name: formToSave.name,
       fields: formToSave.fields || [],
       projectIds: formToSave.projectIds || [],
+      audience: formToSave.audience || 'client', // 🔥 AJOUT: Audience par défaut 'client'
     });
 
     if (result.success) {
