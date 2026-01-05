@@ -172,7 +172,9 @@ function injectProspectData(html, prospect) {
   let result = html;
 
   // Variables disponibles (mapping avec colonnes Supabase)
+  // Support SIMPLE et DOUBLE accolades + noms FR et EN
   const variables = {
+    // Format simple accolade (FR)
     '{nom}': lastName || prospect.name || '',
     '{prenom}': firstName || '',
     '{nom_complet}': prospect.name || '',
@@ -193,11 +195,27 @@ function injectProspectData(html, prospect) {
       month: '2-digit', 
       year: 'numeric' 
     }),
+    
+    // Format double accolade (EN) - utilisé dans le template
+    '{{client_lastname}}': lastName || prospect.name || '',
+    '{{client_firstname}}': firstName || '',
+    '{{client_email}}': prospect.email || '',
+    '{{client_phone}}': prospect.phone || '',
+    '{{client_address}}': street || prospect.address || '',
+    '{{client_city}}': city || '',
+    '{{client_zip}}': zipCode || '',
+    '{{signature_date}}': new Date().toLocaleDateString('fr-FR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }),
   };
 
   // Remplacer toutes les variables
   Object.entries(variables).forEach(([placeholder, value]) => {
-    const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
+    // Échapper les accolades pour regex
+    const escapedPlaceholder = placeholder.replace(/[{}]/g, '\\$&');
+    const regex = new RegExp(escapedPlaceholder, 'g');
     result = result.replace(regex, value);
   });
 
