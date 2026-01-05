@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
+import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
@@ -1420,6 +1421,15 @@ const ProfilePage = () => {
     return supabasePrompts;
   }, [supabasePrompts]);
 
+  // 🔥 Hook Supabase pour la gestion des templates de contrats
+  const {
+    templates: contractTemplates,
+    loading: templatesLoading,
+    createTemplate,
+    updateTemplate,
+    deactivateTemplate
+  } = useSupabaseContractTemplates();
+
   // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
   const {
     users: supabaseUsers,
@@ -1490,6 +1500,7 @@ const ProfilePage = () => {
   const [editingForm, setEditingForm] = useState(null);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
+  const [editingContractTemplate, setEditingContractTemplate] = useState(null);
   const [selectedProjectForDisplay, setSelectedProjectForDisplay] = useState('');
   const [projectDisplayData, setProjectDisplayData] = useState({
     coverImage: '',
@@ -2183,6 +2194,57 @@ const ProfilePage = () => {
       });
     }
   };
+
+  // 🔥 Handlers pour les templates de contrats
+  const handleSaveContractTemplate = async (templateToSave) => {
+    const isNew = !templateToSave.id;
+    
+    const result = isNew 
+      ? await createTemplate({
+          name: templateToSave.name,
+          projectType: templateToSave.projectType || 'ACC',
+          contentHtml: templateToSave.contentHtml || '',
+        })
+      : await updateTemplate(templateToSave.id, {
+          name: templateToSave.name,
+          projectType: templateToSave.projectType,
+          contentHtml: templateToSave.contentHtml,
+        });
+
+    if (result.success) {
+      toast({
+        title: "✅ Template enregistré !",
+        description: `Le template "${templateToSave.name}" a été sauvegardé.`,
+        className: "bg-green-500 text-white"
+      });
+      setEditingContractTemplate(null);
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible d'enregistrer le template : ${result.error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeactivateContractTemplate = async (templateId) => {
+    const result = await deactivateTemplate(templateId);
+
+    if (result.success) {
+      toast({
+        title: "✅ Template désactivé !",
+        description: "Le template a été désactivé.",
+        className: "bg-green-500 text-white"
+      });
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible de désactiver le template : ${result.error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   const openPromptCreator = prompt => {
     setEditingPrompt(prompt);
     setIsPromptCreatorOpen(true);
@@ -2956,6 +3018,85 @@ const ProfilePage = () => {
                             </div>)}
                     </div>
                 </motion.div>
+
+                {/* 📄 Templates de contrats */}
+                <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-templates-contrats">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+                        <h2 className="text-xl font-semibold text-gray-800">📄 Templates de contrats</h2>
+                        <Button onClick={() => setEditingContractTemplate({
+              name: '',
+              projectType: 'ACC',
+              contentHtml: ''
+            })} className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto">
+                            <Plus className="mr-2 h-4 w-4" /> Créer un template de contrat
+                        </Button>
+                    </div>
+                    <div className="space-y-3">
+                        {templatesLoading ? (
+                            <div className="text-center py-4 text-gray-500">Chargement...</div>
+                        ) : contractTemplates.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500">Aucun template de contrat</div>
+                        ) : (
+                            contractTemplates.map(template => (
+                                <div key={template.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <FileText className="h-5 w-5 text-gray-500" />
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">{template.name}</span>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs text-gray-500">{template.projectType}</span>
+                                                <span className="text-xs text-gray-400">•</span>
+                                                <span className="text-xs text-gray-500">v{template.version}</span>
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                    template.isActive 
+                                                        ? 'bg-green-100 text-green-700' 
+                                                        : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {template.isActive ? '✅ Actif' : '⛔ Inactif'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => setEditingContractTemplate(template)}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        {template.isActive && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm">
+                                                        Désactiver
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Désactiver "{template.name}" ?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Le template sera marqué comme inactif mais restera dans la base.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                        <AlertDialogAction 
+                                                            onClick={() => handleDeactivateContractTemplate(template.id)} 
+                                                            className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                            Désactiver
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </motion.div>
               </div>
 
               <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-affichage-projets">
@@ -3304,6 +3445,84 @@ const ProfilePage = () => {
                   <div className="p-6 max-h-[70vh] overflow-y-auto">
                       {editingForm && <FormEditor form={editingForm} onSave={handleSaveForm} onCancel={() => setEditingForm(null)} />}
                   </div>
+              </DialogContent>
+          </Dialog>
+
+          {/* Modal Template de Contrat */}
+          <Dialog open={!!editingContractTemplate} onOpenChange={isOpen => !isOpen && setEditingContractTemplate(null)}>
+              <DialogContent className="sm:max-w-3xl">
+                  <DialogHeader>
+                      <DialogTitle>
+                          {editingContractTemplate?.id 
+                              ? `Modifier le template "${editingContractTemplate.name}"` 
+                              : 'Créer un nouveau template de contrat'}
+                      </DialogTitle>
+                  </DialogHeader>
+                  <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                      <div>
+                          <Label htmlFor="template-name">Nom du template</Label>
+                          <Input 
+                              id="template-name"
+                              value={editingContractTemplate?.name || ''}
+                              onChange={(e) => setEditingContractTemplate(prev => ({
+                                  ...prev,
+                                  name: e.target.value
+                              }))}
+                              placeholder="Ex: Contrat ACC Standard"
+                          />
+                      </div>
+                      
+                      <div>
+                          <Label htmlFor="template-project-type">Type de projet</Label>
+                          <Select 
+                              value={editingContractTemplate?.projectType || 'ACC'}
+                              onValueChange={(value) => setEditingContractTemplate(prev => ({
+                                  ...prev,
+                                  projectType: value
+                              }))}
+                          >
+                              <SelectTrigger id="template-project-type">
+                                  <SelectValue placeholder="Sélectionner un type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {projectOptions.map(option => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                          {option.label}
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      </div>
+
+                      <div>
+                          <Label htmlFor="template-content">Contenu HTML</Label>
+                          <Textarea 
+                              id="template-content"
+                              value={editingContractTemplate?.contentHtml || ''}
+                              onChange={(e) => setEditingContractTemplate(prev => ({
+                                  ...prev,
+                                  contentHtml: e.target.value
+                              }))}
+                              placeholder="Entrez le contenu HTML du contrat..."
+                              rows={12}
+                              className="font-mono text-sm"
+                          />
+                      </div>
+                  </div>
+                  <DialogFooter className="px-6 pb-4">
+                      <Button 
+                          variant="outline" 
+                          onClick={() => setEditingContractTemplate(null)}
+                      >
+                          Annuler
+                      </Button>
+                      <Button 
+                          onClick={() => handleSaveContractTemplate(editingContractTemplate)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                      >
+                          Enregistrer
+                      </Button>
+                  </DialogFooter>
               </DialogContent>
           </Dialog>
           
