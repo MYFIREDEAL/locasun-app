@@ -26,6 +26,7 @@ import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
+import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -1698,6 +1699,13 @@ const ProspectDetailsAdmin = ({
   const currentStepIndex = projectSteps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = projectSteps[currentStepIndex] || projectSteps.find(s => s.status === STATUS_PENDING) || projectSteps[0];
   
+  // 🔥 Hook pour exécuter automatiquement les actions workflow
+  useWorkflowExecutor({
+    prospectId: prospect.id,
+    projectType: activeProjectTag,
+    currentSteps: projectSteps,
+  });
+
   useEffect(() => {
     if (notificationId) {
       markNotificationAsRead(parseInt(notificationId));

@@ -1,0 +1,185 @@
+import { useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
+import { logger } from '@/lib/logger';
+import { toast } from '@/components/ui/use-toast';
+
+/**
+ * Hook pour exécuter automatiquement les actions workflow
+ * quand un prospect change d'étape dans un projet
+ * 
+ * @param {string} prospectId - ID du prospect
+ * @param {string} projectType - Type de projet
+ * @param {Array} currentSteps - Étapes actuelles du projet
+ */
+export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
+  useEffect(() => {
+    if (!prospectId || !projectType || !currentSteps) return;
+
+    const executeWorkflowActions = async () => {
+      try {
+        // 1. Charger le prompt/workflow pour ce projet
+        const { data: prompt, error: promptError } = await supabase
+          .from('prompts')
+          .select('*')
+          .eq('project_id', projectType)
+          .single();
+
+        if (promptError || !prompt) {
+          logger.debug('Aucun workflow configuré pour ce projet', { projectType });
+          return;
+        }
+
+        // 2. Trouver l'étape actuelle (in_progress)
+        const currentStepIndex = currentSteps.findIndex(
+          (step) => step.status === 'in_progress'
+        );
+
+        if (currentStepIndex === -1) {
+          logger.debug('Aucune étape en cours', { projectType });
+          return;
+        }
+
+        // 3. Récupérer la configuration de cette étape
+        const stepConfig = prompt.steps_config?.[currentStepIndex];
+
+        if (!stepConfig || !stepConfig.actions || stepConfig.actions.length === 0) {
+          logger.debug('Aucune action configurée pour cette étape', { 
+            projectType, 
+            stepIndex: currentStepIndex 
+          });
+          return;
+        }
+
+        // 4. Exécuter les actions automatiques
+        for (const action of stepConfig.actions) {
+          // Ignorer les actions sans type ou avec type 'none'
+          if (!action.type || action.type === 'none') continue;
+
+          // Ignorer les actions gérées manuellement par le commercial
+          if (action.hasClientAction === false) {
+            logger.debug('Action commerciale, skip automatisation', { 
+              actionType: action.type 
+            });
+            continue;
+          }
+
+          // Exécuter l'action selon son type
+          await executeAction({
+            action,
+            prospectId,
+            projectType,
+          });
+        }
+      } catch (error) {
+        logger.error('Erreur exécution workflow', { 
+          error: error.message,
+          prospectId,
+          projectType 
+        });
+      }
+    };
+
+    // Exécuter au montage et quand les steps changent
+    executeWorkflowActions();
+  }, [prospectId, projectType, currentSteps]);
+}
+
+/**
+ * Exécute une action workflow spécifique
+ * @param {Object} params
+ * @param {Object} params.action - Configuration de l'action
+ * @param {string} params.prospectId - ID du prospect
+ * @param {string} params.projectType - Type de projet
+ */
+async function executeAction({ action, prospectId, projectType }) {
+  try {
+    logger.debug('Exécution action workflow', { 
+      actionType: action.type,
+      prospectId,
+      projectType 
+    });
+
+    switch (action.type) {
+      case 'start_signature':
+        await executeStartSignatureAction({ action, prospectId, projectType });
+        break;
+
+      case 'show_form':
+        logger.debug('Action show_form gérée côté client', { formId: action.formId });
+        break;
+
+      case 'request_document':
+        logger.debug('Action request_document gérée côté client', { 
+          documentType: action.documentType 
+        });
+        break;
+
+      case 'open_payment':
+        logger.debug('Action open_payment gérée côté client');
+        break;
+
+      default:
+        logger.warn('Type d\'action inconnu', { actionType: action.type });
+    }
+  } catch (error) {
+    logger.error('Erreur exécution action', { 
+      error: error.message,
+      actionType: action.type 
+    });
+  }
+}
+
+/**
+ * Exécute l'action "Lancer une signature"
+ * Génère un PDF de contrat et l'ajoute aux fichiers du projet
+ */
+async function executeStartSignatureAction({ action, prospectId, projectType }) {
+  try {
+    if (!action.templateId) {
+      logger.warn('Action start_signature sans templateId', { prospectId, projectType });
+      toast({
+        title: "⚠️ Configuration manquante",
+        description: "Aucun template de contrat configuré pour cette action",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    logger.debug('Génération contrat PDF...', { 
+      templateId: action.templateId,
+      prospectId,
+      projectType 
+    });
+
+    toast({
+      title: "📄 Génération du contrat...",
+      description: "Création du PDF en cours",
+      className: "bg-blue-500 text-white",
+    });
+
+    // Exécuter la génération + upload
+    const result = await executeContractSignatureAction({
+      templateId: action.templateId,
+      projectType,
+      prospectId,
+    });
+
+    if (result.success) {
+      toast({
+        title: "✅ Contrat généré !",
+        description: "Le PDF a été ajouté aux fichiers du projet",
+        className: "bg-green-500 text-white",
+      });
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    logger.error('Erreur génération contrat', { error: error.message });
+    toast({
+      title: "❌ Erreur",
+      description: `Impossible de générer le contrat: ${error.message}`,
+      variant: "destructive",
+    });
+  }
+}
