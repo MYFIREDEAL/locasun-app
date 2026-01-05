@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Calendar, Phone, CheckSquare, Video, Users, Mail, MessageCircle, MapPin, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from '@/components/ui/use-toast';
@@ -17,9 +18,17 @@ const ActivityTab = ({ prospectId, projectType }) => {
   const { activeAdminUser, projectsData } = useAppContext();
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [newActivity, setNewActivity] = useState({
+    title: '',
+    type: 'physical',
+    start: new Date(),
+    end: new Date(Date.now() + 60 * 60 * 1000),
+    notes: '',
+    location: '',
+  });
 
   // 🔥 Charger les données nécessaires pour EventDetailsPopup
-  const { appointments, updateAppointment, deleteAppointment } = useSupabaseAgenda(activeAdminUser);
+  const { appointments, updateAppointment, deleteAppointment, addAppointment } = useSupabaseAgenda(activeAdminUser);
   const { prospects } = useSupabaseProspects(activeAdminUser);
   const { users: supabaseUsers } = useSupabaseUsers();
 
@@ -168,12 +177,125 @@ const ActivityTab = ({ prospectId, projectType }) => {
         </Button>
       </div>
 
+      {/* Modal Ajouter une activité */}
       {showAddActivity && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-700">
-            🚧 Modal d'ajout d'activité à venir (utilisation de AddActivityModal)
-          </p>
-        </div>
+        <Dialog open={showAddActivity} onOpenChange={setShowAddActivity}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Ajouter une activité</DialogTitle>
+              <DialogDescription>Planifiez un nouveau rendez-vous pour ce projet.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="activity-title">Titre</Label>
+                <input
+                  id="activity-title"
+                  value={newActivity.title}
+                  onChange={(e) => setNewActivity({ ...newActivity, title: e.target.value })}
+                  placeholder="Ex: RDV Physique"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="activity-type">Type</Label>
+                <Select value={newActivity.type} onValueChange={(value) => setNewActivity({ ...newActivity, type: value })}>
+                  <SelectTrigger id="activity-type">
+                    <SelectValue placeholder="Type d'activité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="physical">🏢 RDV Physique</SelectItem>
+                    <SelectItem value="virtual">📹 RDV Visio</SelectItem>
+                    <SelectItem value="call">📞 Appel</SelectItem>
+                    <SelectItem value="task">✅ Tâche</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="activity-start">Date/Heure début</Label>
+                  <input
+                    id="activity-start"
+                    type="datetime-local"
+                    value={format(newActivity.start, "yyyy-MM-dd'T'HH:mm")}
+                    onChange={(e) => setNewActivity({ ...newActivity, start: new Date(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="activity-end">Date/Heure fin</Label>
+                  <input
+                    id="activity-end"
+                    type="datetime-local"
+                    value={format(newActivity.end, "yyyy-MM-dd'T'HH:mm")}
+                    onChange={(e) => setNewActivity({ ...newActivity, end: new Date(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="activity-notes">Notes</Label>
+                <textarea
+                  id="activity-notes"
+                  value={newActivity.notes}
+                  onChange={(e) => setNewActivity({ ...newActivity, notes: e.target.value })}
+                  placeholder="Détails de l'activité..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm min-h-[80px]"
+                />
+              </div>
+              
+              {(newActivity.type === 'physical' || newActivity.type === 'virtual') && (
+                <div className="grid gap-2">
+                  <Label htmlFor="activity-location">Lieu / Lien visio</Label>
+                  <input
+                    id="activity-location"
+                    value={newActivity.location}
+                    onChange={(e) => setNewActivity({ ...newActivity, location: e.target.value })}
+                    placeholder={newActivity.type === 'physical' ? "Adresse du RDV" : "Lien Zoom, Teams, etc."}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddActivity(false)}>Annuler</Button>
+              <Button onClick={async () => {
+                if (!newActivity.title) {
+                  toast({ title: "Erreur", description: "Le titre est requis", variant: "destructive" });
+                  return;
+                }
+                
+                await addAppointment({
+                  title: newActivity.title,
+                  type: newActivity.type,
+                  startTime: newActivity.start.toISOString(),
+                  endTime: newActivity.end.toISOString(),
+                  contactId: prospectId,
+                  projectId: projectType,
+                  notes: newActivity.notes,
+                  location: newActivity.location,
+                  status: 'pending',
+                });
+                
+                setShowAddActivity(false);
+                setNewActivity({
+                  title: '',
+                  type: 'physical',
+                  start: new Date(),
+                  end: new Date(Date.now() + 60 * 60 * 1000),
+                  notes: '',
+                  location: '',
+                });
+                
+                toast({ title: "✅ Activité ajoutée !", className: "bg-green-500 text-white" });
+              }}>
+                Ajouter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Activités en cours */}
