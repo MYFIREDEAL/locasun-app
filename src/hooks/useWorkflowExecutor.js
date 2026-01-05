@@ -161,6 +161,26 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       return;
     }
 
+    // 🔥 VÉRIFIER si un contrat PDF existe déjà pour ce projet
+    const { data: existingFiles, error: checkError } = await supabase
+      .from('project_files')
+      .select('id, file_name')
+      .eq('prospect_id', prospectId)
+      .eq('project_type', projectType)
+      .eq('field_label', 'Contrat généré automatiquement')
+      .limit(1);
+
+    if (checkError) {
+      logger.error('Erreur vérification fichiers existants', { error: checkError.message });
+    }
+
+    if (existingFiles && existingFiles.length > 0) {
+      logger.debug('Contrat PDF déjà existant, skip génération', { 
+        existingFile: existingFiles[0].file_name 
+      });
+      return;
+    }
+
     logger.debug('Génération contrat PDF...', { 
       templateId: action.templateId,
       prospectId,

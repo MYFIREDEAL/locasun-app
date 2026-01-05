@@ -28,48 +28,64 @@ export async function generateContractPDF({
       htmlPreview: htmlWithData.substring(0, 200)
     });
 
-    // 2. Créer un élément temporaire VISIBLE pour le rendu
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlWithData;
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.top = '0';
-    tempDiv.style.left = '0';
-    tempDiv.style.width = '210mm'; // Format A4
-    tempDiv.style.minHeight = '297mm'; // Hauteur A4
-    tempDiv.style.padding = '20px';
-    tempDiv.style.background = 'white';
-    tempDiv.style.zIndex = '-1'; // Derrière tout mais visible pour le rendu
-    tempDiv.style.opacity = '0'; // Invisible pour l'utilisateur
-    document.body.appendChild(tempDiv);
+    // 2. Créer un wrapper avec styles de base
+    const wrappedHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+          }
+          h1, h2, h3 { margin-top: 20px; margin-bottom: 10px; }
+          p { margin: 10px 0; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          td, th { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        </style>
+      </head>
+      <body>
+        ${htmlWithData}
+      </body>
+      </html>
+    `;
 
-    // 3. Attendre que le DOM soit prêt
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // 4. Options de génération PDF
+    // 3. Options de génération PDF optimisées
     const options = {
-      margin: [10, 10, 10, 10],
+      margin: [15, 15, 15, 15],
       filename: `contrat-${projectType}-${Date.now()}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { 
-        scale: 2, 
+        scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true, // Activer les logs pour debug
         letterRendering: true,
-        allowTaint: true
+        allowTaint: false,
+        backgroundColor: '#ffffff'
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    // 5. Générer le PDF
+    logger.debug('Génération PDF avec html2pdf...', { options });
+
+    // 4. Générer le PDF directement depuis le HTML string
     const pdfBlob = await html2pdf()
       .set(options)
-      .from(tempDiv)
-      .output('blob');
+      .from(wrappedHtml)
+      .outputPdf('blob');
 
-    // 6. Nettoyer
-    document.body.removeChild(tempDiv);
+    logger.debug('PDF blob généré', { size: pdfBlob.size });
 
-    // 6. Convertir en File
+    // 5. Convertir en File
     const fileName = `contrat-${projectType}-${Date.now()}.pdf`;
     const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
