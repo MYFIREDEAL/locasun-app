@@ -22,31 +22,51 @@ export async function generateContractPDF({
 
     // 1. Injecter les données du prospect dans le HTML
     const htmlWithData = injectProspectData(templateHtml, prospectData);
+    
+    logger.debug('HTML après injection', { 
+      htmlLength: htmlWithData.length,
+      htmlPreview: htmlWithData.substring(0, 200)
+    });
 
-    // 2. Créer un élément temporaire
+    // 2. Créer un élément temporaire VISIBLE pour le rendu
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlWithData;
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.top = '0';
+    tempDiv.style.left = '0';
     tempDiv.style.width = '210mm'; // Format A4
+    tempDiv.style.minHeight = '297mm'; // Hauteur A4
+    tempDiv.style.padding = '20px';
+    tempDiv.style.background = 'white';
+    tempDiv.style.zIndex = '-1'; // Derrière tout mais visible pour le rendu
+    tempDiv.style.opacity = '0'; // Invisible pour l'utilisateur
     document.body.appendChild(tempDiv);
 
-    // 3. Options de génération PDF
+    // 3. Attendre que le DOM soit prêt
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 4. Options de génération PDF
     const options = {
-      margin: 10,
+      margin: [10, 10, 10, 10],
       filename: `contrat-${projectType}-${Date.now()}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true,
+        logging: false,
+        letterRendering: true,
+        allowTaint: true
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     };
 
-    // 4. Générer le PDF
+    // 5. Générer le PDF
     const pdfBlob = await html2pdf()
       .set(options)
       .from(tempDiv)
       .output('blob');
 
-    // 5. Nettoyer
+    // 6. Nettoyer
     document.body.removeChild(tempDiv);
 
     // 6. Convertir en File
@@ -76,6 +96,11 @@ export async function generateContractPDF({
  * @returns {string} - HTML avec données injectées
  */
 function injectProspectData(html, prospect) {
+  if (!html || html.trim() === '') {
+    logger.warn('Template HTML vide ou undefined');
+    return '<div style="padding: 40px; font-family: Arial;"><h1>Contrat</h1><p>Template non configuré</p></div>';
+  }
+
   let result = html;
 
   // Variables disponibles
