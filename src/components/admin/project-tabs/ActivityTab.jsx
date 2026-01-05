@@ -173,24 +173,26 @@ const ActivityTab = ({ prospectId, projectType }) => {
       </div>
 
       {/* 🔥 Modal Ajouter une activité - Utilisation du composant AddActivityModal de Agenda */}
-      <AddActivityModal
-        open={showAddActivity}
-        onOpenChange={setShowAddActivity}
-        initialData={{
-          contactId: prospectId,
-          projectId: projectType,
-        }}
-        defaultAssignedUserId={supabaseUserId}
-        addAppointment={addAppointment}
-        addCall={addCall}
-        addTask={addTask}
-        updateAppointment={updateAppointment}
-        updateCall={updateCall}
-        updateTask={updateTask}
-        prospects={prospects}
-        users={supabaseUsers}
-        projectsData={projectsData}
-      />
+      {showAddActivity && prospects && supabaseUsers && projectsData && (
+        <AddActivityModal
+          open={showAddActivity}
+          onOpenChange={setShowAddActivity}
+          initialData={{
+            contactId: prospectId,
+            projectId: projectType,
+          }}
+          defaultAssignedUserId={supabaseUserId}
+          addAppointment={addAppointment}
+          addCall={addCall}
+          addTask={addTask}
+          updateAppointment={updateAppointment}
+          updateCall={updateCall}
+          updateTask={updateTask}
+          prospects={prospects}
+          users={supabaseUsers}
+          projectsData={projectsData}
+        />
+      )}
 
       {/* Activités en cours */}
       <div>
