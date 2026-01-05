@@ -1501,6 +1501,7 @@ const ProfilePage = () => {
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
   const [editingContractTemplate, setEditingContractTemplate] = useState(null);
+  const [isPreviewTemplateOpen, setIsPreviewTemplateOpen] = useState(false);
   const [selectedProjectForDisplay, setSelectedProjectForDisplay] = useState('');
   const [projectDisplayData, setProjectDisplayData] = useState({
     coverImage: '',
@@ -3517,10 +3518,44 @@ const ProfilePage = () => {
                           Annuler
                       </Button>
                       <Button 
+                          variant="secondary"
+                          onClick={() => setIsPreviewTemplateOpen(true)}
+                          disabled={!editingContractTemplate?.contentHtml}
+                      >
+                          👁️ Visualiser
+                      </Button>
+                      <Button 
                           onClick={() => handleSaveContractTemplate(editingContractTemplate)}
                           className="bg-purple-600 hover:bg-purple-700"
                       >
                           Enregistrer
+                      </Button>
+                  </DialogFooter>
+              </DialogContent>
+          </Dialog>
+
+          {/* Modal Prévisualisation Template */}
+          <Dialog open={isPreviewTemplateOpen} onOpenChange={setIsPreviewTemplateOpen}>
+              <DialogContent className="sm:max-w-5xl max-h-[90vh]">
+                  <DialogHeader>
+                      <DialogTitle>
+                          Prévisualisation : {editingContractTemplate?.name || 'Template'}
+                      </DialogTitle>
+                      <DialogDescription>
+                          Aperçu du rendu HTML du template de contrat
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="p-6 max-h-[70vh] overflow-y-auto bg-white border rounded-lg">
+                      <div 
+                          className="prose max-w-none"
+                          dangerouslySetInnerHTML={{ __html: editingContractTemplate?.contentHtml || '' }}
+                      />
+                  </div>
+                  <DialogFooter className="px-6 pb-4">
+                      <Button 
+                          onClick={() => setIsPreviewTemplateOpen(false)}
+                      >
+                          Fermer
                       </Button>
                   </DialogFooter>
               </DialogContent>
