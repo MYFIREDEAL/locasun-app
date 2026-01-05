@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import { logger } from '@/lib/logger';
@@ -13,6 +13,9 @@ import { toast } from '@/components/ui/use-toast';
  * @param {Array} currentSteps - Étapes actuelles du projet
  */
 export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
+  // Garde une trace des actions déjà exécutées pour éviter les duplicatas
+  const executedActionsRef = useRef(new Set());
+
   useEffect(() => {
     if (!prospectId || !projectType || !currentSteps) return;
 
@@ -63,6 +66,18 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
             });
             continue;
           }
+
+          // 🔥 Créer une clé unique pour cette action à cette étape
+          const actionKey = `${prospectId}-${projectType}-${currentStepIndex}-${action.type}-${action.templateId || action.formId || ''}`;
+
+          // 🔥 Vérifier si l'action a déjà été exécutée
+          if (executedActionsRef.current.has(actionKey)) {
+            logger.debug('Action déjà exécutée, skip', { actionKey });
+            continue;
+          }
+
+          // 🔥 Marquer l'action comme exécutée AVANT de l'exécuter
+          executedActionsRef.current.add(actionKey);
 
           // Exécuter l'action selon son type
           await executeAction({
