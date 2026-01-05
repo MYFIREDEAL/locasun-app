@@ -221,13 +221,21 @@ export async function uploadContractPDF({
   fileName,
 }) {
   try {
-    logger.debug('Upload PDF contract dans Storage', { projectType, prospectId, fileName });
+    logger.debug('Upload PDF contract dans Storage', { 
+      projectType, 
+      prospectId, 
+      fileName,
+      fileSize: pdfFile.size,
+      fileType: pdfFile.type 
+    });
 
     // 1. Générer le chemin de stockage
     const storagePath = `${projectType}/${fileName}`;
 
+    logger.debug('Tentative upload Storage', { storagePath, bucket: 'project-files' });
+
     // 2. Upload dans Supabase Storage
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('project-files')
       .upload(storagePath, pdfFile, {
         contentType: 'application/pdf',
@@ -235,9 +243,15 @@ export async function uploadContractPDF({
       });
 
     if (uploadError) {
-      logger.error('Erreur upload Storage', { error: uploadError.message });
+      logger.error('Erreur upload Storage', { 
+        error: uploadError.message,
+        statusCode: uploadError.statusCode,
+        details: uploadError 
+      });
       throw uploadError;
     }
+
+    logger.debug('Upload Storage réussi', { uploadData });
 
     // 3. Insérer dans la table project_files
     const { data, error: insertError } = await supabase
