@@ -1,6 +1,6 @@
 import { logger } from '@/lib/logger';
 import React, { useState } from 'react';
-import { Upload, Download, Trash2, FileText, Image, File } from 'lucide-react';
+import { Upload, Download, Trash2, FileText, Image, File, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
@@ -102,6 +102,28 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       logger.error('Error downloading file:', err);
+    }
+  };
+
+  const handleView = async (file) => {
+    try {
+      logger.debug('👁️ Generating signed URL for view', { storagePath: file.storage_path });
+      
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(file.storage_path, 3600); // 1 heure
+
+      if (error) {
+        logger.error('Error creating signed URL:', error);
+        return;
+      }
+
+      logger.debug('✅ Signed URL generated', { url: data.signedUrl });
+      
+      // Ouvrir dans un nouvel onglet
+      window.open(data.signedUrl, '_blank');
+    } catch (err) {
+      logger.error('Error viewing file:', err);
     }
   };
 
@@ -226,6 +248,14 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
                 </div>
 
                 <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => handleView(file)}
+                    className="p-2 hover:bg-green-50 rounded text-green-600 transition-colors"
+                    title="Voir"
+                    disabled={deleting}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => handleDownload(file)}
                     className="p-2 hover:bg-blue-50 rounded text-blue-600 transition-colors"
