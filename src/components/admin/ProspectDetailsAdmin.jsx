@@ -2665,16 +2665,6 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
             <DialogTitle className="text-xl font-bold text-gray-900">{event.summary}</DialogTitle>
           </DialogHeader>
           
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start space-x-3 text-gray-600 flex-1">
-              <Users className="h-5 w-5 text-gray-400 mt-1" />
-              <div>
-                <p className="font-medium">Participants</p>
-                {contact && <p className="text-sm">{contact.name} (Client)</p>}
-                {assignedUser && <p className="text-sm">{assignedUser.name} (Assigné)</p>}
-              </div>
-            </div>
-          
           <div className="flex items-start space-x-3 text-gray-600">
             <Users className="h-5 w-5 text-gray-400 mt-1" />
             <div>
