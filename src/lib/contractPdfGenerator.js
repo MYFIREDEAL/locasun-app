@@ -119,7 +119,11 @@ export async function generateContractPDF({
       fileName,
     };
   } catch (error) {
-    logger.error('Erreur génération PDF contract', { error: error.message });
+    logger.error('Erreur génération PDF contract', { 
+      errorMessage: error.message,
+      errorDetails: error,
+      errorStack: error.stack 
+    });
     return {
       success: false,
       error: error.message,
@@ -283,7 +287,11 @@ export async function uploadContractPDF({
       data,
     };
   } catch (error) {
-    logger.error('Erreur upload contract PDF', { error: error.message });
+    logger.error('Erreur upload contract PDF', { 
+      errorMessage: error.message,
+      errorDetails: error,
+      errorStack: error.stack 
+    });
     return {
       success: false,
       error: error.message,
@@ -360,7 +368,11 @@ export async function executeContractSignatureAction({
       data: uploadResult.data,
     };
   } catch (error) {
-    logger.error('Erreur exécution action launch_signature', { error: error.message });
+    logger.error('Erreur exécution action launch_signature', { 
+      errorMessage: error.message,
+      errorDetails: error,
+      errorStack: error.stack 
+    });
     return {
       success: false,
       error: error.message,
