@@ -37,6 +37,8 @@ export default function SignaturePage() {
       }
 
       // Récupérer la procédure
+      logger.debug('Chargement procédure', { signatureProcedureId, token });
+      
       const { data: proc, error: procError } = await supabase
         .from('signature_procedures')
         .select('*, project_files(*)')
@@ -44,7 +46,10 @@ export default function SignaturePage() {
         .eq('access_token', token)
         .single();
 
+      logger.debug('Résultat requête', { proc, procError });
+
       if (procError || !proc) {
+        logger.error('Erreur chargement procédure', procError);
         setError('Lien invalide ou expiré');
         setLoading(false);
         return;
