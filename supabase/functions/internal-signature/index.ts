@@ -17,97 +17,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { signatureProcedureId, token } = await req.json()
+    const { signature_procedure_id, signer_email, signer_user_id, pdf_file_id, pdf_hash } = await req.json()
 
-    // Vérifier la procédure
-    const { data: procedure, error: procError } = await supabaseClient
-      .from('signature_procedures')
-      .select('*, project_files(*)')
-      .eq('id', signatureProcedureId)
-      .eq('access_token', token)
-      .single()
-
-    if (procError || !procedure) {
-      return new Response(
-        JSON.stringify({ error: 'Procédure invalide' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Vérifier expiration
-    const expiresAt = new Date(procedure.access_token_expires_at)
-    if (expiresAt < new Date()) {
-      return new Response(
-        JSON.stringify({ error: 'Token expiré' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Vérifier status
-    if (procedure.status !== 'pending') {
-      return new Response(
-        JSON.stringify({ error: 'Signature déjà traitée' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Télécharger le PDF
-    const { data: pdfData, error: downloadError } = await supabaseClient.storage
-      .from('project_files')
-      .download(procedure.project_files.storage_path)
-
-    if (downloadError) {
-      console.error('Erreur téléchargement PDF:', downloadError)
-      return new Response(
-        JSON.stringify({ error: 'Erreur téléchargement PDF' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Calculer hash SHA-256
-    const arrayBuffer = await pdfData.arrayBuffer()
-    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-
-    // Créer fichier signé (copie avec metadata)
-    const signedFileName = procedure.project_files.name.replace('.pdf', '_signed.pdf')
-    const signedPath = `${procedure.prospect_id}/${signedFileName}`
-
-    const { data: uploadData, error: uploadError } = await supabaseClient.storage
-      .from('project_files')
-      .upload(signedPath, pdfData, {
-        contentType: 'application/pdf',
-        upsert: true,
-      })
-
-    if (uploadError) {
-      console.error('Erreur upload PDF signé:', uploadError)
-      return new Response(
-        JSON.stringify({ error: 'Erreur sauvegarde PDF signé' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Créer entrée project_files pour le PDF signé
-    const { data: signedFile, error: fileError } = await supabaseClient
-      .from('project_files')
+    // Créer la preuve de signature
+    const { data: proof, error: proofError } = await supabaseClient
+      .from('signature_proofs')
       .insert({
-        prospect_id: procedure.prospect_id,
-        project_type: procedure.project_type,
-        name: signedFileName,
-        storage_path: signedPath,
-        file_type: 'application/pdf',
-        size: pdfData.size,
-        field_label: 'Contrat signé',
+        signature_procedure_id,
+        signer_email,
+        signer_user_id,
+        pdf_file_id,
+        pdf_hash,
       })
       .select()
       .single()
 
-    if (fileError) {
-      console.error('Erreur création project_files:', fileError)
+    if (proofError) {
+      console.error('Erreur création signature_proofs:', proofError)
       return new Response(
-        JSON.stringify({ error: 'Erreur enregistrement fichier' }),
+        JSON.stringify({ error: 'Erreur création preuve' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -117,14 +45,12 @@ serve(async (req) => {
       .from('signature_procedures')
       .update({
         status: 'signed',
-        signed_file_id: signedFile.id,
-        signature_hash: hashHex,
         signed_at: new Date().toISOString(),
       })
-      .eq('id', signatureProcedureId)
+      .eq('id', signature_procedure_id)
 
     if (updateError) {
-      console.error('Erreur update procédure:', updateError)
+      console.error('Erreur update signature_procedures:', updateError)
       return new Response(
         JSON.stringify({ error: 'Erreur mise à jour procédure' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -134,8 +60,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        signedFileId: signedFile.id,
-        hash: hashHex,
+        proof_id: proof.id,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

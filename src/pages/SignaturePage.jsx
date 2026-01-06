@@ -92,11 +92,33 @@ export default function SignaturePage() {
     try {
       setSigning(true);
 
+      // Télécharger le PDF pour calculer le hash
+      const response = await fetch(pdfUrl);
+      const pdfBlob = await response.blob();
+      const arrayBuffer = await pdfBlob.arrayBuffer();
+
+      // Calculer SHA-256
+      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const pdfHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      logger.debug('PDF hash calculé', { pdfHash });
+
+      // Récupérer email du prospect
+      const { data: prospect } = await supabase
+        .from('prospects')
+        .select('email, user_id')
+        .eq('id', procedure.prospect_id)
+        .single();
+
       // Appeler Edge Function internal-signature
       const { data, error } = await supabase.functions.invoke('internal-signature', {
         body: {
-          signatureProcedureId,
-          token,
+          signature_procedure_id: signatureProcedureId,
+          signer_email: prospect?.email || '',
+          signer_user_id: prospect?.user_id || null,
+          pdf_file_id: procedure.file_id,
+          pdf_hash: pdfHash,
         },
       });
 
