@@ -263,20 +263,34 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
     
     logger.debug('URL de signature générée', { signatureUrl });
 
-    // 🔥 ENVOYER LE LIEN DANS LE CHAT
-    const { error: chatError } = await supabase
+    // 🔥 VÉRIFIER SI LE MESSAGE EXISTE DÉJÀ
+    const { data: existingMessage } = await supabase
       .from('chat_messages')
-      .insert({
-        prospect_id: prospectId,
-        project_type: projectType,
-        sender: 'pro',
-        text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
-      });
+      .select('id')
+      .eq('prospect_id', prospectId)
+      .eq('project_type', projectType)
+      .eq('sender', 'pro')
+      .ilike('text', '%/signature/%')
+      .maybeSingle();
 
-    if (chatError) {
-      logger.error('Erreur envoi message chat signature', chatError);
+    // 🔥 ENVOYER LE LIEN DANS LE CHAT (seulement si inexistant)
+    if (!existingMessage) {
+      const { error: chatError } = await supabase
+        .from('chat_messages')
+        .insert({
+          prospect_id: prospectId,
+          project_type: projectType,
+          sender: 'pro',
+          text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
+        });
+
+      if (chatError) {
+        logger.error('Erreur envoi message chat signature', chatError);
+      } else {
+        logger.debug('Lien de signature envoyé dans le chat');
+      }
     } else {
-      logger.debug('Lien de signature envoyé dans le chat');
+      logger.debug('Message de signature déjà existant, pas de duplication');
     }
 
   } catch (error) {
