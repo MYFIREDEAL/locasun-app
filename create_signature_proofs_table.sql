@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS public.signature_proofs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_signature_proofs_procedure ON public.signature_proofs(signature_procedure_id);
-CREATE INDEX idx_signature_proofs_email ON public.signature_proofs(signer_email);
+CREATE INDEX IF NOT EXISTS idx_signature_proofs_procedure ON public.signature_proofs(signature_procedure_id);
+CREATE INDEX IF NOT EXISTS idx_signature_proofs_email ON public.signature_proofs(signer_email);
 
 -- RLS
 ALTER TABLE public.signature_proofs ENABLE ROW LEVEL SECURITY;
