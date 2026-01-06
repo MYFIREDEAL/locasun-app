@@ -203,7 +203,13 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
           <div key={index} className={`flex items-end gap-2 ${msg.sender === 'client' ? 'justify-end' : 'justify-start'}`}>
             {msg.sender === 'pro' && <img alt="Charly" className="w-8 h-8 rounded-full" src="https://horizons-cdn.hostinger.com/43725989-d002-4543-b65c-278701925e7e/4e3f809791e357819f31c585852d3a99.png" />}
             <div className={`max-w-xs lg:max-w-md rounded-2xl ${msg.sender === 'client' ? 'bg-blue-500 text-white rounded-br-none p-2.5' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
-              {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
+              {msg.text && (
+                (msg.sender === 'ia' || msg.sender === 'pro') && msg.text.includes('<a ') ? (
+                  <p className="text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: msg.text }} />
+                ) : (
+                  <p className="text-xs leading-relaxed">{msg.text}</p>
+                )
+              )}
               {msg.file && (
                 <button 
                   onClick={() => handleFileClick(msg.file)} 

@@ -270,8 +270,8 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         prospect_id: prospectId,
         project_type: projectType,
         sender: 'ia',
-        message: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
-        timestamp: new Date().toISOString(),
+        text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
+        created_at: new Date().toISOString(),
       });
 
     if (chatError) {
