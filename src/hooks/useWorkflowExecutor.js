@@ -263,14 +263,14 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
     
     logger.debug('URL de signature générée', { signatureUrl });
 
-    // 🔥 VÉRIFIER SI LE MESSAGE EXISTE DÉJÀ
+    // 🔥 VÉRIFIER SI LE MESSAGE EXISTE DÉJÀ (lié à cette procédure)
     const { data: existingMessage } = await supabase
       .from('chat_messages')
       .select('id')
       .eq('prospect_id', prospectId)
       .eq('project_type', projectType)
       .eq('sender', 'pro')
-      .ilike('text', '%/signature/%')
+      .ilike('text', `%/signature/${signatureProcedure.id}%`)
       .maybeSingle();
 
     // 🔥 ENVOYER LE LIEN DANS LE CHAT (seulement si inexistant)
