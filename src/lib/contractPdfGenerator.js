@@ -393,6 +393,7 @@ export async function executeContractSignatureAction({
 
     return {
       success: true,
+      fileData: pdfResult.fileData, // Retourner fileData pour cohérence
       data: pdfResult.fileData,
     };
   } catch (error) {

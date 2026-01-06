@@ -148,6 +148,7 @@ async function executeAction({ action, prospectId, projectType }) {
 /**
  * Exécute l'action "Lancer une signature"
  * Génère un PDF de contrat et l'ajoute aux fichiers du projet
+ * PUIS crée un lien de signature dans le chat
  */
 async function executeStartSignatureAction({ action, prospectId, projectType }) {
   try {
@@ -164,7 +165,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
     // 🔥 VÉRIFIER si un contrat PDF existe déjà pour ce projet
     const { data: existingFiles, error: checkError } = await supabase
       .from('project_files')
-      .select('id, file_name')
+      .select('id, file_name, storage_path')
       .eq('prospect_id', prospectId)
       .eq('project_type', projectType)
       .eq('field_label', 'Contrat généré automatiquement')
@@ -174,41 +175,111 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       logger.error('Erreur vérification fichiers existants', { error: checkError.message });
     }
 
+    let fileId = null;
+
     if (existingFiles && existingFiles.length > 0) {
-      logger.debug('Contrat PDF déjà existant, skip génération', { 
+      logger.debug('Contrat PDF déjà existant, utilisation du fichier existant', { 
         existingFile: existingFiles[0].file_name 
       });
-      return;
-    }
-
-    logger.debug('Génération contrat PDF...', { 
-      templateId: action.templateId,
-      prospectId,
-      projectType 
-    });
-
-    toast({
-      title: "📄 Génération du contrat...",
-      description: "Création du PDF en cours",
-      className: "bg-blue-500 text-white",
-    });
-
-    // Exécuter la génération + upload
-    const result = await executeContractSignatureAction({
-      templateId: action.templateId,
-      projectType,
-      prospectId,
-    });
-
-    if (result.success) {
-      toast({
-        title: "✅ Contrat généré !",
-        description: "Le PDF a été ajouté aux fichiers du projet",
-        className: "bg-green-500 text-white",
-      });
+      fileId = existingFiles[0].id;
     } else {
-      throw new Error(result.error);
+      logger.debug('Génération contrat PDF...', { 
+        templateId: action.templateId,
+        prospectId,
+        projectType 
+      });
+
+      toast({
+        title: "📄 Génération du contrat...",
+        description: "Création du PDF en cours",
+        className: "bg-blue-500 text-white",
+      });
+
+      // Exécuter la génération + upload
+      const result = await executeContractSignatureAction({
+        templateId: action.templateId,
+        projectType,
+        prospectId,
+      });
+
+      if (result.success) {
+        fileId = result.fileData.id;
+        toast({
+          title: "✅ Contrat généré !",
+          description: "Le PDF a été ajouté aux fichiers du projet",
+          className: "bg-green-500 text-white",
+        });
+      } else {
+        throw new Error(result.error);
+      }
     }
+
+    // 🔥 CRÉER OU RÉCUPÉRER LA PROCÉDURE DE SIGNATURE
+    logger.debug('Création procédure de signature...', { fileId, prospectId, projectType });
+
+    // Vérifier si une procédure existe déjà pour ce fichier
+    const { data: existingProcedure } = await supabase
+      .from('signature_procedures')
+      .select('*')
+      .eq('file_id', fileId)
+      .eq('prospect_id', prospectId)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    let signatureProcedure = existingProcedure;
+
+    if (!signatureProcedure) {
+      // Créer nouvelle procédure
+      const accessToken = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // +7 jours
+
+      const { data: newProcedure, error: procedureError } = await supabase
+        .from('signature_procedures')
+        .insert({
+          prospect_id: prospectId,
+          project_type: projectType,
+          file_id: fileId,
+          access_token: accessToken,
+          access_token_expires_at: expiresAt.toISOString(),
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (procedureError) {
+        logger.error('Erreur création signature_procedures', procedureError);
+        throw procedureError;
+      }
+
+      signatureProcedure = newProcedure;
+      logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id });
+    } else {
+      logger.debug('Procédure de signature existante réutilisée', { procedureId: signatureProcedure.id });
+    }
+
+    // 🔥 CONSTRUIRE L'URL DE SIGNATURE
+    const signatureUrl = `${window.location.origin}/signature/${signatureProcedure.id}?token=${signatureProcedure.access_token}`;
+    
+    logger.debug('URL de signature générée', { signatureUrl });
+
+    // 🔥 ENVOYER LE LIEN DANS LE CHAT
+    const { error: chatError } = await supabase
+      .from('chat_messages')
+      .insert({
+        prospect_id: prospectId,
+        project_type: projectType,
+        sender: 'ia',
+        message: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
+        timestamp: new Date().toISOString(),
+      });
+
+    if (chatError) {
+      logger.error('Erreur envoi message chat signature', chatError);
+    } else {
+      logger.debug('Lien de signature envoyé dans le chat');
+    }
+
   } catch (error) {
     logger.error('Erreur génération contrat', { error: error.message });
     toast({
