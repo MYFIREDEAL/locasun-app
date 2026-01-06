@@ -269,9 +269,8 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       .insert({
         prospect_id: prospectId,
         project_type: projectType,
-        sender: 'ia',
+        sender: 'pro',
         text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
-        created_at: new Date().toISOString(),
       });
 
     if (chatError) {
