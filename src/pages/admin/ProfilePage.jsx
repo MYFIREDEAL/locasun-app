@@ -402,6 +402,7 @@ const FormEditor = ({
                                         <SelectItem value="email">Email</SelectItem>
                                         <SelectItem value="phone">Téléphone</SelectItem>
                                         <SelectItem value="number">Nombre</SelectItem>
+                                        <SelectItem value="select">Liste déroulante</SelectItem>
                                         <SelectItem value="file">Fichier</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -409,6 +410,51 @@ const FormEditor = ({
                                     <Trash2 className="h-4 w-4 text-red-500" />
                                 </Button>
                             </div>
+                            
+                            {/* 🔥 Si type = select, afficher éditeur d'options */}
+                            {field.type === 'select' && (
+                                <div className="pl-2 space-y-2 border-l-2 border-blue-300">
+                                    <Label className="text-xs font-semibold text-blue-700">Options du menu déroulant :</Label>
+                                    <div className="space-y-1">
+                                        {(field.options || []).map((option, optIndex) => (
+                                            <div key={optIndex} className="flex items-center gap-2">
+                                                <Input 
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                        const newOptions = [...(field.options || [])];
+                                                        newOptions[optIndex] = e.target.value;
+                                                        handleFieldChange(index, 'options', newOptions);
+                                                    }}
+                                                    placeholder={`Option ${optIndex + 1}`}
+                                                    className="flex-1"
+                                                />
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        const newOptions = (field.options || []).filter((_, i) => i !== optIndex);
+                                                        handleFieldChange(index, 'options', newOptions);
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-3 w-3 text-red-500" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => {
+                                            const newOptions = [...(field.options || []), ''];
+                                            handleFieldChange(index, 'options', newOptions);
+                                        }}
+                                        className="text-xs"
+                                    >
+                                        <Plus className="h-3 w-3 mr-1" /> Ajouter une option
+                                    </Button>
+                                </div>
+                            )}
+                            
                             <div className="flex items-center gap-2 pl-2">
                                 <Label className="text-xs text-gray-600">Afficher uniquement si :</Label>
                                 <Select 
@@ -435,28 +481,37 @@ const FormEditor = ({
                                         <SelectItem value="always">Toujours visible</SelectItem>
                                         {(editedForm.fields || [])
                                             .slice(0, index)
-                                            .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone')
-                                            .map(previousField => (
-                                                <SelectItem 
-                                                    key={previousField.id} 
-                                                    value={`${previousField.id}::has_value`}
-                                                >
-                                                    Si "{previousField.label}" est rempli
-                                                </SelectItem>
-                                            ))
+                                            .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'select')
+                                            .map(previousField => {
+                                                // Si c'est un select, proposer chaque option comme condition
+                                                if (previousField.type === 'select' && previousField.options && previousField.options.length > 0) {
+                                                    return previousField.options.map(option => (
+                                                        <SelectItem 
+                                                            key={`${previousField.id}::${option}`}
+                                                            value={`${previousField.id}::${option}`}
+                                                        >
+                                                            Si "{previousField.label}" = "{option}"
+                                                        </SelectItem>
+                                                    ));
+                                                }
+                                                // Pour les autres types, condition générique "est rempli"
+                                                return (
+                                                    <SelectItem 
+                                                        key={previousField.id} 
+                                                        value={`${previousField.id}::has_value`}
+                                                    >
+                                                        Si "{previousField.label}" est rempli
+                                                    </SelectItem>
+                                                );
+                                            })
+                                            .flat()
                                         }
                                     </SelectContent>
                                 </Select>
-                                {field.show_if && (
-                                    <Input
-                                        placeholder="Valeur attendue"
-                                        value={field.show_if.equals || ''}
-                                        onChange={(e) => handleFieldChange(index, 'show_if', {
-                                            ...field.show_if,
-                                            equals: e.target.value
-                                        })}
-                                        className="w-[180px]"
-                                    />
+                                {field.show_if && field.show_if.equals !== 'has_value' && (
+                                    <span className="text-xs text-gray-500 italic">
+                                        Valeur: "{field.show_if.equals}"
+                                    </span>
                                 )}
                             </div>
                         </div>)}
@@ -476,6 +531,7 @@ const FormEditor = ({
                                     <SelectItem value="email">Email</SelectItem>
                                     <SelectItem value="phone">Téléphone</SelectItem>
                                     <SelectItem value="number">Nombre</SelectItem>
+                                    <SelectItem value="select">Liste déroulante</SelectItem>
                                     <SelectItem value="file">Fichier</SelectItem>
                                 </SelectContent>
                             </Select>

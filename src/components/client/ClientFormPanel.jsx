@@ -763,6 +763,20 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                               Formats acceptés: PDF, PNG, JPG, DOCX (max 10 MB)
                             </p>
                           </div>
+                        ) : field.type === 'select' ? (
+                          <select
+                            id={`${panel.panelId}-${field.id}`}
+                            value={fieldValue || ''}
+                            onChange={(event) => handleFieldChange(panel.panelId, field.id, event.target.value)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="">-- Sélectionner --</option>
+                            {(field.options || []).map((option, idx) => (
+                              <option key={idx} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <Input
                             id={`${panel.panelId}-${field.id}`}
