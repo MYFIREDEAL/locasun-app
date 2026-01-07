@@ -736,6 +736,15 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                         return null;
                       }
                     }
+                    
+                    // 🔥 VÉRIFIER SI CE CHAMP EST DANS UN GROUPE RÉPÉTÉ (ne pas l'afficher directement)
+                    const isInRepeatedGroup = (formDefinition.fields || []).some(f => 
+                      f.is_repeater && (f.repeats_fields || []).includes(field.id)
+                    );
+                    
+                    if (isInRepeatedGroup) {
+                      return null; // Ce champ sera affiché dans les blocs répétés
+                    }
 
                     const isFileField = field.type === 'file';
                     const fieldValue = draft[field.id];
@@ -826,6 +835,124 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                             onChange={(event) => handleFieldChange(panel.panelId, field.id, event.target.value)}
                             placeholder={field.placeholder || ''}
                           />
+                        )}
+                        
+                        {/* 🔥 RENDU DES CHAMPS RÉPÉTABLES */}
+                        {field.is_repeater && field.repeats_fields && field.repeats_fields.length > 0 && fieldValue && (
+                          <div className="mt-4 space-y-4">
+                            {Array.from({ length: parseInt(fieldValue) || 0 }, (_, repeatIndex) => {
+                              // Récupérer les champs à répéter
+                              const fieldsToRepeat = (formDefinition.fields || []).filter(f => 
+                                field.repeats_fields.includes(f.id)
+                              );
+                              
+                              return (
+                                <div 
+                                  key={repeatIndex} 
+                                  className="p-4 bg-green-50 border-2 border-green-200 rounded-lg space-y-3"
+                                >
+                                  <h4 className="font-semibold text-green-800 text-sm">
+                                    {field.label} #{repeatIndex + 1}
+                                  </h4>
+                                  
+                                  {fieldsToRepeat.map(repeatedField => {
+                                    // Clé unique pour chaque instance répétée
+                                    const repeatedFieldKey = `${field.id}_repeat_${repeatIndex}_${repeatedField.id}`;
+                                    const repeatedFieldValue = draft[repeatedFieldKey];
+                                    const isRepeatedFileField = repeatedField.type === 'file';
+                                    const hasRepeatedFile = isRepeatedFileField && (repeatedFieldValue instanceof File || (repeatedFieldValue?.storagePath));
+                                    
+                                    return (
+                                      <div key={repeatedFieldKey} className="space-y-2">
+                                        <Label htmlFor={`${panel.panelId}-${repeatedFieldKey}`}>
+                                          {repeatedField.label}
+                                          {repeatedField.required && <span className="text-red-500 ml-1">*</span>}
+                                        </Label>
+                                        
+                                        {isRepeatedFileField ? (
+                                          <div className="space-y-2">
+                                            {hasRepeatedFile && (
+                                              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-blue-900 truncate">
+                                                    {repeatedFieldValue instanceof File ? repeatedFieldValue.name : repeatedFieldValue.name}
+                                                  </p>
+                                                  <p className="text-xs text-blue-600">
+                                                    {repeatedFieldValue instanceof File 
+                                                      ? `${(repeatedFieldValue.size / 1024).toFixed(1)} KB` 
+                                                      : `${(repeatedFieldValue.size / 1024).toFixed(1)} KB`}
+                                                  </p>
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleFieldChange(panel.panelId, repeatedFieldKey, null)}
+                                                  className="p-1 hover:bg-red-100 rounded-full transition-colors"
+                                                >
+                                                  <X className="h-4 w-4 text-red-600" />
+                                                </button>
+                                              </div>
+                                            )}
+                                            
+                                            <label 
+                                              htmlFor={`${panel.panelId}-${repeatedFieldKey}`}
+                                              className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                                hasRepeatedFile 
+                                                  ? 'border-gray-300 bg-gray-50 hover:border-gray-400' 
+                                                  : 'border-blue-300 bg-blue-50 hover:border-blue-400 hover:bg-blue-100'
+                                              }`}
+                                            >
+                                              <Upload className="h-5 w-5 text-blue-600" />
+                                              <span className="text-sm font-medium text-blue-900">
+                                                {hasRepeatedFile ? 'Changer le fichier' : 'Choisir un fichier'}
+                                              </span>
+                                            </label>
+                                            <Input
+                                              id={`${panel.panelId}-${repeatedFieldKey}`}
+                                              type="file"
+                                              onChange={(event) => {
+                                                const file = event.target.files?.[0];
+                                                if (file) {
+                                                  handleFieldChange(panel.panelId, repeatedFieldKey, file);
+                                                }
+                                              }}
+                                              className="hidden"
+                                              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                            />
+                                            <p className="text-xs text-gray-500">
+                                              Formats acceptés: PDF, PNG, JPG, DOCX (max 10 MB)
+                                            </p>
+                                          </div>
+                                        ) : repeatedField.type === 'select' ? (
+                                          <select
+                                            id={`${panel.panelId}-${repeatedFieldKey}`}
+                                            value={repeatedFieldValue || ''}
+                                            onChange={(event) => handleFieldChange(panel.panelId, repeatedFieldKey, event.target.value)}
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                          >
+                                            <option value="">-- Sélectionner --</option>
+                                            {(repeatedField.options || []).map((option, idx) => (
+                                              <option key={idx} value={option}>
+                                                {option}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        ) : (
+                                          <Input
+                                            id={`${panel.panelId}-${repeatedFieldKey}`}
+                                            type={repeatedField.type || 'text'}
+                                            value={typeof repeatedFieldValue === 'object' ? '' : (repeatedFieldValue || '')}
+                                            onChange={(event) => handleFieldChange(panel.panelId, repeatedFieldKey, event.target.value)}
+                                            placeholder={repeatedField.placeholder || ''}
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     );

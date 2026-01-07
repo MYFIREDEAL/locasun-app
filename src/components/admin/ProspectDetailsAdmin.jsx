@@ -102,6 +102,15 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
                         return null;
                     }
                 }
+                
+                // 🔥 Ne pas afficher les champs qui sont dans un groupe répété
+                const isInRepeatedGroup = (form.fields || []).some(f => 
+                    f.is_repeater && (f.repeats_fields || []).includes(field.id)
+                );
+                
+                if (isInRepeatedGroup) {
+                    return null;
+                }
 
                 return (
                     <div key={field.id}>
@@ -113,6 +122,45 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             placeholder={field.placeholder || ''}
                         />
+                        
+                        {/* 🔥 Afficher les champs répétés */}
+                        {field.is_repeater && field.repeats_fields && field.repeats_fields.length > 0 && formData[field.id] && (
+                            <div className="mt-4 space-y-4">
+                                {Array.from({ length: parseInt(formData[field.id]) || 0 }, (_, repeatIndex) => {
+                                    const fieldsToRepeat = (form.fields || []).filter(f => 
+                                        field.repeats_fields.includes(f.id)
+                                    );
+                                    
+                                    return (
+                                        <div key={repeatIndex} className="p-4 bg-green-50 border-2 border-green-200 rounded-lg space-y-3">
+                                            <h4 className="font-semibold text-green-800 text-sm">
+                                                {field.label} #{repeatIndex + 1}
+                                            </h4>
+                                            
+                                            {fieldsToRepeat.map(repeatedField => {
+                                                const repeatedFieldKey = `${field.id}_repeat_${repeatIndex}_${repeatedField.id}`;
+                                                const repeatedFieldValue = formData[repeatedFieldKey];
+                                                
+                                                return (
+                                                    <div key={repeatedFieldKey}>
+                                                        <Label htmlFor={`${form.id}-${repeatedFieldKey}`}>
+                                                            {repeatedField.label}
+                                                        </Label>
+                                                        <Input
+                                                            id={`${form.id}-${repeatedFieldKey}`}
+                                                            type={repeatedField.type}
+                                                            value={typeof repeatedFieldValue === 'object' ? '' : (repeatedFieldValue || '')}
+                                                            onChange={(e) => handleInputChange(repeatedFieldKey, e.target.value)}
+                                                            placeholder={repeatedField.placeholder || ''}
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 );
             })}
@@ -1347,6 +1395,15 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                                             return null;
                                         }
                                     }
+                                    
+                                    // 🔥 Ne pas afficher les champs répétés directement
+                                    const isInRepeatedGroup = (formDefinition.fields || []).some(f => 
+                                        f.is_repeater && (f.repeats_fields || []).includes(field.id)
+                                    );
+                                    
+                                    if (isInRepeatedGroup) {
+                                        return null;
+                                    }
 
                                     const fieldValue = formData[field.id];
                                     const isFile = field.type === 'file' && typeof fieldValue === 'object' && fieldValue?.storagePath;
@@ -1400,6 +1457,65 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                                                         fieldValue || <span className="text-gray-400 italic">Non renseigné</span>
                                                     )}
                                                 </p>
+                                            )}
+                                            
+                                            {/* 🔥 Afficher les champs répétés en mode lecture */}
+                                            {field.is_repeater && field.repeats_fields && field.repeats_fields.length > 0 && fieldValue && (
+                                                <div className="mt-4 space-y-3">
+                                                    {Array.from({ length: parseInt(fieldValue) || 0 }, (_, repeatIndex) => {
+                                                        const fieldsToRepeat = (formDefinition.fields || []).filter(f => 
+                                                            field.repeats_fields.includes(f.id)
+                                                        );
+                                                        
+                                                        return (
+                                                            <div key={repeatIndex} className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
+                                                                <h4 className="font-semibold text-green-800 text-xs">
+                                                                    {field.label} #{repeatIndex + 1}
+                                                                </h4>
+                                                                
+                                                                {fieldsToRepeat.map(repeatedField => {
+                                                                    const repeatedFieldKey = `${field.id}_repeat_${repeatIndex}_${repeatedField.id}`;
+                                                                    const repeatedFieldValue = formData[repeatedFieldKey];
+                                                                    const isRepeatedFile = repeatedField.type === 'file' && typeof repeatedFieldValue === 'object' && repeatedFieldValue?.storagePath;
+                                                                    
+                                                                    return (
+                                                                        <div key={repeatedFieldKey} className="space-y-1">
+                                                                            <Label className="text-xs font-medium text-gray-600">{repeatedField.label}</Label>
+                                                                            <p className="text-sm text-gray-900 p-2 bg-white rounded-md min-h-[32px] flex items-center">
+                                                                                {isRepeatedFile ? (
+                                                                                    <button
+                                                                                        onClick={async () => {
+                                                                                            try {
+                                                                                                const { data, error } = await supabase.storage
+                                                                                                    .from('project-files')
+                                                                                                    .createSignedUrl(repeatedFieldValue.storagePath, 3600);
+                                                                                                if (error) throw error;
+                                                                                                window.open(data.signedUrl, '_blank');
+                                                                                            } catch (err) {
+                                                                                                toast({
+                                                                                                    title: '❌ Erreur',
+                                                                                                    description: 'Impossible de télécharger le fichier.',
+                                                                                                    variant: 'destructive',
+                                                                                                });
+                                                                                            }
+                                                                                        }}
+                                                                                        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline text-xs"
+                                                                                    >
+                                                                                        <FileText className="h-3 w-3" />
+                                                                                        <span>{repeatedFieldValue.name}</span>
+                                                                                        <Download className="h-3 w-3" />
+                                                                                    </button>
+                                                                                ) : (
+                                                                                    repeatedFieldValue || <span className="text-gray-400 italic text-xs">Non renseigné</span>
+                                                                                )}
+                                                                            </p>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             )}
                                         </div>
                                     );
@@ -1630,6 +1746,15 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
                                             return null;
                                         }
                                     }
+                                    
+                                    // 🔥 Ne pas afficher les champs répétés directement
+                                    const isInRepeatedGroup = (form.fields || []).some(f => 
+                                        f.is_repeater && (f.repeats_fields || []).includes(field.id)
+                                    );
+                                    
+                                    if (isInRepeatedGroup) {
+                                        return null;
+                                    }
 
                                     const fieldValue = currentFormData[field.id] || '';
 
@@ -1659,6 +1784,60 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
                                                 <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center">
                                                     {fieldValue || <span className="text-gray-400 italic">Non renseigné</span>}
                                                 </p>
+                                            )}
+                                            
+                                            {/* 🔥 Afficher les champs répétés */}
+                                            {field.is_repeater && field.repeats_fields && field.repeats_fields.length > 0 && fieldValue && (
+                                                <div className="mt-4 space-y-3">
+                                                    {Array.from({ length: parseInt(fieldValue) || 0 }, (_, repeatIndex) => {
+                                                        const fieldsToRepeat = (form.fields || []).filter(f => 
+                                                            field.repeats_fields.includes(f.id)
+                                                        );
+                                                        
+                                                        return (
+                                                            <div key={repeatIndex} className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
+                                                                <h4 className="font-semibold text-green-800 text-xs">
+                                                                    {field.label} #{repeatIndex + 1}
+                                                                </h4>
+                                                                
+                                                                {fieldsToRepeat.map(repeatedField => {
+                                                                    const repeatedFieldKey = `${field.id}_repeat_${repeatIndex}_${repeatedField.id}`;
+                                                                    const repeatedFieldValue = currentFormData[repeatedFieldKey] || '';
+                                                                    
+                                                                    return (
+                                                                        <div key={repeatedFieldKey} className="space-y-1">
+                                                                            <Label className="text-xs font-medium text-gray-600">
+                                                                                {repeatedField.label}
+                                                                            </Label>
+                                                                            {isEditing ? (
+                                                                                repeatedField.type === 'textarea' ? (
+                                                                                    <textarea
+                                                                                        value={repeatedFieldValue}
+                                                                                        onChange={(e) => handleFieldChange(form.id, repeatedFieldKey, e.target.value)}
+                                                                                        placeholder={repeatedField.placeholder || ''}
+                                                                                        className="w-full min-h-[60px] px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <Input
+                                                                                        type={repeatedField.type || 'text'}
+                                                                                        value={repeatedFieldValue}
+                                                                                        onChange={(e) => handleFieldChange(form.id, repeatedFieldKey, e.target.value)}
+                                                                                        placeholder={repeatedField.placeholder || ''}
+                                                                                        className="text-sm h-8"
+                                                                                    />
+                                                                                )
+                                                                            ) : (
+                                                                                <p className="text-sm text-gray-900 p-2 bg-white rounded-md min-h-[32px] flex items-center">
+                                                                                    {repeatedFieldValue || <span className="text-gray-400 italic text-xs">Non renseigné</span>}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             )}
                                         </div>
                                     );

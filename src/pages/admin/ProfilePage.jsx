@@ -547,6 +547,82 @@ const FormEditor = ({
                                     <p className="text-xs text-gray-500 italic">Toujours visible (aucune condition)</p>
                                 )}
                             </div>
+                            
+                            {/* 🔥 SYSTÈME DE CHAMPS RÉPÉTABLES */}
+                            {field.type === 'select' && (
+                                <div className="pl-2 space-y-2 border-l-2 border-green-300 mt-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-semibold text-green-700">Répétition de champs :</Label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`repeater-${field.id}`}
+                                                checked={field.is_repeater || false}
+                                                onChange={(e) => handleFieldChange(index, 'is_repeater', e.target.checked)}
+                                                className="h-4 w-4 text-green-600 focus:ring-green-500"
+                                            />
+                                            <Label htmlFor={`repeater-${field.id}`} className="text-xs font-normal cursor-pointer">
+                                                Utiliser comme compteur de répétition
+                                            </Label>
+                                        </div>
+                                    </div>
+                                    
+                                    {field.is_repeater && (
+                                        <div className="space-y-2 bg-green-50 p-3 rounded">
+                                            <Label className="text-xs">Champs à répéter :</Label>
+                                            <p className="text-xs text-gray-600 mb-2">
+                                                Sélectionnez les champs qui doivent être répétés N fois (où N = valeur choisie dans le menu déroulant)
+                                            </p>
+                                            
+                                            <div className="space-y-1">
+                                                {(editedForm.fields || [])
+                                                    .slice(index + 1)
+                                                    .map((laterField, laterIndex) => {
+                                                        const realIndex = index + 1 + laterIndex;
+                                                        const isSelected = (field.repeats_fields || []).includes(laterField.id);
+                                                        
+                                                        return (
+                                                            <div key={laterField.id} className="flex items-center gap-2 bg-white p-2 rounded border">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id={`repeat-${field.id}-${laterField.id}`}
+                                                                    checked={isSelected}
+                                                                    onChange={(e) => {
+                                                                        const currentRepeats = field.repeats_fields || [];
+                                                                        const newRepeats = e.target.checked
+                                                                            ? [...currentRepeats, laterField.id]
+                                                                            : currentRepeats.filter(id => id !== laterField.id);
+                                                                        handleFieldChange(index, 'repeats_fields', newRepeats);
+                                                                    }}
+                                                                    className="h-4 w-4 text-green-600 focus:ring-green-500"
+                                                                />
+                                                                <Label 
+                                                                    htmlFor={`repeat-${field.id}-${laterField.id}`}
+                                                                    className="text-xs font-normal cursor-pointer flex-1"
+                                                                >
+                                                                    {laterField.label} ({laterField.type})
+                                                                </Label>
+                                                            </div>
+                                                        );
+                                                    })
+                                                }
+                                            </div>
+                                            
+                                            {(editedForm.fields || []).slice(index + 1).length === 0 && (
+                                                <p className="text-xs text-orange-600 italic">
+                                                    Ajoutez des champs après celui-ci pour pouvoir les répéter
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {!field.is_repeater && (
+                                        <p className="text-xs text-gray-500 italic">
+                                            Activez cette option pour générer automatiquement N copies des champs suivants
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>)}
                 </div>
 
