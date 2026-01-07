@@ -188,6 +188,15 @@ const CosignerSignaturePage = () => {
           globalStatus,
           allSigners: updatedSigners 
         });
+
+        // 🔥 Si completed, générer le PDF signé final
+        if (globalStatus === 'completed') {
+          supabase.functions.invoke('generate-signed-pdf', {
+            body: { signature_procedure_id: procedure.id },
+          }).catch(err => {
+            logger.error('Erreur génération PDF signé', err);
+          });
+        }
       }
 
       setSigned(true);

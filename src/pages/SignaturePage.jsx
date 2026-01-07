@@ -221,6 +221,15 @@ export default function SignaturePage() {
             logger.error('Erreur envoi invitations cosigners', err);
           });
         }
+
+        // 🔥 Si completed (pas de cosigners), générer le PDF signé final
+        if (globalStatus === 'completed') {
+          supabase.functions.invoke('generate-signed-pdf', {
+            body: { signature_procedure_id: signatureProcedureId },
+          }).catch(err => {
+            logger.error('Erreur génération PDF signé', err);
+          });
+        }
       }
 
       setSigned(true);
