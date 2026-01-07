@@ -212,6 +212,15 @@ export default function SignaturePage() {
           .eq('id', signatureProcedureId);
 
         logger.debug('Owner marqué signé', { globalStatus });
+
+        // 🔥 Si partially_signed, envoyer invitations cosigners
+        if (globalStatus === 'partially_signed') {
+          supabase.functions.invoke('send-cosigner-invite', {
+            body: { signature_procedure_id: signatureProcedureId },
+          }).catch(err => {
+            logger.error('Erreur envoi invitations cosigners', err);
+          });
+        }
       }
 
       setSigned(true);
