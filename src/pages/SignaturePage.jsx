@@ -36,6 +36,19 @@ export default function SignaturePage() {
         return;
       }
 
+      // 🔐 VÉRIFIER QUE L'UTILISATEUR EST CONNECTÉ
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        logger.debug('Utilisateur non connecté, redirection vers login');
+        // Rediriger vers login avec returnUrl
+        const returnUrl = `/signature/${signatureProcedureId}?token=${token}`;
+        navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+        return;
+      }
+
+      logger.debug('Utilisateur authentifié', { userId: user.id });
+
       // Récupérer la procédure
       logger.debug('Chargement procédure', { signatureProcedureId, token });
       
@@ -55,6 +68,35 @@ export default function SignaturePage() {
         setLoading(false);
         return;
       }
+
+      // 🔐 VÉRIFIER QUE C'EST LE BON CLIENT
+      const { data: prospect, error: prospectError } = await supabase
+        .from('prospects')
+        .select('user_id, name, email')
+        .eq('id', proc.prospect_id)
+        .single();
+
+      if (prospectError || !prospect) {
+        logger.error('Erreur récupération prospect', prospectError);
+        setError('Prospect introuvable');
+        setLoading(false);
+        return;
+      }
+
+      if (prospect.user_id !== user.id) {
+        logger.warn('Utilisateur non autorisé', { 
+          expectedUserId: prospect.user_id, 
+          actualUserId: user.id 
+        });
+        setError('Ce document n\'est pas destiné à votre compte. Veuillez vous connecter avec le compte approprié.');
+        setLoading(false);
+        return;
+      }
+
+      logger.debug('Vérification authentification réussie', { 
+        prospectName: prospect.name,
+        prospectEmail: prospect.email 
+      });
 
       // Vérifier expiration
       const expiresAt = new Date(proc.access_token_expires_at);
