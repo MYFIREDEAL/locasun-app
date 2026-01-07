@@ -23,6 +23,7 @@ import ProducerLandingPage from '@/pages/ProducerLandingPage';
 import TestSupabasePage from '@/pages/TestSupabasePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import SignaturePage from '@/pages/SignaturePage';
+import CosignerSignaturePage from '@/pages/CosignerSignaturePage';
 // ✅ allProjectsData maintenant chargé depuis Supabase (project_templates table)
 import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
@@ -1381,6 +1382,7 @@ function App() {
         <Route path="/test-supabase" element={<TestSupabasePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/signature/:signatureProcedureId" element={<SignaturePage />} />
+        <Route path="/sign/cosigner" element={<CosignerSignaturePage />} />
         {/* Route wildcard pour les liens d'affiliation HomePage (doit être APRÈS les routes spécifiques) */}
         <Route path="/:slugUser" element={<HomePage />} />
         <Route path="/client/activation" element={<ActivationPage />} />
