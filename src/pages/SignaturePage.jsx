@@ -177,6 +177,43 @@ export default function SignaturePage() {
         return;
       }
 
+      // 🔥 Marquer le signer owner comme signé
+      const { data: ownerSigner } = await supabase
+        .from('signature_procedures')
+        .select('signers')
+        .eq('id', signatureProcedureId)
+        .single();
+
+      if (ownerSigner?.signers) {
+        const updatedSigners = ownerSigner.signers.map(signer => {
+          if (signer.role === 'owner') {
+            return {
+              ...signer,
+              status: 'signed',
+              signed_at: new Date().toISOString(),
+            };
+          }
+          return signer;
+        });
+
+        // Déterminer le status global
+        const hasPendingCosigners = updatedSigners.some(
+          s => s.role === 'cosigner' && s.status === 'pending'
+        );
+        const globalStatus = hasPendingCosigners ? 'partially_signed' : 'completed';
+
+        // Mettre à jour la procédure
+        await supabase
+          .from('signature_procedures')
+          .update({
+            signers: updatedSigners,
+            status: globalStatus,
+          })
+          .eq('id', signatureProcedureId);
+
+        logger.debug('Owner marqué signé', { globalStatus });
+      }
+
       setSigned(true);
       setSigning(false);
       
