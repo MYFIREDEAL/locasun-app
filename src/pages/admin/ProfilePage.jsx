@@ -455,63 +455,96 @@ const FormEditor = ({
                                 </div>
                             )}
                             
-                            <div className="flex items-center gap-2 pl-2">
-                                <Label className="text-xs text-gray-600">Afficher uniquement si :</Label>
-                                <Select 
-                                    value={field.show_if ? `${field.show_if.field}::${field.show_if.equals}` : 'always'}
-                                    onValueChange={(value) => {
-                                        if (value === 'always') {
-                                            const newFields = [...editedForm.fields];
-                                            const { show_if, ...fieldWithoutCondition } = newFields[index];
-                                            newFields[index] = fieldWithoutCondition;
-                                            setEditedForm(prev => ({ ...prev, fields: newFields }));
-                                        } else {
-                                            const [fieldId, expectedValue] = value.split('::');
-                                            handleFieldChange(index, 'show_if', {
-                                                field: fieldId,
-                                                equals: expectedValue
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[280px]">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="always">Toujours visible</SelectItem>
-                                        {(editedForm.fields || [])
-                                            .slice(0, index)
-                                            .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'select')
-                                            .map(previousField => {
-                                                // Si c'est un select, proposer chaque option comme condition
-                                                if (previousField.type === 'select' && previousField.options && previousField.options.length > 0) {
-                                                    return previousField.options.map(option => (
-                                                        <SelectItem 
-                                                            key={`${previousField.id}::${option}`}
-                                                            value={`${previousField.id}::${option}`}
-                                                        >
-                                                            Si "{previousField.label}" = "{option}"
-                                                        </SelectItem>
-                                                    ));
+                            {/* 🔥 SYSTÈME DE CONDITIONS MULTIPLES */}
+                            <div className="pl-2 space-y-2 border-l-2 border-purple-300">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-semibold text-purple-700">Conditions d'affichage :</Label>
+                                    {field.show_if_conditions && field.show_if_conditions.length > 1 && (
+                                        <Select
+                                            value={field.condition_operator || 'AND'}
+                                            onValueChange={(value) => handleFieldChange(index, 'condition_operator', value)}
+                                        >
+                                            <SelectTrigger className="w-[100px] h-7 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="AND">ET (toutes)</SelectItem>
+                                                <SelectItem value="OR">OU (au moins une)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                                
+                                {(field.show_if_conditions || []).map((condition, condIndex) => (
+                                    <div key={condIndex} className="flex items-center gap-2 bg-purple-50 p-2 rounded">
+                                        <Select 
+                                            value={`${condition.field}::${condition.equals}`}
+                                            onValueChange={(value) => {
+                                                const [fieldId, expectedValue] = value.split('::');
+                                                const newConditions = [...(field.show_if_conditions || [])];
+                                                newConditions[condIndex] = { field: fieldId, equals: expectedValue };
+                                                handleFieldChange(index, 'show_if_conditions', newConditions);
+                                            }}
+                                        >
+                                            <SelectTrigger className="flex-1 h-8 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(editedForm.fields || [])
+                                                    .slice(0, index)
+                                                    .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'select')
+                                                    .map(previousField => {
+                                                        if (previousField.type === 'select' && previousField.options && previousField.options.length > 0) {
+                                                            return previousField.options.map(option => (
+                                                                <SelectItem 
+                                                                    key={`${previousField.id}::${option}`}
+                                                                    value={`${previousField.id}::${option}`}
+                                                                >
+                                                                    "{previousField.label}" = "{option}"
+                                                                </SelectItem>
+                                                            ));
+                                                        }
+                                                        return (
+                                                            <SelectItem 
+                                                                key={previousField.id} 
+                                                                value={`${previousField.id}::has_value`}
+                                                            >
+                                                                "{previousField.label}" rempli
+                                                            </SelectItem>
+                                                        );
+                                                    })
+                                                    .flat()
                                                 }
-                                                // Pour les autres types, condition générique "est rempli"
-                                                return (
-                                                    <SelectItem 
-                                                        key={previousField.id} 
-                                                        value={`${previousField.id}::has_value`}
-                                                    >
-                                                        Si "{previousField.label}" est rempli
-                                                    </SelectItem>
-                                                );
-                                            })
-                                            .flat()
-                                        }
-                                    </SelectContent>
-                                </Select>
-                                {field.show_if && field.show_if.equals !== 'has_value' && (
-                                    <span className="text-xs text-gray-500 italic">
-                                        Valeur: "{field.show_if.equals}"
-                                    </span>
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => {
+                                                const newConditions = (field.show_if_conditions || []).filter((_, i) => i !== condIndex);
+                                                handleFieldChange(index, 'show_if_conditions', newConditions.length > 0 ? newConditions : undefined);
+                                            }}
+                                        >
+                                            <Trash2 className="h-3 w-3 text-red-500" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const newConditions = [...(field.show_if_conditions || []), { field: '', equals: '' }];
+                                        handleFieldChange(index, 'show_if_conditions', newConditions);
+                                    }}
+                                    className="text-xs w-full"
+                                >
+                                    <Plus className="h-3 w-3 mr-1" /> Ajouter une condition
+                                </Button>
+                                
+                                {(!field.show_if_conditions || field.show_if_conditions.length === 0) && (
+                                    <p className="text-xs text-gray-500 italic">Toujours visible (aucune condition)</p>
                                 )}
                             </div>
                         </div>)}

@@ -76,7 +76,23 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
         <div className="space-y-4">
             <h4 className="font-semibold text-gray-800">{form.name}</h4>
             {(form.fields || []).map(field => {
-                // 🔥 Vérifier si le champ doit être affiché selon show_if
+                // 🔥 Vérifier les conditions multiples d'affichage
+                if (field.show_if_conditions && field.show_if_conditions.length > 0) {
+                    const operator = field.condition_operator || 'AND';
+                    const conditionResults = field.show_if_conditions.map(condition => {
+                        const currentValue = formData[condition.field];
+                        if (condition.equals === 'has_value') {
+                            return !!currentValue && currentValue !== '';
+                        }
+                        return currentValue === condition.equals;
+                    });
+                    const shouldShow = operator === 'AND' 
+                        ? conditionResults.every(result => result === true)
+                        : conditionResults.some(result => result === true);
+                    if (!shouldShow) return null;
+                }
+                
+                // 🔥 Rétro-compatibilité show_if
                 if (field.show_if) {
                     const conditionField = field.show_if.field;
                     const expectedValue = field.show_if.equals;
@@ -1305,7 +1321,23 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
 
                             <div className="space-y-3 pt-2">
                                 {(formDefinition.fields || []).map(field => {
-                                    // 🔥 Vérifier si le champ doit être affiché selon show_if
+                                    // 🔥 Vérifier les conditions multiples d'affichage
+                                    if (field.show_if_conditions && field.show_if_conditions.length > 0) {
+                                        const operator = field.condition_operator || 'AND';
+                                        const conditionResults = field.show_if_conditions.map(condition => {
+                                            const currentValue = formData[condition.field];
+                                            if (condition.equals === 'has_value') {
+                                                return !!currentValue && currentValue !== '';
+                                            }
+                                            return currentValue === condition.equals;
+                                        });
+                                        const shouldShow = operator === 'AND' 
+                                            ? conditionResults.every(result => result === true)
+                                            : conditionResults.some(result => result === true);
+                                        if (!shouldShow) return null;
+                                    }
+                                    
+                                    // 🔥 Rétro-compatibilité show_if
                                     if (field.show_if) {
                                         const conditionField = field.show_if.field;
                                         const expectedValue = field.show_if.equals;
@@ -1572,7 +1604,23 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
 
                             <div className="space-y-3 pt-2">
                                 {(form.fields || []).map(field => {
-                                    // 🔥 Vérifier si le champ doit être affiché selon show_if
+                                    // 🔥 Vérifier les conditions multiples d'affichage
+                                    if (field.show_if_conditions && field.show_if_conditions.length > 0) {
+                                        const operator = field.condition_operator || 'AND';
+                                        const conditionResults = field.show_if_conditions.map(condition => {
+                                            const currentValue = currentFormData[condition.field];
+                                            if (condition.equals === 'has_value') {
+                                                return !!currentValue && currentValue !== '';
+                                            }
+                                            return currentValue === condition.equals;
+                                        });
+                                        const shouldShow = operator === 'AND' 
+                                            ? conditionResults.every(result => result === true)
+                                            : conditionResults.some(result => result === true);
+                                        if (!shouldShow) return null;
+                                    }
+                                    
+                                    // 🔥 Rétro-compatibilité show_if
                                     if (field.show_if) {
                                         const conditionField = field.show_if.field;
                                         const expectedValue = field.show_if.equals;

@@ -599,7 +599,23 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                   {/* Afficher les valeurs soumises */}
                   <div className="space-y-2 text-sm">
                     {formDefinition.fields?.map(field => {
-                      // 🔥 Vérifier si le champ doit être affiché selon show_if
+                      // 🔥 Vérifier les conditions multiples d'affichage
+                      if (field.show_if_conditions && field.show_if_conditions.length > 0) {
+                        const operator = field.condition_operator || 'AND';
+                        const conditionResults = field.show_if_conditions.map(condition => {
+                          const currentValue = draft[condition.field];
+                          if (condition.equals === 'has_value') {
+                            return !!currentValue && currentValue !== '';
+                          }
+                          return currentValue === condition.equals;
+                        });
+                        const shouldShow = operator === 'AND' 
+                          ? conditionResults.every(result => result === true)
+                          : conditionResults.some(result => result === true);
+                        if (!shouldShow) return null;
+                      }
+                      
+                      // 🔥 Rétro-compatibilité show_if
                       if (field.show_if) {
                         const conditionField = field.show_if.field;
                         const expectedValue = field.show_if.equals;
@@ -682,15 +698,40 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
               ) : (
                 <div className="space-y-4">
                   {(formDefinition.fields || []).map(field => {
-                    // 🔥 Vérifier si le champ doit être affiché selon show_if
+                    // 🔥 Vérifier les conditions multiples d'affichage
+                    if (field.show_if_conditions && field.show_if_conditions.length > 0) {
+                      const operator = field.condition_operator || 'AND';
+                      
+                      const conditionResults = field.show_if_conditions.map(condition => {
+                        const conditionField = condition.field;
+                        const expectedValue = condition.equals;
+                        const currentValue = draft[conditionField];
+                        
+                        // Si la condition attend "has_value", vérifier si le champ est rempli
+                        if (expectedValue === 'has_value') {
+                          return !!currentValue && currentValue !== '';
+                        }
+                        
+                        // Sinon, vérifier l'égalité exacte
+                        return currentValue === expectedValue;
+                      });
+                      
+                      // Appliquer l'opérateur AND ou OR
+                      const shouldShow = operator === 'AND' 
+                        ? conditionResults.every(result => result === true)
+                        : conditionResults.some(result => result === true);
+                      
+                      if (!shouldShow) {
+                        return null; // Ne pas afficher ce champ
+                      }
+                    }
+                    
+                    // 🔥 Rétro-compatibilité avec l'ancien système show_if
                     if (field.show_if) {
                       const conditionField = field.show_if.field;
                       const expectedValue = field.show_if.equals;
-                      
-                      // Récupérer la valeur actuelle du champ conditionnel
                       const currentValue = draft[conditionField];
                       
-                      // Si la valeur ne correspond pas, masquer le champ
                       if (!currentValue || currentValue !== expectedValue) {
                         return null;
                       }
