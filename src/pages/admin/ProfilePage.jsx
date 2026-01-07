@@ -336,6 +336,28 @@ const FormEditor = ({
                 </div>
 
                 <div>
+                    <Label htmlFor="respondent-type">Type de répondant</Label>
+                    <Select 
+                        value={editedForm.respondent_type || 'particulier'}
+                        onValueChange={(value) => setEditedForm(prev => ({
+                            ...prev,
+                            respondent_type: value
+                        }))}
+                    >
+                        <SelectTrigger id="respondent-type">
+                            <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="particulier">Particulier</SelectItem>
+                            <SelectItem value="entreprise">Entreprise</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Ce champ permet de conditionner l'affichage de certains champs selon le type de répondant.
+                    </p>
+                </div>
+
+                <div>
                     <Label>À qui est destiné ce formulaire ?</Label>
                     <div className="flex gap-4 mt-2">
                         <div className="flex items-center space-x-2">
@@ -390,23 +412,53 @@ const FormEditor = ({
 
                 <h3 className="text-md font-semibold text-gray-700 pt-4 border-t">Champs du formulaire</h3>
                 <div className="space-y-3">
-                    {(editedForm.fields || []).map((field, index) => <div key={field.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md">
-                            <Input value={field.label} onChange={e => handleFieldChange(index, 'label', e.target.value)} placeholder="Nom du champ" />
-                            <Select value={field.type} onValueChange={value => handleFieldChange(index, 'type', value)}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="text">Texte</SelectItem>
-                                    <SelectItem value="email">Email</SelectItem>
-                                    <SelectItem value="phone">Téléphone</SelectItem>
-                                    <SelectItem value="number">Nombre</SelectItem>
-                                    <SelectItem value="file">Fichier</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button variant="ghost" size="icon" onClick={() => removeField(index)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                    {(editedForm.fields || []).map((field, index) => <div key={field.id} className="flex flex-col gap-2 bg-gray-50 p-3 rounded-md">
+                            <div className="flex items-center gap-2">
+                                <Input value={field.label} onChange={e => handleFieldChange(index, 'label', e.target.value)} placeholder="Nom du champ" />
+                                <Select value={field.type} onValueChange={value => handleFieldChange(index, 'type', value)}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="text">Texte</SelectItem>
+                                        <SelectItem value="email">Email</SelectItem>
+                                        <SelectItem value="phone">Téléphone</SelectItem>
+                                        <SelectItem value="number">Nombre</SelectItem>
+                                        <SelectItem value="file">Fichier</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="ghost" size="icon" onClick={() => removeField(index)}>
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                            </div>
+                            <div className="flex items-center gap-2 pl-2">
+                                <Label className="text-xs text-gray-600">Afficher uniquement si :</Label>
+                                <Select 
+                                    value={field.show_if?.equals || 'always'}
+                                    onValueChange={(value) => {
+                                        if (value === 'always') {
+                                            const newFields = [...editedForm.fields];
+                                            const { show_if, ...fieldWithoutCondition } = newFields[index];
+                                            newFields[index] = fieldWithoutCondition;
+                                            setEditedForm(prev => ({ ...prev, fields: newFields }));
+                                        } else {
+                                            handleFieldChange(index, 'show_if', {
+                                                field: 'respondent_type',
+                                                equals: value
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="always">Toujours visible</SelectItem>
+                                        <SelectItem value="particulier">Particulier uniquement</SelectItem>
+                                        <SelectItem value="entreprise">Entreprise uniquement</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>)}
                 </div>
 

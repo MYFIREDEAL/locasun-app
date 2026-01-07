@@ -75,18 +75,33 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
     return (
         <div className="space-y-4">
             <h4 className="font-semibold text-gray-800">{form.name}</h4>
-            {(form.fields || []).map(field => (
-                <div key={field.id}>
-                    <Label htmlFor={`${form.id}-${field.id}`}>{field.label}</Label>
-                    <Input
-                        id={`${form.id}-${field.id}`}
-                        type={field.type}
-                        value={typeof formData[field.id] === 'object' ? '' : (formData[field.id] || '')}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
-                        placeholder={field.placeholder || ''}
-                    />
-                </div>
-            ))}
+            {(form.fields || []).map(field => {
+                // 🔥 Vérifier si le champ doit être affiché selon show_if
+                if (field.show_if) {
+                    const conditionField = field.show_if.field;
+                    const conditionValue = field.show_if.equals;
+                    
+                    if (conditionField === 'respondent_type') {
+                        const currentRespondentType = form.respondent_type || 'particulier';
+                        if (currentRespondentType !== conditionValue) {
+                            return null;
+                        }
+                    }
+                }
+
+                return (
+                    <div key={field.id}>
+                        <Label htmlFor={`${form.id}-${field.id}`}>{field.label}</Label>
+                        <Input
+                            id={`${form.id}-${field.id}`}
+                            type={field.type}
+                            value={typeof formData[field.id] === 'object' ? '' : (formData[field.id] || '')}
+                            onChange={(e) => handleInputChange(field.id, e.target.value)}
+                            placeholder={field.placeholder || ''}
+                        />
+                    </div>
+                );
+            })}
             <Button onClick={handleSubmit} className="w-full">Soumettre</Button>
         </div>
     );
@@ -1292,6 +1307,19 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
 
                             <div className="space-y-3 pt-2">
                                 {(formDefinition.fields || []).map(field => {
+                                    // 🔥 Vérifier si le champ doit être affiché selon show_if
+                                    if (field.show_if) {
+                                        const conditionField = field.show_if.field;
+                                        const conditionValue = field.show_if.equals;
+                                        
+                                        if (conditionField === 'respondent_type') {
+                                            const currentRespondentType = formDefinition.respondent_type || 'particulier';
+                                            if (currentRespondentType !== conditionValue) {
+                                                return null;
+                                            }
+                                        }
+                                    }
+
                                     const fieldValue = formData[field.id];
                                     const isFile = field.type === 'file' && typeof fieldValue === 'object' && fieldValue?.storagePath;
                                     
@@ -1548,6 +1576,19 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
 
                             <div className="space-y-3 pt-2">
                                 {(form.fields || []).map(field => {
+                                    // 🔥 Vérifier si le champ doit être affiché selon show_if
+                                    if (field.show_if) {
+                                        const conditionField = field.show_if.field;
+                                        const conditionValue = field.show_if.equals;
+                                        
+                                        if (conditionField === 'respondent_type') {
+                                            const currentRespondentType = form.respondent_type || 'particulier';
+                                            if (currentRespondentType !== conditionValue) {
+                                                return null;
+                                            }
+                                        }
+                                    }
+
                                     const fieldValue = currentFormData[field.id] || '';
 
                                     return (

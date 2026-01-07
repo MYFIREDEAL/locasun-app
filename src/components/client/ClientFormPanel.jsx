@@ -597,6 +597,19 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                   {/* Afficher les valeurs soumises */}
                   <div className="space-y-2 text-sm">
                     {formDefinition.fields?.map(field => {
+                      // 🔥 Vérifier si le champ doit être affiché selon show_if
+                      if (field.show_if) {
+                        const conditionField = field.show_if.field;
+                        const conditionValue = field.show_if.equals;
+                        
+                        if (conditionField === 'respondent_type') {
+                          const currentRespondentType = formDefinition.respondent_type || 'particulier';
+                          if (currentRespondentType !== conditionValue) {
+                            return null;
+                          }
+                        }
+                      }
+
                       const value = draft[field.id];
                       if (!value) return null;
                       
@@ -669,6 +682,20 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
               ) : (
                 <div className="space-y-4">
                   {(formDefinition.fields || []).map(field => {
+                    // 🔥 Vérifier si le champ doit être affiché selon show_if
+                    if (field.show_if) {
+                      const conditionField = field.show_if.field;
+                      const conditionValue = field.show_if.equals;
+                      
+                      // Si le champ conditionnel est respondent_type, vérifier dans formDefinition
+                      if (conditionField === 'respondent_type') {
+                        const currentRespondentType = formDefinition.respondent_type || 'particulier';
+                        if (currentRespondentType !== conditionValue) {
+                          return null; // Ne pas afficher ce champ
+                        }
+                      }
+                    }
+
                     const isFileField = field.type === 'file';
                     const fieldValue = draft[field.id];
                     const hasFile = isFileField && (fieldValue instanceof File || (fieldValue?.storagePath));
