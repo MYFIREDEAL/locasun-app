@@ -79,13 +79,11 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
                 // 🔥 Vérifier si le champ doit être affiché selon show_if
                 if (field.show_if) {
                     const conditionField = field.show_if.field;
-                    const conditionValue = field.show_if.equals;
+                    const expectedValue = field.show_if.equals;
+                    const currentValue = formData[conditionField];
                     
-                    if (conditionField === 'respondent_type') {
-                        const currentRespondentType = form.respondent_type || 'particulier';
-                        if (currentRespondentType !== conditionValue) {
-                            return null;
-                        }
+                    if (!currentValue || currentValue !== expectedValue) {
+                        return null;
                     }
                 }
 
@@ -1310,13 +1308,11 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                                     // 🔥 Vérifier si le champ doit être affiché selon show_if
                                     if (field.show_if) {
                                         const conditionField = field.show_if.field;
-                                        const conditionValue = field.show_if.equals;
+                                        const expectedValue = field.show_if.equals;
+                                        const currentValue = formData[conditionField];
                                         
-                                        if (conditionField === 'respondent_type') {
-                                            const currentRespondentType = formDefinition.respondent_type || 'particulier';
-                                            if (currentRespondentType !== conditionValue) {
-                                                return null;
-                                            }
+                                        if (!currentValue || currentValue !== expectedValue) {
+                                            return null;
                                         }
                                     }
 
@@ -1579,13 +1575,11 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
                                     // 🔥 Vérifier si le champ doit être affiché selon show_if
                                     if (field.show_if) {
                                         const conditionField = field.show_if.field;
-                                        const conditionValue = field.show_if.equals;
+                                        const expectedValue = field.show_if.equals;
+                                        const currentValue = currentFormData[conditionField];
                                         
-                                        if (conditionField === 'respondent_type') {
-                                            const currentRespondentType = form.respondent_type || 'particulier';
-                                            if (currentRespondentType !== conditionValue) {
-                                                return null;
-                                            }
+                                        if (!currentValue || currentValue !== expectedValue) {
+                                            return null;
                                         }
                                     }
 

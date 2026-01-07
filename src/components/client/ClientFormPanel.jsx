@@ -83,6 +83,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
               hydrated[field.id] = formFields[field.id];
             }
           });
+          
           next[panel.panelId] = hydrated;
         }
       });
@@ -262,6 +263,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     
     // 🔥 FIX: Structurer correctement form_data avec projectType > formId > fields
     const currentFormData = currentData?.form_data || currentUser.formData || {};
+    
     const updatedFormData = {
       ...currentFormData,
       [projectType]: {
@@ -600,13 +602,11 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                       // 🔥 Vérifier si le champ doit être affiché selon show_if
                       if (field.show_if) {
                         const conditionField = field.show_if.field;
-                        const conditionValue = field.show_if.equals;
+                        const expectedValue = field.show_if.equals;
+                        const currentValue = draft[conditionField];
                         
-                        if (conditionField === 'respondent_type') {
-                          const currentRespondentType = formDefinition.respondent_type || 'particulier';
-                          if (currentRespondentType !== conditionValue) {
-                            return null;
-                          }
+                        if (!currentValue || currentValue !== expectedValue) {
+                          return null;
                         }
                       }
 
@@ -685,14 +685,14 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                     // 🔥 Vérifier si le champ doit être affiché selon show_if
                     if (field.show_if) {
                       const conditionField = field.show_if.field;
-                      const conditionValue = field.show_if.equals;
+                      const expectedValue = field.show_if.equals;
                       
-                      // Si le champ conditionnel est respondent_type, vérifier dans formDefinition
-                      if (conditionField === 'respondent_type') {
-                        const currentRespondentType = formDefinition.respondent_type || 'particulier';
-                        if (currentRespondentType !== conditionValue) {
-                          return null; // Ne pas afficher ce champ
-                        }
+                      // Récupérer la valeur actuelle du champ conditionnel
+                      const currentValue = draft[conditionField];
+                      
+                      // Si la valeur ne correspond pas, masquer le champ
+                      if (!currentValue || currentValue !== expectedValue) {
+                        return null;
                       }
                     }
 

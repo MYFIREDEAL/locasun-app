@@ -336,28 +336,6 @@ const FormEditor = ({
                 </div>
 
                 <div>
-                    <Label htmlFor="respondent-type">Type de répondant</Label>
-                    <Select 
-                        value={editedForm.respondent_type || 'particulier'}
-                        onValueChange={(value) => setEditedForm(prev => ({
-                            ...prev,
-                            respondent_type: value
-                        }))}
-                    >
-                        <SelectTrigger id="respondent-type">
-                            <SelectValue placeholder="Sélectionner un type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="particulier">Particulier</SelectItem>
-                            <SelectItem value="entreprise">Entreprise</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Ce champ permet de conditionner l'affichage de certains champs selon le type de répondant.
-                    </p>
-                </div>
-
-                <div>
                     <Label>À qui est destiné ce formulaire ?</Label>
                     <div className="flex gap-4 mt-2">
                         <div className="flex items-center space-x-2">
@@ -434,7 +412,7 @@ const FormEditor = ({
                             <div className="flex items-center gap-2 pl-2">
                                 <Label className="text-xs text-gray-600">Afficher uniquement si :</Label>
                                 <Select 
-                                    value={field.show_if?.equals || 'always'}
+                                    value={field.show_if ? `${field.show_if.field}::${field.show_if.equals}` : 'always'}
                                     onValueChange={(value) => {
                                         if (value === 'always') {
                                             const newFields = [...editedForm.fields];
@@ -442,22 +420,44 @@ const FormEditor = ({
                                             newFields[index] = fieldWithoutCondition;
                                             setEditedForm(prev => ({ ...prev, fields: newFields }));
                                         } else {
+                                            const [fieldId, expectedValue] = value.split('::');
                                             handleFieldChange(index, 'show_if', {
-                                                field: 'respondent_type',
-                                                equals: value
+                                                field: fieldId,
+                                                equals: expectedValue
                                             });
                                         }
                                     }}
                                 >
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className="w-[280px]">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="always">Toujours visible</SelectItem>
-                                        <SelectItem value="particulier">Particulier uniquement</SelectItem>
-                                        <SelectItem value="entreprise">Entreprise uniquement</SelectItem>
+                                        {(editedForm.fields || [])
+                                            .slice(0, index)
+                                            .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone')
+                                            .map(previousField => (
+                                                <SelectItem 
+                                                    key={previousField.id} 
+                                                    value={`${previousField.id}::has_value`}
+                                                >
+                                                    Si "{previousField.label}" est rempli
+                                                </SelectItem>
+                                            ))
+                                        }
                                     </SelectContent>
                                 </Select>
+                                {field.show_if && (
+                                    <Input
+                                        placeholder="Valeur attendue"
+                                        value={field.show_if.equals || ''}
+                                        onChange={(e) => handleFieldChange(index, 'show_if', {
+                                            ...field.show_if,
+                                            equals: e.target.value
+                                        })}
+                                        className="w-[180px]"
+                                    />
+                                )}
                             </div>
                         </div>)}
                 </div>
