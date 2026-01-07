@@ -129,8 +129,10 @@ const CosignerSignaturePage = () => {
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const pdfHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      // Appeler signature
-      const { error: signError } = await supabase.functions.invoke('internal-signature', {
+      logger.debug('Cosigner signature - PDF hash calculé', { pdfHash });
+
+      // 🔥 Appeler internal-signature pour créer la preuve légale
+      const { data: signData, error: signError } = await supabase.functions.invoke('internal-signature', {
         body: {
           signature_procedure_id: procedure.id,
           signer_email: procedure.signer_email,
@@ -141,12 +143,15 @@ const CosignerSignaturePage = () => {
       });
 
       if (signError) {
+        logger.error('Erreur signature cosigner', signError);
         setError('Erreur lors de la signature');
         setSigning(false);
         return;
       }
 
-      // Marquer le cosigner comme signé
+      logger.debug('Preuve de signature créée', signData);
+
+      // 🔥 Marquer le cosigner comme signé
       const { data: procData } = await supabase
         .from('signature_procedures')
         .select('signers')
@@ -165,9 +170,11 @@ const CosignerSignaturePage = () => {
           return signer;
         });
 
-        const allSigned = updatedSigners.every(s => s.status === 'signed');
-        const globalStatus = allSigned ? 'completed' : 'partially_signed';
+        // 🔥 Déterminer le status global
+        const hasPendingSigners = updatedSigners.some(s => s.status === 'pending');
+        const globalStatus = hasPendingSigners ? 'partially_signed' : 'completed';
 
+        // 🔥 Mettre à jour la procédure
         await supabase
           .from('signature_procedures')
           .update({
@@ -175,6 +182,12 @@ const CosignerSignaturePage = () => {
             status: globalStatus,
           })
           .eq('id', procedure.id);
+
+        logger.debug('Cosigner marqué signé', { 
+          email: procedure.signer_email, 
+          globalStatus,
+          allSigners: updatedSigners 
+        });
       }
 
       setSigned(true);
