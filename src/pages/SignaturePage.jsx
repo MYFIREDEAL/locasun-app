@@ -73,9 +73,9 @@ export default function SignaturePage() {
 
       setProcedure(proc);
 
-      // Récupérer URL signée du PDF
+      // Récupérer URL signée du PDF (bucket = "project-files" avec tiret, pas underscore)
       const { data: urlData, error: urlError } = await supabase.storage
-        .from('project_files')
+        .from('project-files')
         .createSignedUrl(proc.project_files.storage_path, 3600);
 
       if (urlError) {
