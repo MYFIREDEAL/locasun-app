@@ -234,6 +234,48 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // +7 jours
 
+      // 🔥 Récupérer les données du prospect pour le signataire principal
+      const { data: prospectData, error: prospectError } = await supabase
+        .from('prospects')
+        .select('name, email, phone')
+        .eq('id', prospectId)
+        .single();
+
+      if (prospectError) {
+        logger.error('Erreur récupération prospect', prospectError);
+        throw prospectError;
+      }
+
+      // 🔥 Construire le tableau signers
+      const signers = [
+        {
+          type: 'principal',
+          name: prospectData.name || 'Client',
+          email: prospectData.email,
+          phone: prospectData.phone || null,
+          access_token: accessToken,
+          requires_auth: true,
+          status: 'pending',
+          signed_at: null,
+        },
+      ];
+
+      // 🔥 Ajouter les co-signataires si présents dans la config workflow
+      if (action.cosigners && Array.isArray(action.cosigners)) {
+        for (const cosigner of action.cosigners) {
+          signers.push({
+            type: 'cosigner',
+            name: cosigner.name || '',
+            email: cosigner.email || '',
+            phone: cosigner.phone || '',
+            access_token: crypto.randomUUID(),
+            requires_auth: false,
+            status: 'pending',
+            signed_at: null,
+          });
+        }
+      }
+
       const { data: newProcedure, error: procedureError } = await supabase
         .from('signature_procedures')
         .insert({
@@ -243,6 +285,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           access_token: accessToken,
           access_token_expires_at: expiresAt.toISOString(),
           status: 'pending',
+          signers: signers,
         })
         .select()
         .single();
@@ -253,7 +296,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       }
 
       signatureProcedure = newProcedure;
-      logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id });
+      logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id, signersCount: signers.length });
     } else {
       logger.debug('Procédure de signature existante réutilisée', { procedureId: signatureProcedure.id });
     }
