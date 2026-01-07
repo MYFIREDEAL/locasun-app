@@ -39,9 +39,10 @@ export default function SignaturePage() {
       // Récupérer la procédure
       logger.debug('Chargement procédure', { signatureProcedureId, token });
       
+      // Spécifier la relation explicite pour éviter l'ambiguïté (file_id vs signed_file_id)
       const { data: proc, error: procError } = await supabase
         .from('signature_procedures')
-        .select('*, project_files(*)')
+        .select('*, project_files!signature_procedures_file_id_fkey(*)')
         .eq('id', signatureProcedureId)
         .eq('access_token', token)
         .single();
