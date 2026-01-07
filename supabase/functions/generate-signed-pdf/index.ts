@@ -304,6 +304,93 @@ serve(async (req) => {
       )
     }
 
+    // 🔥 Envoyer emails de confirmation
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://myfiredeal.github.io/locasun-app'
+
+    if (resendApiKey) {
+      for (const signer of procedure.signers || []) {
+        if (signer.status !== 'signed') continue
+
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">✓ Document signé avec succès</h2>
+            <p>Bonjour ${signer.name || signer.email},</p>
+            <p>Le document contractuel a été signé par toutes les parties.</p>
+            <p>Vous pouvez télécharger le document signé depuis votre espace client.</p>
+            <a href="${frontendUrl}/client/dashboard" 
+               style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
+              Accéder à mon espace
+            </a>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+              Ce document a été signé électroniquement conformément au Règlement eIDAS (UE) n°910/2014.
+            </p>
+          </div>
+        `
+
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: 'LOCASUN <noreply@locasun.fr>',
+            to: [signer.email],
+            subject: '✓ Document signé - Confirmation',
+            html: emailHtml,
+          }),
+        }).catch(err => console.error('Erreur envoi email confirmation:', err))
+      }
+    }
+
+    // 🔥 Créer notifications admin
+    const { data: adminUsers } = await supabaseClient
+      .from('users')
+      .select('user_id, name')
+      .in('role', ['Global Admin', 'Manager'])
+
+    if (adminUsers) {
+      for (const admin of adminUsers) {
+        await supabaseClient
+          .from('notifications')
+          .insert({
+            user_id: admin.user_id,
+            title: 'Document signé',
+            message: `Le contrat pour ${procedure.signers?.[0]?.name || 'un prospect'} a été signé par toutes les parties.`,
+            type: 'signature_completed',
+            action_url: `/admin/contacts`,
+            priority: 'high',
+          })
+          .catch(err => console.error('Erreur création notification admin:', err))
+      }
+    }
+
+    // 🔥 Créer notification client
+    await supabaseClient
+      .from('client_notifications')
+      .insert({
+        prospect_id: procedure.prospect_id,
+        project_type: procedure.project_type,
+        title: 'Document signé',
+        message: 'Votre contrat a été signé par toutes les parties. Vous pouvez le télécharger dans l\'onglet Fichiers.',
+        type: 'signature_completed',
+        priority: 'high',
+      })
+      .catch(err => console.error('Erreur création notification client:', err))
+
+    // 🔥 Ajouter message automatique dans le chat
+    await supabaseClient
+      .from('chat_messages')
+      .insert({
+        prospect_id: procedure.prospect_id,
+        project_type: procedure.project_type,
+        sender: 'system',
+        content: '✅ Le contrat a été signé par toutes les parties. Le document final est disponible dans l\'onglet Fichiers.',
+        message_type: 'system',
+      })
+      .catch(err => console.error('Erreur création message chat:', err))
+
     return new Response(
       JSON.stringify({ 
         success: true,

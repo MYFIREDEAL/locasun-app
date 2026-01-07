@@ -292,7 +292,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
                   >
                     <Eye className="h-4 w-4" />
                   </button>
-                  {file.file_type === 'application/pdf' && (
+                  {file.file_type === 'application/pdf' && file.field_label !== 'Document signé' && (
                     <button
                       onClick={() => handleSignature(file)}
                       className="p-2 hover:bg-purple-50 rounded text-purple-600 transition-colors disabled:opacity-50"
@@ -301,6 +301,11 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
                     >
                       <PenTool className="h-4 w-4" />
                     </button>
+                  )}
+                  {file.field_label === 'Document signé' && (
+                    <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">
+                      ✓ Signé
+                    </span>
                   )}
                   <button
                     onClick={() => handleDownload(file)}
