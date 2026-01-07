@@ -1420,6 +1420,19 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                                                             (Fichier non modifiable)
                                                         </span>
                                                     </div>
+                                                ) : field.type === 'select' ? (
+                                                    <select
+                                                        value={editedData[field.id] || ''}
+                                                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                    >
+                                                        <option value="">-- Sélectionner --</option>
+                                                        {(field.options || []).map((option, idx) => (
+                                                            <option key={idx} value={option}>
+                                                                {option}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 ) : (
                                                     <Input
                                                         type={field.type || 'text'}
@@ -1772,6 +1785,19 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
                                                         placeholder={field.placeholder || ''}
                                                         className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                                                     />
+                                                ) : field.type === 'select' ? (
+                                                    <select
+                                                        value={fieldValue}
+                                                        onChange={(e) => handleFieldChange(form.id, field.id, e.target.value)}
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                    >
+                                                        <option value="">-- Sélectionner --</option>
+                                                        {(field.options || []).map((option, idx) => (
+                                                            <option key={idx} value={option}>
+                                                                {option}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 ) : (
                                                     <Input
                                                         type={field.type || 'text'}
@@ -1817,6 +1843,19 @@ const InternalForms = ({ prospect, projectType, onUpdate }) => {
                                                                                         placeholder={repeatedField.placeholder || ''}
                                                                                         className="w-full min-h-[60px] px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                                                                                     />
+                                                                                ) : repeatedField.type === 'select' ? (
+                                                                                    <select
+                                                                                        value={repeatedFieldValue}
+                                                                                        onChange={(e) => handleFieldChange(form.id, repeatedFieldKey, e.target.value)}
+                                                                                        className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                                                    >
+                                                                                        <option value="">-- Sélectionner --</option>
+                                                                                        {(repeatedField.options || []).map((option, idx) => (
+                                                                                            <option key={idx} value={option}>
+                                                                                                {option}
+                                                                                            </option>
+                                                                                        ))}
+                                                                                    </select>
                                                                                 ) : (
                                                                                     <Input
                                                                                         type={repeatedField.type || 'text'}
