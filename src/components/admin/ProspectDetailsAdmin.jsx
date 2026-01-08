@@ -564,8 +564,21 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 const formData = prospectData.form_data;
                 const config = action.cosignersConfig;
                 
+                // 🔥 Accéder aux données du formulaire: form_data[projectType][formId]
+                const projectFormData = formData[projectType] || {};
+                const specificFormData = projectFormData[config.formId] || {};
+                
+                logger.debug('Structure form_data', {
+                  hasProjectData: !!projectFormData,
+                  hasFormData: !!specificFormData,
+                  formId: config.formId,
+                  projectType: projectType,
+                  countField: config.countField,
+                  countValue: specificFormData[config.countField]
+                });
+                
                 // Extraire le nombre de co-signataires
-                const countValue = formData[config.countField];
+                const countValue = specificFormData[config.countField];
                 const cosignersCount = parseInt(countValue, 10);
 
                 if (!isNaN(cosignersCount) && cosignersCount > 0) {
@@ -574,9 +587,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                     const emailKey = `${config.countField}_repeat_${i}_${config.emailField}`;
                     const phoneKey = `${config.countField}_repeat_${i}_${config.phoneField}`;
 
-                    const name = formData[nameKey];
-                    const email = formData[emailKey];
-                    const phone = formData[phoneKey];
+                    const name = specificFormData[nameKey];
+                    const email = specificFormData[emailKey];
+                    const phone = specificFormData[phoneKey];
 
                     if (name && email) {
                       cosigners.push({ name, email, phone });
