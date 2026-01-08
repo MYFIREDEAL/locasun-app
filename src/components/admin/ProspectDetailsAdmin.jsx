@@ -1377,14 +1377,50 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 }))
             });
 
-            const relatedTask = appointments?.find(apt => 
-                apt.type === 'task' &&
-                apt.contactId === prospect.id &&
-                apt.projectId === panel.projectType &&
-                apt.step === panel.stepName &&
-                apt.status === 'pending' &&
-                apt.title?.includes('Vérifier le formulaire')
-            );
+            // 🔍 Recherche détaillée avec logs de chaque critère
+            logger.debug('🔍 Searching for task with criteria:', {
+                searchCriteria: {
+                    type: 'task',
+                    contactId: prospect.id,
+                    projectId: panel.projectType,
+                    step: panel.stepName,
+                    status: 'pending',
+                    titleIncludes: 'Vérifier le formulaire'
+                }
+            });
+
+            const relatedTask = appointments?.find(apt => {
+                const checks = {
+                    isTask: apt.type === 'task',
+                    contactMatch: apt.contactId === prospect.id,
+                    projectMatch: apt.projectId === panel.projectType,
+                    stepMatch: apt.step === panel.stepName,
+                    isPending: apt.status === 'pending',
+                    titleMatch: apt.title?.includes('Vérifier le formulaire')
+                };
+                
+                const allMatch = Object.values(checks).every(c => c);
+                
+                if (!allMatch && apt.type === 'task' && apt.contactId === prospect.id) {
+                    logger.debug('🔍 Task failed matching:', {
+                        taskId: apt.id,
+                        title: apt.title,
+                        checks: checks,
+                        taskData: {
+                            contactId: apt.contactId,
+                            projectId: apt.projectId,
+                            step: apt.step,
+                            status: apt.status
+                        },
+                        panelData: {
+                            projectType: panel.projectType,
+                            stepName: panel.stepName
+                        }
+                    });
+                }
+                
+                return allMatch;
+            });
 
             if (relatedTask) {
                 logger.info('✅ Found verification task, marking as completed', {
@@ -1503,14 +1539,50 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 stepName: panel.stepName
             });
 
-            const relatedTask = appointments?.find(apt => 
-                apt.type === 'task' &&
-                apt.contactId === prospect.id &&
-                apt.projectId === panel.projectType &&
-                apt.step === panel.stepName &&
-                apt.status === 'pending' &&
-                apt.title?.includes('Vérifier le formulaire')
-            );
+            // 🔍 Recherche détaillée avec logs de chaque critère
+            logger.debug('🔍 Searching for task with criteria (REJECT):', {
+                searchCriteria: {
+                    type: 'task',
+                    contactId: prospect.id,
+                    projectId: panel.projectType,
+                    step: panel.stepName,
+                    status: 'pending',
+                    titleIncludes: 'Vérifier le formulaire'
+                }
+            });
+
+            const relatedTask = appointments?.find(apt => {
+                const checks = {
+                    isTask: apt.type === 'task',
+                    contactMatch: apt.contactId === prospect.id,
+                    projectMatch: apt.projectId === panel.projectType,
+                    stepMatch: apt.step === panel.stepName,
+                    isPending: apt.status === 'pending',
+                    titleMatch: apt.title?.includes('Vérifier le formulaire')
+                };
+                
+                const allMatch = Object.values(checks).every(c => c);
+                
+                if (!allMatch && apt.type === 'task' && apt.contactId === prospect.id) {
+                    logger.debug('🔍 Task failed matching (REJECT):', {
+                        taskId: apt.id,
+                        title: apt.title,
+                        checks: checks,
+                        taskData: {
+                            contactId: apt.contactId,
+                            projectId: apt.projectId,
+                            step: apt.step,
+                            status: apt.status
+                        },
+                        panelData: {
+                            projectType: panel.projectType,
+                            stepName: panel.stepName
+                        }
+                    });
+                }
+                
+                return allMatch;
+            });
 
             if (relatedTask) {
                 logger.info('✅ Found verification task, marking as completed (rejected)', {

@@ -49,16 +49,33 @@ export function useWorkflowActionTrigger({
         async (payload) => {
           const updatedPanel = payload.new;
           
+          logger.debug('🔍 Form panel UPDATE reçu', {
+            panelId: updatedPanel.id,
+            prospectId: updatedPanel.prospect_id,
+            projectType: updatedPanel.project_type,
+            status: updatedPanel.status,
+            actionId: updatedPanel.action_id,
+            expectedProjectType: projectType,
+          });
+          
           // Vérifier si c'est pour le bon projet et la bonne étape
-          if (
-            updatedPanel.project_type === projectType &&
-            updatedPanel.status === 'approved' &&
-            updatedPanel.action_id
-          ) {
+          const projectMatch = updatedPanel.project_type === projectType;
+          const isApproved = updatedPanel.status === 'approved';
+          const hasActionId = !!updatedPanel.action_id;
+          
+          logger.debug('🔍 Vérifications workflow trigger', {
+            projectMatch,
+            isApproved,
+            hasActionId,
+            allConditionsMet: projectMatch && isApproved && hasActionId
+          });
+          
+          if (projectMatch && isApproved && hasActionId) {
             const actionKey = `${prospectId}-${projectType}-${currentStepIndex}-${updatedPanel.action_id}`;
             
             // Éviter les duplicatas
             if (executedRef.current.has(actionKey)) {
+              logger.warn('⚠️ Action déjà exécutée, skip', { actionKey });
               return;
             }
             
