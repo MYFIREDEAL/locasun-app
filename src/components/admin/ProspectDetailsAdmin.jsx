@@ -1242,11 +1242,26 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             const action = getActionForPanel(panel);
             const approvalMessage = action?.approvalMessage || 'Merci ! Votre formulaire a été validé.';
             
-            await sendMessage({
-                sender: 'admin',
-                text: approvalMessage,
-                relatedMessageTimestamp: new Date().toISOString()
-            });
+            // 🔥 Vérifier qu'un message identique n'a pas déjà été envoyé récemment (< 2 secondes)
+            const { data: recentMessages } = await supabase
+                .from('chat_messages')
+                .select('*')
+                .eq('prospect_id', prospect.id)
+                .eq('project_type', panel.projectType)
+                .eq('sender', 'admin')
+                .eq('text', approvalMessage)
+                .gte('created_at', new Date(Date.now() - 2000).toISOString())
+                .limit(1);
+            
+            if (!recentMessages || recentMessages.length === 0) {
+                await sendMessage({
+                    sender: 'admin',
+                    text: approvalMessage,
+                    relatedMessageTimestamp: new Date().toISOString()
+                });
+            } else {
+                logger.debug('Message de validation déjà envoyé récemment, skip');
+            }
 
             toast({
                 title: '✅ Formulaire validé',
