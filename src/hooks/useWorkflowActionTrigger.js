@@ -33,9 +33,19 @@ export function useWorkflowActionTrigger({
     }
     
     isInitializedRef.current = true;
-    logger.info('🔄 Workflow action trigger activé', { prospectId, projectType, currentStepIndex });
+    logger.info('🔄 Workflow action trigger activé', { 
+      prospectId, 
+      projectType, 
+      currentStepIndex,
+      promptName: prompt?.name 
+    });
 
     // 🔥 Écouter les changements sur client_form_panels (formulaires approuvés)
+    logger.debug('📡 Subscribing to channel', {
+      channelName: `workflow-forms-${prospectId}-${projectType}-${currentStepIndex}`,
+      filter: `prospect_id=eq.${prospectId}`
+    });
+    
     const formPanelChannel = supabase
       .channel(`workflow-forms-${prospectId}-${projectType}-${currentStepIndex}`)
       .on(
