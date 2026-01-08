@@ -227,7 +227,9 @@ const ActionEditor = ({
                                         )}
                                     </div>
 
-                                    {action.cosignersConfig?.formId && (
+                                    {action.cosignersConfig?.formId && (() => {
+                                        const selectedForm = forms?.find(f => f.id === action.cosignersConfig.formId);
+                                        return (
                                         <motion.div 
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
@@ -239,6 +241,27 @@ const ActionEditor = ({
                                             <p className="text-xs text-gray-600">
                                                 Indiquez les champs du formulaire à utiliser. Utilisez <code className="bg-white px-1 py-0.5 rounded text-xs">{'{i}'}</code> pour l'index du co-signataire.
                                             </p>
+
+                                            {/* Affichage des champs disponibles */}
+                                            {selectedForm?.fields && selectedForm.fields.length > 0 && (
+                                                <div className="bg-white border border-blue-200 rounded-lg p-3 mb-3">
+                                                    <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                                        📋 Champs disponibles dans "{selectedForm.name}" :
+                                                    </p>
+                                                    <div className="max-h-40 overflow-y-auto space-y-1.5">
+                                                        {selectedForm.fields.map((field, idx) => (
+                                                            <div key={idx} className="bg-blue-50 rounded px-2 py-1.5 flex items-start gap-2">
+                                                                <code className="text-xs font-mono text-blue-900 font-semibold flex-1">
+                                                                    {field.name}
+                                                                </code>
+                                                                <span className="text-xs text-blue-600 bg-white px-1.5 py-0.5 rounded">
+                                                                    {field.type}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="space-y-2">
                                                 <Label className="text-xs text-gray-600">Champ "Nombre de co-signataires"</Label>
@@ -313,7 +336,7 @@ const ActionEditor = ({
                                                 />
                                             </div>
                                         </motion.div>
-                                    )}
+                                    );})()}
                                 </motion.div>}
                         </AnimatePresence>
 
