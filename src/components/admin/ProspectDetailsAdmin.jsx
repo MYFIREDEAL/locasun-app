@@ -180,6 +180,14 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     prospectId, 
     enabled: true 
   });
+  // 🔥 Hook pour ajouter des événements dans l'historique du projet
+  const { addProjectEvent } = useSupabaseProjectHistory({
+    projectType: projectType || '',
+    prospectId: prospectId,
+    enabled: !!projectType && !!prospectId,
+  });
+  // 🔥 Hook pour récupérer l'utilisateur courant
+  const { user: currentUser } = useSupabaseUser();
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const chatEndRef = useRef(null);
@@ -423,7 +431,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                   prospectId: prospectId,
                   projectType: projectType,
                   title: "Formulaire envoyé",
-                  description: `Le formulaire ${formName} a été envoyé à ${prospect.name}.`,
+                  description: `Le formulaire ${formName} a été envoyé à ${currentProspect?.name || 'le client'}.`,
                   createdBy: currentUser?.name || "Admin"
                 });
               } catch (historyErr) {
