@@ -22,9 +22,12 @@ export function useWorkflowActionTrigger({
   const executedRef = useRef(new Set());
 
   useEffect(() => {
-    if (!prospectId || !projectType || currentStepIndex === undefined || !prompt) return;
+    if (!prospectId || !projectType || currentStepIndex === undefined || !prompt) {
+      logger.debug('⚠️ Workflow action trigger DISABLED', { prospectId, projectType, currentStepIndex, prompt });
+      return;
+    }
 
-    logger.debug('🔄 Workflow action trigger activated', { prospectId, projectType, currentStepIndex });
+    logger.info('🔄 Workflow action trigger ACTIVATED', { prospectId, projectType, currentStepIndex, promptId: prompt?.id });
 
     // 🔥 Écouter les changements sur client_form_panels (formulaires approuvés)
     const formPanelChannel = supabase
@@ -38,6 +41,13 @@ export function useWorkflowActionTrigger({
           filter: `prospect_id=eq.${prospectId}`,
         },
         async (payload) => {
+          logger.info('📩 UPDATE received on client_form_panels', { 
+            payload: payload.new,
+            status: payload.new.status,
+            actionId: payload.new.action_id,
+            projectType: payload.new.project_type
+          });
+          
           const updatedPanel = payload.new;
           
           // Vérifier si c'est pour le bon projet et la bonne étape
@@ -56,15 +66,22 @@ export function useWorkflowActionTrigger({
             
             executedRef.current.add(actionKey);
             
-            logger.debug('✅ Formulaire approuvé, déclenchement action suivante', {
+            logger.info('✅ Formulaire approuvé, déclenchement action suivante dans 2 sec', {
               formId: updatedPanel.form_id,
               actionId: updatedPanel.action_id,
             });
             
             // 🔥 Attendre 2 secondes avant d'envoyer l'action suivante (pour que le client voie la validation)
             setTimeout(() => {
+              logger.info('🚀 Appel sendNextAction()');
               sendNextAction();
             }, 2000);
+          } else {
+            logger.debug('❌ Conditions non remplies pour déclenchement', {
+              projectTypeMatch: updatedPanel.project_type === projectType,
+              statusApproved: updatedPanel.status === 'approved',
+              hasActionId: !!updatedPanel.action_id,
+            });
           }
         }
       )
