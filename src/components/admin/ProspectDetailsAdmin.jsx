@@ -485,12 +485,58 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             logger.info('🔥 Génération contrat via workflow séquentiel', {
               templateId: action.templateId,
               prospectId,
-              projectType
+              projectType,
+              hasCosignersConfig: !!action.cosignersConfig
             });
+
+            // 🔥 Extraire les co-signataires si configuré
+            let cosigners = [];
+            if (action.cosignersConfig?.formId) {
+              logger.debug('Extraction co-signataires depuis formulaire', {
+                formId: action.cosignersConfig.formId,
+                config: action.cosignersConfig
+              });
+
+              // Récupérer les données du prospect
+              const { data: prospectData, error: prospectError } = await supabase
+                .from('prospects')
+                .select('form_data')
+                .eq('id', prospectId)
+                .single();
+
+              if (!prospectError && prospectData?.form_data) {
+                const formData = prospectData.form_data;
+                const config = action.cosignersConfig;
+                
+                // Extraire le nombre de co-signataires
+                const countValue = formData[config.countField];
+                const cosignersCount = parseInt(countValue, 10);
+
+                if (!isNaN(cosignersCount) && cosignersCount > 0) {
+                  for (let i = 0; i < cosignersCount; i++) {
+                    const nameKey = `${config.countField}_repeat_${i}_${config.nameField}`;
+                    const emailKey = `${config.countField}_repeat_${i}_${config.emailField}`;
+                    const phoneKey = `${config.countField}_repeat_${i}_${config.phoneField}`;
+
+                    const name = formData[nameKey];
+                    const email = formData[emailKey];
+                    const phone = formData[phoneKey];
+
+                    if (name && email) {
+                      cosigners.push({ name, email, phone });
+                    }
+                  }
+                }
+
+                logger.debug('Co-signataires extraits', { count: cosigners.length, cosigners });
+              }
+            }
 
             toast({
               title: "📄 Génération du contrat...",
-              description: "Création du PDF en cours",
+              description: cosigners.length > 0 
+                ? `Création du PDF avec ${cosigners.length} co-signataire(s)` 
+                : "Création du PDF en cours",
               className: "bg-blue-500 text-white",
             });
 
@@ -499,7 +545,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
               templateId: action.templateId,
               projectType: projectType,
               prospectId: prospectId,
-              cosigners: [], // Les cosigners seront extraits automatiquement si configuré
+              cosigners: cosigners,
             });
 
             if (result.success) {
