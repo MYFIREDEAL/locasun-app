@@ -542,7 +542,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
               templateId: action.templateId,
               prospectId,
               projectType,
-              hasCosignersConfig: !!action.cosignersConfig
+              hasCosignersConfig: !!action.cosignersConfig,
+              cosignersConfig: action.cosignersConfig // 🔍 Afficher la config complète
             });
 
             // 🔥 Extraire les co-signataires si configuré
