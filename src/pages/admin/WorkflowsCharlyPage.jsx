@@ -242,103 +242,111 @@ const ActionEditor = ({
                                                 Indiquez les champs du formulaire à utiliser. Utilisez <code className="bg-white px-1 py-0.5 rounded text-xs">{'{i}'}</code> pour l'index du co-signataire.
                                             </p>
 
-                                            {/* Affichage des champs disponibles */}
-                                            {selectedForm?.fields && selectedForm.fields.length > 0 && (
-                                                <div className="bg-white border border-blue-200 rounded-lg p-3 mb-3">
-                                                    <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                                        📋 Champs disponibles dans "{selectedForm.name}" :
-                                                    </p>
-                                                    <div className="max-h-40 overflow-y-auto space-y-1.5">
-                                                        {selectedForm.fields.map((field, idx) => (
-                                                            <div key={idx} className="bg-blue-50 rounded px-2 py-1.5 space-y-0.5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <code className="text-xs font-mono text-blue-900 font-semibold bg-white px-1.5 py-0.5 rounded">
-                                                                        {field.id}
-                                                                    </code>
-                                                                    <span className="text-xs text-blue-600">
-                                                                        {field.type}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-xs text-gray-700 ml-1">
-                                                                    {field.label}
-                                                                </p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <p className="text-xs text-gray-600 mb-3">
+                                                Mappez les informations des co-signataires avec les champs du formulaire "{selectedForm.name}"
+                                            </p>
 
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-gray-600">Champ "Nombre de co-signataires"</Label>
-                                                <Input
-                                                    placeholder="Ex: nombre_cosignataires"
-                                                    value={action.cosignersConfig?.countField || ''}
-                                                    onChange={e => handleActionChange('cosignersConfig', {
-                                                        ...(action.cosignersConfig || {}),
-                                                        countField: e.target.value
-                                                    })}
-                                                    className="text-sm"
-                                                />
-                                                <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-2">
-                                                    <p className="text-xs font-semibold text-blue-800 mb-2">📋 Mapping des valeurs :</p>
-                                                    <div className="space-y-1 text-xs text-blue-700">
-                                                        <div className="flex items-center gap-2">
-                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">0</code>
-                                                            <span>→ Aucun co-signataire (uniquement le client principal)</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">1</code>
-                                                            <span>→ 1 co-signataire (2 signataires au total)</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">2</code>
-                                                            <span>→ 2 co-signataires (3 signataires au total)</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">N</code>
-                                                            <span>→ N co-signataires (N+1 signataires au total)</span>
+                                            {/* Table de mapping avec 2 colonnes */}
+                                            <div className="space-y-3">
+                                                {/* Ligne 1: Nombre de co-signataires */}
+                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-700">📊 Nombre de co-signataires</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            Champ qui indique combien de co-signataires
+                                                        </p>
+                                                    </div>
+                                                    <Select
+                                                        value={action.cosignersConfig?.countField || ''}
+                                                        onValueChange={value => handleActionChange('cosignersConfig', {
+                                                            ...(action.cosignersConfig || {}),
+                                                            countField: value
+                                                        })}
+                                                    >
+                                                        <SelectTrigger className="w-full">
+                                                            <SelectValue placeholder="Sélectionner un champ" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {selectedForm.fields.map(field => (
+                                                                <SelectItem key={field.id} value={field.id}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-mono text-xs">{field.label}</span>
+                                                                        <span className="text-xs text-gray-500">({field.type})</span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                {/* Info sur le mapping des valeurs */}
+                                                {action.cosignersConfig?.countField && (
+                                                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                                        <p className="text-xs font-semibold text-blue-800 mb-2">ℹ️ Valeurs attendues :</p>
+                                                        <div className="space-y-1 text-xs text-blue-700">
+                                                            <div><code className="bg-white px-1.5 py-0.5 rounded">0</code> = Client seul</div>
+                                                            <div><code className="bg-white px-1.5 py-0.5 rounded">1</code> = 1 co-signataire</div>
+                                                            <div><code className="bg-white px-1.5 py-0.5 rounded">2</code> = 2 co-signataires</div>
                                                         </div>
                                                     </div>
+                                                )}
+
+                                                {/* Ligne 2: Nom du co-signataire */}
+                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-700">👤 Nom du co-signataire</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            Pattern avec <code className="bg-gray-100 px-1 py-0.5 rounded">{'{i}'}</code> pour l'index
+                                                        </p>
+                                                    </div>
+                                                    <Input
+                                                        placeholder="Ex: field-cosigner-nom-{i}"
+                                                        value={action.cosignersConfig?.nameField || ''}
+                                                        onChange={e => handleActionChange('cosignersConfig', {
+                                                            ...(action.cosignersConfig || {}),
+                                                            nameField: e.target.value
+                                                        })}
+                                                        className="text-sm font-mono"
+                                                    />
                                                 </div>
-                                            </div>
 
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-gray-600">Champ "Nom" (avec pattern)</Label>
-                                                <Input
-                                                    placeholder="Ex: cosigner_nom_{i}"
-                                                    value={action.cosignersConfig?.nameField || ''}
-                                                    onChange={e => handleActionChange('cosignersConfig', {
-                                                        ...(action.cosignersConfig || {}),
-                                                        nameField: e.target.value
-                                                    })}
-                                                    className="text-sm font-mono"
-                                                />
-                                            </div>
+                                                {/* Ligne 3: Email du co-signataire */}
+                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-700">📧 Email du co-signataire</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            Pattern avec <code className="bg-gray-100 px-1 py-0.5 rounded">{'{i}'}</code> pour l'index
+                                                        </p>
+                                                    </div>
+                                                    <Input
+                                                        placeholder="Ex: field-cosigner-email-{i}"
+                                                        value={action.cosignersConfig?.emailField || ''}
+                                                        onChange={e => handleActionChange('cosignersConfig', {
+                                                            ...(action.cosignersConfig || {}),
+                                                            emailField: e.target.value
+                                                        })}
+                                                        className="text-sm font-mono"
+                                                    />
+                                                </div>
 
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-gray-600">Champ "Email" (avec pattern)</Label>
-                                                <Input
-                                                    placeholder="Ex: cosigner_email_{i}"
-                                                    value={action.cosignersConfig?.emailField || ''}
-                                                    onChange={e => handleActionChange('cosignersConfig', {
-                                                        ...(action.cosignersConfig || {}),
-                                                        emailField: e.target.value
-                                                    })}
-                                                    className="text-sm font-mono"
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label className="text-xs text-gray-600">Champ "Téléphone" (avec pattern)</Label>
-                                                <Input
-                                                    placeholder="Ex: cosigner_tel_{i}"
-                                                    value={action.cosignersConfig?.phoneField || ''}
-                                                    onChange={e => handleActionChange('cosignersConfig', {
-                                                        ...(action.cosignersConfig || {}),
-                                                        phoneField: e.target.value
-                                                    })}
-                                                    className="text-sm font-mono"
-                                                />
+                                                {/* Ligne 4: Téléphone du co-signataire */}
+                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-700">📱 Téléphone du co-signataire</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            Pattern avec <code className="bg-gray-100 px-1 py-0.5 rounded">{'{i}'}</code> (optionnel)
+                                                        </p>
+                                                    </div>
+                                                    <Input
+                                                        placeholder="Ex: field-cosigner-tel-{i}"
+                                                        value={action.cosignersConfig?.phoneField || ''}
+                                                        onChange={e => handleActionChange('cosignersConfig', {
+                                                            ...(action.cosignersConfig || {}),
+                                                            phoneField: e.target.value
+                                                        })}
+                                                        className="text-sm font-mono"
+                                                    />
+                                                </div>
                                             </div>
                                         </motion.div>
                                     );})()}
