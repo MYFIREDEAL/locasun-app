@@ -64,16 +64,16 @@ export function useWorkflowActionTrigger({
             
             executedRef.current.add(actionKey);
             
-            logger.info('✅ Formulaire approuvé → Action suivante dans 500ms', {
+            logger.info('✅ Formulaire approuvé → Action suivante dans 2s', {
               formId: updatedPanel.form_id,
               actionId: updatedPanel.action_id,
             });
             
-            // 🔥 Petit délai de 500ms pour laisser le message de validation s'afficher
+            // 🔥 Délai de 2 secondes pour laisser le message de validation s'afficher
             setTimeout(() => {
               logger.info('🚀 Envoi action suivante');
               sendNextAction();
-            }, 500);
+            }, 2000);
           }
         }
       )
