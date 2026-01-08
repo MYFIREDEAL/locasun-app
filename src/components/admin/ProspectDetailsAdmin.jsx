@@ -549,7 +549,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             // 🔥 Extraire les co-signataires si configuré
             let cosigners = [];
             if (action.cosignersConfig?.formId) {
-              logger.debug('Extraction co-signataires depuis formulaire', {
+              logger.info('📋 Extraction co-signataires depuis formulaire', {
                 formId: action.cosignersConfig.formId,
                 config: action.cosignersConfig
               });
@@ -569,7 +569,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 const projectFormData = formData[projectType] || {};
                 const specificFormData = projectFormData[config.formId] || {};
                 
-                logger.debug('Structure form_data', {
+                logger.info('🔍 Structure form_data', {
                   hasProjectData: !!projectFormData,
                   hasFormData: !!specificFormData,
                   formId: config.formId,
@@ -598,7 +598,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                   }
                 }
 
-                logger.debug('Co-signataires extraits', { count: cosigners.length, cosigners });
+                logger.info('✅ Co-signataires extraits', { count: cosigners.length, cosigners });
               }
             }
 
