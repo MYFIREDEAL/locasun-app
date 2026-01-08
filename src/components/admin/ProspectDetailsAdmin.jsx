@@ -208,13 +208,46 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   }, [prompts, projectType, currentStepIndex]);
   
   // 🔥 Fonction pour envoyer la prochaine action du workflow (mémoïsée pour éviter re-renders)
-  const sendNextAction = useCallback(async () => {
-    logger.debug('🚀 Tentative envoi action suivante');
-    const currentPrompt = availablePrompts[0]; // Prendre le premier prompt disponible pour cette étape
-    if (currentPrompt) {
-      await handleSelectPrompt(currentPrompt);
+  const sendNextAction = useCallback(async (completedActionId = null) => {
+    logger.debug('🚀 Tentative envoi action suivante', { completedActionId });
+    const currentPrompt = availablePrompts[0];
+    if (!currentPrompt) {
+      logger.warn('Aucun prompt disponible');
+      return;
     }
-  }, [availablePrompts]); // Dépend de availablePrompts qui est déjà mémoïsé
+    
+    const stepConfig = currentPrompt.stepsConfig?.[currentStepIndex];
+    if (!stepConfig || !stepConfig.actions) {
+      logger.warn('Aucune action dans la config de l\'étape');
+      return;
+    }
+    
+    // Trier les actions par ordre
+    const sortedActions = [...stepConfig.actions].sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    if (completedActionId) {
+      // Trouver l'action complétée et prendre la suivante
+      const completedIndex = sortedActions.findIndex(a => a.id === completedActionId);
+      if (completedIndex !== -1 && completedIndex + 1 < sortedActions.length) {
+        const nextAction = sortedActions[completedIndex + 1];
+        logger.info('🎯 Action suivante trouvée', { 
+          completedActionId, 
+          nextActionId: nextAction.id,
+          nextActionType: nextAction.type 
+        });
+        
+        // Exécuter directement cette action spécifique
+        await handleSelectPrompt(currentPrompt, nextAction.id);
+        return;
+      } else {
+        logger.warn('Pas d\'action suivante', { completedActionId, totalActions: sortedActions.length });
+        return;
+      }
+    }
+    
+    // Fallback: comportement par défaut (première action non envoyée)
+    await handleSelectPrompt(currentPrompt);
+  }, [availablePrompts, currentStepIndex]);
   
   // 🔥 Hook pour déclencher automatiquement l'action suivante quand la précédente est complétée
   useWorkflowActionTrigger({

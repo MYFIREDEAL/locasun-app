@@ -92,8 +92,10 @@ export function useWorkflowActionTrigger({
             
             // 🔥 Délai de 2 secondes pour laisser le message de validation s'afficher
             setTimeout(() => {
-              logger.info('🚀 Envoi action suivante');
-              sendNextAction();
+              logger.info('🚀 Envoi action suivante', { 
+                completedActionId: updatedPanel.action_id 
+              });
+              sendNextAction(updatedPanel.action_id); // Passer l'ID de l'action complétée
             }, 2000);
           }
         }
