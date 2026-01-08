@@ -177,7 +177,7 @@ async function executeAction({ action, prospectId, projectType }) {
         break;
 
       case 'show_form':
-        logger.debug('Action show_form gérée côté client', { formId: action.formId });
+        await executeShowFormAction({ action, prospectId, projectType });
         break;
 
       case 'request_document':
@@ -197,6 +197,142 @@ async function executeAction({ action, prospectId, projectType }) {
     logger.error('Erreur exécution action', { 
       error: error.message,
       actionType: action.type 
+    });
+  }
+}
+
+/**
+ * Exécute l'action "Afficher un formulaire"
+ * Envoie le message d'accompagnement et crée le formulaire dans client_form_panels
+ */
+async function executeShowFormAction({ action, prospectId, projectType }) {
+  try {
+    if (!action.formId) {
+      logger.warn('Action show_form sans formId', { prospectId, projectType });
+      return;
+    }
+
+    // 🔥 1. ENVOYER LE MESSAGE D'ACCOMPAGNEMENT
+    if (action.message) {
+      const messageData = {
+        prospect_id: prospectId,
+        project_type: projectType,
+        sender: 'pro',
+        text: action.message,
+        prompt_id: action.promptId || null,
+        step_index: action.stepIndex || null,
+        timestamp: new Date().toISOString()
+      };
+
+      const { error: msgError } = await supabase
+        .from('chat_messages')
+        .insert(messageData);
+
+      if (msgError) {
+        logger.error('❌ Erreur envoi message formulaire', { error: msgError.message });
+        toast({
+          title: "Erreur",
+          description: "Le message n'a pas pu être envoyé",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      logger.debug('✅ Message formulaire envoyé', { prospectId, projectType });
+    }
+
+    // 🔥 2. CRÉER LE FORMULAIRE DANS client_form_panels
+    const { data: formData } = await supabase
+      .from('forms')
+      .select('name')
+      .eq('id', action.formId)
+      .single();
+
+    const stepName = action.stepName || 'Étape inconnue';
+
+    const panelData = {
+      prospect_id: prospectId,
+      project_type: projectType,
+      form_id: action.formId,
+      current_step_index: action.stepIndex || null,
+      prompt_id: action.promptId || null,
+      message_timestamp: Date.now(),
+      status: 'pending',
+      step_name: stepName
+    };
+
+    const { error: panelError } = await supabase
+      .from('client_form_panels')
+      .insert(panelData);
+
+    if (panelError) {
+      logger.error('❌ Erreur création panneau formulaire', { error: panelError.message });
+      toast({
+        title: "Erreur",
+        description: "Le formulaire n'a pas pu être enregistré",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    logger.debug('✅ Panneau formulaire créé', { prospectId, projectType, formId: action.formId });
+
+    // 🔥 3. AJOUTER MESSAGE AVEC formId DANS LE CHAT
+    const formMessageData = {
+      prospect_id: prospectId,
+      project_type: projectType,
+      sender: 'pro',
+      form_id: action.formId,
+      prompt_id: action.promptId || null,
+      step_index: action.stepIndex || null,
+      timestamp: new Date().toISOString()
+    };
+
+    const { error: formMsgError } = await supabase
+      .from('chat_messages')
+      .insert(formMessageData);
+
+    if (formMsgError) {
+      logger.error('❌ Erreur envoi message formId', { error: formMsgError.message });
+    } else {
+      logger.debug('✅ Message formId envoyé dans le chat', { formId: action.formId });
+    }
+
+    // 🔥 4. AJOUTER ÉVÉNEMENT DANS project_history
+    const { data: currentUserData } = await supabase.auth.getUser();
+    const { data: userData } = await supabase
+      .from('users')
+      .select('name')
+      .eq('user_id', currentUserData?.user?.id)
+      .single();
+
+    const historyData = {
+      prospect_id: prospectId,
+      project_type: projectType,
+      title: "Formulaire envoyé",
+      description: `Le formulaire ${formData?.name || action.formId} a été envoyé.`,
+      created_by: userData?.name || "Admin"
+    };
+
+    const { error: historyError } = await supabase
+      .from('project_history')
+      .insert(historyData);
+
+    if (historyError) {
+      logger.error('⚠️ Erreur ajout événement historique', { error: historyError.message });
+    }
+
+    toast({
+      title: "✅ Formulaire envoyé",
+      description: `Le formulaire a été envoyé au client`,
+    });
+
+  } catch (error) {
+    logger.error('❌ Exception executeShowFormAction', { error: error.message });
+    toast({
+      title: "Erreur",
+      description: "Une erreur est survenue lors de l'envoi du formulaire",
+      variant: "destructive",
     });
   }
 }
