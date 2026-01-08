@@ -390,28 +390,24 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
  */
 async function extractCosignersFromForm({ formId, prospectId, projectType, config }) {
   try {
-    // 1. Récupérer les données du formulaire depuis client_form_panels
-    const { data: formPanel, error: panelError } = await supabase
-      .from('client_form_panels')
+    // 1. Récupérer les données du prospect (form_data contient toutes les réponses aux formulaires)
+    const { data: prospect, error: prospectError } = await supabase
+      .from('prospects')
       .select('form_data')
-      .eq('prospect_id', prospectId)
-      .eq('project_type', projectType)
-      .eq('form_id', formId)
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq('id', prospectId)
+      .single();
 
-    if (panelError || !formPanel || !formPanel.form_data) {
-      logger.warn('Aucun formulaire approuvé trouvé pour extraction co-signataires', {
+    if (prospectError || !prospect || !prospect.form_data) {
+      logger.warn('Aucune donnée formulaire trouvée pour extraction co-signataires', {
         formId,
         prospectId,
-        projectType
+        projectType,
+        error: prospectError?.message
       });
       return [];
     }
 
-    const formData = formPanel.form_data;
+    const formData = prospect.form_data;
     logger.debug('Données formulaire récupérées', { formData });
 
     // 2. Extraire le nombre de co-signataires depuis le champ count
