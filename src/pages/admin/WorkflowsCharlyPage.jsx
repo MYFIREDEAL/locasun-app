@@ -12,6 +12,7 @@ import { Trash2, Plus, Bot, ChevronDown, ChevronRight } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 
 const ActionEditor = ({
   action,
@@ -491,7 +492,13 @@ const ActionEditor = ({
 };
 
 const WorkflowsCharlyPage = () => {
-  const { projectsData, forms } = useAppContext();
+  const { projectsData } = useAppContext();
+  
+  // 🔥 Hook Supabase pour les formulaires
+  const {
+    forms: supabaseForms,
+    loading: formsLoading
+  } = useSupabaseForms();
   
   const {
     prompts: supabasePrompts,
@@ -844,7 +851,7 @@ const WorkflowsCharlyPage = () => {
                                   action={action} 
                                   onChange={newAction => handleActionChange(index, actionIndex, newAction)} 
                                   onDelete={() => deleteAction(index, actionIndex)} 
-                                  forms={forms}
+                                  forms={supabaseForms || []}
                                   contractTemplates={contractTemplates || []}
                                 />
                               ))}
