@@ -181,6 +181,113 @@ const ActionEditor = ({
                                         <p className="text-xs text-red-500">⚠️ Template obligatoire pour sauvegarder</p>
                                     )}
                                 </motion.div>}
+
+                            {action.type === 'start_signature' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-4 overflow-hidden border-t pt-4">
+                                    <div className="space-y-2">
+                                        <Label className="font-semibold text-gray-700">Formulaire pour co-signataires (obligatoire)</Label>
+                                        <Select 
+                                            value={action.cosignersConfig?.formId || ''} 
+                                            onValueChange={value => {
+                                                handleActionChange('cosignersConfig', {
+                                                    ...(action.cosignersConfig || {}),
+                                                    formId: value
+                                                });
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Sélectionner un formulaire" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {forms.map(form => (
+                                                    <SelectItem key={form.id} value={form.id}>
+                                                        {form.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {!action.cosignersConfig?.formId && (
+                                            <p className="text-xs text-orange-600">
+                                                ⚠️ Formulaire obligatoire pour analyser les co-signataires
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {action.cosignersConfig?.formId && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            className="bg-gray-50 p-4 rounded-lg space-y-3 border border-gray-200"
+                                        >
+                                            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                                🔧 Mapping des champs du formulaire
+                                            </h4>
+                                            <p className="text-xs text-gray-600">
+                                                Indiquez les champs du formulaire à utiliser. Utilisez <code className="bg-white px-1 py-0.5 rounded text-xs">{'{i}'}</code> pour l'index du co-signataire.
+                                            </p>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-gray-600">Champ "Nombre de co-signataires"</Label>
+                                                <Input
+                                                    placeholder="Ex: nombre_cosignataires"
+                                                    value={action.cosignersConfig?.countField || ''}
+                                                    onChange={e => handleActionChange('cosignersConfig', {
+                                                        ...(action.cosignersConfig || {}),
+                                                        countField: e.target.value
+                                                    })}
+                                                    className="text-sm"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-gray-600">Champ "Nom" (avec pattern)</Label>
+                                                <Input
+                                                    placeholder="Ex: cosigner_nom_{i}"
+                                                    value={action.cosignersConfig?.nameField || ''}
+                                                    onChange={e => handleActionChange('cosignersConfig', {
+                                                        ...(action.cosignersConfig || {}),
+                                                        nameField: e.target.value
+                                                    })}
+                                                    className="text-sm font-mono"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-gray-600">Champ "Email" (avec pattern)</Label>
+                                                <Input
+                                                    placeholder="Ex: cosigner_email_{i}"
+                                                    value={action.cosignersConfig?.emailField || ''}
+                                                    onChange={e => handleActionChange('cosignersConfig', {
+                                                        ...(action.cosignersConfig || {}),
+                                                        emailField: e.target.value
+                                                    })}
+                                                    className="text-sm font-mono"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-xs text-gray-600">Champ "Téléphone" (avec pattern)</Label>
+                                                <Input
+                                                    placeholder="Ex: cosigner_tel_{i}"
+                                                    value={action.cosignersConfig?.phoneField || ''}
+                                                    onChange={e => handleActionChange('cosignersConfig', {
+                                                        ...(action.cosignersConfig || {}),
+                                                        phoneField: e.target.value
+                                                    })}
+                                                    className="text-sm font-mono"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </motion.div>}
                         </AnimatePresence>
 
                         <div className="space-y-2">

@@ -260,9 +260,17 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         },
       ];
 
-      // 🔥 Ajouter les co-signataires si présents dans la config workflow
-      if (action.cosigners && Array.isArray(action.cosigners)) {
-        for (const cosigner of action.cosigners) {
+      // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE CONFIGURÉ
+      if (action.cosignersConfig?.formId) {
+        const cosignersFromForm = await extractCosignersFromForm({
+          formId: action.cosignersConfig.formId,
+          prospectId,
+          projectType,
+          config: action.cosignersConfig
+        });
+
+        // Ajouter les co-signataires trouvés
+        for (const cosigner of cosignersFromForm) {
           signers.push({
             type: 'cosigner',
             name: cosigner.name || '',
@@ -274,6 +282,11 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
             signed_at: null,
           });
         }
+
+        logger.debug('Co-signataires extraits du formulaire', { 
+          count: cosignersFromForm.length,
+          cosigners: cosignersFromForm
+        });
       }
 
       const { data: newProcedure, error: procedureError } = await supabase
@@ -343,5 +356,87 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       description: `Impossible de générer le contrat: ${error.message}`,
       variant: "destructive",
     });
+  }
+}
+
+/**
+ * Extrait les co-signataires depuis un formulaire rempli
+ * en utilisant la configuration de mapping des champs
+ * @param {Object} params
+ * @param {string} params.formId - ID du formulaire
+ * @param {string} params.prospectId - ID du prospect
+ * @param {string} params.projectType - Type de projet
+ * @param {Object} params.config - Configuration du mapping (countField, nameField, emailField, phoneField)
+ * @returns {Promise<Array>} - Tableau de co-signataires [{name, email, phone}]
+ */
+async function extractCosignersFromForm({ formId, prospectId, projectType, config }) {
+  try {
+    logger.debug('Extraction co-signataires depuis formulaire', { formId, config });
+
+    // 1. Récupérer le formulaire rempli depuis client_form_panels
+    const { data: formPanel, error: formError } = await supabase
+      .from('client_form_panels')
+      .select('form_data')
+      .eq('prospect_id', prospectId)
+      .eq('form_id', formId)
+      .eq('status', 'approved') // Uniquement les formulaires approuvés
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (formError) {
+      logger.error('Erreur récupération formulaire', formError);
+      return [];
+    }
+
+    if (!formPanel || !formPanel.form_data) {
+      logger.warn('Formulaire non trouvé ou non rempli', { formId, prospectId });
+      return [];
+    }
+
+    const formData = formPanel.form_data;
+    logger.debug('Données formulaire récupérées', { formData });
+
+    // 2. Lire le nombre de co-signataires
+    const count = parseInt(formData[config.countField] || 0, 10);
+    
+    if (count === 0 || isNaN(count)) {
+      logger.debug('Aucun co-signataire trouvé', { countField: config.countField, value: formData[config.countField] });
+      return [];
+    }
+
+    logger.debug(`${count} co-signataire(s) détecté(s)`);
+
+    // 3. Extraire les données de chaque co-signataire
+    const cosigners = [];
+    
+    for (let i = 0; i < count; i++) {
+      const nameKey = config.nameField.replace('{i}', i);
+      const emailKey = config.emailField.replace('{i}', i);
+      const phoneKey = config.phoneField.replace('{i}', i);
+
+      const name = formData[nameKey];
+      const email = formData[emailKey];
+      const phone = formData[phoneKey];
+
+      // Email est obligatoire pour être un signataire valide
+      if (email && email.trim() !== '') {
+        cosigners.push({
+          name: name || '',
+          email: email.trim(),
+          phone: phone || ''
+        });
+        logger.debug(`Co-signataire ${i} extrait`, { name, email, phone });
+      } else {
+        logger.warn(`Co-signataire ${i} ignoré (email manquant)`, { nameKey, emailKey, phoneKey });
+      }
+    }
+
+    logger.debug('Extraction terminée', { totalCosigners: cosigners.length });
+    return cosigners;
+
+  } catch (error) {
+    logger.error('Erreur extraction co-signataires', { error: error.message });
+    return [];
   }
 }
