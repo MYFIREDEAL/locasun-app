@@ -144,7 +144,9 @@ const ActionEditor = ({
                                             <SelectValue placeholder="Choisir un formulaire" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {Object.values(forms).map(form => <SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>)}
+                                            {Object.values(forms)
+                                                .filter(form => form.audience === 'client' || !form.audience) // 🔥 Filtrer uniquement les formulaires destinés au client
+                                                .map(form => <SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </motion.div>}
