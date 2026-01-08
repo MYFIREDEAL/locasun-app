@@ -3050,12 +3050,12 @@ const ProspectActivities = ({ prospectId, projectType }) => {
                   onClick={() => handleActivityClick(activity, activity.type)}
                   className={`bg-white rounded-lg p-3 shadow-sm cursor-pointer hover:bg-gray-50 border-l-4 border-${config.color}-500 relative transition-all`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start space-x-3 flex-1">
+                  <div className="flex items-center justify-between overflow-hidden">
+                    <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
                       <div className="flex-shrink-0">
                         <IconComponent className={`h-5 w-5 text-${config.color}-600`} />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-sm font-medium text-gray-900 truncate">
                           {activity.title || config.label}
                         </p>
@@ -3065,7 +3065,7 @@ const ProspectActivities = ({ prospectId, projectType }) => {
                           </p>
                         )}
                         {activity.step && (
-                          <span className="text-xs text-gray-500 mt-1 block">
+                          <span className="text-xs text-gray-500 mt-1 block truncate">
                             📍 {activity.step}
                           </span>
                         )}
