@@ -24,7 +24,7 @@ const ClientHeader = () => {
   const { width } = useWindowSize();
   const isMobile = width < 768;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { companyLogo, clientNotifications, markClientNotificationAsRead, projectsData } = useAppContext();
+  const { companyLogo, clientNotifications, markClientNotificationAsRead, projectsData, brandName, logoUrl } = useAppContext();
   const navigate = useNavigate();
 
   const unreadClientNotifications = clientNotifications.filter(n => !n.read);
@@ -95,7 +95,14 @@ const ClientHeader = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <Link to="/dashboard" className="flex items-center">
-              {companyLogo && companyLogo.startsWith('data:video/mp4') ? (
+              {/* 🔥 Utiliser logoUrl depuis organization_settings en priorité */}
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt={brandName || 'Logo'}
+                  className="h-14 w-auto object-contain"
+                />
+              ) : companyLogo && companyLogo.startsWith('data:video/mp4') ? (
                 <video
                   src={companyLogo}
                   className="h-14 w-auto object-contain"
@@ -113,11 +120,9 @@ const ClientHeader = () => {
                   className="h-14 w-auto object-contain"
                 />
               ) : (
-                <img 
-                  src="/locasun-logo.svg" 
-                  alt="Locasun"
-                  className="h-14 w-auto object-contain"
-                />
+                <div className="w-10 h-10 gradient-green rounded-xl flex items-center justify-center shadow-card">
+                  <span className="text-white font-bold text-lg">{brandName ? brandName.charAt(0).toUpperCase() : 'C'}</span>
+                </div>
               )}
             </Link>
           </div>

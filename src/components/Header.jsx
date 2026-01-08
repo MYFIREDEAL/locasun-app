@@ -4,11 +4,13 @@ import { Settings, User, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { Link, useLocation } from 'react-router-dom';
+import { useAppContext } from '@/App';
 
 const Header = () => {
   const location = useLocation();
   const isDashboard = location.pathname.startsWith('/dashboard');
   const isHomePage = location.pathname === '/';
+  const { brandName, logoUrl } = useAppContext();
 
   const handleProfileClick = () => {
     toast({
@@ -32,11 +34,15 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           <Link to="/dashboard" className="flex items-center space-x-3">
             <motion.div whileHover={{ scale: 1.02 }}>
-              <div className="w-10 h-10 gradient-green rounded-xl flex items-center justify-center shadow-card">
-                <span className="text-white font-bold text-lg">E</span>
-              </div>
+              {logoUrl ? (
+                <img src={logoUrl} alt={brandName || 'Logo'} className="h-10 w-auto object-contain" />
+              ) : (
+                <div className="w-10 h-10 gradient-green rounded-xl flex items-center justify-center shadow-card">
+                  <span className="text-white font-bold text-lg">{brandName ? brandName.charAt(0).toUpperCase() : 'E'}</span>
+                </div>
+              )}
             </motion.div>
-            <span className="text-2xl font-bold text-gray-900">Evatime</span>
+            <span className="text-2xl font-bold text-gray-900">{brandName || 'Application'}</span>
           </Link>
 
           <div className="hidden md:block">

@@ -30,7 +30,7 @@ const navItems = [
       const { width } = useWindowSize();
       const isMobile = width < 768;
       const [isMenuOpen, setIsMenuOpen] = useState(false);
-      const { notifications, markNotificationAsRead, activeAdminUser, switchActiveAdminUser } = useAppContext();
+      const { notifications, markNotificationAsRead, activeAdminUser, switchActiveAdminUser, brandName, logoUrl } = useAppContext();
       const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
       const navigate = useNavigate();
       const [searchParams, setSearchParams] = useSearchParams();
@@ -120,10 +120,14 @@ const navItems = [
               <div className="flex items-center justify-between h-16">
                 <div className="flex items-center space-x-4">
                   <Link to="/admin" className="flex items-center space-x-3">
-                    <div className="w-10 h-10 gradient-blue rounded-xl flex items-center justify-center shadow-card">
-                      <span className="text-white font-bold text-lg">E</span>
-                    </div>
-                    <span className="hidden sm:block text-2xl font-bold text-gray-900">Evatime <span className="font-light text-blue-600">Pro</span></span>
+                    {logoUrl ? (
+                      <img src={logoUrl} alt={brandName || 'Logo'} className="h-10 w-auto object-contain" />
+                    ) : (
+                      <div className="w-10 h-10 gradient-blue rounded-xl flex items-center justify-center shadow-card">
+                        <span className="text-white font-bold text-lg">{brandName ? brandName.charAt(0).toUpperCase() : 'A'}</span>
+                      </div>
+                    )}
+                    <span className="hidden sm:block text-2xl font-bold text-gray-900">{brandName || 'Admin'} <span className="font-light text-blue-600">Pro</span></span>
                   </Link>
                 </div>
 

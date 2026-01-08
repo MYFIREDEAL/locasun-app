@@ -177,8 +177,18 @@ function App() {
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
   
-  // 🔥 RÉCUPÉRATION DE L'ORGANIZATION_ID DEPUIS LE CONTEXT
-  const { organizationId, organizationLoading, organizationError } = useOrganization();
+  // 🔥 RÉCUPÉRATION DE L'ORGANIZATION + BRANDING DEPUIS LE CONTEXT
+  const { 
+    organizationId, 
+    organizationLoading, 
+    organizationError,
+    brandName,
+    logoUrl,
+    primaryColor,
+    secondaryColor,
+    brandingLoading,
+    brandingError
+  } = useOrganization();
   
   const [userProjects, setUserProjects] = useState([]);
   // ✅ projectsData maintenant géré par useSupabaseProjectTemplates (plus de localStorage)
@@ -1327,31 +1337,38 @@ function App() {
     adminReady, // 🔥 Exposer le flag pour activer les hooks Supabase
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
     companyLogo, setCompanyLogo, removeLogo,
+    // 🔥 WHITE-LABEL: Branding dynamique depuis organization_settings
+    brandName,
+    logoUrl,
+    primaryColor,
+    secondaryColor,
   };
 
   const getPageTitle = () => {
-    if (location.pathname === '/') return 'Evatime - Économisez sur votre électricité';
-    if (location.pathname.startsWith('/inscription')) return 'Evatime - Démarrez votre projet';
-    if (location.pathname === '/producteurs') return 'Evatime - Vendez mieux votre électricité';
-    if (location.pathname.startsWith('/dashboard/offres')) return 'Evatime - Nos Offres Exclusives';
-    if (location.pathname.startsWith('/dashboard/profil')) return 'Evatime - Votre Profil';
-    if (location.pathname.startsWith('/dashboard')) return 'Evatime - Votre Espace Client';
-    if (location.pathname.startsWith('/admin/profil')) return 'Evatime Pro - Mon Profil';
-    if (location.pathname.startsWith('/admin/charly')) return 'Evatime Pro - Charly AI';
-    if (isAdminRoute) return 'Evatime Pro - Espace Admin';
-    return 'Evatime';
+    // 🔥 Utiliser le brandName dynamique si disponible
+    const brand = brandName || 'Application';
+    if (location.pathname === '/') return `${brand} - Économisez sur votre électricité`;
+    if (location.pathname.startsWith('/inscription')) return `${brand} - Démarrez votre projet`;
+    if (location.pathname === '/producteurs') return `${brand} - Vendez mieux votre électricité`;
+    if (location.pathname.startsWith('/dashboard/offres')) return `${brand} - Nos Offres Exclusives`;
+    if (location.pathname.startsWith('/dashboard/profil')) return `${brand} - Votre Profil`;
+    if (location.pathname.startsWith('/dashboard')) return `${brand} - Votre Espace Client`;
+    if (location.pathname.startsWith('/admin/profil')) return `${brand} Pro - Mon Profil`;
+    if (location.pathname.startsWith('/admin/charly')) return `${brand} Pro - Charly AI`;
+    if (isAdminRoute) return `${brand} Pro - Espace Admin`;
+    return brand;
   };
 
   const getPageDescription = () => {
     if (location.pathname === '/') return 'Dépensez 35 % de moins sur votre électricité, garanti 10 ans.';
-    if (location.pathname.startsWith('/inscription')) return 'Choisissez vos projets et rejoignez Evatime.';
+    if (location.pathname.startsWith('/inscription')) return `Choisissez vos projets et rejoignez ${brandName || 'notre plateforme'}.`;
     if (location.pathname === '/producteurs') return 'Optimisez la rentabilité de vos centrales solaires avec l\'autoconsommation collective.';
     if (location.pathname.startsWith('/dashboard/offres')) return 'Découvrez nos offres pour l\'autonomie énergétique, la production solaire et l\'investissement.';
     if (location.pathname.startsWith('/dashboard/profil')) return 'Gérez vos informations personnelles et vos préférences.';
     if (location.pathname.startsWith('/dashboard')) return 'Suivez l\'avancement de vos projets énergétiques ACC, solaire, et plus.';
     if (location.pathname.startsWith('/admin/profil')) return 'Gérez vos informations, utilisateurs et clients.';
     if (location.pathname.startsWith('/admin/charly')) return 'Gérez vos campagnes et scripts avec votre assistant IA Charly.';
-    if (isAdminRoute) return 'Gérez vos prospects, projets et agenda avec Evatime Pro.';
+    if (isAdminRoute) return `Gérez vos prospects, projets et agenda avec ${brandName || 'la plateforme'} Pro.`;
     return 'La solution pour vos projets énergétiques.';
   };
 
@@ -1381,6 +1398,40 @@ function App() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Organisation inconnue</h1>
           <p className="text-gray-600 mb-4">
             {organizationError || "Impossible de résoudre l'organisation pour ce domaine."}
+          </p>
+          <p className="text-sm text-gray-500">
+            Veuillez contacter votre administrateur système.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 BLOQUER LE RENDU TANT QUE LE BRANDING N'EST PAS CHARGÉ
+  if (brandingLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Chargement de la configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 ÉCRAN BLOQUANT SI ERREUR BRANDING
+  if (brandingError) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center max-w-md px-6">
+          <div className="bg-yellow-100 rounded-full h-16 w-16 mx-auto mb-4 flex items-center justify-center">
+            <svg className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Configuration incomplète</h1>
+          <p className="text-gray-600 mb-4">
+            {brandingError}
           </p>
           <p className="text-sm text-gray-500">
             Veuillez contacter votre administrateur système.

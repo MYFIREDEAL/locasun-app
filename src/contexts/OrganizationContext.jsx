@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { useBranding } from '@/hooks/useBranding';
 
 /**
  * OrganizationContext
  * Résout automatiquement l'organization_id depuis le hostname au démarrage de l'app
  * via la fonction Supabase resolve_organization_from_host(host text)
+ * + Charge les paramètres de branding depuis organization_settings
  */
 
 const OrganizationContext = createContext(null);
@@ -63,12 +65,47 @@ export const OrganizationProvider = ({ children }) => {
     resolveOrganization();
   }, []);
 
+  // 🔥 Charger le branding une fois que l'organization est résolue
+  const {
+    brandName,
+    logoUrl,
+    primaryColor,
+    secondaryColor,
+    brandingLoading,
+    brandingError,
+  } = useBranding(organizationId);
+
+  // 🔥 Appliquer dynamiquement le document.title et les variables CSS
+  useEffect(() => {
+    if (brandName) {
+      document.title = brandName;
+      logger.info('[OrganizationContext] Document title set to:', brandName);
+    }
+  }, [brandName]);
+
+  useEffect(() => {
+    if (primaryColor) {
+      document.documentElement.style.setProperty('--primary', primaryColor);
+      logger.info('[OrganizationContext] Primary color set to:', primaryColor);
+    }
+    if (secondaryColor) {
+      document.documentElement.style.setProperty('--secondary', secondaryColor);
+      logger.info('[OrganizationContext] Secondary color set to:', secondaryColor);
+    }
+  }, [primaryColor, secondaryColor]);
+
   return (
     <OrganizationContext.Provider
       value={{
         organizationId,
         organizationLoading,
         organizationError,
+        brandName,
+        logoUrl,
+        primaryColor,
+        secondaryColor,
+        brandingLoading,
+        brandingError,
       }}
     >
       {children}
