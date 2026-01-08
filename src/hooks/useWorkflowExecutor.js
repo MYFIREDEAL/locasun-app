@@ -564,41 +564,116 @@ async function checkActionPrerequisites({ action, previousActions, prospectId, p
       if (!prevAction.type || prevAction.type === 'none') continue;
 
       // Vérifier selon le type d'action
-      if (prevAction.type === 'show_form') {
-        // Vérifier que le formulaire a été rempli ET approuvé
-        const { data: formPanel } = await supabase
-          .from('client_form_panels')
-          .select('id, status')
-          .eq('prospect_id', prospectId)
-          .eq('form_id', prevAction.formId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      switch (prevAction.type) {
+        case 'show_form': {
+          // Vérifier que le formulaire a été rempli ET approuvé
+          const { data: formPanel } = await supabase
+            .from('client_form_panels')
+            .select('id, status')
+            .eq('prospect_id', prospectId)
+            .eq('form_id', prevAction.formId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (!formPanel) {
-          logger.debug('⏸️ Formulaire requis non encore envoyé/rempli', {
+          if (!formPanel) {
+            logger.debug('⏸️ Formulaire requis non encore envoyé/rempli', {
+              formId: prevAction.formId,
+              blockedAction: action.type
+            });
+            return false; // ⛔ Bloquer
+          }
+
+          if (formPanel.status !== 'approved') {
+            logger.debug('⏸️ Formulaire requis non encore approuvé', {
+              formId: prevAction.formId,
+              status: formPanel.status,
+              blockedAction: action.type
+            });
+            return false; // ⛔ Bloquer
+          }
+
+          logger.debug('✅ Formulaire prérequis validé', {
             formId: prevAction.formId,
-            blockedAction: action.type
+            status: formPanel.status
           });
-          return false; // ⛔ Bloquer
+          break;
         }
 
-        if (formPanel.status !== 'approved') {
-          logger.debug('⏸️ Formulaire requis non encore approuvé', {
-            formId: prevAction.formId,
-            status: formPanel.status,
-            blockedAction: action.type
+        case 'request_document': {
+          // Vérifier qu'un fichier a été uploadé pour ce type de document
+          const { data: files } = await supabase
+            .from('project_files')
+            .select('id, file_name')
+            .eq('prospect_id', prospectId)
+            .eq('project_type', projectType)
+            .eq('field_label', prevAction.documentType || 'Document requis')
+            .limit(1);
+
+          if (!files || files.length === 0) {
+            logger.debug('⏸️ Document requis non encore uploadé', {
+              documentType: prevAction.documentType,
+              blockedAction: action.type
+            });
+            return false; // ⛔ Bloquer
+          }
+
+          logger.debug('✅ Document prérequis trouvé', {
+            documentType: prevAction.documentType,
+            fileName: files[0].file_name
           });
-          return false; // ⛔ Bloquer
+          break;
         }
 
-        logger.debug('✅ Formulaire prérequis validé', {
-          formId: prevAction.formId,
-          status: formPanel.status
-        });
+        case 'open_payment': {
+          // Vérifier qu'un paiement a été effectué
+          // TODO: Implémenter quand la table payments existe
+          logger.debug('⚠️ Vérification paiement non implémentée, skip', {
+            blockedAction: action.type
+          });
+          // Pour l'instant, on ne bloque pas sur les paiements
+          break;
+        }
+
+        case 'start_signature': {
+          // Vérifier qu'une procédure de signature existe et est complétée
+          const { data: procedure } = await supabase
+            .from('signature_procedures')
+            .select('id, status')
+            .eq('prospect_id', prospectId)
+            .eq('project_type', projectType)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!procedure) {
+            logger.debug('⏸️ Signature requise non encore créée', {
+              blockedAction: action.type
+            });
+            return false; // ⛔ Bloquer
+          }
+
+          if (procedure.status !== 'completed') {
+            logger.debug('⏸️ Signature requise non encore complétée', {
+              status: procedure.status,
+              blockedAction: action.type
+            });
+            return false; // ⛔ Bloquer
+          }
+
+          logger.debug('✅ Signature prérequise complétée', {
+            status: procedure.status
+          });
+          break;
+        }
+
+        default:
+          // Type d'action inconnu, on ne bloque pas
+          logger.debug('⚠️ Type d\'action inconnu pour vérification prérequis, skip', {
+            actionType: prevAction.type
+          });
+          break;
       }
-
-      // TODO: Ajouter d'autres vérifications pour request_document, open_payment, etc.
     }
 
     // Tous les prérequis sont OK
