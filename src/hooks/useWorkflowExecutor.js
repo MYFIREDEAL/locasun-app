@@ -175,6 +175,21 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       logger.error('Erreur vérification fichiers existants', { error: checkError.message });
     }
 
+    // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE (si configuré)
+    let cosigners = [];
+    if (action.cosignersConfig?.formId) {
+      cosigners = await extractCosignersFromForm({
+        formId: action.cosignersConfig.formId,
+        prospectId,
+        projectType,
+        config: action.cosignersConfig
+      });
+      logger.debug('Co-signataires extraits avant génération PDF', { 
+        count: cosigners.length,
+        cosigners
+      });
+    }
+
     let fileId = null;
 
     if (existingFiles && existingFiles.length > 0) {
@@ -186,7 +201,8 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       logger.debug('Génération contrat PDF...', { 
         templateId: action.templateId,
         prospectId,
-        projectType 
+        projectType,
+        cosignersCount: cosigners.length
       });
 
       toast({
@@ -195,11 +211,12 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         className: "bg-blue-500 text-white",
       });
 
-      // Exécuter la génération + upload
+      // Exécuter la génération + upload AVEC les cosigners
       const result = await executeContractSignatureAction({
         templateId: action.templateId,
         projectType,
         prospectId,
+        cosigners, // ⭐ Passer les cosigners
       });
 
       if (result.success) {
@@ -260,34 +277,25 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         },
       ];
 
-      // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE CONFIGURÉ
-      if (action.cosignersConfig?.formId) {
-        const cosignersFromForm = await extractCosignersFromForm({
-          formId: action.cosignersConfig.formId,
-          prospectId,
-          projectType,
-          config: action.cosignersConfig
-        });
-
-        // Ajouter les co-signataires trouvés
-        for (const cosigner of cosignersFromForm) {
-          signers.push({
-            type: 'cosigner',
-            name: cosigner.name || '',
-            email: cosigner.email || '',
-            phone: cosigner.phone || '',
-            access_token: crypto.randomUUID(),
-            requires_auth: false,
-            status: 'pending',
-            signed_at: null,
-          });
-        }
-
-        logger.debug('Co-signataires extraits du formulaire', { 
-          count: cosignersFromForm.length,
-          cosigners: cosignersFromForm
+      // 🔥 AJOUTER LES CO-SIGNATAIRES DÉJÀ EXTRAITS
+      for (const cosigner of cosigners) {
+        signers.push({
+          type: 'cosigner',
+          name: cosigner.name || '',
+          email: cosigner.email || '',
+          phone: cosigner.phone || '',
+          access_token: crypto.randomUUID(),
+          requires_auth: false,
+          status: 'pending',
+          signed_at: null,
         });
       }
+
+      logger.debug('Signers construits pour procédure', { 
+        principal: 1,
+        cosignersCount: cosigners.length,
+        totalSigners: signers.length
+      });
 
       const { data: newProcedure, error: procedureError } = await supabase
         .from('signature_procedures')

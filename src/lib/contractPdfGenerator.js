@@ -8,6 +8,7 @@ import { logger } from './logger';
  * @param {Object} params
  * @param {string} params.templateHtml - HTML du template
  * @param {Object} params.prospectData - Données du prospect
+ * @param {Array} params.cosigners - Tableau des co-signataires [{name, email, phone}]
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
  * @returns {Promise<Object>} - { success, fileData } ou { success: false, error }
@@ -15,16 +16,17 @@ import { logger } from './logger';
 export async function generateContractPDF({
   templateHtml,
   prospectData,
+  cosigners = [],
   projectType,
   prospectId,
 }) {
   let tempContainer = null;
   
   try {
-    logger.debug('Génération PDF contract', { projectType, prospectId });
+    logger.debug('Génération PDF contract', { projectType, prospectId, cosignersCount: cosigners.length });
 
-    // 1. Injecter les données du prospect dans le HTML
-    const htmlWithData = injectProspectData(templateHtml, prospectData);
+    // 1. Injecter les données du prospect ET des cosigners dans le HTML
+    const htmlWithData = injectProspectData(templateHtml, prospectData, cosigners);
     
     logger.debug('HTML après injection', { 
       htmlLength: htmlWithData.length,
@@ -159,21 +161,23 @@ export async function generateContractPDF({
 }
 
 /**
- * Injecte les données du prospect dans le template HTML
+ * Injecte les données du prospect ET des co-signataires dans le template HTML
  * @param {string} html - Template HTML
  * @param {Object} prospect - Données du prospect (depuis Supabase)
+ * @param {Array} cosigners - Tableau des co-signataires [{name, email, phone}]
  * @returns {string} - HTML avec données injectées
  */
-function injectProspectData(html, prospect) {
+function injectProspectData(html, prospect, cosigners = []) {
   if (!html || html.trim() === '') {
     logger.warn('Template HTML vide ou undefined');
     return '<div style="padding: 40px; font-family: Arial;"><h1>Contrat</h1><p>Template non configuré</p></div>';
   }
 
-  logger.debug('Injection données prospect', { 
+  logger.debug('Injection données prospect + cosigners', { 
     name: prospect.name, 
     email: prospect.email,
-    phone: prospect.phone 
+    phone: prospect.phone,
+    cosignersCount: cosigners.length
   });
 
   // Parser l'adresse complète (peut contenir ville, code postal)
@@ -233,6 +237,29 @@ function injectProspectData(html, prospect) {
     }),
   };
 
+  // 🔥 AJOUTER LES VARIABLES DES CO-SIGNATAIRES
+  // Format: {{cosigner_1_name}}, {{cosigner_1_email}}, {{cosigner_1_phone}}
+  cosigners.forEach((cosigner, index) => {
+    const num = index + 1; // Index commence à 1
+    
+    // Séparer nom/prénom du co-signataire
+    const cosignerNameParts = (cosigner.name || '').split(' ');
+    const cosignerFirstName = cosignerNameParts[0] || '';
+    const cosignerLastName = cosignerNameParts.slice(1).join(' ') || '';
+    
+    variables[`{{cosigner_${num}_name}}`] = cosigner.name || '';
+    variables[`{{cosigner_${num}_firstname}}`] = cosignerFirstName;
+    variables[`{{cosigner_${num}_lastname}}`] = cosignerLastName;
+    variables[`{{cosigner_${num}_email}}`] = cosigner.email || '';
+    variables[`{{cosigner_${num}_phone}}`] = cosigner.phone || '';
+  });
+
+  logger.debug('Variables injectées', { 
+    prospectVars: 8,
+    cosignerVars: cosigners.length * 5,
+    totalVars: Object.keys(variables).length
+  });
+
   // Remplacer toutes les variables
   Object.entries(variables).forEach(([placeholder, value]) => {
     // Échapper les accolades pour regex
@@ -242,7 +269,7 @@ function injectProspectData(html, prospect) {
   });
 
   logger.debug('HTML après injection', { 
-    variables: Object.fromEntries(Object.entries(variables).map(([k, v]) => [k, v.substring(0, 50)])),
+    variables: Object.fromEntries(Object.entries(variables).map(([k, v]) => [k, v ? v.substring(0, 50) : ''])),
     resultLength: result.length 
   });
 
@@ -345,15 +372,17 @@ export async function uploadContractPDF({
  * @param {string} params.templateId - ID du template de contrat
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
+ * @param {Array} params.cosigners - Tableau des co-signataires [{name, email, phone}]
  * @returns {Promise<Object>} - { success, data } ou { success: false, error }
  */
 export async function executeContractSignatureAction({
   templateId,
   projectType,
   prospectId,
+  cosigners = [],
 }) {
   try {
-    logger.debug('Exécution action launch_signature', { templateId, projectType, prospectId });
+    logger.debug('Exécution action launch_signature', { templateId, projectType, prospectId, cosignersCount: cosigners.length });
 
     // 1. Charger le template
     const { data: template, error: templateError } = await supabase
@@ -377,10 +406,11 @@ export async function executeContractSignatureAction({
       throw new Error(`Prospect introuvable: ${prospectId}`);
     }
 
-    // 3. Générer le PDF (inclut upload automatique)
+    // 3. Générer le PDF (inclut upload automatique) AVEC les cosigners
     const pdfResult = await generateContractPDF({
       templateHtml: template.content_html,
       prospectData: prospect,
+      cosigners, // ⭐ Passer les cosigners
       projectType,
       prospectId,
     });
