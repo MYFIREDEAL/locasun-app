@@ -225,6 +225,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           message_timestamp: panelData.messageTimestamp,
           status: panelData.status || 'pending',
           step_name: panelData.stepName || null, // 🔥 AJOUT: Nom de l'étape du pipeline
+          action_id: panelData.actionId || null, // 🔥 AJOUT: ID de l'action pour déclenchement séquentiel
         });
 
       if (error) {

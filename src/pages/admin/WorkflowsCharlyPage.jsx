@@ -49,6 +49,22 @@ const ActionEditor = ({
   };
   
   return <div className="p-4 bg-white rounded-lg border space-y-4">
+                {/* Indicateur d'ordre séquentiel */}
+                {action.order !== undefined && action.waitForPrevious && (
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                        <span className="text-sm text-blue-700">
+                            ⏳ <strong>Action #{action.order + 1}</strong> - S'enverra automatiquement après validation de l'action précédente
+                        </span>
+                    </div>
+                )}
+                {action.order !== undefined && !action.waitForPrevious && (
+                    <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <span className="text-sm text-green-700">
+                            🚀 <strong>Action #{action.order + 1}</strong> - S'enverra immédiatement
+                        </span>
+                    </div>
+                )}
+                
                 <div className="flex justify-between items-start">
                     <div className="flex-grow">
                         <Label className="text-sm font-semibold text-gray-700 mb-2 block">Type d'action</Label>
@@ -693,11 +709,16 @@ const WorkflowsCharlyPage = () => {
         autoCompleteStep: false
       };
     }
+    const currentActions = newStepsConfig[stepIndex].actions || [];
+    const nextOrder = currentActions.length; // 0, 1, 2, etc.
+    
     newStepsConfig[stepIndex].actions.push({
       id: `action-${Date.now()}`,
       message: '',
       type: 'none',
-      hasClientAction: true
+      hasClientAction: true,
+      order: nextOrder,
+      waitForPrevious: nextOrder > 0 // Si ce n'est pas la première action, attendre la précédente
     });
     setPromptData(prev => ({
       ...prev,

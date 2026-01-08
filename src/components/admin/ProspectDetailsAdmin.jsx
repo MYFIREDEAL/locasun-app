@@ -27,6 +27,7 @@ import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
+import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -205,6 +206,24 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     });
   }, [prompts, projectType, currentStepIndex]);
   
+  // 🔥 Fonction pour envoyer la prochaine action du workflow
+  const sendNextAction = async () => {
+    logger.debug('🚀 Tentative envoi action suivante');
+    const currentPrompt = availablePrompts[0]; // Prendre le premier prompt disponible pour cette étape
+    if (currentPrompt) {
+      await handleSelectPrompt(currentPrompt);
+    }
+  };
+  
+  // 🔥 Hook pour déclencher automatiquement l'action suivante quand la précédente est complétée
+  useWorkflowActionTrigger({
+    prospectId,
+    projectType,
+    currentStepIndex,
+    prompt: availablePrompts[0],
+    sendNextAction,
+  });
+  
   useEffect(() => {
     requestAnimationFrame(() => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -365,40 +384,48 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
       // ✅ Utiliser messages du hook Supabase
       const existingMessages = messages;
-      for (const action of stepConfig.actions) {
+      
+      // 🔥 Trier les actions par ordre
+      const sortedActions = [...stepConfig.actions].sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      // 🔥 Trouver la première action non envoyée
+      for (const action of sortedActions) {
+        // Vérifier si cette action a déjà été envoyée
+        const actionAlreadySent = existingMessages.some(msg =>
+          msg.promptId === prompt.id &&
+          msg.stepIndex === currentStepIndex &&
+          (
+            (msg.text === action.message) ||
+            (msg.formId === action.formId && action.type === 'show_form')
+          )
+        );
+        
+        if (actionAlreadySent) {
+          // Cette action est déjà envoyée, passer à la suivante
+          continue;
+        }
+        
+        // 🔥 Cette action n'a pas encore été envoyée
+        // Envoyer le message si présent
         if (action.message) {
-          const alreadySent = existingMessages.some(msg =>
-            msg.sender === 'pro' &&
-            msg.promptId === prompt.id &&
-            msg.stepIndex === currentStepIndex &&
-            msg.text === action.message
-          );
-          if (alreadySent) {
-            continue;
-          }
           const message = {
             sender: 'pro',
             text: action.message,
             promptId: prompt.id,
             stepIndex: currentStepIndex,
+            actionId: action.id, // 🔥 Ajouter l'ID de l'action
           };
           addChatMessage(prospectId, projectType, message);
         }
+        
+        // Envoyer le formulaire si c'est une action show_form
         if (action.type === 'show_form' && action.formId) {
-          const alreadyQueued = existingMessages.some(msg =>
-            msg.sender === 'pro' &&
-            msg.promptId === prompt.id &&
-            msg.stepIndex === currentStepIndex &&
-            msg.formId === action.formId
-          );
-          if (alreadyQueued) {
-            continue;
-          }
           const formMessage = {
             sender: 'pro',
             formId: action.formId,
             promptId: prompt.id,
             stepIndex: currentStepIndex,
+            actionId: action.id, // 🔥 Ajouter l'ID de l'action
           };
           addChatMessage(prospectId, projectType, formMessage);
           
@@ -414,6 +441,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
               messageTimestamp: Date.now(),
               status: 'pending',
               stepName: stepName,
+              actionId: action.id, // 🔥 Ajouter l'ID de l'action
             });
 
             if (!result.success) {
@@ -449,6 +477,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             });
           }
         }
+        
+        // 🔥 Arrêter après avoir envoyé la première action non envoyée
+        break;
       }
     }
     setPopoverOpen(false);
