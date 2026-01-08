@@ -432,7 +432,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                   projectType: projectType,
                   title: "Formulaire envoyé",
                   description: `Le formulaire ${formName} a été envoyé à ${currentProspect?.name || 'le client'}.`,
-                  createdBy: currentUser?.name || "Admin"
+                  createdBy: currentUser?.user_id || null,
+                  createdByName: currentUser?.name || "Admin"
                 });
               } catch (historyErr) {
                 // Ne pas bloquer si l'événement échoue
