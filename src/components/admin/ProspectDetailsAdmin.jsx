@@ -549,6 +549,107 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             });
 
             if (result.success) {
+              const fileId = result.fileData.id;
+              
+              // 🔥 CRÉER LA PROCÉDURE DE SIGNATURE
+              logger.debug('Création procédure de signature...', { fileId, prospectId, projectType });
+
+              // Vérifier si une procédure existe déjà
+              const { data: existingProcedure } = await supabase
+                .from('signature_procedures')
+                .select('*')
+                .eq('file_id', fileId)
+                .eq('prospect_id', prospectId)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+              let signatureProcedure = existingProcedure;
+
+              if (!signatureProcedure) {
+                // Créer nouvelle procédure
+                const accessToken = crypto.randomUUID();
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+
+                // Construire le tableau signers
+                const signers = [
+                  {
+                    type: 'principal',
+                    name: currentProspect?.name || 'Client',
+                    email: currentProspect?.email,
+                    phone: currentProspect?.phone || null,
+                    access_token: accessToken,
+                    requires_auth: true,
+                    status: 'pending',
+                    signed_at: null,
+                  },
+                ];
+
+                // Ajouter les co-signataires
+                if (cosigners.length > 0) {
+                  for (const cosigner of cosigners) {
+                    signers.push({
+                      type: 'cosigner',
+                      name: cosigner.name || '',
+                      email: cosigner.email || '',
+                      phone: cosigner.phone || '',
+                      access_token: crypto.randomUUID(),
+                      requires_auth: false,
+                      status: 'pending',
+                      signed_at: null,
+                    });
+                  }
+                }
+
+                const { data: newProcedure, error: procedureError } = await supabase
+                  .from('signature_procedures')
+                  .insert({
+                    prospect_id: prospectId,
+                    project_type: projectType,
+                    file_id: fileId,
+                    access_token: accessToken,
+                    access_token_expires_at: expiresAt.toISOString(),
+                    status: 'pending',
+                    signers: signers,
+                  })
+                  .select()
+                  .single();
+
+                if (procedureError) {
+                  logger.error('Erreur création signature_procedures', procedureError);
+                  throw procedureError;
+                }
+
+                signatureProcedure = newProcedure;
+                logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id, signersCount: signers.length });
+              }
+
+              // 🔥 ENVOYER LE LIEN DANS LE CHAT
+              const signatureUrl = `${window.location.origin}/signature/${signatureProcedure.id}?token=${signatureProcedure.access_token}`;
+              
+              // Vérifier si le message existe déjà
+              const { data: existingMessage } = await supabase
+                .from('chat_messages')
+                .select('id')
+                .eq('prospect_id', prospectId)
+                .eq('project_type', projectType)
+                .eq('sender', 'pro')
+                .ilike('text', `%/signature/${signatureProcedure.id}%`)
+                .maybeSingle();
+
+              if (!existingMessage) {
+                await supabase
+                  .from('chat_messages')
+                  .insert({
+                    prospect_id: prospectId,
+                    project_type: projectType,
+                    sender: 'pro',
+                    text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
+                  });
+                
+                logger.debug('Lien de signature envoyé dans le chat');
+              }
+
               toast({
                 title: "✅ Contrat généré !",
                 description: "Le contrat a été créé et le lien de signature envoyé.",
