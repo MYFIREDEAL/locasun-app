@@ -644,7 +644,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 // Construire le tableau signers
                 const signers = [
                   {
-                    type: 'principal',
+                    role: 'principal', // Changé de 'type' à 'role' pour compatibilité avec send-cosigner-invite
                     name: currentProspect?.name || 'Client',
                     email: currentProspect?.email,
                     phone: currentProspect?.phone || null,
@@ -659,7 +659,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 if (cosigners.length > 0) {
                   for (const cosigner of cosigners) {
                     signers.push({
-                      type: 'cosigner',
+                      role: 'cosigner', // Changé de 'type' à 'role' pour compatibilité avec send-cosigner-invite
                       name: cosigner.name || '',
                       email: cosigner.email || '',
                       phone: cosigner.phone || '',
@@ -693,30 +693,20 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 signatureProcedure = newProcedure;
                 logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id, signersCount: signers.length });
 
-                // 🔥 ENVOYER EMAIL AUX CO-SIGNATAIRES
-                for (const signer of signers) {
-                  if (signer.type === 'cosigner' && signer.email) {
-                    const cosignerUrl = `${window.location.origin}/sign/cosigner?token=${signer.access_token}`;
-                    
-                    try {
-                      const { error: emailError } = await supabase.functions.invoke('send-cosigner-email', {
-                        body: {
-                          email: signer.email,
-                          name: signer.name,
-                          signatureUrl: cosignerUrl,
-                          clientName: currentProspect?.name || 'Client',
-                          projectType: projectType
-                        }
-                      });
+                // 🔥 ENVOYER EMAIL AUX CO-SIGNATAIRES via Edge Function
+                if (cosigners.length > 0) {
+                  try {
+                    const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('send-cosigner-invite', {
+                      body: { signature_procedure_id: signatureProcedure.id }
+                    });
 
-                      if (emailError) {
-                        logger.error('Erreur envoi email co-signataire', { email: signer.email, error: emailError });
-                      } else {
-                        logger.info('✅ Email envoyé au co-signataire', { email: signer.email });
-                      }
-                    } catch (err) {
-                      logger.error('Erreur envoi email co-signataire', err);
+                    if (inviteError) {
+                      logger.error('❌ Erreur envoi invitations co-signataires', inviteError);
+                    } else {
+                      logger.info('✅ Invitations envoyées aux co-signataires', { sent: inviteResult?.sent || 0 });
                     }
+                  } catch (err) {
+                    logger.error('❌ Erreur send-cosigner-invite', err);
                   }
                 }
               }
