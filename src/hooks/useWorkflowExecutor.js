@@ -7,7 +7,6 @@ import { toast } from '@/components/ui/use-toast';
 /**
  * Hook pour exécuter automatiquement les actions workflow
  * quand un prospect change d'étape dans un projet
- * OU quand un formulaire requis est approuvé
  * 
  * @param {string} prospectId - ID du prospect
  * @param {string} projectType - Type de projet
@@ -17,42 +16,10 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
   // Garde une trace des actions déjà exécutées pour éviter les duplicatas
   const executedActionsRef = useRef(new Set());
 
-  // ⚡ Écoute des approbations de formulaires pour relancer les actions bloquées
   useEffect(() => {
-    if (!prospectId || !projectType) return;
+    if (!prospectId || !projectType || !currentSteps) return;
 
-    const channel = supabase
-      .channel(`form-approvals-${prospectId}-${projectType}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'client_form_panels',
-          filter: `prospect_id=eq.${prospectId}`,
-        },
-        async (payload) => {
-          // Détecter l'approbation d'un formulaire
-          if (payload.new.status === 'approved' && payload.old.status !== 'approved') {
-            logger.debug('📋 Formulaire approuvé détecté, relance des actions workflow', {
-              formId: payload.new.form_id,
-              prospectId,
-              projectType
-            });
-
-            // Réexécuter les actions du workflow pour l'étape actuelle
-            await executeWorkflowActions();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [prospectId, projectType, currentSteps]);
-
-  const executeWorkflowActions = async () => {
+    const executeWorkflowActions = async () => {
       try {
         // 1. Charger le prompt/workflow pour ce projet
         const { data: prompt, error: promptError } = await supabase
@@ -87,10 +54,8 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
           return;
         }
 
-        // 4. Exécuter les actions automatiques AVEC VÉRIFICATION DES DÉPENDANCES
-        for (let i = 0; i < stepConfig.actions.length; i++) {
-          const action = stepConfig.actions[i];
-          
+        // 4. Exécuter les actions automatiques
+        for (const action of stepConfig.actions) {
           // Ignorer les actions sans type ou avec type 'none'
           if (!action.type || action.type === 'none') continue;
 
@@ -100,23 +65,6 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
               actionType: action.type 
             });
             continue;
-          }
-
-          // 🔥 VÉRIFICATION DES PRÉREQUIS : Les actions précédentes sont-elles terminées ?
-          const previousActions = stepConfig.actions.slice(0, i);
-          const canExecute = await checkActionPrerequisites({
-            action,
-            previousActions,
-            prospectId,
-            projectType
-          });
-
-          if (!canExecute) {
-            logger.warn('⏸️ Action bloquée en attente des prérequis', { 
-              actionType: action.type,
-              actionIndex: i
-            });
-            break; // ⛔ Arrêter l'exécution, ne pas exécuter les actions suivantes
           }
 
           // 🔥 Créer une clé unique pour cette action à cette étape
@@ -136,9 +84,6 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
             action,
             prospectId,
             projectType,
-            promptId: prompt.id,
-            stepIndex: currentStepIndex,
-            stepName: stepConfig.stepName || `Étape ${currentStepIndex + 1}`
           });
         }
       } catch (error) {
@@ -149,10 +94,6 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
         });
       }
     };
-
-  // ⚡ Écoute principale: changement d'étapes
-  useEffect(() => {
-    if (!prospectId || !projectType || !currentSteps) return;
 
     // Exécuter au montage et quand les steps changent
     executeWorkflowActions();
@@ -165,11 +106,8 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
  * @param {Object} params.action - Configuration de l'action
  * @param {string} params.prospectId - ID du prospect
  * @param {string} params.projectType - Type de projet
- * @param {string} params.promptId - ID du prompt workflow
- * @param {number} params.stepIndex - Index de l'étape actuelle
- * @param {string} params.stepName - Nom de l'étape actuelle
  */
-async function executeAction({ action, prospectId, projectType, promptId, stepIndex, stepName }) {
+async function executeAction({ action, prospectId, projectType }) {
   try {
     logger.debug('Exécution action workflow', { 
       actionType: action.type,
@@ -179,11 +117,11 @@ async function executeAction({ action, prospectId, projectType, promptId, stepIn
 
     switch (action.type) {
       case 'start_signature':
-        await executeStartSignatureAction({ action, prospectId, projectType, promptId, stepIndex, stepName });
+        await executeStartSignatureAction({ action, prospectId, projectType });
         break;
 
       case 'show_form':
-        await executeShowFormAction({ action, prospectId, projectType, promptId, stepIndex, stepName });
+        logger.debug('Action show_form gérée côté client', { formId: action.formId });
         break;
 
       case 'request_document':
@@ -208,143 +146,11 @@ async function executeAction({ action, prospectId, projectType, promptId, stepIn
 }
 
 /**
- * Exécute l'action "Afficher un formulaire"
- * Envoie le message d'accompagnement et crée le formulaire dans client_form_panels
- */
-async function executeShowFormAction({ action, prospectId, projectType, promptId, stepIndex, stepName }) {
-  try {
-    if (!action.formId) {
-      logger.warn('Action show_form sans formId', { prospectId, projectType });
-      return;
-    }
-
-    // 🔥 1. ENVOYER LE MESSAGE D'ACCOMPAGNEMENT
-    if (action.message) {
-      const messageData = {
-        prospect_id: prospectId,
-        project_type: projectType,
-        sender: 'pro',
-        text: action.message,
-        prompt_id: promptId,
-        step_index: stepIndex
-      };
-
-      const { error: msgError } = await supabase
-        .from('chat_messages')
-        .insert(messageData);
-
-      if (msgError) {
-        logger.error('❌ Erreur envoi message formulaire', { error: msgError.message });
-        toast({
-          title: "Erreur",
-          description: "Le message n'a pas pu être envoyé",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      logger.debug('✅ Message formulaire envoyé', { prospectId, projectType });
-    }
-
-    // 🔥 2. CRÉER LE FORMULAIRE DANS client_form_panels
-    const { data: formData } = await supabase
-      .from('forms')
-      .select('name')
-      .eq('id', action.formId)
-      .single();
-
-    const panelData = {
-      prospect_id: prospectId,
-      project_type: projectType,
-      form_id: action.formId,
-      current_step_index: stepIndex,
-      prompt_id: promptId,
-      message_timestamp: Date.now(),
-      status: 'pending',
-      step_name: stepName
-    };
-
-    const { error: panelError } = await supabase
-      .from('client_form_panels')
-      .insert(panelData);
-
-    if (panelError) {
-      logger.error('❌ Erreur création panneau formulaire', { error: panelError.message });
-      toast({
-        title: "Erreur",
-        description: "Le formulaire n'a pas pu être enregistré",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    logger.debug('✅ Panneau formulaire créé', { prospectId, projectType, formId: action.formId });
-
-    // 🔥 3. AJOUTER MESSAGE AVEC formId DANS LE CHAT
-    const formMessageData = {
-      prospect_id: prospectId,
-      project_type: projectType,
-      sender: 'pro',
-      form_id: action.formId,
-      prompt_id: promptId,
-      step_index: stepIndex
-    };
-
-    const { error: formMsgError } = await supabase
-      .from('chat_messages')
-      .insert(formMessageData);
-
-    if (formMsgError) {
-      logger.error('❌ Erreur envoi message formId', { error: formMsgError.message });
-    } else {
-      logger.debug('✅ Message formId envoyé dans le chat', { formId: action.formId });
-    }
-
-    // 🔥 4. AJOUTER ÉVÉNEMENT DANS project_history
-    const { data: currentUserData } = await supabase.auth.getUser();
-    const { data: userData } = await supabase
-      .from('users')
-      .select('name')
-      .eq('user_id', currentUserData?.user?.id)
-      .single();
-
-    const historyData = {
-      prospect_id: prospectId,
-      project_type: projectType,
-      title: "Formulaire envoyé",
-      description: `Le formulaire ${formData?.name || action.formId} a été envoyé.`,
-      created_by: userData?.name || "Admin"
-    };
-
-    const { error: historyError } = await supabase
-      .from('project_history')
-      .insert(historyData);
-
-    if (historyError) {
-      logger.error('⚠️ Erreur ajout événement historique', { error: historyError.message });
-    }
-
-    toast({
-      title: "✅ Formulaire envoyé",
-      description: `Le formulaire a été envoyé au client`,
-    });
-
-  } catch (error) {
-    logger.error('❌ Exception executeShowFormAction', { error: error.message });
-    toast({
-      title: "Erreur",
-      description: "Une erreur est survenue lors de l'envoi du formulaire",
-      variant: "destructive",
-    });
-  }
-}
-
-/**
  * Exécute l'action "Lancer une signature"
  * Génère un PDF de contrat et l'ajoute aux fichiers du projet
  * PUIS crée un lien de signature dans le chat
  */
-async function executeStartSignatureAction({ action, prospectId, projectType, promptId, stepIndex, stepName }) {
+async function executeStartSignatureAction({ action, prospectId, projectType }) {
   try {
     if (!action.templateId) {
       logger.warn('Action start_signature sans templateId', { prospectId, projectType });
@@ -369,58 +175,6 @@ async function executeStartSignatureAction({ action, prospectId, projectType, pr
       logger.error('Erreur vérification fichiers existants', { error: checkError.message });
     }
 
-    // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE (si configuré)
-    let cosigners = [];
-    if (action.cosignersConfig?.formId) {
-      cosigners = await extractCosignersFromForm({
-        formId: action.cosignersConfig.formId,
-        prospectId,
-        projectType,
-        config: action.cosignersConfig
-      });
-      
-      logger.debug('Co-signataires extraits avant génération PDF', { 
-        count: cosigners.length,
-        cosigners
-      });
-
-      // ⚠️ BLOQUER si le formulaire n'est pas encore rempli/approuvé
-      // On vérifie si le formulaire existe dans client_form_panels
-      const { data: formPanel } = await supabase
-        .from('client_form_panels')
-        .select('id, status')
-        .eq('prospect_id', prospectId)
-        .eq('form_id', action.cosignersConfig.formId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!formPanel) {
-        logger.warn('⏸️ Formulaire co-signataires non encore rempli, attente...', { 
-          formId: action.cosignersConfig.formId 
-        });
-        toast({
-          title: "⏸️ En attente",
-          description: "Le client doit d'abord remplir le formulaire des co-signataires",
-          className: "bg-amber-500 text-white",
-        });
-        return; // ⛔ STOP - on ne génère pas le contrat
-      }
-
-      if (formPanel.status !== 'approved') {
-        logger.warn('⏸️ Formulaire co-signataires en attente d\'approbation', { 
-          formId: action.cosignersConfig.formId,
-          status: formPanel.status
-        });
-        toast({
-          title: "⏸️ En attente d'approbation",
-          description: "Le formulaire des co-signataires doit être approuvé avant génération du contrat",
-          className: "bg-amber-500 text-white",
-        });
-        return; // ⛔ STOP - on ne génère pas le contrat
-      }
-    }
-
     let fileId = null;
 
     if (existingFiles && existingFiles.length > 0) {
@@ -432,9 +186,24 @@ async function executeStartSignatureAction({ action, prospectId, projectType, pr
       logger.debug('Génération contrat PDF...', { 
         templateId: action.templateId,
         prospectId,
-        projectType,
-        cosignersCount: cosigners.length
+        projectType 
       });
+
+      // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE (si configuré)
+      let cosigners = [];
+      if (action.cosignersConfig?.formId) {
+        cosigners = await extractCosignersFromForm({
+          formId: action.cosignersConfig.formId,
+          prospectId,
+          projectType,
+          config: action.cosignersConfig
+        });
+        
+        logger.debug('Co-signataires extraits pour génération PDF', { 
+          count: cosigners.length,
+          cosigners
+        });
+      }
 
       toast({
         title: "📄 Génération du contrat...",
@@ -442,12 +211,12 @@ async function executeStartSignatureAction({ action, prospectId, projectType, pr
         className: "bg-blue-500 text-white",
       });
 
-      // Exécuter la génération + upload AVEC les cosigners
+      // Exécuter la génération + upload avec co-signataires
       const result = await executeContractSignatureAction({
         templateId: action.templateId,
         projectType,
         prospectId,
-        cosigners, // ⭐ Passer les cosigners
+        cosigners: cosigners, // 🔥 Passer les co-signataires au générateur
       });
 
       if (result.success) {
@@ -508,25 +277,37 @@ async function executeStartSignatureAction({ action, prospectId, projectType, pr
         },
       ];
 
-      // 🔥 AJOUTER LES CO-SIGNATAIRES DÉJÀ EXTRAITS
-      for (const cosigner of cosigners) {
-        signers.push({
-          type: 'cosigner',
-          name: cosigner.name || '',
-          email: cosigner.email || '',
-          phone: cosigner.phone || '',
-          access_token: crypto.randomUUID(),
-          requires_auth: false,
-          status: 'pending',
-          signed_at: null,
+      // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE (si configuré)
+      let extractedCosigners = [];
+      if (action.cosignersConfig?.formId) {
+        extractedCosigners = await extractCosignersFromForm({
+          formId: action.cosignersConfig.formId,
+          prospectId,
+          projectType,
+          config: action.cosignersConfig
+        });
+        
+        logger.debug('Co-signataires extraits du formulaire', { 
+          count: extractedCosigners.length,
+          cosigners: extractedCosigners
         });
       }
 
-      logger.debug('Signers construits pour procédure', { 
-        principal: 1,
-        cosignersCount: cosigners.length,
-        totalSigners: signers.length
-      });
+      // 🔥 Ajouter les co-signataires extraits au tableau signers
+      if (extractedCosigners.length > 0) {
+        for (const cosigner of extractedCosigners) {
+          signers.push({
+            type: 'cosigner',
+            name: cosigner.name || '',
+            email: cosigner.email || '',
+            phone: cosigner.phone || '',
+            access_token: crypto.randomUUID(),
+            requires_auth: false,
+            status: 'pending',
+            signed_at: null,
+          });
+        }
+      }
 
       const { data: newProcedure, error: procedureError } = await supabase
         .from('signature_procedures')
@@ -599,225 +380,74 @@ async function executeStartSignatureAction({ action, prospectId, projectType, pr
 }
 
 /**
- * Extrait les co-signataires depuis un formulaire rempli
- * en utilisant la configuration de mapping des champs
+ * Extrait les co-signataires depuis les données d'un formulaire repeater
  * @param {Object} params
- * @param {string} params.formId - ID du formulaire
+ * @param {string} params.formId - ID du formulaire contenant les co-signataires
  * @param {string} params.prospectId - ID du prospect
  * @param {string} params.projectType - Type de projet
  * @param {Object} params.config - Configuration du mapping (countField, nameField, emailField, phoneField)
- * @returns {Promise<Array>} - Tableau de co-signataires [{name, email, phone}]
+ * @returns {Array} Tableau des co-signataires [{name, email, phone}]
  */
 async function extractCosignersFromForm({ formId, prospectId, projectType, config }) {
   try {
-    logger.debug('Extraction co-signataires depuis formulaire', { formId, config });
-
-    // 1. Récupérer le formulaire rempli depuis client_form_panels
-    // ⚡ Prend la dernière soumission APPROUVÉE de ce formulaire
-    const { data: formPanel, error: formError } = await supabase
+    // 1. Récupérer les données du formulaire depuis client_form_panels
+    const { data: formPanel, error: panelError } = await supabase
       .from('client_form_panels')
       .select('form_data')
       .eq('prospect_id', prospectId)
+      .eq('project_type', projectType)
       .eq('form_id', formId)
-      .eq('status', 'approved') // Uniquement approuvé
+      .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (formError) {
-      logger.error('Erreur récupération formulaire', formError);
-      return [];
-    }
-
-    if (!formPanel || !formPanel.form_data) {
-      logger.warn('Formulaire non trouvé ou non rempli', { formId, prospectId });
+    if (panelError || !formPanel || !formPanel.form_data) {
+      logger.warn('Aucun formulaire approuvé trouvé pour extraction co-signataires', {
+        formId,
+        prospectId,
+        projectType
+      });
       return [];
     }
 
     const formData = formPanel.form_data;
     logger.debug('Données formulaire récupérées', { formData });
 
-    // 2. Lire le nombre de co-signataires
-    const count = parseInt(formData[config.countField] || 0, 10);
-    
-    if (count === 0 || isNaN(count)) {
-      logger.debug('Aucun co-signataire trouvé', { countField: config.countField, value: formData[config.countField] });
+    // 2. Extraire le nombre de co-signataires depuis le champ count
+    const countValue = formData[config.countField];
+    const cosignersCount = parseInt(countValue, 10);
+
+    if (isNaN(cosignersCount) || cosignersCount <= 0) {
+      logger.debug('Aucun co-signataire à extraire', { countValue });
       return [];
     }
 
-    logger.debug(`${count} co-signataire(s) détecté(s)`);
-
     // 3. Extraire les données de chaque co-signataire
     const cosigners = [];
-    
-    for (let i = 0; i < count; i++) {
-      // ⚡ Format repeater: {countField}_repeat_{index}_{fieldId}
-      // Ex: "field-nombre_repeat_0_field-nom"
+    for (let i = 0; i < cosignersCount; i++) {
+      // Format: {countField}_repeat_{i}_{fieldId}
       const nameKey = `${config.countField}_repeat_${i}_${config.nameField}`;
       const emailKey = `${config.countField}_repeat_${i}_${config.emailField}`;
-      const phoneKey = config.phoneField ? `${config.countField}_repeat_${i}_${config.phoneField}` : null;
+      const phoneKey = `${config.countField}_repeat_${i}_${config.phoneField}`;
 
       const name = formData[nameKey];
       const email = formData[emailKey];
-      const phone = phoneKey ? formData[phoneKey] : '';
+      const phone = formData[phoneKey];
 
-      // Email est obligatoire pour être un signataire valide
-      if (email && email.trim() !== '') {
-        cosigners.push({
-          name: name || '',
-          email: email.trim(),
-          phone: phone || ''
-        });
-        logger.debug(`Co-signataire ${i} extrait (format repeater)`, { nameKey, emailKey, phoneKey, name, email, phone });
-      } else {
-        logger.warn(`Co-signataire ${i} ignoré (email manquant)`, { nameKey, emailKey, phoneKey });
+      if (name && email) {
+        cosigners.push({ name, email, phone });
       }
     }
 
-    logger.debug('Extraction terminée', { totalCosigners: cosigners.length });
-    return cosigners;
+    logger.debug('Co-signataires extraits avec succès', { 
+      count: cosigners.length,
+      cosigners 
+    });
 
+    return cosigners;
   } catch (error) {
     logger.error('Erreur extraction co-signataires', { error: error.message });
     return [];
-  }
-}
-
-/**
- * Vérifie si les prérequis d'une action sont remplis
- * (toutes les actions précédentes doivent être terminées)
- * 
- * @param {Object} params
- * @param {Object} params.action - Action à vérifier
- * @param {Array} params.previousActions - Actions précédentes dans le workflow
- * @param {string} params.prospectId - ID du prospect
- * @param {string} params.projectType - Type de projet
- * @returns {Promise<boolean>} - true si l'action peut être exécutée
- */
-async function checkActionPrerequisites({ action, previousActions, prospectId, projectType }) {
-  try {
-    // Vérifier chaque action précédente
-    for (const prevAction of previousActions) {
-      // Ignorer les actions sans type ou 'none'
-      if (!prevAction.type || prevAction.type === 'none') continue;
-
-      // Vérifier selon le type d'action
-      switch (prevAction.type) {
-        case 'show_form': {
-          // Vérifier que le formulaire a été rempli ET approuvé
-          const { data: formPanel } = await supabase
-            .from('client_form_panels')
-            .select('id, status')
-            .eq('prospect_id', prospectId)
-            .eq('form_id', prevAction.formId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!formPanel) {
-            logger.debug('⏸️ Formulaire requis non encore envoyé/rempli', {
-              formId: prevAction.formId,
-              blockedAction: action.type
-            });
-            return false; // ⛔ Bloquer
-          }
-
-          if (formPanel.status !== 'approved') {
-            logger.debug('⏸️ Formulaire requis non encore approuvé', {
-              formId: prevAction.formId,
-              status: formPanel.status,
-              blockedAction: action.type
-            });
-            return false; // ⛔ Bloquer
-          }
-
-          logger.debug('✅ Formulaire prérequis validé', {
-            formId: prevAction.formId,
-            status: formPanel.status
-          });
-          break;
-        }
-
-        case 'request_document': {
-          // Vérifier qu'un fichier a été uploadé pour ce type de document
-          const { data: files } = await supabase
-            .from('project_files')
-            .select('id, file_name')
-            .eq('prospect_id', prospectId)
-            .eq('project_type', projectType)
-            .eq('field_label', prevAction.documentType || 'Document requis')
-            .limit(1);
-
-          if (!files || files.length === 0) {
-            logger.debug('⏸️ Document requis non encore uploadé', {
-              documentType: prevAction.documentType,
-              blockedAction: action.type
-            });
-            return false; // ⛔ Bloquer
-          }
-
-          logger.debug('✅ Document prérequis trouvé', {
-            documentType: prevAction.documentType,
-            fileName: files[0].file_name
-          });
-          break;
-        }
-
-        case 'open_payment': {
-          // Vérifier qu'un paiement a été effectué
-          // TODO: Implémenter quand la table payments existe
-          logger.debug('⚠️ Vérification paiement non implémentée, skip', {
-            blockedAction: action.type
-          });
-          // Pour l'instant, on ne bloque pas sur les paiements
-          break;
-        }
-
-        case 'start_signature': {
-          // Vérifier qu'une procédure de signature existe et est complétée
-          const { data: procedure } = await supabase
-            .from('signature_procedures')
-            .select('id, status')
-            .eq('prospect_id', prospectId)
-            .eq('project_type', projectType)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!procedure) {
-            logger.debug('⏸️ Signature requise non encore créée', {
-              blockedAction: action.type
-            });
-            return false; // ⛔ Bloquer
-          }
-
-          if (procedure.status !== 'completed') {
-            logger.debug('⏸️ Signature requise non encore complétée', {
-              status: procedure.status,
-              blockedAction: action.type
-            });
-            return false; // ⛔ Bloquer
-          }
-
-          logger.debug('✅ Signature prérequise complétée', {
-            status: procedure.status
-          });
-          break;
-        }
-
-        default:
-          // Type d'action inconnu, on ne bloque pas
-          logger.debug('⚠️ Type d\'action inconnu pour vérification prérequis, skip', {
-            actionType: prevAction.type
-          });
-          break;
-      }
-    }
-
-    // Tous les prérequis sont OK
-    return true;
-  } catch (error) {
-    logger.error('Erreur vérification prérequis', { error: error.message });
-    return false; // En cas d'erreur, bloquer par sécurité
   }
 }

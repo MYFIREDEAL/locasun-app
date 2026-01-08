@@ -357,17 +357,90 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
       // ✅ Utiliser messages du hook Supabase
       const existingMessages = messages;
-      // 🔥 NOUVEAU COMPORTEMENT : Ne plus envoyer les actions manuellement
-      // useWorkflowExecutor.js les gérera automatiquement avec séquencement
-      
-      logger.debug('✅ Prompt activé, useWorkflowExecutor prendra le relais', {
-        promptId: prompt.id,
-        stepIndex: currentStepIndex,
-        actionsCount: stepConfig.actions?.length || 0
-      });
+      for (const action of stepConfig.actions) {
+        if (action.message) {
+          const alreadySent = existingMessages.some(msg =>
+            msg.sender === 'pro' &&
+            msg.promptId === prompt.id &&
+            msg.stepIndex === currentStepIndex &&
+            msg.text === action.message
+          );
+          if (alreadySent) {
+            continue;
+          }
+          const message = {
+            sender: 'pro',
+            text: action.message,
+            promptId: prompt.id,
+            stepIndex: currentStepIndex,
+          };
+          addChatMessage(prospectId, projectType, message);
+        }
+        if (action.type === 'show_form' && action.formId) {
+          const alreadyQueued = existingMessages.some(msg =>
+            msg.sender === 'pro' &&
+            msg.promptId === prompt.id &&
+            msg.stepIndex === currentStepIndex &&
+            msg.formId === action.formId
+          );
+          if (alreadyQueued) {
+            continue;
+          }
+          const formMessage = {
+            sender: 'pro',
+            formId: action.formId,
+            promptId: prompt.id,
+            stepIndex: currentStepIndex,
+          };
+          addChatMessage(prospectId, projectType, formMessage);
+          
+          // 🔥 Enregistrer le formulaire dans clientFormPanels pour le panneau latéral
+          const stepName = projectsData[projectType]?.steps?.[currentStepIndex]?.name || 'Étape inconnue';
+          try {
+            const result = await registerClientForm({
+              prospectId: prospectId,
+              projectType: projectType,
+              formId: action.formId,
+              currentStepIndex: currentStepIndex,
+              promptId: prompt.id,
+              messageTimestamp: Date.now(),
+              status: 'pending',
+              stepName: stepName,
+            });
 
-      // Note: Les actions seront exécutées automatiquement par useWorkflowExecutor
-      // quand il détectera le changement d'étape (via le useEffect)
+            if (!result.success) {
+              logger.error('❌ Échec enregistrement formulaire:', result.error);
+              toast({
+                title: "Erreur",
+                description: "Le formulaire n'a pas pu être enregistré.",
+                variant: "destructive",
+              });
+            } else {
+              // ✅ Ajouter événement dans project_history
+              try {
+                const formName = forms[action.formId]?.name || action.formId;
+                await addProjectEvent({
+                  prospectId: prospectId,
+                  projectType: projectType,
+                  title: "Formulaire envoyé",
+                  description: `Le formulaire ${formName} a été envoyé à ${prospect.name}.`,
+                  createdBy: currentUser?.name || "Admin"
+                });
+              } catch (historyErr) {
+                // Ne pas bloquer si l'événement échoue
+                logger.error('⚠️ Erreur ajout événement historique:', historyErr);
+              }
+            }
+          } catch (err) {
+            logger.error('❌ Exception enregistrement formulaire:', err);
+            toast({
+              title: "Erreur",
+              description: "Le formulaire n'a pas pu être enregistré.",
+              variant: "destructive",
+            });
+          }
+        }
+      }
     }
     setPopoverOpen(false);
   };
