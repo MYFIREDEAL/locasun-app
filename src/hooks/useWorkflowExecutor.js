@@ -374,12 +374,13 @@ async function extractCosignersFromForm({ formId, prospectId, projectType, confi
     logger.debug('Extraction co-signataires depuis formulaire', { formId, config });
 
     // 1. Récupérer le formulaire rempli depuis client_form_panels
+    // ⚡ Prend la dernière soumission APPROUVÉE de ce formulaire
     const { data: formPanel, error: formError } = await supabase
       .from('client_form_panels')
       .select('form_data')
       .eq('prospect_id', prospectId)
       .eq('form_id', formId)
-      .eq('status', 'approved') // Uniquement les formulaires approuvés
+      .eq('status', 'approved') // Uniquement approuvé
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();

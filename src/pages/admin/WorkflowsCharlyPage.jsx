@@ -245,6 +245,27 @@ const ActionEditor = ({
                                                     })}
                                                     className="text-sm"
                                                 />
+                                                <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-2">
+                                                    <p className="text-xs font-semibold text-blue-800 mb-2">📋 Mapping des valeurs :</p>
+                                                    <div className="space-y-1 text-xs text-blue-700">
+                                                        <div className="flex items-center gap-2">
+                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">0</code>
+                                                            <span>→ Aucun co-signataire (uniquement le client principal)</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">1</code>
+                                                            <span>→ 1 co-signataire (2 signataires au total)</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">2</code>
+                                                            <span>→ 2 co-signataires (3 signataires au total)</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <code className="bg-white px-2 py-0.5 rounded font-mono">N</code>
+                                                            <span>→ N co-signataires (N+1 signataires au total)</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <div className="space-y-2">
