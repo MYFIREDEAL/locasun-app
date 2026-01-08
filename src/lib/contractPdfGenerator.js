@@ -261,8 +261,10 @@ function injectProspectData(html, prospect, cosigners = []) {
     variables[`{{cosigner_email_${num}}}`] = cosigner.email || '';
     variables[`{{cosigner_phone_${num}}}`] = cosigner.phone || '';
     
-    // Variables pour les sections conditionnelles
+    // Variables pour les sections conditionnelles et labels
     variables[`{{cosigner_section_${num}}}`] = ''; // Vide = visible (pas de style="display:none")
+    variables[`{{cosigner_label_${num}}}`] = `Co-signataire ${num}`;
+    variables[`{{cosigner_signature_line_${num}}}`] = '________________________';
   });
 
   // 🔥 Remplir les co-signataires manquants (sections cachées)
@@ -272,7 +274,9 @@ function injectProspectData(html, prospect, cosigners = []) {
     variables[`{{cosigner_lastname_${i}}}`] = '';
     variables[`{{cosigner_email_${i}}}`] = '';
     variables[`{{cosigner_phone_${i}}}`] = '';
-    variables[`{{cosigner_section_${i}}}`] = 'style="display:none"'; // Cacher la section
+    variables[`{{cosigner_section_${i}}}`] = 'display:none'; // Cacher la section
+    variables[`{{cosigner_label_${i}}}`] = '';
+    variables[`{{cosigner_signature_line_${i}}}`] = '';
   }
 
   logger.debug('Variables injectées', { 
