@@ -22,6 +22,7 @@ import OrganizationDetailPage from '@/pages/platform/OrganizationDetailPage';
 import HomePage from '@/pages/HomePage';
 import ClientAccessPage from '@/pages/ClientAccessPage';
 import RegistrationPage from '@/pages/RegistrationPage';
+import SignupPage from '@/pages/SignupPage';
 import ProducerLandingPage from '@/pages/ProducerLandingPage';
 import TestSupabasePage from '@/pages/TestSupabasePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
@@ -1473,7 +1474,9 @@ function App() {
           <Route path="organizations" element={<OrganizationsListPage />} />
           <Route path="organizations/:id" element={<OrganizationDetailPage />} />
         </Route>
+        {/* 🌍 PUBLIC ROUTES */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
         <Route path="/inscription/:slugUser" element={<RegistrationPage />} />
