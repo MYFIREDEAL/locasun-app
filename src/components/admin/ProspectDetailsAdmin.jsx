@@ -413,7 +413,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     }
   };
 
-  const handleSelectPrompt = async (prompt) => {
+  const handleSelectPrompt = async (prompt, specificActionId = null) => {
     const stepConfig = prompt.stepsConfig?.[currentStepIndex];
     if (stepConfig && stepConfig.actions && stepConfig.actions.length > 0) {
       // ✅ Utiliser messages du hook Supabase
@@ -422,24 +422,47 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
       // 🔥 Trier les actions par ordre
       const sortedActions = [...stepConfig.actions].sort((a, b) => (a.order || 0) - (b.order || 0));
       
-      // 🔥 Trouver la première action non envoyée
-      for (const action of sortedActions) {
-        // Vérifier si cette action a déjà été envoyée
-        const actionAlreadySent = existingMessages.some(msg =>
-          msg.promptId === prompt.id &&
-          msg.stepIndex === currentStepIndex &&
-          (
-            (msg.text === action.message) ||
-            (msg.formId === action.formId && action.type === 'show_form')
-          )
-        );
-        
-        if (actionAlreadySent) {
-          // Cette action est déjà envoyée, passer à la suivante
-          continue;
+      // 🔥 Déterminer quelle(s) action(s) exécuter
+      let actionsToExecute = sortedActions;
+      let skipAlreadySentCheck = false;
+      
+      if (specificActionId) {
+        // Mode spécifique: exécuter UNE action précise (même si déjà envoyée)
+        const specificAction = sortedActions.find(a => a.id === specificActionId);
+        if (!specificAction) {
+          logger.warn('Action spécifique introuvable', { specificActionId });
+          return;
         }
         
-        // 🔥 Cette action n'a pas encore été envoyée
+        logger.info('🎯 Exécution action spécifique (forcée)', {
+          actionId: specificActionId,
+          actionType: specificAction.type
+        });
+        
+        actionsToExecute = [specificAction];
+        skipAlreadySentCheck = true; // Ne pas vérifier si déjà envoyée
+      }
+      
+      // 🔥 Exécuter les actions
+      for (const action of actionsToExecute) {
+        // Vérifier si cette action a déjà été envoyée (sauf si mode spécifique)
+        if (!skipAlreadySentCheck) {
+          const actionAlreadySent = existingMessages.some(msg =>
+            msg.promptId === prompt.id &&
+            msg.stepIndex === currentStepIndex &&
+            (
+              (msg.text === action.message) ||
+              (msg.formId === action.formId && action.type === 'show_form')
+            )
+          );
+          
+          if (actionAlreadySent) {
+            // Cette action est déjà envoyée, passer à la suivante
+            continue;
+          }
+        }
+        
+        // 🔥 Exécuter l'action
         // Envoyer le message si présent
         if (action.message) {
           const message = {
