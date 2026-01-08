@@ -41,7 +41,7 @@ export function useWorkflowActionTrigger({
     });
 
     // 🔥 Écouter les changements sur client_form_panels (formulaires approuvés)
-    logger.debug('📡 Subscribing to channel', {
+    logger.info('📡 Subscribing to channel', {
       channelName: `workflow-forms-${prospectId}-${projectType}-${currentStepIndex}`,
       filter: `prospect_id=eq.${prospectId}`
     });
@@ -59,7 +59,7 @@ export function useWorkflowActionTrigger({
         async (payload) => {
           const updatedPanel = payload.new;
           
-          logger.debug('🔍 Form panel UPDATE reçu', {
+          logger.info('🔍 Form panel UPDATE reçu', {
             panelId: updatedPanel.id,
             prospectId: updatedPanel.prospect_id,
             projectType: updatedPanel.project_type,
@@ -73,7 +73,7 @@ export function useWorkflowActionTrigger({
           const isApproved = updatedPanel.status === 'approved';
           const hasActionId = !!updatedPanel.action_id;
           
-          logger.debug('🔍 Vérifications workflow trigger', {
+          logger.info('🔍 Vérifications workflow trigger', {
             projectMatch,
             isApproved,
             hasActionId,
