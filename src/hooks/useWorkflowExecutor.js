@@ -420,13 +420,15 @@ async function extractCosignersFromForm({ formId, prospectId, projectType, confi
     const cosigners = [];
     
     for (let i = 0; i < count; i++) {
-      const nameKey = config.nameField.replace('{i}', i);
-      const emailKey = config.emailField.replace('{i}', i);
-      const phoneKey = config.phoneField.replace('{i}', i);
+      // ⚡ Format repeater: {countField}_repeat_{index}_{fieldId}
+      // Ex: "field-nombre_repeat_0_field-nom"
+      const nameKey = `${config.countField}_repeat_${i}_${config.nameField}`;
+      const emailKey = `${config.countField}_repeat_${i}_${config.emailField}`;
+      const phoneKey = config.phoneField ? `${config.countField}_repeat_${i}_${config.phoneField}` : null;
 
       const name = formData[nameKey];
       const email = formData[emailKey];
-      const phone = formData[phoneKey];
+      const phone = phoneKey ? formData[phoneKey] : '';
 
       // Email est obligatoire pour être un signataire valide
       if (email && email.trim() !== '') {
@@ -435,7 +437,7 @@ async function extractCosignersFromForm({ formId, prospectId, projectType, confi
           email: email.trim(),
           phone: phone || ''
         });
-        logger.debug(`Co-signataire ${i} extrait`, { name, email, phone });
+        logger.debug(`Co-signataire ${i} extrait (format repeater)`, { nameKey, emailKey, phoneKey, name, email, phone });
       } else {
         logger.warn(`Co-signataire ${i} ignoré (email manquant)`, { nameKey, emailKey, phoneKey });
       }

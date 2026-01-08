@@ -246,14 +246,24 @@ const ActionEditor = ({
                                                 Mappez les informations des co-signataires avec les champs du formulaire "{selectedForm.name}"
                                             </p>
 
+                                            {/* Info importante sur le système repeater */}
+                                            <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-3">
+                                                <p className="text-xs font-semibold text-amber-800 mb-1">💡 Comment ça marche :</p>
+                                                <ul className="text-xs text-amber-700 space-y-1 ml-4 list-disc">
+                                                    <li>Sélectionnez le champ <strong>repeater</strong> qui génère les co-signataires</li>
+                                                    <li>Sélectionnez les <strong>champs répétés</strong> (Nom, Email, Téléphone)</li>
+                                                    <li>Le système extraira automatiquement toutes les occurrences</li>
+                                                </ul>
+                                            </div>
+
                                             {/* Table de mapping avec 2 colonnes */}
                                             <div className="space-y-3">
                                                 {/* Ligne 1: Nombre de co-signataires */}
                                                 <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-gray-700">📊 Nombre de co-signataires</p>
+                                                        <p className="text-sm font-semibold text-gray-700">📊 Champ repeater</p>
                                                         <p className="text-xs text-gray-500 mt-0.5">
-                                                            Champ qui indique combien de co-signataires
+                                                            Champ qui compte et génère les co-signataires
                                                         </p>
                                                     </div>
                                                     <Select
@@ -264,89 +274,142 @@ const ActionEditor = ({
                                                         })}
                                                     >
                                                         <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Sélectionner un champ" />
+                                                            <SelectValue placeholder="Sélectionner le champ repeater" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {selectedForm.fields.map(field => (
+                                                            {selectedForm.fields.filter(f => f.is_repeater).map(field => (
                                                                 <SelectItem key={field.id} value={field.id}>
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="font-mono text-xs">{field.label}</span>
-                                                                        <span className="text-xs text-gray-500">({field.type})</span>
+                                                                        <span className="text-xs text-green-600">🔁 repeater</span>
                                                                     </div>
                                                                 </SelectItem>
                                                             ))}
+                                                            {selectedForm.fields.filter(f => f.is_repeater).length === 0 && (
+                                                                <div className="px-2 py-1.5 text-xs text-gray-500">
+                                                                    Aucun champ repeater dans ce formulaire
+                                                                </div>
+                                                            )}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
 
                                                 {/* Info sur le mapping des valeurs */}
-                                                {action.cosignersConfig?.countField && (
-                                                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                                                        <p className="text-xs font-semibold text-blue-800 mb-2">ℹ️ Valeurs attendues :</p>
-                                                        <div className="space-y-1 text-xs text-blue-700">
-                                                            <div><code className="bg-white px-1.5 py-0.5 rounded">0</code> = Client seul</div>
-                                                            <div><code className="bg-white px-1.5 py-0.5 rounded">1</code> = 1 co-signataire</div>
-                                                            <div><code className="bg-white px-1.5 py-0.5 rounded">2</code> = 2 co-signataires</div>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                {action.cosignersConfig?.countField && (() => {
+                                                    const repeaterField = selectedForm.fields.find(f => f.id === action.cosignersConfig.countField);
+                                                    const repeatedFields = repeaterField?.repeats_fields 
+                                                        ? selectedForm.fields.filter(f => repeaterField.repeats_fields.includes(f.id))
+                                                        : [];
+                                                    
+                                                    return (
+                                                        <>
+                                                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                                                <p className="text-xs font-semibold text-blue-800 mb-2">
+                                                                    ✅ Champs répétés disponibles :
+                                                                </p>
+                                                                {repeatedFields.length > 0 ? (
+                                                                    <div className="space-y-1">
+                                                                        {repeatedFields.map(field => (
+                                                                            <div key={field.id} className="flex items-center gap-2 text-xs text-blue-700">
+                                                                                <code className="bg-white px-1.5 py-0.5 rounded font-mono">{field.id}</code>
+                                                                                <span>→ {field.label}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-xs text-amber-700">
+                                                                        ⚠️ Ce champ repeater n'a pas de champs répétés configurés
+                                                                    </p>
+                                                                )}
+                                                            </div>
 
-                                                {/* Ligne 2: Nom du co-signataire */}
-                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-gray-700">👤 Nom du co-signataire</p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            Pattern avec <code className="bg-gray-100 px-1 py-0.5 rounded">{'{i}'}</code> pour l'index
-                                                        </p>
-                                                    </div>
-                                                    <Input
-                                                        placeholder="Ex: field-cosigner-nom-{i}"
-                                                        value={action.cosignersConfig?.nameField || ''}
-                                                        onChange={e => handleActionChange('cosignersConfig', {
-                                                            ...(action.cosignersConfig || {}),
-                                                            nameField: e.target.value
-                                                        })}
-                                                        className="text-sm font-mono"
-                                                    />
-                                                </div>
+                                                            {/* Ligne 2: Nom du co-signataire */}
+                                                            <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-gray-700">👤 Champ "Nom"</p>
+                                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                                        Champ répété contenant le nom
+                                                                    </p>
+                                                                </div>
+                                                                <Select
+                                                                    value={action.cosignersConfig?.nameField || ''}
+                                                                    onValueChange={value => handleActionChange('cosignersConfig', {
+                                                                        ...(action.cosignersConfig || {}),
+                                                                        nameField: value
+                                                                    })}
+                                                                >
+                                                                    <SelectTrigger className="w-full">
+                                                                        <SelectValue placeholder="Sélectionner le champ nom" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {repeatedFields.map(field => (
+                                                                            <SelectItem key={field.id} value={field.id}>
+                                                                                {field.label}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
 
-                                                {/* Ligne 3: Email du co-signataire */}
-                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-gray-700">📧 Email du co-signataire</p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            Pattern avec <code className="bg-gray-100 px-1 py-0.5 rounded">{'{i}'}</code> pour l'index
-                                                        </p>
-                                                    </div>
-                                                    <Input
-                                                        placeholder="Ex: field-cosigner-email-{i}"
-                                                        value={action.cosignersConfig?.emailField || ''}
-                                                        onChange={e => handleActionChange('cosignersConfig', {
-                                                            ...(action.cosignersConfig || {}),
-                                                            emailField: e.target.value
-                                                        })}
-                                                        className="text-sm font-mono"
-                                                    />
-                                                </div>
+                                                            {/* Ligne 3: Email du co-signataire */}
+                                                            <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-gray-700">📧 Champ "Email"</p>
+                                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                                        Champ répété contenant l'email
+                                                                    </p>
+                                                                </div>
+                                                                <Select
+                                                                    value={action.cosignersConfig?.emailField || ''}
+                                                                    onValueChange={value => handleActionChange('cosignersConfig', {
+                                                                        ...(action.cosignersConfig || {}),
+                                                                        emailField: value
+                                                                    })}
+                                                                >
+                                                                    <SelectTrigger className="w-full">
+                                                                        <SelectValue placeholder="Sélectionner le champ email" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {repeatedFields.map(field => (
+                                                                            <SelectItem key={field.id} value={field.id}>
+                                                                                {field.label}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
 
-                                                {/* Ligne 4: Téléphone du co-signataire */}
-                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-gray-700">📱 Téléphone du co-signataire</p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            Pattern avec <code className="bg-gray-100 px-1 py-0.5 rounded">{'{i}'}</code> (optionnel)
-                                                        </p>
-                                                    </div>
-                                                    <Input
-                                                        placeholder="Ex: field-cosigner-tel-{i}"
-                                                        value={action.cosignersConfig?.phoneField || ''}
-                                                        onChange={e => handleActionChange('cosignersConfig', {
-                                                            ...(action.cosignersConfig || {}),
-                                                            phoneField: e.target.value
-                                                        })}
-                                                        className="text-sm font-mono"
-                                                    />
-                                                </div>
+                                                            {/* Ligne 4: Téléphone du co-signataire */}
+                                                            <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-gray-700">📱 Champ "Téléphone"</p>
+                                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                                        Champ répété contenant le téléphone (optionnel)
+                                                                    </p>
+                                                                </div>
+                                                                <Select
+                                                                    value={action.cosignersConfig?.phoneField || ''}
+                                                                    onValueChange={value => handleActionChange('cosignersConfig', {
+                                                                        ...(action.cosignersConfig || {}),
+                                                                        phoneField: value
+                                                                    })}
+                                                                >
+                                                                    <SelectTrigger className="w-full">
+                                                                        <SelectValue placeholder="Sélectionner le champ téléphone" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="">-- Aucun --</SelectItem>
+                                                                        {repeatedFields.map(field => (
+                                                                            <SelectItem key={field.id} value={field.id}>
+                                                                                {field.label}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </motion.div>
                                     );})()}
