@@ -226,8 +226,7 @@ async function executeShowFormAction({ action, prospectId, projectType, promptId
         sender: 'pro',
         text: action.message,
         prompt_id: promptId,
-        step_index: stepIndex,
-        timestamp: new Date().toISOString()
+        step_index: stepIndex
       };
 
       const { error: msgError } = await supabase
@@ -288,8 +287,7 @@ async function executeShowFormAction({ action, prospectId, projectType, promptId
       sender: 'pro',
       form_id: action.formId,
       prompt_id: promptId,
-      step_index: stepIndex,
-      timestamp: new Date().toISOString()
+      step_index: stepIndex
     };
 
     const { error: formMsgError } = await supabase
