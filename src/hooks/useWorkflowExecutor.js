@@ -136,6 +136,9 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
             action,
             prospectId,
             projectType,
+            promptId: prompt.id,
+            stepIndex: currentStepIndex,
+            stepName: stepConfig.stepName || `Étape ${currentStepIndex + 1}`
           });
         }
       } catch (error) {
@@ -162,8 +165,11 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
  * @param {Object} params.action - Configuration de l'action
  * @param {string} params.prospectId - ID du prospect
  * @param {string} params.projectType - Type de projet
+ * @param {string} params.promptId - ID du prompt workflow
+ * @param {number} params.stepIndex - Index de l'étape actuelle
+ * @param {string} params.stepName - Nom de l'étape actuelle
  */
-async function executeAction({ action, prospectId, projectType }) {
+async function executeAction({ action, prospectId, projectType, promptId, stepIndex, stepName }) {
   try {
     logger.debug('Exécution action workflow', { 
       actionType: action.type,
@@ -173,11 +179,11 @@ async function executeAction({ action, prospectId, projectType }) {
 
     switch (action.type) {
       case 'start_signature':
-        await executeStartSignatureAction({ action, prospectId, projectType });
+        await executeStartSignatureAction({ action, prospectId, projectType, promptId, stepIndex, stepName });
         break;
 
       case 'show_form':
-        await executeShowFormAction({ action, prospectId, projectType });
+        await executeShowFormAction({ action, prospectId, projectType, promptId, stepIndex, stepName });
         break;
 
       case 'request_document':
@@ -205,7 +211,7 @@ async function executeAction({ action, prospectId, projectType }) {
  * Exécute l'action "Afficher un formulaire"
  * Envoie le message d'accompagnement et crée le formulaire dans client_form_panels
  */
-async function executeShowFormAction({ action, prospectId, projectType }) {
+async function executeShowFormAction({ action, prospectId, projectType, promptId, stepIndex, stepName }) {
   try {
     if (!action.formId) {
       logger.warn('Action show_form sans formId', { prospectId, projectType });
@@ -219,8 +225,8 @@ async function executeShowFormAction({ action, prospectId, projectType }) {
         project_type: projectType,
         sender: 'pro',
         text: action.message,
-        prompt_id: action.promptId || null,
-        step_index: action.stepIndex || null,
+        prompt_id: promptId,
+        step_index: stepIndex,
         timestamp: new Date().toISOString()
       };
 
@@ -248,14 +254,12 @@ async function executeShowFormAction({ action, prospectId, projectType }) {
       .eq('id', action.formId)
       .single();
 
-    const stepName = action.stepName || 'Étape inconnue';
-
     const panelData = {
       prospect_id: prospectId,
       project_type: projectType,
       form_id: action.formId,
-      current_step_index: action.stepIndex || null,
-      prompt_id: action.promptId || null,
+      current_step_index: stepIndex,
+      prompt_id: promptId,
       message_timestamp: Date.now(),
       status: 'pending',
       step_name: stepName
@@ -283,8 +287,8 @@ async function executeShowFormAction({ action, prospectId, projectType }) {
       project_type: projectType,
       sender: 'pro',
       form_id: action.formId,
-      prompt_id: action.promptId || null,
-      step_index: action.stepIndex || null,
+      prompt_id: promptId,
+      step_index: stepIndex,
       timestamp: new Date().toISOString()
     };
 
@@ -342,7 +346,7 @@ async function executeShowFormAction({ action, prospectId, projectType }) {
  * Génère un PDF de contrat et l'ajoute aux fichiers du projet
  * PUIS crée un lien de signature dans le chat
  */
-async function executeStartSignatureAction({ action, prospectId, projectType }) {
+async function executeStartSignatureAction({ action, prospectId, projectType, promptId, stepIndex, stepName }) {
   try {
     if (!action.templateId) {
       logger.warn('Action start_signature sans templateId', { prospectId, projectType });
