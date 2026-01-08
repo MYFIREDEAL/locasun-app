@@ -238,7 +238,7 @@ function injectProspectData(html, prospect, cosigners = []) {
   };
 
   // 🔥 AJOUTER LES VARIABLES DES CO-SIGNATAIRES
-  // Format: {{cosigner_1_name}}, {{cosigner_1_email}}, {{cosigner_1_phone}}
+  // Support des 2 formats: {{cosigner_1_name}} ET {{cosigner_name_1}}
   cosigners.forEach((cosigner, index) => {
     const num = index + 1; // Index commence à 1
     
@@ -247,16 +247,37 @@ function injectProspectData(html, prospect, cosigners = []) {
     const cosignerFirstName = cosignerNameParts[0] || '';
     const cosignerLastName = cosignerNameParts.slice(1).join(' ') || '';
     
+    // Format 1: {{cosigner_1_name}}
     variables[`{{cosigner_${num}_name}}`] = cosigner.name || '';
     variables[`{{cosigner_${num}_firstname}}`] = cosignerFirstName;
     variables[`{{cosigner_${num}_lastname}}`] = cosignerLastName;
     variables[`{{cosigner_${num}_email}}`] = cosigner.email || '';
     variables[`{{cosigner_${num}_phone}}`] = cosigner.phone || '';
+    
+    // Format 2: {{cosigner_name_1}} (utilisé dans le template)
+    variables[`{{cosigner_name_${num}}}`] = cosigner.name || '';
+    variables[`{{cosigner_firstname_${num}}}`] = cosignerFirstName;
+    variables[`{{cosigner_lastname_${num}}}`] = cosignerLastName;
+    variables[`{{cosigner_email_${num}}}`] = cosigner.email || '';
+    variables[`{{cosigner_phone_${num}}}`] = cosigner.phone || '';
+    
+    // Variables pour les sections conditionnelles
+    variables[`{{cosigner_section_${num}}}`] = ''; // Vide = visible (pas de style="display:none")
   });
+
+  // 🔥 Remplir les co-signataires manquants (sections cachées)
+  for (let i = cosigners.length + 1; i <= 3; i++) {
+    variables[`{{cosigner_name_${i}}}`] = '';
+    variables[`{{cosigner_firstname_${i}}}`] = '';
+    variables[`{{cosigner_lastname_${i}}}`] = '';
+    variables[`{{cosigner_email_${i}}}`] = '';
+    variables[`{{cosigner_phone_${i}}}`] = '';
+    variables[`{{cosigner_section_${i}}}`] = 'style="display:none"'; // Cacher la section
+  }
 
   logger.debug('Variables injectées', { 
     prospectVars: 8,
-    cosignerVars: cosigners.length * 5,
+    cosignerVars: cosigners.length * 10 + (3 - cosigners.length) * 6, // 10 vars par cosigner + 6 pour sections vides
     totalVars: Object.keys(variables).length
   });
 
