@@ -64,16 +64,14 @@ export function useWorkflowActionTrigger({
             
             executedRef.current.add(actionKey);
             
-            logger.info('✅ Formulaire approuvé → Action suivante dans 2s', {
+            logger.info('✅ Formulaire approuvé → Action suivante instantanée', {
               formId: updatedPanel.form_id,
               actionId: updatedPanel.action_id,
             });
             
-            // 🔥 Attendre 2 secondes avant d'envoyer l'action suivante
-            setTimeout(() => {
-              logger.info('🚀 Envoi action suivante');
-              sendNextAction();
-            }, 2000);
+            // 🔥 Envoi instantané de l'action suivante
+            logger.info('🚀 Envoi action suivante');
+            sendNextAction();
           }
         }
       )
