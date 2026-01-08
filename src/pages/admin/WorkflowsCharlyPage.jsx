@@ -250,13 +250,18 @@ const ActionEditor = ({
                                                     </p>
                                                     <div className="max-h-40 overflow-y-auto space-y-1.5">
                                                         {selectedForm.fields.map((field, idx) => (
-                                                            <div key={idx} className="bg-blue-50 rounded px-2 py-1.5 flex items-start gap-2">
-                                                                <code className="text-xs font-mono text-blue-900 font-semibold flex-1">
-                                                                    {field.name}
-                                                                </code>
-                                                                <span className="text-xs text-blue-600 bg-white px-1.5 py-0.5 rounded">
-                                                                    {field.type}
-                                                                </span>
+                                                            <div key={idx} className="bg-blue-50 rounded px-2 py-1.5 space-y-0.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <code className="text-xs font-mono text-blue-900 font-semibold bg-white px-1.5 py-0.5 rounded">
+                                                                        {field.id}
+                                                                    </code>
+                                                                    <span className="text-xs text-blue-600">
+                                                                        {field.type}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-gray-700 ml-1">
+                                                                    {field.label}
+                                                                </p>
                                                             </div>
                                                         ))}
                                                     </div>
