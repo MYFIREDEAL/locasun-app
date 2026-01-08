@@ -24,6 +24,7 @@ import TestSupabasePage from '@/pages/TestSupabasePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import SignaturePage from '@/pages/SignaturePage';
 import CosignerSignaturePage from '@/pages/CosignerSignaturePage';
+import { useOrganization } from '@/contexts/OrganizationContext';
 // ✅ allProjectsData maintenant chargé depuis Supabase (project_templates table)
 import { toast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
@@ -175,6 +176,10 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  // 🔥 RÉCUPÉRATION DE L'ORGANIZATION_ID DEPUIS LE CONTEXT
+  const { organizationId, organizationLoading, organizationError } = useOrganization();
+  
   const [userProjects, setUserProjects] = useState([]);
   // ✅ projectsData maintenant géré par useSupabaseProjectTemplates (plus de localStorage)
   const [prospects, setProspects] = useState([]);
@@ -1350,6 +1355,40 @@ function App() {
     return 'La solution pour vos projets énergétiques.';
   };
 
+
+  // 🔥 BLOQUER LE RENDU TANT QUE L'ORGANIZATION N'EST PAS RÉSOLUE
+  if (organizationLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Résolution de l'organisation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 ÉCRAN BLOQUANT SI AUCUNE ORGANISATION TROUVÉE
+  if (organizationError || !organizationId) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center max-w-md px-6">
+          <div className="bg-red-100 rounded-full h-16 w-16 mx-auto mb-4 flex items-center justify-center">
+            <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Organisation inconnue</h1>
+          <p className="text-gray-600 mb-4">
+            {organizationError || "Impossible de résoudre l'organisation pour ce domaine."}
+          </p>
+          <p className="text-sm text-gray-500">
+            Veuillez contacter votre administrateur système.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // 🔥 BLOQUER LE RENDU TANT QUE L'AUTH N'EST PAS COMPLÈTE
   if (authLoading) {
