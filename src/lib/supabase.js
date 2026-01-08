@@ -18,5 +18,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,             // CRUCIAL : Détecter le token dans l'URL du magic link
     flowType: 'implicit',                 // ✅ Flux implicit pour Magic Link OTP (pas PKCE)
     storageKey: 'sb-yscwpxwgnhqbhkqzipag-auth-token', // Clé explicite du token
+  },
+  db: {
+    schema: 'public'                      // 🔥 Schéma explicite pour les RPC functions
   }
 });

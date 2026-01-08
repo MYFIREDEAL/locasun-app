@@ -34,11 +34,12 @@ async function run() {
     .insert({
       email: "test_inscription_auto@evatime.fr",
       name: "Test Auto",
-      owner_id: "82be903d-9600-4c53-9cd4-113bfaaac12e"
+      owner_id: "82be903d-9600-4c53-9cd4-113bfaaac12e",
+      organization_id: "00000000-0000-0000-0000-000000000001" // Organization test par défaut
     });
 
   if (errInsert) {
-    console.error("❌ Anonyme : INSERT cassé");
+    console.error("❌ Anonyme : INSERT cassé", errInsert);
     process.exit(1);
   }
   console.log("🟢 Anonyme INSERT OK");
