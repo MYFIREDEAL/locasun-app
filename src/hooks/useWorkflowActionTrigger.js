@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
@@ -20,18 +20,24 @@ export function useWorkflowActionTrigger({
   sendNextAction
 }) {
   const executedRef = useRef(new Set());
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!prospectId || !projectType || currentStepIndex === undefined || !prompt) {
-      logger.debug('⚠️ Workflow action trigger DISABLED', { prospectId, projectType, currentStepIndex, prompt });
       return;
     }
 
-    logger.info('🔄 Workflow action trigger ACTIVATED', { prospectId, projectType, currentStepIndex, promptId: prompt?.id });
+    // Éviter les initialisations multiples
+    if (isInitializedRef.current) {
+      return;
+    }
+    
+    isInitializedRef.current = true;
+    logger.info('🔄 Workflow action trigger activé', { prospectId, projectType, currentStepIndex });
 
     // 🔥 Écouter les changements sur client_form_panels (formulaires approuvés)
     const formPanelChannel = supabase
-      .channel(`workflow-forms-${prospectId}-${projectType}`)
+      .channel(`workflow-forms-${prospectId}-${projectType}-${currentStepIndex}`)
       .on(
         'postgres_changes',
         {
@@ -41,13 +47,6 @@ export function useWorkflowActionTrigger({
           filter: `prospect_id=eq.${prospectId}`,
         },
         async (payload) => {
-          logger.info('📩 UPDATE received on client_form_panels', { 
-            payload: payload.new,
-            status: payload.new.status,
-            actionId: payload.new.action_id,
-            projectType: payload.new.project_type
-          });
-          
           const updatedPanel = payload.new;
           
           // Vérifier si c'est pour le bon projet et la bonne étape
@@ -60,35 +59,30 @@ export function useWorkflowActionTrigger({
             
             // Éviter les duplicatas
             if (executedRef.current.has(actionKey)) {
-              logger.debug('Action suivante déjà déclenchée, skip', { actionKey });
               return;
             }
             
             executedRef.current.add(actionKey);
             
-            logger.info('✅ Formulaire approuvé, déclenchement action suivante dans 2 sec', {
+            logger.info('✅ Formulaire approuvé → Action suivante dans 2s', {
               formId: updatedPanel.form_id,
               actionId: updatedPanel.action_id,
             });
             
-            // 🔥 Attendre 2 secondes avant d'envoyer l'action suivante (pour que le client voie la validation)
+            // 🔥 Attendre 2 secondes avant d'envoyer l'action suivante
             setTimeout(() => {
-              logger.info('🚀 Appel sendNextAction()');
+              logger.info('🚀 Envoi action suivante');
               sendNextAction();
             }, 2000);
-          } else {
-            logger.debug('❌ Conditions non remplies pour déclenchement', {
-              projectTypeMatch: updatedPanel.project_type === projectType,
-              statusApproved: updatedPanel.status === 'approved',
-              hasActionId: !!updatedPanel.action_id,
-            });
           }
         }
       )
       .subscribe();
 
     return () => {
+      isInitializedRef.current = false;
       supabase.removeChannel(formPanelChannel);
+      logger.debug('🔴 Workflow action trigger désactivé');
     };
   }, [prospectId, projectType, currentStepIndex, prompt, sendNextAction]);
 }
