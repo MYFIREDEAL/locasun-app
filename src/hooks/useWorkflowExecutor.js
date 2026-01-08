@@ -7,6 +7,7 @@ import { toast } from '@/components/ui/use-toast';
 /**
  * Hook pour exécuter automatiquement les actions workflow
  * quand un prospect change d'étape dans un projet
+ * OU quand un formulaire requis est approuvé
  * 
  * @param {string} prospectId - ID du prospect
  * @param {string} projectType - Type de projet
@@ -16,10 +17,42 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
   // Garde une trace des actions déjà exécutées pour éviter les duplicatas
   const executedActionsRef = useRef(new Set());
 
+  // ⚡ Écoute des approbations de formulaires pour relancer les actions bloquées
   useEffect(() => {
-    if (!prospectId || !projectType || !currentSteps) return;
+    if (!prospectId || !projectType) return;
 
-    const executeWorkflowActions = async () => {
+    const channel = supabase
+      .channel(`form-approvals-${prospectId}-${projectType}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'client_form_panels',
+          filter: `prospect_id=eq.${prospectId}`,
+        },
+        async (payload) => {
+          // Détecter l'approbation d'un formulaire
+          if (payload.new.status === 'approved' && payload.old.status !== 'approved') {
+            logger.debug('📋 Formulaire approuvé détecté, relance des actions workflow', {
+              formId: payload.new.form_id,
+              prospectId,
+              projectType
+            });
+
+            // Réexécuter les actions du workflow pour l'étape actuelle
+            await executeWorkflowActions();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [prospectId, projectType, currentSteps]);
+
+  const executeWorkflowActions = async () => {
       try {
         // 1. Charger le prompt/workflow pour ce projet
         const { data: prompt, error: promptError } = await supabase
@@ -54,8 +87,10 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
           return;
         }
 
-        // 4. Exécuter les actions automatiques
-        for (const action of stepConfig.actions) {
+        // 4. Exécuter les actions automatiques AVEC VÉRIFICATION DES DÉPENDANCES
+        for (let i = 0; i < stepConfig.actions.length; i++) {
+          const action = stepConfig.actions[i];
+          
           // Ignorer les actions sans type ou avec type 'none'
           if (!action.type || action.type === 'none') continue;
 
@@ -65,6 +100,23 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
               actionType: action.type 
             });
             continue;
+          }
+
+          // 🔥 VÉRIFICATION DES PRÉREQUIS : Les actions précédentes sont-elles terminées ?
+          const previousActions = stepConfig.actions.slice(0, i);
+          const canExecute = await checkActionPrerequisites({
+            action,
+            previousActions,
+            prospectId,
+            projectType
+          });
+
+          if (!canExecute) {
+            logger.warn('⏸️ Action bloquée en attente des prérequis', { 
+              actionType: action.type,
+              actionIndex: i
+            });
+            break; // ⛔ Arrêter l'exécution, ne pas exécuter les actions suivantes
           }
 
           // 🔥 Créer une clé unique pour cette action à cette étape
@@ -94,6 +146,10 @@ export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
         });
       }
     };
+
+  // ⚡ Écoute principale: changement d'étapes
+  useEffect(() => {
+    if (!prospectId || !projectType || !currentSteps) return;
 
     // Exécuter au montage et quand les steps changent
     executeWorkflowActions();
@@ -184,10 +240,47 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         projectType,
         config: action.cosignersConfig
       });
+      
       logger.debug('Co-signataires extraits avant génération PDF', { 
         count: cosigners.length,
         cosigners
       });
+
+      // ⚠️ BLOQUER si le formulaire n'est pas encore rempli/approuvé
+      // On vérifie si le formulaire existe dans client_form_panels
+      const { data: formPanel } = await supabase
+        .from('client_form_panels')
+        .select('id, status')
+        .eq('prospect_id', prospectId)
+        .eq('form_id', action.cosignersConfig.formId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!formPanel) {
+        logger.warn('⏸️ Formulaire co-signataires non encore rempli, attente...', { 
+          formId: action.cosignersConfig.formId 
+        });
+        toast({
+          title: "⏸️ En attente",
+          description: "Le client doit d'abord remplir le formulaire des co-signataires",
+          className: "bg-amber-500 text-white",
+        });
+        return; // ⛔ STOP - on ne génère pas le contrat
+      }
+
+      if (formPanel.status !== 'approved') {
+        logger.warn('⏸️ Formulaire co-signataires en attente d\'approbation', { 
+          formId: action.cosignersConfig.formId,
+          status: formPanel.status
+        });
+        toast({
+          title: "⏸️ En attente d'approbation",
+          description: "Le formulaire des co-signataires doit être approuvé avant génération du contrat",
+          className: "bg-amber-500 text-white",
+        });
+        return; // ⛔ STOP - on ne génère pas le contrat
+      }
     }
 
     let fileId = null;
@@ -449,5 +542,69 @@ async function extractCosignersFromForm({ formId, prospectId, projectType, confi
   } catch (error) {
     logger.error('Erreur extraction co-signataires', { error: error.message });
     return [];
+  }
+}
+
+/**
+ * Vérifie si les prérequis d'une action sont remplis
+ * (toutes les actions précédentes doivent être terminées)
+ * 
+ * @param {Object} params
+ * @param {Object} params.action - Action à vérifier
+ * @param {Array} params.previousActions - Actions précédentes dans le workflow
+ * @param {string} params.prospectId - ID du prospect
+ * @param {string} params.projectType - Type de projet
+ * @returns {Promise<boolean>} - true si l'action peut être exécutée
+ */
+async function checkActionPrerequisites({ action, previousActions, prospectId, projectType }) {
+  try {
+    // Vérifier chaque action précédente
+    for (const prevAction of previousActions) {
+      // Ignorer les actions sans type ou 'none'
+      if (!prevAction.type || prevAction.type === 'none') continue;
+
+      // Vérifier selon le type d'action
+      if (prevAction.type === 'show_form') {
+        // Vérifier que le formulaire a été rempli ET approuvé
+        const { data: formPanel } = await supabase
+          .from('client_form_panels')
+          .select('id, status')
+          .eq('prospect_id', prospectId)
+          .eq('form_id', prevAction.formId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!formPanel) {
+          logger.debug('⏸️ Formulaire requis non encore envoyé/rempli', {
+            formId: prevAction.formId,
+            blockedAction: action.type
+          });
+          return false; // ⛔ Bloquer
+        }
+
+        if (formPanel.status !== 'approved') {
+          logger.debug('⏸️ Formulaire requis non encore approuvé', {
+            formId: prevAction.formId,
+            status: formPanel.status,
+            blockedAction: action.type
+          });
+          return false; // ⛔ Bloquer
+        }
+
+        logger.debug('✅ Formulaire prérequis validé', {
+          formId: prevAction.formId,
+          status: formPanel.status
+        });
+      }
+
+      // TODO: Ajouter d'autres vérifications pour request_document, open_payment, etc.
+    }
+
+    // Tous les prérequis sont OK
+    return true;
+  } catch (error) {
+    logger.error('Erreur vérification prérequis', { error: error.message });
+    return false; // En cas d'erreur, bloquer par sécurité
   }
 }
