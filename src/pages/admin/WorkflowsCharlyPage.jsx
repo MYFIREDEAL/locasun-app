@@ -222,7 +222,7 @@ const ActionEditor = ({
                                         </Select>
                                         {!action.cosignersConfig?.formId && (
                                             <p className="text-xs text-orange-600">
-                                                ⚠️ Formulaire obligatoire pour analyser les co-signataires
+                                                ⚠️ Sélectionnez le formulaire qui contient les infos des co-signataires
                                             </p>
                                         )}
                                     </div>
@@ -496,9 +496,14 @@ const WorkflowsCharlyPage = () => {
   
   // 🔥 Hook Supabase pour les formulaires
   const {
-    forms: supabaseForms,
+    forms: supabaseFormsObject,
     loading: formsLoading
   } = useSupabaseForms();
+  
+  // 🔥 Convertir l'objet en tableau pour le dropdown
+  const supabaseForms = useMemo(() => {
+    return Object.values(supabaseFormsObject || {});
+  }, [supabaseFormsObject]);
   
   const {
     prompts: supabasePrompts,
