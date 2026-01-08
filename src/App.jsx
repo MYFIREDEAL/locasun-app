@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
 import AdminLayout from '@/layouts/AdminLayout';
 import ClientLayout from '@/layouts/ClientLayout';
+import PlatformLayout from '@/layouts/PlatformLayout';
 import FinalPipeline from '@/pages/admin/FinalPipeline';
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
 import Agenda from '@/pages/admin/Agenda';
@@ -16,6 +17,8 @@ import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
 import ActivationPage from '@/pages/client/ActivationPage';
+import OrganizationsListPage from '@/pages/platform/OrganizationsListPage';
+import OrganizationDetailPage from '@/pages/platform/OrganizationDetailPage';
 import HomePage from '@/pages/HomePage';
 import ClientAccessPage from '@/pages/ClientAccessPage';
 import RegistrationPage from '@/pages/RegistrationPage';
@@ -1464,6 +1467,12 @@ function App() {
       
       <Routes>
         {/* ⚠️ IMPORTANT : Routes spécifiques AVANT la route wildcard /:slugUser */}
+        {/* 🔒 PLATFORM ADMIN ROUTES */}
+        <Route path="/platform" element={<PlatformLayout />}>
+          <Route index element={<Navigate to="/platform/organizations" replace />} />
+          <Route path="organizations" element={<OrganizationsListPage />} />
+          <Route path="organizations/:id" element={<OrganizationDetailPage />} />
+        </Route>
         <Route path="/" element={<HomePage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
