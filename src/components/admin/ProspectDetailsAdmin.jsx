@@ -692,9 +692,36 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
 
                 signatureProcedure = newProcedure;
                 logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id, signersCount: signers.length });
+
+                // 🔥 ENVOYER EMAIL AUX CO-SIGNATAIRES
+                for (const signer of signers) {
+                  if (signer.type === 'cosigner' && signer.email) {
+                    const cosignerUrl = `${window.location.origin}/sign/cosigner?token=${signer.access_token}`;
+                    
+                    try {
+                      const { error: emailError } = await supabase.functions.invoke('send-cosigner-email', {
+                        body: {
+                          email: signer.email,
+                          name: signer.name,
+                          signatureUrl: cosignerUrl,
+                          clientName: currentProspect?.name || 'Client',
+                          projectType: projectType
+                        }
+                      });
+
+                      if (emailError) {
+                        logger.error('Erreur envoi email co-signataire', { email: signer.email, error: emailError });
+                      } else {
+                        logger.info('✅ Email envoyé au co-signataire', { email: signer.email });
+                      }
+                    } catch (err) {
+                      logger.error('Erreur envoi email co-signataire', err);
+                    }
+                  }
+                }
               }
 
-              // 🔥 ENVOYER LE LIEN DANS LE CHAT
+              // 🔥 ENVOYER LE LIEN DANS LE CHAT (pour le client principal)
               const signatureUrl = `${window.location.origin}/signature/${signatureProcedure.id}?token=${signatureProcedure.access_token}`;
               
               // Vérifier si le message existe déjà
