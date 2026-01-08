@@ -207,11 +207,16 @@ const ActionEditor = ({
                                                 <SelectValue placeholder="Sélectionner un formulaire" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {forms.map(form => (
+                                                {Array.isArray(forms) && forms.map(form => (
                                                     <SelectItem key={form.id} value={form.id}>
                                                         {form.name}
                                                     </SelectItem>
                                                 ))}
+                                                {(!Array.isArray(forms) || forms.length === 0) && (
+                                                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                                                        Aucun formulaire disponible
+                                                    </div>
+                                                )}
                                             </SelectContent>
                                         </Select>
                                         {!action.cosignersConfig?.formId && (
