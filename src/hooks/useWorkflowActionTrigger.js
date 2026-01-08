@@ -27,12 +27,6 @@ export function useWorkflowActionTrigger({
       return;
     }
 
-    // Éviter les initialisations multiples
-    if (isInitializedRef.current) {
-      return;
-    }
-    
-    isInitializedRef.current = true;
     logger.info('🔄 Workflow action trigger activé', { 
       prospectId, 
       projectType, 
@@ -107,7 +101,6 @@ export function useWorkflowActionTrigger({
       .subscribe();
 
     return () => {
-      isInitializedRef.current = false;
       supabase.removeChannel(formPanelChannel);
       logger.debug('🔴 Workflow action trigger désactivé');
     };

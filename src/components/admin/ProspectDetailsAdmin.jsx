@@ -207,14 +207,14 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     });
   }, [prompts, projectType, currentStepIndex]);
   
-  // 🔥 Fonction pour envoyer la prochaine action du workflow
-  const sendNextAction = async () => {
+  // 🔥 Fonction pour envoyer la prochaine action du workflow (mémoïsée pour éviter re-renders)
+  const sendNextAction = useCallback(async () => {
     logger.debug('🚀 Tentative envoi action suivante');
     const currentPrompt = availablePrompts[0]; // Prendre le premier prompt disponible pour cette étape
     if (currentPrompt) {
       await handleSelectPrompt(currentPrompt);
     }
-  };
+  }, [availablePrompts]); // Dépend de availablePrompts qui est déjà mémoïsé
   
   // 🔥 Hook pour déclencher automatiquement l'action suivante quand la précédente est complétée
   useWorkflowActionTrigger({
