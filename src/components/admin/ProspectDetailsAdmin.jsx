@@ -28,6 +28,7 @@ import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
+import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -473,6 +474,62 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
             toast({
               title: "Erreur",
               description: "Le formulaire n'a pas pu être enregistré.",
+              variant: "destructive",
+            });
+          }
+        }
+        
+        // 🔥 Gérer l'action start_signature (génération de contrat)
+        if (action.type === 'start_signature' && action.templateId) {
+          try {
+            logger.info('🔥 Génération contrat via workflow séquentiel', {
+              templateId: action.templateId,
+              prospectId,
+              projectType
+            });
+
+            toast({
+              title: "📄 Génération du contrat...",
+              description: "Création du PDF en cours",
+              className: "bg-blue-500 text-white",
+            });
+
+            // Appeler la fonction de génération de contrat
+            const result = await executeContractSignatureAction({
+              templateId: action.templateId,
+              projectType: projectType,
+              prospectId: prospectId,
+              cosigners: [], // Les cosigners seront extraits automatiquement si configuré
+            });
+
+            if (result.success) {
+              toast({
+                title: "✅ Contrat généré !",
+                description: "Le contrat a été créé et le lien de signature envoyé.",
+                className: "bg-green-500 text-white",
+              });
+
+              // ✅ Ajouter événement dans project_history
+              try {
+                await addProjectEvent({
+                  prospectId: prospectId,
+                  projectType: projectType,
+                  title: "Contrat généré",
+                  description: `Le contrat a été généré et envoyé à ${currentProspect?.name || 'le client'}.`,
+                  createdBy: currentUser?.user_id || null,
+                  createdByName: currentUser?.name || "Admin"
+                });
+              } catch (historyErr) {
+                logger.error('⚠️ Erreur ajout événement historique:', historyErr);
+              }
+            } else {
+              throw new Error(result.error || 'Erreur inconnue');
+            }
+          } catch (err) {
+            logger.error('❌ Exception génération contrat:', err);
+            toast({
+              title: "Erreur",
+              description: `Impossible de générer le contrat: ${err.message}`,
               variant: "destructive",
             });
           }
@@ -2061,12 +2118,13 @@ const ProspectDetailsAdmin = ({
   const currentStepIndex = projectSteps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = projectSteps[currentStepIndex] || projectSteps.find(s => s.status === STATUS_PENDING) || projectSteps[0];
   
-  // 🔥 Hook pour exécuter automatiquement les actions workflow
-  useWorkflowExecutor({
-    prospectId: prospect.id,
-    projectType: activeProjectTag,
-    currentSteps: projectSteps,
-  });
+  // ❌ DÉSACTIVÉ: Hook pour exécuter automatiquement les actions workflow
+  // Maintenant tout passe par le système manuel séquentiel via handleSelectPrompt
+  // useWorkflowExecutor({
+  //   prospectId: prospect.id,
+  //   projectType: activeProjectTag,
+  //   currentSteps: projectSteps,
+  // });
 
   useEffect(() => {
     if (notificationId) {
