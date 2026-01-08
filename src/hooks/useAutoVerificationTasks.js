@@ -108,15 +108,9 @@ async function handleFormSubmission(formPanel, prompts) {
 
   const formName = form?.name || form_id;
 
-  // Récupérer le nom de l'étape
-  const { data: projectSteps, error: stepsError } = await supabase
-    .from('project_steps_status')
-    .select('steps')
-    .eq('prospect_id', prospect_id)
-    .eq('project_type', project_type)
-    .single();
-
-  const stepName = projectSteps?.steps?.[current_step_index]?.name || `Étape ${current_step_index + 1}`;
+  // 🔥 NOUVEAU: Utiliser le step_name stocké dans client_form_panels au lieu de chercher dans project_steps_status
+  // Cela garantit la cohérence avec le code de recherche dans handleApprove/handleReject
+  const stepName = formPanel.step_name || `Étape ${current_step_index + 1}`;
 
   // 🔥 VÉRIFIER SI UNE TÂCHE EXISTE DÉJÀ pour ce formulaire
   const { data: existingTasks, error: checkError } = await supabase
