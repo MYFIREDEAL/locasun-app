@@ -481,6 +481,8 @@ function App() {
           avatarUrl: admin.avatar_url,   // ✅ Ajouter camelCase
           manager_id: admin.manager_id,  // ✅ Garder snake_case
           managerId: admin.manager_id,   // ✅ Ajouter camelCase
+          organization_id: admin.organization_id,  // ✅ AJOUTÉ : Garder snake_case
+          organizationId: admin.organization_id,   // ✅ AJOUTÉ : Ajouter camelCase
           access_rights: admin.access_rights,  // ✅ Garder snake_case (utilisé partout)
           accessRights: admin.access_rights,   // ✅ Ajouter camelCase
           created_at: admin.created_at,  // ✅ Garder snake_case
