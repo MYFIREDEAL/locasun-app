@@ -80,6 +80,12 @@ export default function SignaturePage() {
 
       setProcedure(proc);
 
+      logger.debug('📋 Procédure chargée', { 
+        signer_name: proc.signer_name, 
+        signer_email: proc.signer_email,
+        status: proc.status 
+      });
+
       // Récupérer URL signée du PDF
       const { data: urlData, error: urlError } = await supabase.storage
         .from('project-files')
@@ -168,6 +174,11 @@ export default function SignaturePage() {
       if (reloadError) {
         logger.error('Erreur rechargement procédure', reloadError);
       } else {
+        logger.debug('📋 Procédure rechargée après signature', {
+          signer_name: updatedProc.signer_name,
+          signer_email: updatedProc.signer_email,
+          signed_at: updatedProc.signed_at
+        });
         setProcedure(updatedProc); // Mettre à jour avec les vraies données DB
       }
 
