@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useAppContext } from '@/App';
-import { useYousignSignature } from '@/hooks/useYousignSignature';
 import { toast } from '@/components/ui/use-toast';
 
 const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activeAdminUserProp }) => {
@@ -34,8 +33,6 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
     enabled: !!projectType,
     activeAdminUser
   });
-
-  const { createSignature, loading: signingLoading } = useYousignSignature();
 
   const handleFileUpload = async (event) => {
     const files = Array.from(event.target.files || []);
@@ -131,38 +128,6 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
       window.open(data.signedUrl, '_blank');
     } catch (err) {
       logger.error('Error viewing file:', err);
-    }
-  };
-
-  const handleSignature = async (file) => {
-    try {
-      logger.debug('📝 Launching signature', { fileId: file.id });
-
-      const result = await createSignature({
-        fileId: file.id,
-        prospectId,
-        projectType,
-      });
-
-      if (result.success && result.signatureLink) {
-        toast({
-          title: '✅ Signature lancée !',
-          description: 'Le lien de signature a été envoyé au client par email.',
-          className: 'bg-green-500 text-white',
-        });
-
-        // Ouvrir le lien de signature dans un nouvel onglet (optionnel)
-        if (confirm('Voulez-vous ouvrir le lien de signature ?')) {
-          window.open(result.signatureLink, '_blank');
-        }
-      }
-    } catch (err) {
-      logger.error('Error creating signature:', err);
-      toast({
-        title: '❌ Erreur',
-        description: `Impossible de créer la signature: ${err.message}`,
-        variant: 'destructive',
-      });
     }
   };
 
@@ -291,20 +256,10 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
                     onClick={() => handleView(file)}
                     className="p-2 hover:bg-green-50 rounded text-green-600 transition-colors"
                     title="Voir"
-                    disabled={deleting || signingLoading}
+                    disabled={deleting}
                   >
                     <Eye className="h-4 w-4" />
                   </button>
-                  {file.file_type === 'application/pdf' && file.field_label !== 'Document signé' && (
-                    <button
-                      onClick={() => handleSignature(file)}
-                      className="p-2 hover:bg-purple-50 rounded text-purple-600 transition-colors disabled:opacity-50"
-                      title="Lancer signature Yousign"
-                      disabled={deleting || signingLoading}
-                    >
-                      <PenTool className="h-4 w-4" />
-                    </button>
-                  )}
                   {file.field_label === 'Document signé' && (
                     <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">
                       ✓ Signé
@@ -314,7 +269,7 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
                     onClick={() => handleDownload(file)}
                     className="p-2 hover:bg-blue-50 rounded text-blue-600 transition-colors"
                     title="Télécharger"
-                    disabled={deleting || signingLoading}
+                    disabled={deleting}
                   >
                     <Download className="h-4 w-4" />
                   </button>
