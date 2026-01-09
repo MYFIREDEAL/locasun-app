@@ -137,13 +137,16 @@ export default function SignaturePage() {
       };
 
       // 4. Mettre à jour la procédure de signature
+      // ⚠️ CRITIQUE: Réécrire explicitement signer_name et signer_email pour l'UI
       const { error: updateError } = await supabase
         .from('signature_procedures')
         .update({
           status: 'signed',
           signed_at: new Date().toISOString(),
           document_hash: documentHash,
-          signature_metadata: signatureMetadata
+          signature_metadata: signatureMetadata,
+          signer_name: procedure.signer_name,  // Réécrire explicitement
+          signer_email: procedure.signer_email // Réécrire explicitement
         })
         .eq('id', signatureProcedureId)
         .eq('access_token', token); // Sécurité: vérifier le token
@@ -155,7 +158,20 @@ export default function SignaturePage() {
 
       logger.debug('Signature enregistrée avec succès', { procedureId: signatureProcedureId });
 
-      // 5. Succès
+      // 5. Recharger la procédure pour avoir les données à jour (source de vérité)
+      const { data: updatedProc, error: reloadError } = await supabase
+        .from('signature_procedures')
+        .select('*')
+        .eq('id', signatureProcedureId)
+        .single();
+
+      if (reloadError) {
+        logger.error('Erreur rechargement procédure', reloadError);
+      } else {
+        setProcedure(updatedProc); // Mettre à jour avec les vraies données DB
+      }
+
+      // 6. Succès
       setSigned(true);
       setSigning(false);
 
@@ -192,7 +208,7 @@ export default function SignaturePage() {
   }
 
   // Signed state
-  if (signed) {
+  if (signed && procedure) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -201,10 +217,16 @@ export default function SignaturePage() {
           <p className="text-gray-600 mb-4">
             Votre signature électronique a été enregistrée avec succès.
           </p>
-          <div className="text-sm text-gray-500 space-y-1">
-            <p>Date: {new Date(procedure?.signed_at || Date.now()).toLocaleString('fr-FR')}</p>
-            <p>Signataire: {procedure?.signer_name}</p>
-            <p>Email: {procedure?.signer_email}</p>
+          <div className="text-sm text-gray-500 space-y-1 bg-gray-50 p-4 rounded-lg">
+            <p><span className="font-semibold">Signataire:</span> {procedure.signer_name}</p>
+            <p><span className="font-semibold">Email:</span> {procedure.signer_email}</p>
+            <p><span className="font-semibold">Date:</span> {new Date(procedure.signed_at).toLocaleString('fr-FR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</p>
           </div>
         </div>
       </div>
