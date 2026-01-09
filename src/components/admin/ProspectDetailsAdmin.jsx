@@ -684,6 +684,14 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   throw new Error('Organization ID manquant - Impossible de créer la procédure de signature');
                 }
 
+                // ✅ CALCULER signer_name et signer_email AVANT l'INSERT
+                const signer_name =
+                  typeof currentProspect?.name === 'string' && currentProspect.name.trim() !== ''
+                    ? currentProspect.name
+                    : currentProspect?.email?.split('@')[0] || 'Client';
+
+                const signer_email = currentProspect?.email;
+
                 const { data: newProcedure, error: procedureError } = await supabase
                   .from('signature_procedures')
                   .insert({
@@ -695,6 +703,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                     status: 'pending',
                     signers: signers,
                     organization_id: activeAdminUser.organization_id, // ✅ Depuis activeAdminUser
+                    signer_name: signer_name, // ✅ Ajouté
+                    signer_email: signer_email, // ✅ Ajouté
                   })
                   .select()
                   .single();
