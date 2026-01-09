@@ -122,6 +122,18 @@ export function useSupabaseClientNotifications(prospectId) {
           throw error;
         }
       } else {
+        // 🔥 Récupérer organization_id depuis prospects (requis par DB)
+        const { data: prospect, error: prospectError } = await supabase
+          .from('prospects')
+          .select('organization_id')
+          .eq('id', prospectId)
+          .single()
+
+        if (prospectError || !prospect?.organization_id) {
+          logger.error('Organization introuvable pour le prospect:', { prospectId, error: prospectError?.message });
+          throw new Error('Organization introuvable pour le prospect');
+        }
+
         // Créer nouvelle notification
         const { data, error } = await supabase
           .from('client_notifications')
@@ -131,7 +143,8 @@ export function useSupabaseClientNotifications(prospectId) {
             project_name: projectName,
             message: message,
             count: 1,
-            read: false
+            read: false,
+            organization_id: prospect.organization_id // ✅ DEPUIS prospects, PAS activeAdminUser
           })
           .select()
 

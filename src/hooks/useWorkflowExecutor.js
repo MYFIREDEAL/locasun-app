@@ -228,150 +228,16 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           description: "Le PDF a été ajouté aux fichiers du projet",
           className: "bg-green-500 text-white",
         });
+        
+        logger.debug('Contrat généré avec succès', { fileId, prospectId, projectType });
       } else {
         throw new Error(result.error);
       }
     }
 
-    // 🔥 CRÉER OU RÉCUPÉRER LA PROCÉDURE DE SIGNATURE
-    logger.debug('Création procédure de signature...', { fileId, prospectId, projectType });
-
-    // Vérifier si une procédure existe déjà pour ce fichier
-    const { data: existingProcedure } = await supabase
-      .from('signature_procedures')
-      .select('*')
-      .eq('file_id', fileId)
-      .eq('prospect_id', prospectId)
-      .eq('status', 'pending')
-      .maybeSingle();
-
-    let signatureProcedure = existingProcedure;
-
-    if (!signatureProcedure) {
-      // Créer nouvelle procédure
-      const accessToken = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // +7 jours
-
-      // 🔥 Récupérer les données du prospect pour le signataire principal
-      const { data: prospectData, error: prospectError } = await supabase
-        .from('prospects')
-        .select('name, email, phone')
-        .eq('id', prospectId)
-        .single();
-
-      if (prospectError) {
-        logger.error('Erreur récupération prospect', prospectError);
-        throw prospectError;
-      }
-
-      // 🔥 Construire le tableau signers
-      const signers = [
-        {
-          type: 'principal',
-          name: prospectData.name || 'Client',
-          email: prospectData.email,
-          phone: prospectData.phone || null,
-          access_token: accessToken,
-          requires_auth: true,
-          status: 'pending',
-          signed_at: null,
-        },
-      ];
-
-      // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE (si configuré)
-      let extractedCosigners = [];
-      if (action.cosignersConfig?.formId) {
-        extractedCosigners = await extractCosignersFromForm({
-          formId: action.cosignersConfig.formId,
-          prospectId,
-          projectType,
-          config: action.cosignersConfig
-        });
-        
-        logger.debug('Co-signataires extraits du formulaire', { 
-          count: extractedCosigners.length,
-          cosigners: extractedCosigners
-        });
-      }
-
-      // 🔥 Ajouter les co-signataires extraits au tableau signers
-      if (extractedCosigners.length > 0) {
-        for (const cosigner of extractedCosigners) {
-          signers.push({
-            type: 'cosigner',
-            name: cosigner.name || '',
-            email: cosigner.email || '',
-            phone: cosigner.phone || '',
-            access_token: crypto.randomUUID(),
-            requires_auth: false,
-            status: 'pending',
-            signed_at: null,
-          });
-        }
-      }
-
-      const { data: newProcedure, error: procedureError } = await supabase
-        .from('signature_procedures')
-        .insert({
-          prospect_id: prospectId,
-          project_type: projectType,
-          file_id: fileId,
-          access_token: accessToken,
-          access_token_expires_at: expiresAt.toISOString(),
-          status: 'pending',
-          signers: signers,
-          organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
-        })
-        .select()
-        .single();
-
-      if (procedureError) {
-        logger.error('Erreur création signature_procedures', procedureError);
-        throw procedureError;
-      }
-
-      signatureProcedure = newProcedure;
-      logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id, signersCount: signers.length });
-    } else {
-      logger.debug('Procédure de signature existante réutilisée', { procedureId: signatureProcedure.id });
-    }
-
-    // 🔥 CONSTRUIRE L'URL DE SIGNATURE
-    const signatureUrl = `${window.location.origin}/signature/${signatureProcedure.id}?token=${signatureProcedure.access_token}`;
-    
-    logger.debug('URL de signature générée', { signatureUrl });
-
-    // 🔥 VÉRIFIER SI LE MESSAGE EXISTE DÉJÀ (lié à cette procédure)
-    const { data: existingMessage } = await supabase
-      .from('chat_messages')
-      .select('id')
-      .eq('prospect_id', prospectId)
-      .eq('project_type', projectType)
-      .eq('sender', 'pro')
-      .ilike('text', `%/signature/${signatureProcedure.id}%`)
-      .maybeSingle();
-
-    // 🔥 ENVOYER LE LIEN DANS LE CHAT (seulement si inexistant)
-    if (!existingMessage) {
-      const { error: chatError } = await supabase
-        .from('chat_messages')
-        .insert({
-          prospect_id: prospectId,
-          project_type: projectType,
-          sender: 'pro',
-          text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
-          organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
-        });
-
-      if (chatError) {
-        logger.error('Erreur envoi message chat signature', chatError);
-      } else {
-        logger.debug('Lien de signature envoyé dans le chat');
-      }
-    } else {
-      logger.debug('Message de signature déjà existant, pas de duplication');
-    }
+    // ✅ ARRÊT ICI : la signature interne n'est pas implémentée
+    // Le PDF est disponible dans l'onglet Fichiers du projet
+    logger.debug('Génération de contrat terminée (sans procédure de signature)', { fileId });
 
   } catch (error) {
     logger.error('Erreur génération contrat', { error: error.message });
