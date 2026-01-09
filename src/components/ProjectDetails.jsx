@@ -435,6 +435,8 @@ const ProjectDetails = ({ project, onBack }) => {
     updateProjectSteps,
     getSharedAppointments,
     clientFormPanels,
+    clientNotifications,
+    markClientNotificationAsRead,
   } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(currentUser?.id, project.type);
@@ -530,6 +532,21 @@ const ProjectDetails = ({ project, onBack }) => {
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, project.type]);
+
+  // 🔥 AUTO-MARK: Marquer les notifications du projet comme lues à l'ouverture
+  useEffect(() => {
+    if (!currentUser?.id || !project.type || !clientNotifications || !markClientNotificationAsRead) return;
+
+    const projectNotifications = clientNotifications.filter(
+      notif => !notif.read && notif.projectType === project.type
+    );
+
+    if (projectNotifications.length > 0) {
+      projectNotifications.forEach(notif => {
+        markClientNotificationAsRead(notif.id);
+      });
+    }
+  }, [currentUser?.id, project.type, clientNotifications, markClientNotificationAsRead]);
 
   useEffect(() => {
     const completedSteps = steps.filter(step => step.status === STATUS_COMPLETED).length;
