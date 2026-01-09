@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
-import { useSignatureProcedures } from '@/hooks/useSignatureProcedures';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 
@@ -149,12 +148,9 @@ async function executeAction({ action, prospectId, projectType }) {
 
 /**
  * Exécute l'action "Lancer une signature"
- * Génère un PDF de contrat, crée une procédure de signature AES,
- * et envoie le lien de signature dans le chat
+ * PHASE 1: Génère le PDF, crée une procédure PENDING, envoie le lien dans le chat
  */
 async function executeStartSignatureAction({ action, prospectId, projectType }) {
-  const { createSignatureProcedure } = useSignatureProcedures();
-  
   try {
     if (!action.templateId) {
       logger.warn('Action start_signature sans templateId', { prospectId, projectType });
@@ -254,28 +250,57 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       }
     }
 
-    // 🔥 CRÉER LA PROCÉDURE DE SIGNATURE AES
-    logger.debug('Création procédure de signature AES...');
+    // ========================================
+    // PHASE 1 : CRÉATION PROCÉDURE SIGNATURE AES
+    // ========================================
     
-    const procedure = await createSignatureProcedure({
-      organizationId: prospectData.organization_id,
-      prospectId,
-      projectType,
-      fileId,
-      storagePath,
-      signerName: prospectData.name || 'Client',
-      signerEmail: prospectData.email
-    });
+    logger.debug('Phase 1: Création procédure de signature AES PENDING...');
+    
+    // 1. Générer token sécurisé
+    const accessToken = crypto.randomUUID();
+    
+    // 2. Définir expiration (+7 jours)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // 🔥 CONSTRUIRE L'URL DE SIGNATURE
-    const signatureUrl = `${window.location.origin}/signature/${procedure.id}?token=${procedure.access_token}`;
-    
-    logger.debug('URL de signature générée', { 
+    // 3. Insérer dans signature_procedures
+    const { data: procedure, error: procedureError } = await supabase
+      .from('signature_procedures')
+      .insert({
+        organization_id: prospectData.organization_id,
+        prospect_id: prospectId,
+        project_type: projectType,
+        file_id: fileId,
+        signer_name: prospectData.name || 'Client',
+        signer_email: prospectData.email,
+        document_hash: null, // ⏳ Phase 2: calculer hash SHA-256 du PDF
+        access_token: accessToken,
+        access_token_expires_at: expiresAt.toISOString(),
+        status: 'pending',
+        signature_metadata: {
+          created_by: 'workflow_automation',
+          created_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (procedureError) {
+      logger.error('Erreur création signature_procedures', { error: procedureError.message });
+      throw procedureError;
+    }
+
+    logger.debug('Procédure de signature créée (PENDING)', { 
       procedureId: procedure.id,
-      expiresAt: procedure.token_expires_at 
+      expiresAt: expiresAt.toISOString()
     });
 
-    // 🔥 VÉRIFIER SI LE MESSAGE EXISTE DÉJÀ (lié à cette procédure)
+    // 4. Construire l'URL de signature
+    const signatureUrl = `${window.location.origin}/signature/${procedure.id}?token=${accessToken}`;
+    
+    logger.debug('URL de signature générée', { signatureUrl });
+
+    // 5. Vérifier si le message existe déjà
     const { data: existingMessage } = await supabase
       .from('chat_messages')
       .select('id')
@@ -285,7 +310,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       .ilike('text', `%/signature/${procedure.id}%`)
       .maybeSingle();
 
-    // 🔥 ENVOYER LE LIEN DANS LE CHAT (seulement si inexistant)
+    // 6. Envoyer le lien dans le chat (seulement si inexistant)
     if (!existingMessage) {
       const { error: chatError } = await supabase
         .from('chat_messages')
@@ -293,30 +318,34 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           prospect_id: prospectId,
           project_type: projectType,
           sender: 'pro',
-          text: `📝 <strong>Votre contrat est prêt à signer</strong><br><br><a href="${signatureUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.3s;">✍️ Signer mon contrat</a><br><br><small style="color: #6b7280;">Lien valide jusqu'au ${new Date(procedure.token_expires_at).toLocaleDateString('fr-FR')}</small>`,
+          text: `📝 <strong>Votre contrat est prêt à signer</strong><br><br><a href="${signatureUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.3s;">✍️ Signer mon contrat</a><br><br><small style="color: #6b7280;">Lien valide jusqu'au ${expiresAt.toLocaleDateString('fr-FR')}</small>`,
           organization_id: prospectData.organization_id,
         });
 
       if (chatError) {
         logger.error('Erreur envoi message chat signature', { error: chatError.message });
-      } else {
-        logger.debug('Lien de signature envoyé dans le chat', { procedureId: procedure.id });
-        
-        toast({
-          title: "✅ Lien de signature envoyé",
-          description: "Le client peut maintenant signer son contrat",
-          className: "bg-green-500 text-white",
-        });
+        throw chatError;
       }
+
+      logger.debug('Lien de signature envoyé dans le chat', { procedureId: procedure.id });
+      
+      toast({
+        title: "✅ Lien de signature envoyé",
+        description: "Le client peut maintenant signer son contrat",
+        className: "bg-green-500 text-white",
+      });
     } else {
       logger.debug('Message de signature déjà existant, pas de duplication');
     }
 
+    // ✅ ARRÊT ICI (PHASE 1)
+    // La page /signature/:id sera développée en Phase 2
+
   } catch (error) {
-    logger.error('Erreur génération contrat + signature', { error: error.message });
+    logger.error('Erreur Phase 1 signature AES', { error: error.message });
     toast({
       title: "❌ Erreur",
-      description: `Impossible de générer le contrat: ${error.message}`,
+      description: `Impossible de préparer la signature: ${error.message}`,
       variant: "destructive",
     });
   }
