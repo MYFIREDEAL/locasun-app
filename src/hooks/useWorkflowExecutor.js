@@ -174,11 +174,22 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       throw new Error('Impossible de récupérer les données du prospect');
     }
 
-    // 🔥 Construire nom signataire avec fallbacks
-    const signerName = prospectData.name || prospectData.company_name || prospectData.email?.split('@')[0] || 'Client';
-    const signerEmail = prospectData.email || 'Non renseigné';
+    // 🔥 VALEURS STRICTES pour éviter NULL en DB - VALIDATION EXPLICITE
+    const signerName = 
+      typeof prospectData?.name === 'string' && prospectData.name.trim() !== ''
+        ? prospectData.name
+        : typeof prospectData?.company_name === 'string' && prospectData.company_name.trim() !== ''
+        ? prospectData.company_name
+        : typeof prospectData?.email === 'string' && prospectData.email.includes('@')
+        ? prospectData.email.split('@')[0]
+        : 'Client';
 
-    logger.debug('Données signataire', { signerName, signerEmail });
+    const signerEmail = 
+      typeof prospectData?.email === 'string' && prospectData.email.includes('@')
+        ? prospectData.email
+        : 'unknown@example.com';
+
+    logger.debug('Données signataire STRICTES', { signerName, signerEmail });
 
     // 🔥 VÉRIFIER si un contrat PDF existe déjà pour ce projet
     const { data: existingFiles, error: checkError } = await supabase
