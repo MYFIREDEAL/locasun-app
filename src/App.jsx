@@ -19,6 +19,7 @@ import OffersPage from '@/pages/client/OffersPage';
 import ActivationPage from '@/pages/client/ActivationPage';
 import OrganizationsListPage from '@/pages/platform/OrganizationsListPage';
 import OrganizationDetailPage from '@/pages/platform/OrganizationDetailPage';
+import PlatformLoginPage from '@/pages/platform/PlatformLoginPage';
 import HomePage from '@/pages/HomePage';
 import ClientAccessPage from '@/pages/ClientAccessPage';
 import RegistrationPage from '@/pages/RegistrationPage';
@@ -1476,6 +1477,7 @@ function App() {
       <Routes>
         {/* ⚠️ IMPORTANT : Routes spécifiques AVANT la route wildcard /:slugUser */}
         {/* 🔒 PLATFORM ADMIN ROUTES */}
+        <Route path="/platform-login" element={<PlatformLoginPage />} />
         <Route path="/platform" element={<PlatformLayout />}>
           <Route index element={<Navigate to="/platform/organizations" replace />} />
           <Route path="organizations" element={<OrganizationsListPage />} />
