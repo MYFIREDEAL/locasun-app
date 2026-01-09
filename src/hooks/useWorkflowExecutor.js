@@ -162,10 +162,10 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       return;
     }
 
-    // 🔥 Récupérer les données du prospect
+    // 🔥 Récupérer les données du prospect (avec tous les champs possibles pour le nom)
     const { data: prospectData, error: prospectError } = await supabase
       .from('prospects')
-      .select('name, email, organization_id')
+      .select('name, email, company_name, phone, organization_id')
       .eq('id', prospectId)
       .single();
 
@@ -173,6 +173,12 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       logger.error('Erreur récupération prospect', { error: prospectError?.message });
       throw new Error('Impossible de récupérer les données du prospect');
     }
+
+    // 🔥 Construire nom signataire avec fallbacks
+    const signerName = prospectData.name || prospectData.company_name || prospectData.email?.split('@')[0] || 'Client';
+    const signerEmail = prospectData.email || 'Non renseigné';
+
+    logger.debug('Données signataire', { signerName, signerEmail });
 
     // 🔥 VÉRIFIER si un contrat PDF existe déjà pour ce projet
     const { data: existingFiles, error: checkError } = await supabase
@@ -271,8 +277,8 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         prospect_id: prospectId,
         project_type: projectType,
         file_id: fileId,
-        signer_name: prospectData.name || 'Client',
-        signer_email: prospectData.email,
+        signer_name: signerName,
+        signer_email: signerEmail,
         document_hash: null, // ⏳ Phase 2: calculer hash SHA-256 du PDF
         access_token: accessToken,
         access_token_expires_at: expiresAt.toISOString(),
