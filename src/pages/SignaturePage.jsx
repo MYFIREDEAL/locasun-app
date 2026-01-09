@@ -142,8 +142,8 @@ export default function SignaturePage() {
         document_hash_algorithm: 'SHA-256'
       };
 
-      // 4. Mettre à jour la procédure de signature
-      const { error: updateError } = await supabase
+      // 4. Mettre à jour la procédure de signature ET récupérer les données
+      const { data: updatedProc, error: updateError } = await supabase
         .from('signature_procedures')
         .update({
           status: 'signed',
@@ -152,32 +152,24 @@ export default function SignaturePage() {
           signature_metadata: signatureMetadata
         })
         .eq('id', signatureProcedureId)
-        .eq('access_token', token); // Sécurité: vérifier le token
+        .eq('access_token', token) // Sécurité: vérifier le token
+        .select()
+        .single();
 
       if (updateError) {
         logger.error('Erreur mise à jour signature', updateError);
         throw updateError;
       }
 
-      logger.debug('Signature enregistrée avec succès', { procedureId: signatureProcedureId });
+      logger.debug('Signature enregistrée avec succès', { 
+        procedureId: signatureProcedureId,
+        signer_name: updatedProc.signer_name,
+        signer_email: updatedProc.signer_email,
+        signed_at: updatedProc.signed_at
+      });
 
-      // 5. Recharger la procédure pour avoir les données à jour (source de vérité)
-      const { data: updatedProc, error: reloadError } = await supabase
-        .from('signature_procedures')
-        .select('*')
-        .eq('id', signatureProcedureId)
-        .single();
-
-      if (reloadError) {
-        logger.error('Erreur rechargement procédure', reloadError);
-      } else {
-        logger.debug('📋 Procédure rechargée après signature', {
-          signer_name: updatedProc.signer_name,
-          signer_email: updatedProc.signer_email,
-          signed_at: updatedProc.signed_at
-        });
-        setProcedure(updatedProc); // Mettre à jour avec les vraies données DB
-      }
+      // 5. Mettre à jour le state avec les données fraîches de la DB (source de vérité)
+      setProcedure(updatedProc);
 
       // 6. Succès
       setSigned(true);
