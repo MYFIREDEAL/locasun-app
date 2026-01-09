@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook pour gérer les opérations CRUD sur les utilisateurs PRO (public.users)
@@ -18,6 +19,7 @@ export const useSupabaseUsersCRUD = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { organizationId } = useOrganization();
 
   // Charger tous les utilisateurs au montage
   const fetchUsers = async () => {
@@ -145,6 +147,11 @@ export const useSupabaseUsersCRUD = () => {
       }
 
       // 3️⃣ Créer l'entrée dans public.users
+      // 🔥 VALIDATION: organization_id requis par RLS
+      if (!organizationId) {
+        throw new Error('Organization ID manquant - Impossible de créer l\'utilisateur');
+      }
+
       const { data: publicUserData, error: publicUserError } = await supabase
         .from('users')
         .insert([{
@@ -158,6 +165,7 @@ export const useSupabaseUsersCRUD = () => {
             modules: ['Pipeline', 'Agenda', 'Contacts'],
             users: []
           },
+          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
         }])
         .select()
         .single();
