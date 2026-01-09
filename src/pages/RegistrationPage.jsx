@@ -159,7 +159,8 @@ const RegistrationPage = () => {
           p_address: '',
           p_affiliate_slug: slugUser || null,
           p_tags: finalProjects,
-          p_status: null // null = auto-detect first pipeline step
+          p_status: null, // null = auto-detect first pipeline step
+          p_host: window.location.hostname // 🔥 REQUIS pour résolution organization_id
         });
 
       if (prospectError) {
