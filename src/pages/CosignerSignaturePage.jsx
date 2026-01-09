@@ -12,49 +12,80 @@ const CosignerSignaturePage = () => {
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
-  const [step, setStep] = useState('otp'); // 'otp' | 'pdf'
+  const [cosignerEmail, setCosignerEmail] = useState('');
+  const [cosignerStatus, setCosignerStatus] = useState(null);
   const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [procedure, setProcedure] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
   const [signing, setSigning] = useState(false);
-  const [signed, setSigned] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
 
   useEffect(() => {
     if (!token) {
       setError('Token manquant');
+      setLoading(false);
       return;
     }
 
-    // Demander OTP automatiquement
-    handleRequestOtp();
+    loadCosignerStatus();
   }, [token]);
 
-  const handleRequestOtp = async () => {
+  const loadCosignerStatus = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const { data, error: otpError } = await supabase.functions.invoke('send-cosigner-otp', {
-        body: { token },
-      });
+      const { data, error: fetchError } = await supabase
+        .from('signature_cosigners')
+        .select('email, status, signature_procedure_id')
+        .eq('access_token', token)
+        .single();
 
-      if (otpError) {
-        setError(otpError.message || 'Erreur envoi OTP');
+      if (fetchError || !data) {
+        setError('Token invalide');
+        setLoading(false);
         return;
       }
 
-      // En dev, afficher l'OTP
-      if (data?.dev_otp) {
-        logger.debug('OTP DEV:', data.dev_otp);
-        setError(`[DEV] Votre OTP: ${data.dev_otp}`);
+      setCosignerEmail(data.email);
+      setCosignerStatus(data.status);
+
+      // Charger la procédure pour accéder au PDF si status = 'verified'
+      if (data.status === 'verified') {
+        const { data: procData } = await supabase
+          .from('signature_procedures')
+          .select('id, file_id')
+          .eq('id', data.signature_procedure_id)
+          .single();
+
+        if (procData) {
+          setProcedure(procData);
+
+          // Charger le PDF
+          const { data: file } = await supabase
+            .from('project_files')
+            .select('storage_path')
+            .eq('id', procData.file_id)
+            .single();
+
+          if (file?.storage_path) {
+            const { data: urlData } = await supabase.storage
+              .from('project-files')
+              .createSignedUrl(file.storage_path, 3600);
+            
+            if (urlData?.signedUrl) {
+              setPdfUrl(urlData.signedUrl);
+            }
+          }
+        }
       }
+
+      setLoading(false);
     } catch (err) {
-      logger.error('Erreur requestOtp', err);
-      setError('Erreur envoi OTP');
-    } finally {
+      logger.error('Erreur loadCosignerStatus', err);
+      setError('Erreur de chargement');
       setLoading(false);
     }
   };
@@ -87,35 +118,21 @@ const CosignerSignaturePage = () => {
         return;
       }
 
-      // OTP validé - Charger le PDF
-      setProcedure(data.procedure);
-      
-      // Récupérer l'URL du PDF
-      const { data: file } = await supabase
-        .from('project_files')
-        .select('storage_path')
-        .eq('id', data.procedure.file_id)
-        .single();
-
-      if (file?.storage_path) {
-        const { data: urlData } = await supabase.storage
-          .from('project-files')
-          .createSignedUrl(file.storage_path, 3600);
-        
-        if (urlData?.signedUrl) {
-          setPdfUrl(urlData.signedUrl);
-          setStep('pdf');
-        }
-      }
+      // OTP validé - Recharger le status
+      await loadCosignerStatus();
     } catch (err) {
       logger.error('Erreur verifyOtp', err);
       setError('Erreur vérification');
-    } finally {
       setLoading(false);
     }
   };
 
   const handleSign = async () => {
+    if (!procedure || !pdfUrl) {
+      setError('Données manquantes');
+      return;
+    }
+
     try {
       setSigning(true);
       setError('');
@@ -131,11 +148,11 @@ const CosignerSignaturePage = () => {
 
       logger.debug('Cosigner signature - PDF hash calculé', { pdfHash });
 
-      // 🔥 Appeler internal-signature pour créer la preuve légale
+      // Appeler internal-signature pour créer la preuve légale
       const { data: signData, error: signError } = await supabase.functions.invoke('internal-signature', {
         body: {
           signature_procedure_id: procedure.id,
-          signer_email: procedure.signer_email,
+          signer_email: cosignerEmail,
           signer_user_id: null,
           pdf_file_id: procedure.file_id,
           pdf_hash: pdfHash,
@@ -149,57 +166,10 @@ const CosignerSignaturePage = () => {
         return;
       }
 
-      logger.debug('Preuve de signature créée', signData);
+      logger.debug('Signature cosigner enregistrée', signData);
 
-      // 🔥 Marquer le cosigner comme signé
-      const { data: procData } = await supabase
-        .from('signature_procedures')
-        .select('signers')
-        .eq('id', procedure.id)
-        .single();
-
-      if (procData?.signers) {
-        const updatedSigners = procData.signers.map(signer => {
-          if (signer.email === procedure.signer_email && signer.role === 'cosigner') {
-            return {
-              ...signer,
-              status: 'signed',
-              signed_at: new Date().toISOString(),
-            };
-          }
-          return signer;
-        });
-
-        // 🔥 Déterminer le status global
-        const hasPendingSigners = updatedSigners.some(s => s.status === 'pending');
-        const globalStatus = hasPendingSigners ? 'partially_signed' : 'completed';
-
-        // 🔥 Mettre à jour la procédure
-        await supabase
-          .from('signature_procedures')
-          .update({
-            signers: updatedSigners,
-            status: globalStatus,
-          })
-          .eq('id', procedure.id);
-
-        logger.debug('Cosigner marqué signé', { 
-          email: procedure.signer_email, 
-          globalStatus,
-          allSigners: updatedSigners 
-        });
-
-        // 🔥 Si completed, générer le PDF signé final
-        if (globalStatus === 'completed') {
-          supabase.functions.invoke('generate-signed-pdf', {
-            body: { signature_procedure_id: procedure.id },
-          }).catch(err => {
-            logger.error('Erreur génération PDF signé', err);
-          });
-        }
-      }
-
-      setSigned(true);
+      // Recharger le status (devrait passer à 'signed')
+      await loadCosignerStatus();
       setSigning(false);
     } catch (err) {
       logger.error('Erreur handleSign', err);
@@ -218,28 +188,38 @@ const CosignerSignaturePage = () => {
     );
   }
 
-  if (signed) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // CAS 1: Status = 'signed'
+  if (cosignerStatus === 'signed') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Signature enregistrée !</h2>
-          <p className="text-gray-600">Votre signature a été enregistrée avec succès.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Document déjà signé</h2>
+          <p className="text-gray-600">Ce document a déjà été signé.</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {step === 'otp' ? (
+  // CAS 2: Status = 'pending' ou 'otp_sent'
+  if (cosignerStatus === 'pending' || cosignerStatus === 'otp_sent') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4">
+        <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
             <div className="text-center mb-6">
               <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-gray-900">Vérification de sécurité</h1>
               <p className="text-gray-600 mt-2">
-                Un code à 6 chiffres a été envoyé par SMS
+                Entrez le code à 6 chiffres envoyé par SMS
               </p>
             </div>
 
@@ -278,22 +258,21 @@ const CosignerSignaturePage = () => {
                     Vérification...
                   </>
                 ) : (
-                  'Vérifier le code'
+                  'Valider le code'
                 )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleRequestOtp}
-                disabled={loading}
-              >
-                Renvoyer un code
               </Button>
             </form>
           </div>
-        ) : (
+        </div>
+      </div>
+    );
+  }
+
+  // CAS 3: Status = 'verified'
+  if (cosignerStatus === 'verified') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4">
+        <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Document à signer</h1>
             
@@ -303,18 +282,20 @@ const CosignerSignaturePage = () => {
               </div>
             )}
 
-            <div className="border rounded-lg overflow-hidden mb-6">
-              <iframe
-                src={pdfUrl}
-                className="w-full h-[600px]"
-                title="Document PDF"
-              />
-            </div>
+            {pdfUrl && (
+              <div className="border rounded-lg overflow-hidden mb-6">
+                <iframe
+                  src={pdfUrl}
+                  className="w-full h-[600px]"
+                  title="Document PDF"
+                />
+              </div>
+            )}
 
             <div className="flex justify-end">
               <Button
                 onClick={handleSign}
-                disabled={signing}
+                disabled={signing || !pdfUrl}
                 className="bg-green-600 hover:bg-green-700"
               >
                 {signing ? (
@@ -328,7 +309,16 @@ const CosignerSignaturePage = () => {
               </Button>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  // CAS 4: Status inconnu
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <p className="text-red-600">Statut invalide</p>
       </div>
     </div>
   );
