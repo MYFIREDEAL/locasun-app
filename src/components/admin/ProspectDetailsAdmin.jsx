@@ -539,10 +539,16 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
         // 🔥 Gérer l'action start_signature (génération de contrat)
         if (action.type === 'start_signature' && action.templateId) {
           try {
+            // 🔥 VALIDATION: activeAdminUser.organization_id requis
+            if (!activeAdminUser?.organization_id) {
+              throw new Error('activeAdminUser.organization_id manquant - Impossible de générer le contrat');
+            }
+
             logger.info('🔥 Génération contrat via workflow séquentiel', {
               templateId: action.templateId,
               prospectId,
               projectType,
+              organizationId: activeAdminUser.organization_id, // 🔍 Log pour debug
               hasCosignersConfig: !!action.cosignersConfig,
               cosignersConfig: action.cosignersConfig // 🔍 Afficher la config complète
             });
