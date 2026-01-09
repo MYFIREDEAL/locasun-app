@@ -171,7 +171,7 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
     );
 };
 
-const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
+const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminUser }) => {
   const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed, registerClientForm } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
@@ -3167,7 +3167,8 @@ const ProspectDetailsAdmin = ({
                 <ChatInterface 
                   prospectId={prospect.id} 
                   projectType={activeProjectTag} 
-                  currentStepIndex={currentStepIndex !== -1 ? currentStepIndex : 0} 
+                  currentStepIndex={currentStepIndex !== -1 ? currentStepIndex : 0}
+                  activeAdminUser={activeAdminUser}
                 />
               )}
             </ProjectCenterPanel>
