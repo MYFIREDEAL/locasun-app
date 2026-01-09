@@ -17,8 +17,8 @@ import { useAppContext } from '@/App';
 import { AddActivityModal } from '@/pages/admin/Agenda';
 import { useNavigate } from 'react-router-dom';
 
-const ActivityTab = ({ prospectId, projectType }) => {
-  const { activeAdminUser, projectsData } = useAppContext();
+const ActivityTab = ({ prospectId, projectType, activeAdminUser }) => {
+  const { projectsData } = useAppContext();
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [activityModalData, setActivityModalData] = useState(null);

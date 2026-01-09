@@ -44,7 +44,7 @@ const ProjectTabs = ({ prospectId, projectType, activeAdminUser }) => {
       {/* Tabs Content */}
       <div className="min-h-[200px]">
         {activeTab === 'notes' && <NotesTab prospectId={prospectId} projectType={projectType} currentUser={{ id: supabaseUserId }} activeAdminUser={activeAdminUser} />}
-        {activeTab === 'activity' && <ActivityTab prospectId={prospectId} projectType={projectType} />}
+        {activeTab === 'activity' && <ActivityTab prospectId={prospectId} projectType={projectType} activeAdminUser={activeAdminUser} />}
         {activeTab === 'files' && <FilesTab prospectId={prospectId} projectType={projectType} currentUser={{ id: supabaseUserId }} activeAdminUser={activeAdminUser} />}
       </div>
     </div>
