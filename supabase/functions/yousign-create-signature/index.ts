@@ -130,6 +130,14 @@ serve(async (req) => {
     console.log('✅ Yousign procedure created', yousignData)
 
     // 5. Stocker dans la table signature_procedures
+    // ✅ CALCULER signer_name et signer_email AVANT l'INSERT
+    const signer_name =
+      typeof prospect?.name === 'string' && prospect.name.trim() !== ''
+        ? prospect.name
+        : prospect.email.split('@')[0]
+
+    const signer_email = prospect.email
+
     const { data: procedure, error: procedureError } = await supabaseClient
       .from('signature_procedures')
       .insert({
@@ -140,6 +148,8 @@ serve(async (req) => {
         yousign_signer_id: yousignData.signers[0]?.id,
         signature_link: yousignData.signers[0]?.signature_link,
         status: 'pending',
+        signer_name: signer_name,
+        signer_email: signer_email,
       })
       .select()
       .single()
