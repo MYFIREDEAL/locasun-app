@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
+import { useSignatureProcedures } from '@/hooks/useSignatureProcedures';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 
@@ -148,10 +149,12 @@ async function executeAction({ action, prospectId, projectType }) {
 
 /**
  * Exécute l'action "Lancer une signature"
- * Génère un PDF de contrat et l'ajoute aux fichiers du projet
- * PUIS crée un lien de signature dans le chat
+ * Génère un PDF de contrat, crée une procédure de signature AES,
+ * et envoie le lien de signature dans le chat
  */
 async function executeStartSignatureAction({ action, prospectId, projectType }) {
+  const { createSignatureProcedure } = useSignatureProcedures();
+  
   try {
     if (!action.templateId) {
       logger.warn('Action start_signature sans templateId', { prospectId, projectType });
@@ -161,6 +164,18 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         variant: "destructive",
       });
       return;
+    }
+
+    // 🔥 Récupérer les données du prospect
+    const { data: prospectData, error: prospectError } = await supabase
+      .from('prospects')
+      .select('name, email, organization_id')
+      .eq('id', prospectId)
+      .single();
+
+    if (prospectError || !prospectData) {
+      logger.error('Erreur récupération prospect', { error: prospectError?.message });
+      throw new Error('Impossible de récupérer les données du prospect');
     }
 
     // 🔥 VÉRIFIER si un contrat PDF existe déjà pour ce projet
@@ -177,12 +192,14 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
     }
 
     let fileId = null;
+    let storagePath = null;
 
     if (existingFiles && existingFiles.length > 0) {
       logger.debug('Contrat PDF déjà existant, utilisation du fichier existant', { 
         existingFile: existingFiles[0].file_name 
       });
       fileId = existingFiles[0].id;
+      storagePath = existingFiles[0].storage_path;
     } else {
       logger.debug('Génération contrat PDF...', { 
         templateId: action.templateId,
@@ -217,12 +234,14 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         templateId: action.templateId,
         projectType,
         prospectId,
-        cosigners: cosigners, // 🔥 Passer les co-signataires au générateur
-        organizationId: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
+        cosigners: cosigners,
+        organizationId: prospectData.organization_id,
       });
 
       if (result.success) {
         fileId = result.fileData.id;
+        storagePath = result.fileData.storage_path;
+        
         toast({
           title: "✅ Contrat généré !",
           description: "Le PDF a été ajouté aux fichiers du projet",
@@ -235,12 +254,66 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       }
     }
 
-    // ✅ ARRÊT ICI : la signature interne n'est pas implémentée
-    // Le PDF est disponible dans l'onglet Fichiers du projet
-    logger.debug('Génération de contrat terminée (sans procédure de signature)', { fileId });
+    // 🔥 CRÉER LA PROCÉDURE DE SIGNATURE AES
+    logger.debug('Création procédure de signature AES...');
+    
+    const procedure = await createSignatureProcedure({
+      organizationId: prospectData.organization_id,
+      prospectId,
+      projectType,
+      fileId,
+      storagePath,
+      signerName: prospectData.name || 'Client',
+      signerEmail: prospectData.email
+    });
+
+    // 🔥 CONSTRUIRE L'URL DE SIGNATURE
+    const signatureUrl = `${window.location.origin}/signature/${procedure.id}?token=${procedure.access_token}`;
+    
+    logger.debug('URL de signature générée', { 
+      procedureId: procedure.id,
+      expiresAt: procedure.token_expires_at 
+    });
+
+    // 🔥 VÉRIFIER SI LE MESSAGE EXISTE DÉJÀ (lié à cette procédure)
+    const { data: existingMessage } = await supabase
+      .from('chat_messages')
+      .select('id')
+      .eq('prospect_id', prospectId)
+      .eq('project_type', projectType)
+      .eq('sender', 'pro')
+      .ilike('text', `%/signature/${procedure.id}%`)
+      .maybeSingle();
+
+    // 🔥 ENVOYER LE LIEN DANS LE CHAT (seulement si inexistant)
+    if (!existingMessage) {
+      const { error: chatError } = await supabase
+        .from('chat_messages')
+        .insert({
+          prospect_id: prospectId,
+          project_type: projectType,
+          sender: 'pro',
+          text: `📝 <strong>Votre contrat est prêt à signer</strong><br><br><a href="${signatureUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.3s;">✍️ Signer mon contrat</a><br><br><small style="color: #6b7280;">Lien valide jusqu'au ${new Date(procedure.token_expires_at).toLocaleDateString('fr-FR')}</small>`,
+          organization_id: prospectData.organization_id,
+        });
+
+      if (chatError) {
+        logger.error('Erreur envoi message chat signature', { error: chatError.message });
+      } else {
+        logger.debug('Lien de signature envoyé dans le chat', { procedureId: procedure.id });
+        
+        toast({
+          title: "✅ Lien de signature envoyé",
+          description: "Le client peut maintenant signer son contrat",
+          className: "bg-green-500 text-white",
+        });
+      }
+    } else {
+      logger.debug('Message de signature déjà existant, pas de duplication');
+    }
 
   } catch (error) {
-    logger.error('Erreur génération contrat', { error: error.message });
+    logger.error('Erreur génération contrat + signature', { error: error.message });
     toast({
       title: "❌ Erreur",
       description: `Impossible de générer le contrat: ${error.message}`,
