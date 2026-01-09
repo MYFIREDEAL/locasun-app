@@ -143,16 +143,13 @@ export default function SignaturePage() {
       };
 
       // 4. Mettre à jour la procédure de signature
-      // ⚠️ CRITIQUE: Réécrire explicitement signer_name et signer_email pour l'UI
       const { error: updateError } = await supabase
         .from('signature_procedures')
         .update({
           status: 'signed',
           signed_at: new Date().toISOString(),
           document_hash: documentHash,
-          signature_metadata: signatureMetadata,
-          signer_name: procedure.signer_name,  // Réécrire explicitement
-          signer_email: procedure.signer_email // Réécrire explicitement
+          signature_metadata: signatureMetadata
         })
         .eq('id', signatureProcedureId)
         .eq('access_token', token); // Sécurité: vérifier le token
