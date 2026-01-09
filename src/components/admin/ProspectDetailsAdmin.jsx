@@ -673,6 +673,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                   }
                 }
 
+                // 🔥 VALIDATION: organization_id requis par RLS
+                if (!organizationId) {
+                  throw new Error('Organization ID manquant - Impossible de créer la procédure de signature');
+                }
+
                 const { data: newProcedure, error: procedureError } = await supabase
                   .from('signature_procedures')
                   .insert({
@@ -683,6 +688,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                     access_token_expires_at: expiresAt.toISOString(),
                     status: 'pending',
                     signers: signers,
+                    organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
                   })
                   .select()
                   .single();
@@ -734,6 +740,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                     project_type: projectType,
                     sender: 'pro',
                     text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
+                    organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
                   });
                 
                 logger.debug('Lien de signature envoyé dans le chat');
