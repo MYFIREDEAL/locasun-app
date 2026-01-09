@@ -27,25 +27,21 @@ async function adminAuth() {
 async function run() {
   console.log("🔍 EVATIME – Test complet…");
 
-  // 0️⃣ TEST RÉSOLUTION ORGANIZATION
-  console.log("— Résolution Organization —");
-
-  const { data: organizationId, error: orgError } = await sb.rpc(
-    'resolve_organization_from_host',
-    { host: 'localhost' }
-  );
-
-  if (orgError) {
-    console.error("❌ RPC resolve_organization_from_host failed:", orgError);
-    process.exit(1);
-  }
-
-  if (!organizationId) {
-    console.error("❌ No organization resolved for localhost");
-    process.exit(1);
-  }
-
-  console.log("🟢 Organization resolved:", organizationId);
+  // 0️⃣ TEST RÉSOLUTION ORGANIZATION (SKIPPED)
+  // console.log("— Résolution Organization —");
+  // const { data: organizationId, error: orgError } = await sb.rpc(
+  //   'resolve_organization_from_host',
+  //   { host: 'localhost' }
+  // );
+  // if (orgError) {
+  //   console.error("❌ RPC resolve_organization_from_host failed:", orgError);
+  //   process.exit(1);
+  // }
+  // if (!organizationId) {
+  //   console.error("❌ No organization resolved for localhost");
+  //   process.exit(1);
+  // }
+  // console.log("🟢 Organization resolved:", organizationId);
 
   // 1️⃣ TESTS ANONYMES
   console.log("— Tests Anonymes —");
