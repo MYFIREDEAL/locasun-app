@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
-import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook pour gérer les opérations CRUD sur les utilisateurs PRO (public.users)
@@ -14,12 +13,13 @@ import { useOrganization } from '@/contexts/OrganizationContext';
  * - ✅ updateUser() - Modifier utilisateur existant
  * - ✅ deleteUser() - Supprimer utilisateur + réassigner ses prospects
  * - ✅ Real-time subscription automatique
+ * 
+ * @param {Object} activeAdminUser - Utilisateur admin actif (pour récupérer organization_id)
  */
-export const useSupabaseUsersCRUD = () => {
+export const useSupabaseUsersCRUD = (activeAdminUser) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { organizationId } = useOrganization();
 
   // Charger tous les utilisateurs au montage
   const fetchUsers = async () => {
@@ -148,7 +148,7 @@ export const useSupabaseUsersCRUD = () => {
 
       // 3️⃣ Créer l'entrée dans public.users
       // 🔥 VALIDATION: organization_id requis par RLS
-      if (!organizationId) {
+      if (!activeAdminUser?.organization_id) {
         throw new Error('Organization ID manquant - Impossible de créer l\'utilisateur');
       }
 
@@ -165,7 +165,7 @@ export const useSupabaseUsersCRUD = () => {
             modules: ['Pipeline', 'Agenda', 'Contacts'],
             users: []
           },
-          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
+          organization_id: activeAdminUser.organization_id, // ✅ Depuis activeAdminUser
         }])
         .select()
         .single();
