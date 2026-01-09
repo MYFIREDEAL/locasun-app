@@ -2527,6 +2527,17 @@ const ProfilePage = () => {
       return;
     }
 
+    // 🔒 GUARD BLOQUANT : organization_id requis
+    const organizationId = activeAdminUser?.organization_id;
+    if (!organizationId) {
+      toast({
+        title: "Erreur système",
+        description: "Organization non chargée — invitation bloquée",
+        variant: "destructive"
+      });
+      throw new Error("Organization non chargée — invitation bloquée");
+    }
+
     try {
       await addUser({
         name: newUser.name,
@@ -2535,6 +2546,7 @@ const ProfilePage = () => {
         role: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),
         manager: newUser.manager === 'none' ? '' : newUser.manager,
         phone: newUser.phone || '',
+        organizationId, // ✅ Depuis activeAdminUser
         accessRights: {
           modules: ['Pipeline', 'Agenda', 'Contacts'],
           users: []

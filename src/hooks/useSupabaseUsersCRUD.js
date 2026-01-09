@@ -109,12 +109,18 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
    * @param {string} userData.email - Email (doit être unique)
    * @param {string} userData.password - Mot de passe (min 6 caractères)
    * @param {string} userData.role - Rôle ('Global Admin', 'Manager', 'Commercial')
+   * @param {string} userData.organizationId - UUID de l'organisation (REQUIS)
    * @param {string} userData.manager - Nom du manager (optionnel)
    * @param {string} userData.phone - Téléphone (optionnel)
    * @param {Object} userData.accessRights - Droits d'accès (optionnel)
    */
   const addUser = async (userData) => {
     try {
+      // 🔒 GUARD BLOQUANT : organization_id requis
+      if (!userData?.organizationId) {
+        throw new Error("OrganizationId manquant — insert users bloqué");
+      }
+
       // 1️⃣ Créer l'utilisateur dans auth.users (Supabase Auth)
       // Note: signUp() envoie un email de confirmation par défaut
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -147,30 +153,23 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
       }
 
       // 3️⃣ Créer l'entrée dans public.users
-      // 🔥 VALIDATION: organization_id requis par RLS
-      console.log('🔍 [addUser] activeAdminUser:', activeAdminUser);
-      console.log('🔍 [addUser] organization_id:', activeAdminUser?.organization_id);
-      
-      if (!activeAdminUser?.organization_id) {
-        console.error('❌ [addUser] activeAdminUser est undefined ou sans organization_id');
-        throw new Error('Organization ID manquant - Impossible de créer l\'utilisateur');
-      }
+      const dbUser = {
+        user_id: authData.user.id, // Lien vers auth.users
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        manager_id: managerId,
+        phone: userData.phone || null,
+        access_rights: userData.accessRights || {
+          modules: ['Pipeline', 'Agenda', 'Contacts'],
+          users: []
+        },
+        organization_id: userData.organizationId, // ✅ Depuis userData
+      };
 
       const { data: publicUserData, error: publicUserError } = await supabase
         .from('users')
-        .insert([{
-          user_id: authData.user.id, // Lien vers auth.users
-          name: userData.name,
-          email: userData.email,
-          role: userData.role,
-          manager_id: managerId,
-          phone: userData.phone || null,
-          access_rights: userData.accessRights || {
-            modules: ['Pipeline', 'Agenda', 'Contacts'],
-            users: []
-          },
-          organization_id: activeAdminUser.organization_id, // ✅ Depuis activeAdminUser
-        }])
+        .insert([dbUser])
         .select()
         .single();
 
