@@ -2,7 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { logger } from '@/lib/logger';
 
-export function useSupabaseProjectHistory({ projectType, prospectId, enabled = true }) {
+/**
+ * Hook pour gérer l'historique des projets avec Supabase
+ * @param {Object} params
+ * @param {string} params.projectType - Type de projet
+ * @param {string} params.prospectId - ID du prospect
+ * @param {boolean} params.enabled - Activer le hook
+ * @param {Object} params.activeAdminUser - Utilisateur admin actif (pour organization_id)
+ */
+export function useSupabaseProjectHistory({ projectType, prospectId, enabled = true, activeAdminUser }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,9 +90,16 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
     async ({ event_type, title, description, metadata, createdBy, createdByName }) => {
       if (!projectType || !event_type) return;
 
+      if (!activeAdminUser?.organization_id) {
+        console.error('❌ [useSupabaseProjectHistory] organization_id manquant pour addHistoryEvent');
+        throw new Error('organization_id manquant pour addHistoryEvent');
+      }
+
       try {
         setSaving(true);
         setError(null);
+
+        console.log('✅ [useSupabaseProjectHistory] INSERT project_history avec organization_id:', activeAdminUser.organization_id);
 
         const { data, error } = await supabase
           .from("project_history")
@@ -98,6 +113,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
               metadata,
               created_by: createdBy || null,
               created_by_name: createdByName || null,
+              organization_id: activeAdminUser.organization_id
             },
           ])
           .select()
@@ -114,7 +130,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         setSaving(false);
       }
     },
-    [projectType, prospectId]
+    [projectType, prospectId, activeAdminUser]
   );
 
   // 🔥 AJOUT: Fonction simplifiée pour ajouter un événement projet
@@ -125,8 +141,13 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         return { success: false, error: 'Paramètres manquants' };
       }
 
+      if (!activeAdminUser?.organization_id) {
+        logger.error('❌ [useSupabaseProjectHistory] organization_id manquant pour addProjectEvent');
+        return { success: false, error: 'organization_id manquant' };
+      }
+
       try {
-        logger.debug('Adding project event', { prospectId, projectType, title });
+        logger.debug('Adding project event', { prospectId, projectType, title, organizationId: activeAdminUser.organization_id });
 
         // 🔥 Extraire event_type depuis metadata si présent, sinon utiliser 'form_event' par défaut
         const eventType = metadata?.event_type || 'form_event';
@@ -143,6 +164,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
               metadata: metadata || null,
               created_by: createdBy || null,
               created_by_name: createdByName || createdBy || null,
+              organization_id: activeAdminUser.organization_id
             },
           ])
           .select()
@@ -161,7 +183,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         return { success: false, error: err.message || 'Erreur inconnue' };
       }
     },
-    []
+    [activeAdminUser]
   );
 
   return {

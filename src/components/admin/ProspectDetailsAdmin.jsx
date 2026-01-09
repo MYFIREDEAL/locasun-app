@@ -187,6 +187,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     projectType: projectType || '',
     prospectId: prospectId,
     enabled: !!projectType && !!prospectId,
+    activeAdminUser
   });
   // 🔥 Hook pour récupérer l'utilisateur courant
   const { user: currentUser } = useSupabaseUser();
@@ -2373,6 +2374,7 @@ const ProspectDetailsAdmin = ({
     projectType: activeProjectTag || '', // ⚠️ Ne jamais passer null/undefined
     prospectId: prospect.id,
     enabled: !!activeProjectTag && !!prospect.id,
+    activeAdminUser
   });
   const [isEditing, setIsEditing] = useState(false);
   
@@ -3153,6 +3155,7 @@ const ProspectDetailsAdmin = ({
               projectType={activeProjectTag}
               currentStep={currentStep}
               statusConfig={statusConfig}
+              activeAdminUser={activeAdminUser}
             >
               {activeProjectTag && (
                 <ChatInterface 

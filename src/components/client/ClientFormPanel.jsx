@@ -24,10 +24,12 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   } = useAppContext();
 
   // 🔥 Hook pour ajouter événements dans l'historique du projet
+  // ✅ Client: Passer activeAdminUser avec organization_id du prospect (currentUser)
   const { addProjectEvent } = useSupabaseProjectHistory({
     projectType: projectType,
     prospectId: currentUser?.id,
     enabled: !!projectType && !!currentUser?.id,
+    activeAdminUser: currentUser ? { organization_id: currentUser.organization_id } : null
   });
 
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage

@@ -16,7 +16,8 @@ const ProjectCenterPanel = ({
   prospectId, 
   projectType,
   currentStep,
-  statusConfig 
+  statusConfig,
+  activeAdminUser
 }) => {
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -62,7 +63,8 @@ const ProjectCenterPanel = ({
           {/* Tabs: Notes / Activité / Fichiers */}
           <ProjectTabs 
             prospectId={prospectId} 
-            projectType={projectType} 
+            projectType={projectType}
+            activeAdminUser={activeAdminUser}
           />
 
           {/* Séparateur */}
@@ -71,7 +73,8 @@ const ProjectCenterPanel = ({
           {/* Historique (toujours visible) */}
           <ProjectHistory 
             prospectId={prospectId} 
-            projectType={projectType} 
+            projectType={projectType}
+            activeAdminUser={activeAdminUser}
           />
         </div>
       )}

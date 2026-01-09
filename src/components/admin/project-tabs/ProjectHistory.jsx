@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 
-const ProjectHistory = ({ projectType, prospectId }) => {
+const ProjectHistory = ({ projectType, prospectId, activeAdminUser }) => {
   const {
     history,
     loading,
@@ -10,6 +10,7 @@ const ProjectHistory = ({ projectType, prospectId }) => {
     projectType,
     prospectId,
     enabled: !!projectType,
+    activeAdminUser
   });
 
   if (!projectType) {

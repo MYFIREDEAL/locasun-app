@@ -47,7 +47,8 @@ const ActivityTab = ({ prospectId, projectType }) => {
   const { history, loading } = useSupabaseProjectHistory({
     projectType,
     prospectId,
-    enabled: !!projectType && !!prospectId
+    enabled: !!projectType && !!prospectId,
+    activeAdminUser
   });
 
   // 🔥 Filtrer uniquement les événements de type 'activity'

@@ -8,8 +8,10 @@ import { useAppContext } from '@/App';
 import { useYousignSignature } from '@/hooks/useYousignSignature';
 import { toast } from '@/components/ui/use-toast';
 
-const FilesTab = ({ projectType, prospectId, currentUser }) => {
-  const { activeAdminUser } = useAppContext();
+const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activeAdminUserProp }) => {
+  const { activeAdminUser: activeAdminUserContext } = useAppContext();
+  // ✅ Prioriser le prop sur le context
+  const activeAdminUser = activeAdminUserProp || activeAdminUserContext;
   const [selectedFile, setSelectedFile] = useState(null);
 
   const {
@@ -30,6 +32,7 @@ const FilesTab = ({ projectType, prospectId, currentUser }) => {
     projectType,
     prospectId,
     enabled: !!projectType,
+    activeAdminUser
   });
 
   const { createSignature, loading: signingLoading } = useYousignSignature();

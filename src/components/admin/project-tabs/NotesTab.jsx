@@ -6,8 +6,10 @@ import { useSupabaseProjectTemplates } from "@/hooks/useSupabaseProjectTemplates
 import { useAppContext } from "@/App";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-export default function NotesTab({ projectType, prospectId, currentUser }) {
-  const { activeAdminUser } = useAppContext();
+export default function NotesTab({ projectType, prospectId, currentUser, activeAdminUser: activeAdminUserProp }) {
+  const { activeAdminUser: activeAdminUserContext } = useAppContext();
+  // ✅ Prioriser le prop sur le context
+  const activeAdminUser = activeAdminUserProp || activeAdminUserContext;
   const [noteContent, setNoteContent] = useState("");
   const [showAllNotes, setShowAllNotes] = useState(false);
 
@@ -32,6 +34,7 @@ export default function NotesTab({ projectType, prospectId, currentUser }) {
     projectType,
     prospectId,
     enabled: !!projectType,
+    activeAdminUser
   });
 
   const handleSave = async () => {

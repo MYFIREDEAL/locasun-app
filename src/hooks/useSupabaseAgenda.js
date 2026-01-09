@@ -24,6 +24,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
   const { addProjectEvent } = useSupabaseProjectHistory({
     projectType: null, // Pas de filtre sur le hook
     enabled: false, // Pas besoin de charger l'historique, juste d'écrire
+    activeAdminUser
   });
 
   // ==================== FETCH DATA ====================
