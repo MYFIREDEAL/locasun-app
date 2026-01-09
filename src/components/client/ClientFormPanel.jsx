@@ -476,12 +476,10 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
     const projectFormData = freshProspectData.form_data?.[projectType] || {};
     const formFields = projectFormData[formId] || {};
-    console.log('🔍 [handleEdit] formFields rechargés:', formFields);
     
     formDefinition?.fields?.forEach(field => {
       if (formFields[field.id]) {
         hydrated[field.id] = formFields[field.id];
-        console.log('✅ [handleEdit] Champ rechargé:', field.id, '=', formFields[field.id]);
       }
     });
     
@@ -531,13 +529,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
             });
             return null;
           }
-          
-          console.log('✅ [ClientFormPanel] Formulaire chargé:', {
-            formId: panel.formId,
-            formName: formDefinition.name,
-            fieldsCount: formDefinition.fields?.length,
-            fields: formDefinition.fields
-          });
 
           // 🎨 Déterminer le badge de statut
           let statusBadge = {

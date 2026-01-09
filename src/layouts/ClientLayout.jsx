@@ -26,8 +26,6 @@ const ClientLayout = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('⚠️ Client localStorage détecté SANS session Supabase. Envoi magic link...');
-        
         // Envoyer un magic link automatiquement
         const { error } = await supabase.auth.signInWithOtp({
           email: currentUser.email,

@@ -28,10 +28,8 @@ const RegistrationPage = () => {
     localStorage.removeItem("activeAdminUser");
     localStorage.removeItem("adminUser");
     localStorage.removeItem("users");
-    console.log('🧹 localStorage admin purgé sur /inscription');
     
     if (activeAdminUser) {
-      console.log('⚠️ activeAdminUser détecté → suppression pour éviter pollution owner_id');
       setActiveAdminUser(null);
     }
   }, [activeAdminUser, setActiveAdminUser]);
@@ -50,7 +48,6 @@ const RegistrationPage = () => {
   // ✅ Toast si l'utilisateur est déjà connecté
   useEffect(() => {
     if (currentUser) {
-      console.log('⚠️ Utilisateur déjà connecté, redirection vers /dashboard');
       toast({
         title: "Vous êtes déjà connecté",
         description: "Redirection vers votre espace client...",
@@ -74,7 +71,6 @@ const RegistrationPage = () => {
       .single()
       .then(({ data, error }) => {
         if (data && !error) {
-          console.log('✅ Commercial trouvé via affiliate_slug:', data);
           setAffiliateInfo({ id: data.id, name: data.name });
         } else {
           console.error('❌ Commercial non trouvé pour le slug:', affiliateSlug, error);
@@ -167,8 +163,6 @@ const RegistrationPage = () => {
         console.error('❌ Erreur création prospect:', prospectError);
         throw prospectError;
       }
-      
-      console.log('✅ Prospect créé avec succès (ID:', prospectId, ')via RPC create_affiliated_prospect');
 
       // 🔥 ÉTAPE 3: Envoyer le Magic Link
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
@@ -198,8 +192,6 @@ const RegistrationPage = () => {
               project_type: projectType,
               steps: initialSteps
             });
-          
-          console.log(`✅ Steps initialisées pour ${projectType}, étape 1 en "in_progress"`);
         }
       }
 

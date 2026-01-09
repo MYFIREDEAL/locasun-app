@@ -283,11 +283,6 @@ const CompleteOriginalContacts = () => {
       return supabaseUsers;
     }
     
-    // 🔥 DEBUG: Voir ce qui est chargé
-    console.log('🔍 [allowedUsers] supabaseUsers from RPC:', supabaseUsers);
-    console.log('🔍 [allowedUsers] activeAdminUser.accessRights:', activeAdminUser.accessRights);
-    console.log('🔍 [allowedUsers] activeAdminUser.user_id:', activeAdminUser.user_id);
-    
     // 🔥 FIX: Ne pas filtrer si RPC retourne déjà les bons users
     // La fonction get_accessible_users() gère déjà access_rights
     // Donc on retourne directement supabaseUsers
@@ -690,17 +685,7 @@ const CompleteOriginalContacts = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 hidden md:table-cell">
-                  {(() => {
-                    // 🔥 DEBUG
-                    if (!users[contact.ownerId]) {
-                      console.log('⚠️ Owner not found:', {
-                        prospectName: contact.name,
-                        ownerId: contact.ownerId,
-                        availableUsers: Object.keys(users)
-                      });
-                    }
-                    return users[contact.ownerId]?.name || 'Non assigné';
-                  })()}
+                  {users[contact.ownerId]?.name || 'Non assigné'}
                 </td>
               </tr>
             ))}

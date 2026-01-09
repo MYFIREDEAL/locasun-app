@@ -23,7 +23,6 @@ const ClientAccessPage = () => {
   // 🔥 REDIRECTION AUTO si déjà connecté
   useEffect(() => {
     if (currentUser) {
-      console.log('✅ Client déjà connecté, redirection vers /dashboard');
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);

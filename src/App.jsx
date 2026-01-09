@@ -493,16 +493,6 @@ function App() {
         };
         setActiveAdminUser(transformedAdmin);
         
-        // 🔍 DEBUG activeAdminUser
-        console.log('🔍 DEBUG activeAdminUser:', { 
-          exists: !!transformedAdmin, 
-          id: transformedAdmin?.id,
-          user_id: transformedAdmin?.user_id,
-          email: transformedAdmin?.email,
-          role: transformedAdmin?.role,
-          name: transformedAdmin?.name
-        });
-        
         setAdminReady(true);
         setCurrentUser(null);
         // 🔥 FIX React Error #310: Attendre un tick pour que activeAdminUser
@@ -600,7 +590,6 @@ function App() {
       setTimeout(() => {
         setAuthLoading(false);
       }, 0);
-      console.log('⚠️ Route publique détectée → activeAdminUser bloqué');
       return;
     }
 

@@ -29,20 +29,6 @@ const ActivityTab = ({ prospectId, projectType, activeAdminUser }) => {
   const { users: supabaseUsers } = useSupabaseUsers();
   const { supabaseUserId } = useSupabaseUser();
 
-  // 🔥 Debug : Vérifier que toutes les données sont chargées
-  useEffect(() => {
-    if (showAddActivity) {
-      console.log('📊 AddActivityModal props:', {
-        prospects: prospects?.length,
-        users: supabaseUsers?.length,
-        projectsData: Object.keys(projectsData || {}).length,
-        supabaseUserId,
-        prospectId,
-        projectType,
-      });
-    }
-  }, [showAddActivity, prospects, supabaseUsers, projectsData, supabaseUserId, prospectId, projectType]);
-
   // 🔥 Utiliser le hook Supabase pour récupérer la vraie timeline
   const { history, loading } = useSupabaseProjectHistory({
     projectType,
@@ -79,20 +65,12 @@ const ActivityTab = ({ prospectId, projectType, activeAdminUser }) => {
       const sortedEvents = events.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       const latestEvent = sortedEvents[0];
       
-      console.log(`📋 Appointment ${appointmentId}:`, {
-        totalEvents: events.length,
-        latestTitle: latestEvent.title,
-        latestStatus: latestEvent.metadata?.status,
-        allTitles: events.map(e => e.title)
-      });
-      
       return {
         ...latestEvent,
         currentStatus: latestEvent.metadata?.status || (latestEvent.title === 'Activité supprimée' ? 'deleted' : 'pending')
       };
     });
     
-    console.log('🎯 Total activités agrégées:', result.length);
     return result;
   }, [activityEvents]);
 
@@ -188,15 +166,6 @@ const ActivityTab = ({ prospectId, projectType, activeAdminUser }) => {
         <h3 className="text-sm font-semibold text-gray-700">Activités du projet</h3>
         <Button
           onClick={() => {
-            console.log('🔍 Avant ouverture modal:', {
-              prospects: !!prospects,
-              prospectsLength: prospects?.length,
-              supabaseUsers: !!supabaseUsers,
-              usersLength: supabaseUsers?.length,
-              projectsData: !!projectsData,
-              projectsDataKeys: Object.keys(projectsData || {}).length,
-              supabaseUserId,
-            });
             setShowAddActivity(!showAddActivity);
           }}
           size="sm"

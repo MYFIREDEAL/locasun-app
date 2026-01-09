@@ -1077,14 +1077,6 @@ const AddActivityModal = ({
   users: usersProp, // 🔥 Recevoir les users Supabase en props
   projectsData, // 🔥 Recevoir projectsData du Context
 }) => {
-    // 🔥 Debug : Log au montage
-    console.log('🎬 AddActivityModal MOUNTED', { 
-      open, 
-      initialData, 
-      prospectsPropLength: prospectsProp?.length,
-      usersPropLength: usersProp?.length 
-    });
-    
     // État local pour le contact sélectionné (besoin avant le hook)
     const [selectedContact, setSelectedContact] = useState(null);
     const [selectedProject, setSelectedProject] = useState('');

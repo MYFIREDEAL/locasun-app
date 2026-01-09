@@ -88,15 +88,10 @@ const OfferCard = ({ project, projectStatus }) => {
       // Ajouter le nouveau tag au prospect dans Supabase
       const updatedTags = [...(currentUser.tags || []), project.type];
       
-      console.log('🔥 [OffersPage] Ajout projet, tags avant:', currentUser.tags);
-      console.log('🔥 [OffersPage] Ajout projet, tags après:', updatedTags);
-      
       await updateProspect({
         id: currentUser.id,
         tags: updatedTags,
       });
-
-      console.log('✅ [OffersPage] Update Supabase terminé, real-time va se déclencher');
 
       // 🔥 INITIALISER LES ÉTAPES DANS SUPABASE dès l'ajout du projet par le client
       if (project.steps && project.steps.length > 0) {
@@ -117,8 +112,6 @@ const OfferCard = ({ project, projectStatus }) => {
         if (stepsError) {
           logger.error('⚠️ Erreur initialisation steps:', stepsError);
           // Ne pas bloquer l'ajout du projet si les steps échouent
-        } else {
-          console.log('✅ Étapes initialisées dans Supabase pour', project.type);
         }
       }
 

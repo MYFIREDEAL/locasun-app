@@ -34,7 +34,6 @@ const PlatformLoginPage = () => {
           .single();
 
         if (!userError && userData?.role === 'platform_admin') {
-          console.log('✅ [PlatformLogin] Déjà connecté en tant que platform_admin');
           navigate('/platform/organizations', { replace: true });
         } else {
           setCheckingAuth(false);
@@ -96,8 +95,6 @@ const PlatformLoginPage = () => {
         throw new Error('Aucun utilisateur retourné après connexion');
       }
 
-      console.log('✅ [PlatformLogin] Auth réussie, vérification du rôle...');
-
       // 2. Vérifier présence dans public.users et role platform_admin
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -137,7 +134,6 @@ const PlatformLoginPage = () => {
       }
 
       // 4. Succès - Redirection
-      console.log('✅ [PlatformLogin] Platform admin vérifié, redirection...');
       toast({
         title: "Connexion réussie",
         description: `Bienvenue ${userData.name || userData.email}`,

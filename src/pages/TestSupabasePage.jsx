@@ -12,8 +12,6 @@ export default function TestSupabasePage() {
 
   useEffect(() => {
     async function runTests() {
-      console.log('🔌 Test de connexion Supabase...');
-      
       try {
         // Test 1: Projets
         const { data: projects, error: projectsError } = await supabase
@@ -21,7 +19,6 @@ export default function TestSupabasePage() {
           .select('*');
         
         if (projectsError) throw projectsError;
-        console.log('✅ Projets récupérés:', projects?.length);
 
         // Test 2: Pipeline
         const { data: pipeline, error: pipelineError } = await supabase
@@ -30,7 +27,6 @@ export default function TestSupabasePage() {
           .order('position');
         
         if (pipelineError) throw pipelineError;
-        console.log('✅ Étapes pipeline récupérées:', pipeline?.length);
 
         // Test 3: Paramètres entreprise
         const { data: company, error: companyError } = await supabase
@@ -40,7 +36,6 @@ export default function TestSupabasePage() {
           .single();
         
         if (companyError) throw companyError;
-        console.log('✅ Paramètres entreprise récupérés');
 
         setResults({
           projects,
@@ -49,8 +44,6 @@ export default function TestSupabasePage() {
           loading: false,
           error: null
         });
-        
-        console.log('✅ Tous les tests sont passés!');
       } catch (error) {
         logger.error('❌ Erreur:', error);
         setResults(prev => ({ ...prev, loading: false, error }));

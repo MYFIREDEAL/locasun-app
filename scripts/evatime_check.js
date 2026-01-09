@@ -166,7 +166,65 @@ async function run() {
 
   console.log("🟢 Admin UPDATE OK");
 
-  console.log("✅ EVATIME CHECK COMPLET OK");
+  // 4️⃣ TEST ISOLATION MULTI-TENANT (organization_id)
+  console.log("— Test Isolation Multi-Tenant —");
+
+  // Récupérer l'organization_id de l'admin test
+  const { data: adminUser } = await sbAdmin
+    .from("users")
+    .select("organization_id")
+    .eq("user_id", (await sbAdmin.auth.getUser()).data.user.id)
+    .single();
+
+  if (!adminUser || !adminUser.organization_id) {
+    console.error("❌ Admin test sans organization_id");
+    process.exit(1);
+  }
+
+  const adminOrgId = adminUser.organization_id;
+  console.log(`🔍 Admin organization_id: ${adminOrgId}`);
+
+  // Tester que l'admin ne voit QUE les prospects de son organization
+  const { data: allProspects } = await sbAdmin
+    .from("prospects")
+    .select("organization_id");
+
+  if (!allProspects || allProspects.length === 0) {
+    console.error("❌ Admin ne voit aucun prospect (RLS trop restrictif)");
+    process.exit(1);
+  }
+
+  // Vérifier que TOUS les prospects retournés appartiennent à la même organization
+  const wrongOrgProspects = allProspects.filter(p => p.organization_id !== adminOrgId);
+  
+  if (wrongOrgProspects.length > 0) {
+    console.error(`❌ FUITE MULTI-TENANT : Admin voit ${wrongOrgProspects.length} prospects d'autres organizations !`);
+    console.error("Prospects fuités:", wrongOrgProspects);
+    process.exit(1);
+  }
+
+  console.log(`🟢 Isolation OK : ${allProspects.length} prospects, tous de l'organization ${adminOrgId}`);
+
+  // Tester que l'admin ne peut PAS créer de prospect sans organization_id
+  const { error: insertWithoutOrgError } = await sbAdmin
+    .from("prospects")
+    .insert({
+      email: "test_sans_org@hack.com",
+      name: "Hack Sans Org",
+      // ⚠️ Volontairement SANS organization_id
+    });
+
+  // Si l'insertion réussit → FAIL (on devrait avoir une erreur NOT NULL ou RLS)
+  if (!insertWithoutOrgError) {
+    console.error("❌ DANGER : Insertion prospect SANS organization_id autorisée !");
+    // Nettoyer
+    await sbAdmin.from("prospects").delete().eq("email", "test_sans_org@hack.com");
+    process.exit(1);
+  }
+
+  console.log("🟢 Insertion sans organization_id bloquée (OK)");
+
+  console.log("✅ EVATIME CHECK COMPLET OK (avec isolation multi-tenant)");
   process.exit(0);
 }
 

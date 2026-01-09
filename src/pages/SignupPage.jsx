@@ -68,12 +68,6 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      console.log('[SignupPage] Calling Edge Function with:', {
-        companyName: formData.companyName,
-        domain: formData.domain,
-        adminEmail: formData.adminEmail,
-      });
-
       // Appel de l'Edge Function
       const { data, error } = await supabase.functions.invoke('create-organization-onboarding', {
         body: {
@@ -94,8 +88,6 @@ const SignupPage = () => {
         throw new Error(data?.error || 'Erreur lors de la création de l\'organisation');
       }
 
-      console.log('[SignupPage] Organization created successfully:', data);
-
       toast({
         title: "Organisation créée avec succès !",
         description: "Vous allez être redirigé vers la page de connexion...",
@@ -113,7 +105,6 @@ const SignupPage = () => {
             console.error('[SignupPage] Auto-login failed:', loginError);
             navigate('/client-access');
           } else {
-            console.log('[SignupPage] Auto-login successful, redirecting to /admin');
             navigate('/admin');
           }
         } catch (err) {

@@ -99,8 +99,6 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         setSaving(true);
         setError(null);
 
-        console.log('✅ [useSupabaseProjectHistory] INSERT project_history avec organization_id:', activeAdminUser.organization_id);
-
         const { data, error } = await supabase
           .from("project_history")
           .insert([

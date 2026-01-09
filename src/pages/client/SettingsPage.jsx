@@ -72,8 +72,6 @@ import React, { useState, useEffect } from 'react';
             address: formData.address,
           });
 
-          console.log('✅ [SettingsPage] Update result:', result);
-
           // Mettre à jour le contexte local avec les données retournées par Supabase
           // La RPC retourne un array, on prend le premier élément
           if (result && result.length > 0) {
@@ -96,7 +94,6 @@ import React, { useState, useEffect } from 'react';
               updatedAt: dbProspect.updated_at,
             };
             setCurrentUser(updatedUser);
-            console.log('✅ [SettingsPage] currentUser mis à jour localement');
           }
 
           toast({

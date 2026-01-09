@@ -19,20 +19,11 @@ const getTimestamp = () => {
 
 export const logger = {
   debug: (...args) => {
-    if (!isDev) return;
-    console.log(
-      `%c[${getTimestamp()}] DEBUG`,
-      `color: ${colors.debug}; font-weight: bold`,
-      ...args
-    );
+    // Désactivé pour performance - utiliser console.error/warn pour les logs critiques
   },
 
   info: (...args) => {
-    console.log(
-      `%c[${getTimestamp()}] INFO`,
-      `color: ${colors.info}; font-weight: bold`,
-      ...args
-    );
+    // Désactivé pour performance - utiliser console.error/warn pour les logs critiques
   },
 
   warn: (...args) => {

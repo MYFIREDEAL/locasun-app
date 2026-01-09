@@ -13,7 +13,6 @@ const PlatformLayout = () => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
-          console.log('[PlatformLayout] Non authentifié, redirect /platform-login');
           navigate('/platform-login');
           return;
         }
