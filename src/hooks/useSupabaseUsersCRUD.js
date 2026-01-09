@@ -148,7 +148,11 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
 
       // 3️⃣ Créer l'entrée dans public.users
       // 🔥 VALIDATION: organization_id requis par RLS
+      console.log('🔍 [addUser] activeAdminUser:', activeAdminUser);
+      console.log('🔍 [addUser] organization_id:', activeAdminUser?.organization_id);
+      
       if (!activeAdminUser?.organization_id) {
+        console.error('❌ [addUser] activeAdminUser est undefined ou sans organization_id');
         throw new Error('Organization ID manquant - Impossible de créer l\'utilisateur');
       }
 
