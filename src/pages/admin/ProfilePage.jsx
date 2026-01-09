@@ -1787,6 +1787,9 @@ const ProfilePage = () => {
   const isGlobalAdmin = activeAdminUser?.role === 'Global Admin';
   const isAdmin = activeAdminUser?.role === 'Admin';
   
+  // 🔒 UI GATE : vérifier que organization_id est chargé avant d'autoriser l'invitation
+  const isOrganizationReady = !!activeAdminUser?.organization_id;
+  
   useEffect(() => {
     if (activeAdminUser) {
         setUserInfo({
@@ -2518,27 +2521,23 @@ const ProfilePage = () => {
     }));
   };
   const handleInviteUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.password) {
-      toast({
-        title: "Champs manquants",
-        description: "Veuillez remplir tous les champs obligatoires.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // 🔒 GUARD BLOQUANT : organization_id requis
-    const organizationId = activeAdminUser?.organization_id;
-    if (!organizationId) {
-      toast({
-        title: "Erreur système",
-        description: "Organization non chargée — invitation bloquée",
-        variant: "destructive"
-      });
-      throw new Error("Organization non chargée — invitation bloquée");
-    }
-
     try {
+      // Validation des champs
+      if (!newUser.name || !newUser.email || !newUser.password) {
+        toast({
+          title: "Champs manquants",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 🔒 GUARD BLOQUANT : organization_id requis (ne doit pas arriver si bouton disabled)
+      const organizationId = activeAdminUser?.organization_id;
+      if (!organizationId) {
+        throw new Error("Organization non chargée — invitation bloquée");
+      }
+
       await addUser({
         name: newUser.name,
         email: newUser.email,
@@ -2563,7 +2562,12 @@ const ProfilePage = () => {
         manager: ''
       });
     } catch (err) {
-      logger.error('Erreur invitation utilisateur', { error: err.message });
+      logger.error('[InviteUser] error:', err);
+      toast({
+        title: "Invitation impossible",
+        description: err?.message || "Erreur inconnue",
+        variant: "destructive",
+      });
     }
   };
 
@@ -3464,7 +3468,18 @@ const ProfilePage = () => {
                         </div>
                       </div>
                       <DialogFooter className="px-6 pb-4">
-                        <Button onClick={handleInviteUser} className="bg-blue-600 hover:bg-blue-700">Inviter</Button>
+                        {!isOrganizationReady && (
+                          <p className="text-sm text-muted-foreground mr-auto">
+                            Chargement de l'organisation…
+                          </p>
+                        )}
+                        <Button 
+                          onClick={handleInviteUser} 
+                          disabled={!isOrganizationReady}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Inviter
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
