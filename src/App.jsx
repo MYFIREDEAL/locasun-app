@@ -590,7 +590,9 @@ function App() {
     const isPublicRoute =
       location.pathname.startsWith("/inscription") ||
       location.pathname.startsWith("/register") ||
-      location.pathname === "/";
+      location.pathname === "/" ||
+      location.pathname.startsWith("/platform-login") ||
+      location.pathname.startsWith("/platform");
 
     if (isPublicRoute) {
       setActiveAdminUser(null);
