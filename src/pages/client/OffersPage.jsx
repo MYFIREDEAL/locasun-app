@@ -71,7 +71,8 @@ const OfferCard = ({ project, projectStatus }) => {
         description: "Vous pouvez suivre ce projet dans votre Tableau de bord.",
         variant: "default",
       });
-      navigate('/dashboard');
+      // 🔥 Rediriger vers le projet dans le dashboard
+      navigate(`/dashboard?project=${project.type}`);
       return;
     }
 
@@ -121,9 +122,9 @@ const OfferCard = ({ project, projectStatus }) => {
         description: `Le projet "${project.clientTitle}" est maintenant dans votre tableau de bord.`,
       });
       
-      // Attendre un peu que le real-time se déclenche avant de naviguer
+      // 🔥 Rediriger vers le dashboard avec le projet sélectionné
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/dashboard?project=${project.type}`);
       }, 500);
     } catch (error) {
       logger.error('Erreur ajout projet:', error);

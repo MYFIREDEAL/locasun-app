@@ -79,15 +79,28 @@ function ClientDashboardPage() {
     setSelectedProject(project);
   };
 
-  // Ouvrir automatiquement un projet depuis une notification
+  // Ouvrir automatiquement un projet depuis une notification ou query param
   useEffect(() => {
+    // 🔥 PRIORITÉ 1: Query param ?project=...
+    const searchParams = new URLSearchParams(location.search);
+    const projectParam = searchParams.get('project');
+    
+    if (projectParam && projectsData[projectParam]) {
+      const project = projectsData[projectParam];
+      setSelectedProject(project);
+      // Nettoyer l'URL
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+    
+    // 🔥 PRIORITÉ 2: location.state (notifications)
     if (location.state?.openProjectType && projectsData[location.state.openProjectType]) {
       const project = projectsData[location.state.openProjectType];
       setSelectedProject(project);
       // Nettoyer le state pour éviter de réouvrir à chaque render
       navigate('/dashboard', { replace: true, state: {} });
     }
-  }, [location.state, projectsData, navigate]);
+  }, [location.search, location.state, projectsData, navigate]);
 
   // 🔥 Attendre que l'authentification se charge avant d'afficher "pas connecté"
   if (authLoading) {
