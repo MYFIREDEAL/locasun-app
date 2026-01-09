@@ -1,10 +1,11 @@
 -- ============================================
 -- MIGRATION: Adapter signature_procedures pour signature AES maison
+-- Ajoute SEULEMENT les colonnes manquantes
 -- ============================================
 
 -- 1. Ajouter organization_id (multi-tenant)
 ALTER TABLE public.signature_procedures
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE;
+ADD COLUMN IF NOT EXISTS organization_id UUID;
 
 -- 2. Remplir organization_id depuis prospects (pour les lignes existantes)
 UPDATE public.signature_procedures sp
@@ -13,40 +14,40 @@ FROM public.prospects p
 WHERE sp.prospect_id = p.id
 AND sp.organization_id IS NULL;
 
--- 3. Rendre organization_id NOT NULL
+-- 3. Rendre organization_id NOT NULL et ajouter FK
 ALTER TABLE public.signature_procedures
 ALTER COLUMN organization_id SET NOT NULL;
 
--- 4. Ajouter colonnes pour signature AES maison
+ALTER TABLE public.signature_procedures
+DROP CONSTRAINT IF EXISTS fk_signature_procedures_organization;
+
+ALTER TABLE public.signature_procedures
+ADD CONSTRAINT fk_signature_procedures_organization
+FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+-- 4. Ajouter colonnes manquantes pour signature AES
 ALTER TABLE public.signature_procedures
 ADD COLUMN IF NOT EXISTS signer_name TEXT,
 ADD COLUMN IF NOT EXISTS signer_email TEXT,
 ADD COLUMN IF NOT EXISTS document_hash TEXT, -- SHA-256 du PDF original
-ADD COLUMN IF NOT EXISTS access_token TEXT UNIQUE, -- Token sécurisé pour accès
-ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS signature_metadata JSONB DEFAULT '{}'::jsonb, -- IP, user-agent, timestamp de signature
 ADD COLUMN IF NOT EXISTS pdf_signed_hash TEXT; -- SHA-256 du PDF après signature
 
--- 5. Modifier yousign_procedure_id pour le rendre nullable (pas obligatoire pour signature maison)
-ALTER TABLE public.signature_procedures
-ALTER COLUMN yousign_procedure_id DROP NOT NULL;
+-- 5. Ajouter index UNIQUE sur access_token
+DROP INDEX IF EXISTS idx_signature_procedures_access_token_unique;
+CREATE UNIQUE INDEX idx_signature_procedures_access_token_unique 
+ON public.signature_procedures(access_token) WHERE access_token IS NOT NULL;
 
--- 6. Ajouter contrainte: soit yousign_procedure_id, soit access_token (mais pas les deux vides)
-ALTER TABLE public.signature_procedures
-ADD CONSTRAINT check_signature_type
-CHECK (
-  (yousign_procedure_id IS NOT NULL AND access_token IS NULL) OR
-  (yousign_procedure_id IS NULL AND access_token IS NOT NULL)
-);
-
--- 7. Ajouter index pour performance
+-- 6. Ajouter index pour performance
 CREATE INDEX IF NOT EXISTS idx_signature_procedures_organization ON public.signature_procedures(organization_id);
-CREATE INDEX IF NOT EXISTS idx_signature_procedures_access_token ON public.signature_procedures(access_token);
 
--- 8. Mettre à jour les RLS policies pour inclure organization_id
+-- 7. Mettre à jour les RLS policies pour inclure organization_id
 DROP POLICY IF EXISTS "Admin users can view all signature procedures" ON public.signature_procedures;
 DROP POLICY IF EXISTS "Admin users can create signature procedures" ON public.signature_procedures;
 DROP POLICY IF EXISTS "Admin users can update signature procedures" ON public.signature_procedures;
+DROP POLICY IF EXISTS "Clients can view their own signature procedures" ON public.signature_procedures;
+DROP POLICY IF EXISTS "Clients can sign their own signature procedures" ON public.signature_procedures;
+DROP POLICY IF EXISTS "Public access with valid token" ON public.signature_procedures;
 
 -- Admin RLS : SELECT (filtré par organization)
 CREATE POLICY "Admin users can view signature procedures in their organization"
@@ -118,7 +119,6 @@ USING (
   )
 )
 WITH CHECK (
-  -- Empêcher modification d'autres champs que status, signed_at, signature_metadata
   EXISTS (
     SELECT 1 FROM public.prospects
     WHERE prospects.user_id = auth.uid()
@@ -134,19 +134,19 @@ FOR SELECT
 TO anon, authenticated
 USING (true); -- Le token sera vérifié côté application
 
--- 9. Commentaires
-COMMENT ON TABLE public.signature_procedures IS 'Procédures de signature électronique (Yousign OU signature AES maison)';
+-- 8. Commentaires
+COMMENT ON TABLE public.signature_procedures IS 'Procédures de signature électronique AES maison';
 COMMENT ON COLUMN public.signature_procedures.organization_id IS 'Organisation propriétaire (multi-tenant)';
 COMMENT ON COLUMN public.signature_procedures.signer_name IS 'Nom du signataire principal';
 COMMENT ON COLUMN public.signature_procedures.signer_email IS 'Email du signataire principal';
 COMMENT ON COLUMN public.signature_procedures.document_hash IS 'Hash SHA-256 du PDF original (preuve d intégrité)';
-COMMENT ON COLUMN public.signature_procedures.access_token IS 'Token sécurisé pour signature maison (alternative à Yousign)';
-COMMENT ON COLUMN public.signature_procedures.token_expires_at IS 'Date d expiration du token de signature';
+COMMENT ON COLUMN public.signature_procedures.access_token IS 'Token sécurisé pour signature maison';
+COMMENT ON COLUMN public.signature_procedures.access_token_expires_at IS 'Date d expiration du token de signature';
 COMMENT ON COLUMN public.signature_procedures.signature_metadata IS 'Métadonnées de signature (IP, user-agent, timestamp, etc.)';
 COMMENT ON COLUMN public.signature_procedures.pdf_signed_hash IS 'Hash SHA-256 du PDF après ajout de la signature';
-COMMENT ON COLUMN public.signature_procedures.yousign_procedure_id IS 'ID Yousign (NULL si signature maison)';
+COMMENT ON COLUMN public.signature_procedures.signers IS 'Tableau JSON des signataires (principal + co-signataires)';
 
--- 10. Mettre à jour les statuts autorisés
+-- 9. Mettre à jour les statuts autorisés
 ALTER TABLE public.signature_procedures
 DROP CONSTRAINT IF EXISTS signature_procedures_status_check;
 
