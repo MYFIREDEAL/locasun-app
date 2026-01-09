@@ -208,6 +208,7 @@ const PlatformLoginPage = () => {
                   placeholder="admin@evatime.com"
                   className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                   disabled={loading}
+                  autoComplete="email"
                   autoFocus
                 />
               </div>
@@ -228,6 +229,7 @@ const PlatformLoginPage = () => {
                   placeholder="••••••••"
                   className="pl-10 h-12 border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                   disabled={loading}
+                  autoComplete="current-password"
                 />
               </div>
             </div>
