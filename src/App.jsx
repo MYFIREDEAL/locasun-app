@@ -1090,6 +1090,10 @@ function App() {
 
     // 2️⃣ Sauvegarder dans Supabase (real-time sync)
     try {
+      if (!organizationId) {
+        throw new Error('organization_id manquant');
+      }
+
       const { data, error } = await supabase
         .from('project_steps_status')
         .upsert(
@@ -1097,6 +1101,7 @@ function App() {
             prospect_id: prospectId,
             project_type: projectType,
             steps: newSteps,
+            organization_id: organizationId, // 🔥 AJOUT
             updated_at: new Date().toISOString()
           },
           {

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook personnalisé pour gérer l'agenda via Supabase
@@ -16,6 +17,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [realtimeChannel, setRealtimeChannel] = useState(null);
+  const { organizationId } = useOrganization();
 
   // 🔥 Hook pour journaliser les activités dans project_history
   // UTILISER addProjectEvent qui accepte projectType et prospectId en paramètres
@@ -194,6 +196,11 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       const now = new Date();
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
 
+      // 🔥 VALIDATION: organization_id requis par RLS
+      if (!organizationId) {
+        throw new Error('Organization ID manquant - Impossible de créer le rendez-vous');
+      }
+
       const { data, error: insertError } = await supabase
         .from('appointments')
         .insert([{
@@ -209,6 +216,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           share: appointmentData.share || false,
           notes: appointmentData.notes || null,
           location: appointmentData.location || null,
+          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
         }])
         .select()
         .single();

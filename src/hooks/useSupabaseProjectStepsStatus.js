@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { logger } from '@/lib/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook Supabase pour gérer les étapes de projets par prospect
@@ -19,6 +20,7 @@ export function useSupabaseProjectStepsStatus(prospectId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isLocalUpdate = useRef(false);
+  const { organizationId } = useOrganization(); // 🔥 AJOUT
 
   /**
    * ✅ CHARGER LES STEPS AU MONTAGE
@@ -108,6 +110,10 @@ export function useSupabaseProjectStepsStatus(prospectId) {
     try {
       isLocalUpdate.current = true;
 
+      if (!organizationId) {
+        throw new Error('organization_id manquant');
+      }
+
       // Upsert (INSERT ou UPDATE selon si existe déjà)
       const { data, error: upsertError } = await supabase
         .from('project_steps_status')
@@ -116,6 +122,7 @@ export function useSupabaseProjectStepsStatus(prospectId) {
             prospect_id: prospectId,
             project_type: projectType,
             steps: steps,
+            organization_id: organizationId, // 🔥 AJOUT
             updated_at: new Date().toISOString()
           },
           {

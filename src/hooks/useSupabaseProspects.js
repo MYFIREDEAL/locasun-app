@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook personnalisé pour gérer les prospects via Supabase
@@ -12,6 +13,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const channelRef = useRef(null); // 🔥 Stocker le channel pour broadcast manuel
+  const { organizationId } = useOrganization(); // 🔥 AJOUT
 
   // Charger les prospects depuis Supabase
   const fetchProspects = async () => {
@@ -261,6 +263,10 @@ export const useSupabaseProspects = (activeAdminUser) => {
       // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies
       logger.debug('Using RPC insert_prospect_safe');
       
+      if (!organizationId) {
+        throw new Error('organization_id manquant');
+      }
+      
       // ⚠️ Ne plus utiliser 'Intéressé' en fallback - le status doit venir de l'appelant
       // qui utilise le step_id de la première colonne du globalPipelineSteps
       const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
@@ -273,6 +279,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         p_tags: prospectData.tags || [],
         p_has_appointment: prospectData.hasAppointment || false,
         p_affiliate_name: prospectData.affiliateName || null,
+        p_host: window.location.hostname, // 🔥 AJOUT pour résolution organization_id
       });
 
       if (insertError) throw insertError;

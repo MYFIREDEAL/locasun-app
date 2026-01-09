@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook pour exécuter automatiquement les actions workflow
@@ -15,6 +16,7 @@ import { toast } from '@/components/ui/use-toast';
 export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
   // Garde une trace des actions déjà exécutées pour éviter les duplicatas
   const executedActionsRef = useRef(new Set());
+  const { organizationId } = useOrganization();
 
   useEffect(() => {
     if (!prospectId || !projectType || !currentSteps) return;
@@ -217,6 +219,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         projectType,
         prospectId,
         cosigners: cosigners, // 🔥 Passer les co-signataires au générateur
+        organizationId: organizationId, // ✅ Passer organization_id
       });
 
       if (result.success) {
@@ -319,6 +322,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           access_token_expires_at: expiresAt.toISOString(),
           status: 'pending',
           signers: signers,
+          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
         })
         .select()
         .single();
@@ -358,6 +362,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           project_type: projectType,
           sender: 'pro',
           text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
+          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
         });
 
       if (chatError) {

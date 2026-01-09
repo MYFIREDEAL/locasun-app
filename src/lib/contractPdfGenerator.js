@@ -11,6 +11,7 @@ import { logger } from './logger';
  * @param {Array} params.cosigners - Tableau des co-signataires [{name, email, phone}]
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
+ * @param {string} params.organizationId - ID de l'organisation (requis pour RLS)
  * @returns {Promise<Object>} - { success, fileData } ou { success: false, error }
  */
 export async function generateContractPDF({
@@ -19,6 +20,7 @@ export async function generateContractPDF({
   cosigners = [],
   projectType,
   prospectId,
+  organizationId, // ✅ Requis pour multi-tenant RLS
 }) {
   let tempContainer = null;
   
@@ -131,6 +133,7 @@ export async function generateContractPDF({
       prospectId,
       projectType,
       fileName,
+      organizationId, // ✅ Passer l'organization_id
     });
 
     if (!uploadResult.success) {
@@ -302,12 +305,13 @@ function injectProspectData(html, prospect, cosigners = []) {
 }
 
 /**
- * Upload le PDF dans Supabase Storage et l'ajoute à la table project_files
+ * Upload un PDF contract dans Supabase Storage et référence dans project_files
  * @param {Object} params
- * @param {File} params.pdfFile - Fichier PDF
+ * @param {File} params.pdfFile - Le fichier PDF généré
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
  * @param {string} params.fileName - Nom du fichier
+ * @param {string} params.organizationId - ID de l'organisation (requis pour RLS)
  * @returns {Promise<Object>} - { success, data } ou { success: false, error }
  */
 export async function uploadContractPDF({
@@ -315,6 +319,7 @@ export async function uploadContractPDF({
   projectType,
   prospectId,
   fileName,
+  organizationId, // ✅ Requis pour multi-tenant RLS
 }) {
   try {
     logger.debug('Upload PDF contract dans Storage', { 
@@ -349,6 +354,11 @@ export async function uploadContractPDF({
 
     logger.debug('Upload Storage réussi', { uploadData });
 
+    // 🔥 VALIDATION: organization_id requis par RLS
+    if (!organizationId) {
+      throw new Error('Organization ID manquant - Impossible d\'uploader le contrat PDF');
+    }
+
     // 3. Insérer dans la table project_files
     const { data, error: insertError } = await supabase
       .from('project_files')
@@ -362,6 +372,7 @@ export async function uploadContractPDF({
           storage_path: storagePath,
           uploaded_by: null, // Système/workflow
           field_label: 'Contrat généré automatiquement',
+          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
         },
       ])
       .select()
@@ -398,6 +409,7 @@ export async function uploadContractPDF({
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
  * @param {Array} params.cosigners - Tableau des co-signataires [{name, email, phone}]
+ * @param {string} params.organizationId - ID de l'organisation (requis pour RLS)
  * @returns {Promise<Object>} - { success, data } ou { success: false, error }
  */
 export async function executeContractSignatureAction({
@@ -405,6 +417,7 @@ export async function executeContractSignatureAction({
   projectType,
   prospectId,
   cosigners = [],
+  organizationId, // ✅ Requis pour multi-tenant RLS
 }) {
   try {
     logger.debug('Exécution action launch_signature', { templateId, projectType, prospectId, cosignersCount: cosigners.length });
@@ -438,6 +451,7 @@ export async function executeContractSignatureAction({
       cosigners, // ⭐ Passer les cosigners
       projectType,
       prospectId,
+      organizationId, // ✅ Passer l'organization_id
     });
 
     if (!pdfResult.success) {

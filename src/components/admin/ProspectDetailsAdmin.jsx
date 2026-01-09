@@ -29,6 +29,7 @@ import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -616,6 +617,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
               projectType: projectType,
               prospectId: prospectId,
               cosigners: cosigners,
+              organizationId: organizationId, // ✅ Passer organization_id
             });
 
             if (result.success) {
@@ -2353,6 +2355,7 @@ const ProspectDetailsAdmin = ({
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
+  const { organizationId } = useOrganization(); // 🔥 AJOUT pour organization_id
   
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
@@ -2577,6 +2580,7 @@ const ProspectDetailsAdmin = ({
           project_type: activeProjectTag,
           event_type: 'status',
           description: `Projet ${statusLabels[newStatus] || newStatus}`,
+          organization_id: organizationId, // 🔥 AJOUT
           metadata: {
             old_status: oldStatus,
             new_status: newStatus

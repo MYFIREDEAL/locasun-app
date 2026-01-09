@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -66,6 +67,7 @@ const FinalPipeline = () => {
   // Récupération du contexte avec gestion d'erreur
   const contextData = useAppContext();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { organizationId } = useOrganization();
   
   // États locaux
   const [selectedProspectId, setSelectedProspectId] = useState(null);
@@ -555,12 +557,18 @@ const FinalPipeline = () => {
               const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
               initialSteps[0].status = 'in_progress'; // Première étape active
               
+              // 🔥 VALIDATION: organization_id requis par RLS
+              if (!organizationId) {
+                throw new Error('Organization ID manquant - Impossible de créer les steps projet');
+              }
+              
               const { error: stepsError } = await supabase
                 .from('project_steps_status')
                 .upsert({
                   prospect_id: createdProspect.id,
                   project_type: projectType,
                   steps: initialSteps,
+                  organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
                   updated_at: new Date().toISOString()
                 }, {
                   onConflict: 'prospect_id,project_type'

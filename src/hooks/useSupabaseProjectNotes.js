@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { logger } from '@/lib/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export function useSupabaseProjectNotes({ projectType, prospectId, enabled = true }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const { organizationId } = useOrganization();
 
   const fetchNotes = useCallback(async () => {
     if (!projectType || !enabled) return;
@@ -89,6 +91,11 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
         setSaving(true);
         setError(null);
 
+        // 🔥 VALIDATION: organization_id requis par RLS
+        if (!organizationId) {
+          throw new Error('Organization ID manquant - Impossible d\'ajouter une note');
+        }
+
         const { data, error } = await supabase
           .from("project_notes")
           .insert([
@@ -98,6 +105,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
               content: content.trim(),
               created_by: createdBy || null,
               created_by_name: createdByName || null,
+              organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
             },
           ])
           .select()
@@ -114,7 +122,7 @@ export function useSupabaseProjectNotes({ projectType, prospectId, enabled = tru
         setSaving(false);
       }
     },
-    [projectType, prospectId]
+    [projectType, prospectId, organizationId]
   );
 
   const updateNote = useCallback(async (id, { content }) => {
