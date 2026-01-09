@@ -29,7 +29,6 @@ import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -617,7 +616,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
               projectType: projectType,
               prospectId: prospectId,
               cosigners: cosigners,
-              organizationId: organizationId, // ✅ Passer organization_id
+              organizationId: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
             });
 
             if (result.success) {
@@ -674,7 +673,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                 }
 
                 // 🔥 VALIDATION: organization_id requis par RLS
-                if (!organizationId) {
+                if (!activeAdminUser?.organization_id) {
                   throw new Error('Organization ID manquant - Impossible de créer la procédure de signature');
                 }
 
@@ -688,7 +687,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                     access_token_expires_at: expiresAt.toISOString(),
                     status: 'pending',
                     signers: signers,
-                    organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
+                    organization_id: activeAdminUser.organization_id, // ✅ Depuis activeAdminUser
                   })
                   .select()
                   .single();
@@ -740,7 +739,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                     project_type: projectType,
                     sender: 'pro',
                     text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
-                    organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
+                    organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
                   });
                 
                 logger.debug('Lien de signature envoyé dans le chat');
@@ -2362,7 +2361,6 @@ const ProspectDetailsAdmin = ({
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
-  const { organizationId } = useOrganization(); // 🔥 AJOUT pour organization_id
   
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
@@ -2587,7 +2585,7 @@ const ProspectDetailsAdmin = ({
           project_type: activeProjectTag,
           event_type: 'status',
           description: `Projet ${statusLabels[newStatus] || newStatus}`,
-          organization_id: organizationId, // 🔥 AJOUT
+          organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
           metadata: {
             old_status: oldStatus,
             new_status: newStatus

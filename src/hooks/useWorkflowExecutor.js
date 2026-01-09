@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
-import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook pour exécuter automatiquement les actions workflow
@@ -12,11 +11,11 @@ import { useOrganization } from '@/contexts/OrganizationContext';
  * @param {string} prospectId - ID du prospect
  * @param {string} projectType - Type de projet
  * @param {Array} currentSteps - Étapes actuelles du projet
+ * @param {Object} activeAdminUser - Utilisateur admin actif (pour organization_id)
  */
-export function useWorkflowExecutor({ prospectId, projectType, currentSteps }) {
+export function useWorkflowExecutor({ prospectId, projectType, currentSteps, activeAdminUser }) {
   // Garde une trace des actions déjà exécutées pour éviter les duplicatas
   const executedActionsRef = useRef(new Set());
-  const { organizationId } = useOrganization();
 
   useEffect(() => {
     if (!prospectId || !projectType || !currentSteps) return;
@@ -219,7 +218,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         projectType,
         prospectId,
         cosigners: cosigners, // 🔥 Passer les co-signataires au générateur
-        organizationId: organizationId, // ✅ Passer organization_id
+        organizationId: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
       });
 
       if (result.success) {
@@ -322,7 +321,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           access_token_expires_at: expiresAt.toISOString(),
           status: 'pending',
           signers: signers,
-          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
+          organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
         })
         .select()
         .single();
@@ -362,7 +361,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           project_type: projectType,
           sender: 'pro',
           text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
-          organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
+          organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
         });
 
       if (chatError) {
