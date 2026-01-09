@@ -29,10 +29,45 @@ const ClientHeader = () => {
 
   const unreadClientNotifications = clientNotifications.filter(n => !n.read);
 
-  const handleClientNotificationClick = (notification) => {
-    markClientNotificationAsRead(notification.id);
+  // 🟢 REGROUPEMENT: Grouper les notifications de type message par projet
+  const groupedNotifications = React.useMemo(() => {
+    const groups = {};
+    
+    unreadClientNotifications.forEach(notif => {
+      const key = `${notif.projectType}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          projectType: notif.projectType,
+          projectName: notif.projectName,
+          notifications: [],
+          totalCount: 0,
+          latestTimestamp: notif.timestamp
+        };
+      }
+      
+      groups[key].notifications.push(notif);
+      groups[key].totalCount += (notif.count || 1);
+      
+      // Garder l'heure du message le plus récent
+      if (new Date(notif.timestamp) > new Date(groups[key].latestTimestamp)) {
+        groups[key].latestTimestamp = notif.timestamp;
+      }
+    });
+    
+    return Object.values(groups).sort((a, b) => 
+      new Date(b.latestTimestamp) - new Date(a.latestTimestamp)
+    );
+  }, [unreadClientNotifications]);
+
+  const handleClientNotificationClick = (group) => {
+    // Marquer toutes les notifications du groupe comme lues
+    group.notifications.forEach(notif => {
+      markClientNotificationAsRead(notif.id);
+    });
+    
     // Redirige vers le dashboard avec le projectType pour ouvrir automatiquement le projet
-    navigate('/dashboard', { state: { openProjectType: notification.projectType } });
+    navigate('/dashboard', { state: { openProjectType: group.projectType } });
   };
 
   const handleProfileClick = () => {
@@ -155,9 +190,9 @@ const ClientHeader = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-gray-100">
                   <Bell className="h-5 w-5 text-gray-600" />
-                  {unreadClientNotifications.length > 0 && (
+                  {groupedNotifications.length > 0 && (
                     <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {unreadClientNotifications.length}
+                      {groupedNotifications.reduce((sum, g) => sum + g.totalCount, 0)}
                     </span>
                   )}
                 </Button>
@@ -165,24 +200,26 @@ const ClientHeader = () => {
               <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {unreadClientNotifications.length > 0 ? (
-                  unreadClientNotifications.map(notif => (
-                    <DropdownMenuItem key={notif.id} onClick={() => handleClientNotificationClick(notif)} className="cursor-pointer flex flex-col items-start py-3">
-                      <div className="flex items-center justify-between w-full gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-blue-600">{notif.projectName}</span>
-                          {notif.count > 1 && (
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                              {notif.count}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-gray-400">{new Date(notif.timestamp).toLocaleDateString('fr-FR')}</span>
+                {groupedNotifications.length > 0 ? (
+                  groupedNotifications.map((group, index) => (
+                    <DropdownMenuItem 
+                      key={`${group.projectType}-${index}`} 
+                      onClick={() => handleClientNotificationClick(group)} 
+                      className="cursor-pointer flex flex-col items-start py-3"
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <span className="font-semibold text-blue-600">{group.projectName}</span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(group.latestTimestamp).toLocaleTimeString('fr-FR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {notif.count > 1 
-                          ? `${notif.count} nouveaux messages`
-                          : notif.message
+                      <p className="text-sm text-gray-600">
+                        {group.totalCount > 1 
+                          ? `${group.totalCount} nouveaux messages`
+                          : group.notifications[0].message
                         }
                       </p>
                     </DropdownMenuItem>
