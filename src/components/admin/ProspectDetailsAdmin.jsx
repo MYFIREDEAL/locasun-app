@@ -2374,7 +2374,7 @@ const ProspectDetailsAdmin = ({
   onUpdate,
   onEditingChange
 }) => {
-  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, activeAdminUser, prompts } = useAppContext();
+  const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, activeAdminUser, prompts, notifications } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
@@ -2475,6 +2475,21 @@ const ProspectDetailsAdmin = ({
       setActiveProjectTag(urlProjectType);
     }
   }, [searchParams, prospect.tags]);
+
+  // 🔥 AUTO-MARK: Marquer les notifications du prospect + projet comme lues à l'ouverture
+  useEffect(() => {
+    if (!prospect?.id || !activeProjectTag || !notifications || !markNotificationAsRead) return;
+
+    const prospectNotifications = notifications.filter(
+      notif => !notif.read && notif.prospectId === prospect.id && notif.projectType === activeProjectTag
+    );
+
+    if (prospectNotifications.length > 0) {
+      prospectNotifications.forEach(notif => {
+        markNotificationAsRead(notif.id);
+      });
+    }
+  }, [prospect?.id, activeProjectTag, notifications, markNotificationAsRead]);
 
   // 🔥 FIX: Synchroniser le state quand la prop change (pattern du chat)
   useEffect(() => {

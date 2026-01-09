@@ -37,10 +37,47 @@ const navItems = [
 
       const unreadNotifications = notifications.filter(n => !n.read);
 
-      const handleNotificationClick = (notification) => {
-        markNotificationAsRead(notification.id);
+      // 🟢 REGROUPEMENT: Grouper les notifications par prospect + projet
+      const groupedNotifications = React.useMemo(() => {
+        const groups = {};
+        
+        unreadNotifications.forEach(notif => {
+          const key = `${notif.prospectId}-${notif.projectType}`;
+          
+          if (!groups[key]) {
+            groups[key] = {
+              prospectId: notif.prospectId,
+              prospectName: notif.prospectName,
+              projectType: notif.projectType,
+              projectName: notif.projectName,
+              notifications: [],
+              totalCount: 0,
+              latestTimestamp: notif.timestamp
+            };
+          }
+          
+          groups[key].notifications.push(notif);
+          groups[key].totalCount += (notif.count || 1);
+          
+          // Garder l'heure du message le plus récent
+          if (new Date(notif.timestamp) > new Date(groups[key].latestTimestamp)) {
+            groups[key].latestTimestamp = notif.timestamp;
+          }
+        });
+        
+        return Object.values(groups).sort((a, b) => 
+          new Date(b.latestTimestamp) - new Date(a.latestTimestamp)
+        );
+      }, [unreadNotifications]);
+
+      const handleNotificationClick = (group) => {
+        // Marquer toutes les notifications du groupe comme lues
+        group.notifications.forEach(notif => {
+          markNotificationAsRead(notif.id);
+        });
+        
         // Redirige vers la pipeline avec le prospect et projet pour ouvrir directement la fiche détaillée avec le chat
-        navigate(`/admin/pipeline?project=${notification.projectType}&prospect=${notification.prospectId}`);
+        navigate(`/admin/pipeline?project=${group.projectType}&prospect=${group.prospectId}`);
       };
 
       const handleUserSwitch = (userId) => {
@@ -159,9 +196,9 @@ const navItems = [
                         className="rounded-full hover:bg-gray-100 relative"
                       >
                         <Bell className="h-5 w-5 text-gray-600" />
-                        {unreadNotifications.length > 0 && (
+                        {groupedNotifications.length > 0 && (
                           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                            {unreadNotifications.length}
+                            {groupedNotifications.reduce((sum, g) => sum + g.totalCount, 0)}
                           </span>
                         )}
                       </Button>
@@ -169,30 +206,28 @@ const navItems = [
                     <DropdownMenuContent align="end" className="w-80">
                       <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {unreadNotifications.length > 0 ? (
-                        unreadNotifications.map(notif => (
-                          <DropdownMenuItem key={notif.id} onClick={() => handleNotificationClick(notif)} className="cursor-pointer">
+                      {groupedNotifications.length > 0 ? (
+                        groupedNotifications.map((group, index) => (
+                          <DropdownMenuItem key={`${group.prospectId}-${group.projectType}-${index}`} onClick={() => handleNotificationClick(group)} className="cursor-pointer">
                             <div className="flex items-start space-x-3 py-2 w-full">
-                              <div className="bg-blue-100 rounded-full p-2 relative">
+                              <div className="bg-blue-100 rounded-full p-2">
                                 <MessageSquare className="h-4 w-4 text-blue-600" />
-                                {notif.count > 1 && (
-                                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                                    {notif.count}
-                                  </span>
-                                )}
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-800">
-                                  {notif.count > 1 
-                                    ? `${notif.count} nouveaux messages de ${notif.prospectName}`
-                                    : `Nouveau message de ${notif.prospectName}`
+                                  {group.totalCount > 1 
+                                    ? `${group.totalCount} nouveaux messages de ${group.prospectName}`
+                                    : `Nouveau message de ${group.prospectName}`
                                   }
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  Projet: {notif.projectName}
+                                  Projet: {group.projectName}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">
-                                  {formatDistanceToNow(new Date(notif.timestamp), { addSuffix: true, locale: fr })}
+                                  {new Date(group.latestTimestamp).toLocaleTimeString('fr-FR', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
                                 </p>
                               </div>
                             </div>
