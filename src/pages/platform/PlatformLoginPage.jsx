@@ -101,7 +101,7 @@ const PlatformLoginPage = () => {
       // 2. Vérifier présence dans public.users et role platform_admin
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, email, role, first_name, last_name')
+        .select('id, email, role, name')
         .eq('user_id', authData.user.id)
         .single();
 
@@ -140,7 +140,7 @@ const PlatformLoginPage = () => {
       console.log('✅ [PlatformLogin] Platform admin vérifié, redirection...');
       toast({
         title: "Connexion réussie",
-        description: `Bienvenue ${userData.first_name || userData.email}`,
+        description: `Bienvenue ${userData.name || userData.email}`,
         className: "bg-green-500 text-white",
       });
 

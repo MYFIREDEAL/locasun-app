@@ -21,7 +21,7 @@ const PlatformLayout = () => {
         // Vérifier que l'utilisateur a le rôle platform_admin
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, email, role, first_name, last_name')
+          .select('id, email, role, name')
           .eq('user_id', user.id)
           .single();
 
@@ -100,7 +100,7 @@ const PlatformLayout = () => {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">
-                {platformUser?.first_name} {platformUser?.last_name}
+                {platformUser?.name || platformUser?.email}
               </span>
               <span className="text-xs bg-gray-900 text-white px-2 py-1 rounded">
                 Platform Admin

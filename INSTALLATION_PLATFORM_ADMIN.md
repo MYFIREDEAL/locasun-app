@@ -39,23 +39,19 @@ ALTER TABLE public.users
 ALTER COLUMN organization_id DROP NOT NULL;
 
 -- ÉTAPE 3 : Créer/mettre à jour l'utilisateur platform_admin
-INSERT INTO public.users (user_id, email, name, role, organization_id, first_name, last_name)
+INSERT INTO public.users (user_id, email, name, role, organization_id)
 VALUES (
   '66adc899-0d3e-46f6-87ec-4c73b4fe4e26',
   'jack.luc2021@gmail.com',
   'Jack Luc',
   'platform_admin',
-  NULL,
-  'Jack',
-  'Luc'
+  NULL
 )
 ON CONFLICT (user_id) 
 DO UPDATE SET 
   role = 'platform_admin',
   email = 'jack.luc2021@gmail.com',
   name = 'Jack Luc',
-  first_name = 'Jack',
-  last_name = 'Luc',
   organization_id = NULL;
 
 -- ÉTAPE 4 : Créer la RLS policy pour platform_admin
