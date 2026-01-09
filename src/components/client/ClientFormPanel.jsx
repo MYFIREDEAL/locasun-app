@@ -57,6 +57,7 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   const prospect = currentUser;
 
   const [formDrafts, setFormDrafts] = useState({});
+  const [submittingForms, setSubmittingForms] = useState({}); // 🔥 État pour gérer la soumission
 
   useEffect(() => {
     if (!prospect) {
@@ -118,15 +119,24 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       messageTimestamp,
     } = panel;
 
-    // ✅ Client: Utiliser currentUser au lieu de prospects (qui est pour les admins)
-    if (!currentUser || currentUser.id !== prospectId) {
-      toast({
-        title: 'Erreur de session',
-        description: 'Impossible de soumettre le formulaire. Veuillez vous reconnecter.',
-        variant: 'destructive',
-      });
+    // 🔥 Empêcher le double clic
+    if (submittingForms[panelId]) {
       return;
     }
+
+    // 🔥 Marquer comme en cours de soumission
+    setSubmittingForms(prev => ({ ...prev, [panelId]: true }));
+
+    try {
+      // ✅ Client: Utiliser currentUser au lieu de prospects (qui est pour les admins)
+      if (!currentUser || currentUser.id !== prospectId) {
+        toast({
+          title: 'Erreur de session',
+          description: 'Impossible de soumettre le formulaire. Veuillez vous reconnecter.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
     const formDefinition = forms[formId];
     let draft = { ...(formDrafts[panelId] || {}) };
@@ -412,6 +422,18 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
     } catch (historyErr) {
       // Ne pas bloquer si l'événement échoue
       logger.error('⚠️ Erreur ajout événement historique:', historyErr);
+    }
+    } catch (error) {
+      // Gérer toute erreur non capturée
+      logger.error('❌ Erreur lors de la soumission du formulaire:', error);
+      toast({
+        title: '❌ Erreur',
+        description: 'Une erreur est survenue lors de l\'envoi du formulaire.',
+        variant: 'destructive',
+      });
+    } finally {
+      // 🔥 Réactiver le bouton dans tous les cas
+      setSubmittingForms(prev => ({ ...prev, [panelId]: false }));
     }
   };
 
@@ -953,9 +975,14 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
                   <Button
                     onClick={() => handleSubmit(panel)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={uploading}
+                    disabled={uploading || submittingForms[panel.panelId]}
                   >
-                    {uploading ? (
+                    {submittingForms[panel.panelId] ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Envoi en cours...
+                      </>
+                    ) : uploading ? (
                       <>
                         <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                         Upload en cours...
