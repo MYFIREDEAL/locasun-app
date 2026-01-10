@@ -10,11 +10,13 @@ import { useAppContext } from '@/App';
 import { User, Mail, Phone, Building2 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { useOrganization } from '@/contexts/OrganizationContext'; // 🔥 AJOUT
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
   const { projectsData, currentUser, activeAdminUser, setActiveAdminUser } = useAppContext();
+  const { organizationId } = useOrganization(); // 🔥 AJOUT
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [errors, setErrors] = useState({});
@@ -190,7 +192,8 @@ const RegistrationPage = () => {
             .upsert({
               prospect_id: prospectId,
               project_type: projectType,
-              steps: initialSteps
+              steps: initialSteps,
+              organization_id: organizationId, // 🔥 AJOUT: requis par RLS
             });
         }
       }
