@@ -170,7 +170,7 @@ const OfferCard = ({ project, projectStatus }) => {
             className={`w-full mt-auto rounded-xl ${isProjectAdded ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'gradient-green hover:opacity-90'}`}
             size="lg"
           >
-            {isProjectAdded ? '� Voir le projet' : (project.ctaText || '👉 Ajouter ce projet')}
+            {isProjectAdded ? '➤ Voir le projet' : (project.ctaText || '➤ Ajouter ce projet')}
           </Button>
         )}
       </div>
