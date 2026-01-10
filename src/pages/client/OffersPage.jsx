@@ -110,11 +110,11 @@ const OfferCard = ({ project, projectStatus }) => {
         
         if (stepsError) {
           logger.error('⚠️ Erreur initialisation steps:', stepsError);
-          throw stepsError; // 🔥 BLOQUER si les steps échouent
+          // Ne pas bloquer l'ajout du projet si les steps échouent
+        } else {
+          // ✅ Attendre 300ms pour que Supabase propage la donnée avant navigation
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
-        
-        // ✅ Attendre 200ms pour que Supabase propage la donnée
-        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       // ✅ Mettre à jour currentUser localement pour UI immédiate
