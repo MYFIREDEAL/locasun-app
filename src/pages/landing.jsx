@@ -1,6 +1,7 @@
 import React from "react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 import {
   Sparkles,
   Zap,
@@ -31,6 +32,7 @@ import { useToast } from "@/components/ui/use-toast"
 
 export default function Landing() {
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const automations = [
     "Génération automatique de devis personnalisés",
@@ -226,7 +228,7 @@ export default function Landing() {
                 </div>
               </div>
               <Button
-                onClick={handleToast}
+                onClick={() => navigate('/login')}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-6"
               >
                 Connexion
