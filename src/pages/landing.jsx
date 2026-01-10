@@ -270,20 +270,13 @@ export default function Landing() {
                 entreprise avec l&apos;intelligence artificielle
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex justify-center">
                 <Button
                   onClick={handleToast}
                   className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-8 py-6 text-lg shadow-xl"
                 >
                   Essayer gratuitement
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button
-                  onClick={handleToast}
-                  variant="outline"
-                  className="border-2 border-gray-200 hover:border-blue-600 rounded-full px-8 py-6 text-lg"
-                >
-                  Voir la démo
                 </Button>
               </div>
             </motion.div>
