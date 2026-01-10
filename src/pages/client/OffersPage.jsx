@@ -166,11 +166,10 @@ const OfferCard = ({ project, projectStatus }) => {
         ) : (
           <Button 
             onClick={handleCtaClick}
-            className={`w-full mt-auto rounded-xl ${isProjectAdded ? 'bg-gray-300 hover:bg-gray-400' : 'gradient-green hover:opacity-90'}`}
+            className={`w-full mt-auto rounded-xl ${isProjectAdded ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'gradient-green hover:opacity-90'}`}
             size="lg"
-            disabled={isProjectAdded}
           >
-            {isProjectAdded ? 'Voir le projet' : (project.ctaText || '👉 Ajouter ce projet')}
+            {isProjectAdded ? '👁️ Voir le projet' : (project.ctaText || '👉 Ajouter ce projet')}
           </Button>
         )}
       </div>
