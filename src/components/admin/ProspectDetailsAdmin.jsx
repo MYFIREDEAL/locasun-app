@@ -736,7 +736,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
               }
 
               // 🔥 ENVOYER LE LIEN DANS LE CHAT (pour le client principal)
-              const signatureUrl = `${window.location.origin}/signature/${signatureProcedure.id}?token=${signatureProcedure.access_token}`;
+              const signatureUrl = `https://evatime.fr/signature/${signatureProcedure.id}?token=${signatureProcedure.access_token}`;
               
               // Vérifier si le message existe déjà
               const { data: existingMessage } = await supabase

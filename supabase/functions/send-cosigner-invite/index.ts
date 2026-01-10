@@ -46,7 +46,7 @@ serve(async (req) => {
       )
     }
 
-    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://myfiredeal.github.io/locasun-app'
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://evatime.fr'
 
     // Envoyer email à chaque cosigner
     for (const cosigner of pendingCosigners) {
