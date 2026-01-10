@@ -2194,7 +2194,7 @@ const ProfilePage = () => {
     }
     
     // ✅ Générer le VRAI lien d'affiliation pointant vers /inscription/{slug}
-    const link = `${window.location.origin}/inscription/${fullUser.affiliate_slug}`;
+    const link = `https://evatime.fr/inscription/${fullUser.affiliate_slug}`;
 
     navigator.clipboard.writeText(link).then(() => {
       toast({
@@ -2780,7 +2780,7 @@ const ProfilePage = () => {
             {(() => {
               const currentUserFull = supabaseUsers.find(u => u.user_id === activeAdminUser?.id || u.email === userInfo.email);
               const affiliateSlug = currentUserFull?.affiliate_slug;
-              const affiliateLink = affiliateSlug ? `${window.location.origin}/inscription/${affiliateSlug}` : null;
+              const affiliateLink = affiliateSlug ? `https://evatime.fr/inscription/${affiliateSlug}` : null;
 
               if (!affiliateLink) return null;
 
