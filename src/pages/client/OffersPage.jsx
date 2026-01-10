@@ -97,9 +97,23 @@ const OfferCard = ({ project, projectStatus }) => {
         const initialSteps = JSON.parse(JSON.stringify(project.steps));
         initialSteps[0].status = 'in_progress'; // Première étape active
         
+        // 🔥 Récupérer organization_id depuis le prospect (requis par la DB)
+        const { data: prospectData, error: prospectError } = await supabase
+          .from('prospects')
+          .select('organization_id')
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (prospectError || !prospectData?.organization_id) {
+          logger.error('Organization introuvable pour le prospect:', { prospectId: currentUser.id, error: prospectError?.message });
+          console.error('❌ Impossible de récupérer organization_id');
+          return;
+        }
+        
         console.log('💾 Sauvegarde steps dans Supabase:', {
           prospect_id: currentUser.id,
           project_type: project.type,
+          organization_id: prospectData.organization_id,
           steps: initialSteps
         });
         
@@ -108,6 +122,7 @@ const OfferCard = ({ project, projectStatus }) => {
           .upsert({
             prospect_id: currentUser.id,
             project_type: project.type,
+            organization_id: prospectData.organization_id,
             steps: initialSteps,
             updated_at: new Date().toISOString()
           }, {
