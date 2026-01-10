@@ -452,17 +452,9 @@ const ProjectDetails = ({ project, onBack }) => {
     panel => panel.prospectId === currentUser.id && panel.projectType === project.type
   ) : false;
   
-  // ✅ PRIORITÉ ABSOLUE : Toujours utiliser Supabase, jamais le fallback localStorage
-  // Si pas encore chargé, afficher le template par défaut avec première étape en cours
-  const steps = stepsFromSupabase || (() => {
-    // Si pas de steps Supabase, initialiser le template avec première étape active
-    if (project.steps && project.steps.length > 0) {
-      const initialSteps = JSON.parse(JSON.stringify(project.steps));
-      initialSteps[0].status = STATUS_CURRENT; // Première étape en cours par défaut
-      return initialSteps;
-    }
-    return project.steps;
-  })();
+  // ✅ PRIORITÉ ABSOLUE : Utiliser UNIQUEMENT Supabase (source de vérité unique)
+  // Si pas encore chargé, afficher un loader ou les steps vides
+  const steps = stepsFromSupabase || [];
   
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
@@ -562,6 +554,22 @@ const ProjectDetails = ({ project, onBack }) => {
     const calculatedProgress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
     setProgress(calculatedProgress);
   }, [steps]);
+
+  // 🔥 Afficher un loader si les steps sont en cours de chargement
+  if (stepsLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center min-h-screen"
+      >
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement du projet...</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
