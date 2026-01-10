@@ -235,7 +235,7 @@ export default function Landing() {
                   Espace Pro
                 </Button>
                 <Button
-                  onClick={() => window.location.href = 'https://evatime.vercel.app/client-access'}
+                  onClick={() => navigate('/client-access')}
                   className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-6"
                 >
                   Espace Client
