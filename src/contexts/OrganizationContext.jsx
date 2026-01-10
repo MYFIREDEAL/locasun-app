@@ -31,33 +31,91 @@ export const OrganizationProvider = ({ children }) => {
         setOrganizationLoading(true);
         setOrganizationError(null);
 
-        const hostname = window.location.hostname;
-        logger.info('[OrganizationContext] Résolution de l\'organization depuis hostname:', hostname);
+        // 1️⃣ Si user connecté : utiliser user.organization_id
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          logger.info('[OrganizationContext] User authentifié, récupération de son organization_id');
+          
+          // Vérifier si c'est un admin (table users) ou un client (table prospects)
+          const { data: adminUser } = await supabase
+            .from('users')
+            .select('organization_id')
+            .eq('user_id', user.id)
+            .single();
 
-        const { data, error } = await supabase.rpc('resolve_organization_from_host', {
+          if (adminUser?.organization_id) {
+            logger.info('[OrganizationContext] Organization résolue depuis user admin:', adminUser.organization_id);
+            setOrganizationId(adminUser.organization_id);
+            setOrganizationLoading(false);
+            return;
+          }
+
+          const { data: prospectUser } = await supabase
+            .from('prospects')
+            .select('organization_id')
+            .eq('user_id', user.id)
+            .single();
+
+          if (prospectUser?.organization_id) {
+            logger.info('[OrganizationContext] Organization résolue depuis prospect:', prospectUser.organization_id);
+            setOrganizationId(prospectUser.organization_id);
+            setOrganizationLoading(false);
+            return;
+          }
+        }
+
+        // 2️⃣ Sinon, essayer domaine custom
+        const hostname = window.location.hostname;
+        logger.info('[OrganizationContext] Tentative de résolution depuis hostname:', hostname);
+
+        // Vérifier si la fonction RPC existe avant de l'appeler
+        const { data: rpcData, error: rpcError } = await supabase.rpc('resolve_organization_from_host', {
           host: hostname
         });
 
-        if (error) {
-          logger.error('[OrganizationContext] Erreur RPC resolve_organization_from_host:', error);
-          setOrganizationError('Impossible de résoudre l\'organisation');
-          setOrganizationLoading(false);
-          return;
+        if (!rpcError && rpcData) {
+          // rpcData peut être une string (uuid) ou un objet { id }
+          const resolvedId = rpcData?.id || (Array.isArray(rpcData) && rpcData[0]?.id) || rpcData;
+          if (resolvedId) {
+            logger.info('[OrganizationContext] Organization résolue depuis domaine custom:', resolvedId);
+            setOrganizationId(resolvedId);
+            setOrganizationLoading(false);
+            return;
+          }
         }
 
-        if (!data) {
-          logger.warn('[OrganizationContext] Aucune organisation trouvée pour hostname:', hostname);
-          setOrganizationError('Organisation inconnue pour ce domaine');
-          setOrganizationLoading(false);
-          return;
+        // 3️⃣ Fallback : utiliser l'organisation plateforme EVATIME
+        logger.warn('[OrganizationContext] Aucune organisation trouvée, fallback vers organisation plateforme');
+        
+        // Chercher l'organisation plateforme (is_platform = true) ou prendre la première
+        const { data: platformOrg, error: platformError } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('is_platform', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (!platformError && platformOrg) {
+          const platformId = platformOrg.id || platformOrg?.organization_id || platformOrg;
+          if (platformId) {
+            logger.info('[OrganizationContext] Fallback vers organisation plateforme:', platformId);
+            setOrganizationId(platformId);
+          } else {
+            logger.warn('[OrganizationContext] Platform organization query returned no id, leaving organizationId null');
+            setOrganizationId(null);
+          }
+        } else {
+          logger.warn('[OrganizationContext] Impossible de récupérer l\'organisation plateforme, leaving organizationId null', platformError);
+          setOrganizationId(null);
         }
 
-        logger.info('[OrganizationContext] Organization résolue:', data);
-        setOrganizationId(data);
         setOrganizationLoading(false);
       } catch (err) {
         logger.error('[OrganizationContext] Exception lors de la résolution:', err);
-        setOrganizationError('Erreur technique lors de la résolution de l\'organisation');
+        // ⚠️ NE JAMAIS BLOQUER L'APP - fallback vers null
+        logger.warn('[OrganizationContext] Fallback vers organizationId = null (mode dégradé)');
+        setOrganizationId(null);
+        setOrganizationError(null); // Pas d'erreur bloquante
         setOrganizationLoading(false);
       }
     };

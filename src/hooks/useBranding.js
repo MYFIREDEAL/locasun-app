@@ -17,6 +17,7 @@ export const useBranding = (organizationId) => {
 
   useEffect(() => {
     if (!organizationId) {
+      logger.info('[useBranding] Pas d\'organizationId, utilisation des paramètres par défaut');
       setBrandingLoading(false);
       return;
     }
@@ -35,15 +36,14 @@ export const useBranding = (organizationId) => {
           .single();
 
         if (error) {
-          logger.error('[useBranding] Erreur lors du chargement:', error);
-          setBrandingError('Impossible de charger les paramètres de branding');
+          logger.warn('[useBranding] Erreur lors du chargement (table organization_settings peut ne pas exister):', error);
+          // ✅ Pas d'erreur bloquante - fallback vers valeurs par défaut
           setBrandingLoading(false);
           return;
         }
 
         if (!data) {
-          logger.warn('[useBranding] Aucun paramètre de branding trouvé pour organization:', organizationId);
-          setBrandingError('Aucun paramètre de branding configuré');
+          logger.info('[useBranding] Aucun paramètre de branding trouvé, utilisation des valeurs par défaut');
           setBrandingLoading(false);
           return;
         }
@@ -56,8 +56,8 @@ export const useBranding = (organizationId) => {
         setSecondaryColor(data.secondary_color);
         setBrandingLoading(false);
       } catch (err) {
-        logger.error('[useBranding] Exception lors du chargement:', err);
-        setBrandingError('Erreur technique lors du chargement du branding');
+        logger.warn('[useBranding] Exception lors du chargement, fallback vers valeurs par défaut:', err);
+        // ✅ Pas d'erreur bloquante
         setBrandingLoading(false);
       }
     };

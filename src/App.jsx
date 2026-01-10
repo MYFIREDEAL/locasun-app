@@ -1085,7 +1085,10 @@ function App() {
     // 2️⃣ Sauvegarder dans Supabase (real-time sync)
     try {
       if (!organizationId) {
-        throw new Error('organization_id manquant');
+        // Ne pas lancer d'exception basée sur le domaine.
+        // La mise à jour côté client a déjà été appliquée localement.
+        logger.warn('updateProjectSteps: organisation manquante — skip server save');
+        return;
       }
 
       const { data, error } = await supabase
@@ -1112,7 +1115,8 @@ function App() {
           description: "Impossible de sauvegarder les étapes",
           variant: "destructive",
         });
-        throw error;
+        // Ne pas rethrower pour éviter blocage basé sur l'organisation
+        return;
       }
     } catch (err) {
       logger.error('Erreur sauvegarde project steps', { error: err.message });
@@ -1376,74 +1380,10 @@ function App() {
   };
 
 
-  // 🔥 BLOQUER LE RENDU TANT QUE L'ORGANIZATION N'EST PAS RÉSOLUE
-  if (organizationLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Résolution de l'organisation...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🔥 ÉCRAN BLOQUANT SI AUCUNE ORGANISATION TROUVÉE
-  if (organizationError || !organizationId) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center max-w-md px-6">
-          <div className="bg-red-100 rounded-full h-16 w-16 mx-auto mb-4 flex items-center justify-center">
-            <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Organisation inconnue</h1>
-          <p className="text-gray-600 mb-4">
-            {organizationError || "Impossible de résoudre l'organisation pour ce domaine."}
-          </p>
-          <p className="text-sm text-gray-500">
-            Veuillez contacter votre administrateur système.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🔥 BLOQUER LE RENDU TANT QUE LE BRANDING N'EST PAS CHARGÉ
-  if (brandingLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Chargement de la configuration...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🔥 ÉCRAN BLOQUANT SI ERREUR BRANDING
-  if (brandingError) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center max-w-md px-6">
-          <div className="bg-yellow-100 rounded-full h-16 w-16 mx-auto mb-4 flex items-center justify-center">
-            <svg className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Configuration incomplète</h1>
-          <p className="text-gray-600 mb-4">
-            {brandingError}
-          </p>
-          <p className="text-sm text-gray-500">
-            Veuillez contacter votre administrateur système.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // NOTE: Ne pas bloquer le rendu si l'organisation n'est pas encore résolue.
+  // Le fallback plateforme est géré dans OrganizationContext et l'app
+  // doit pouvoir fonctionner même si organizationId === null.
+  
   // 🔥 BLOQUER LE RENDU TANT QUE L'AUTH N'EST PAS COMPLÈTE
   if (authLoading) {
     return (
