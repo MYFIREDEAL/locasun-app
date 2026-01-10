@@ -90,12 +90,17 @@ async function handleFormSubmission(formPanel, prompts) {
   // Récupérer les infos du prospect
   const { data: prospect, error: prospectError } = await supabase
     .from('prospects')
-    .select('name, owner_id')
+    .select('name, owner_id, organization_id')
     .eq('id', prospect_id)
     .single();
 
   if (prospectError || !prospect) {
     logger.error('❌ Erreur récupération prospect:', prospectError);
+    return;
+  }
+
+  if (!prospect.organization_id) {
+    logger.error('❌ Organization ID manquant pour le prospect:', { prospect_id });
     return;
   }
 
@@ -150,6 +155,7 @@ async function handleFormSubmission(formPanel, prompts) {
     contact_id: prospect_id,
     project_id: project_type,
     step: stepName,
+    organization_id: prospect.organization_id, // 🔥 AJOUT: Requis par la DB
     start_time: now.toISOString(),
     end_time: endTime.toISOString(),
     status: 'pending',
