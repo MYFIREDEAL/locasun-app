@@ -155,7 +155,7 @@ const HomePage = () => {
   }, [slugUser]);
 
   const openProLogin = () => {
-    setIsProLoginOpen(true);
+    navigate('/login');
   };
 
   const openClientAccess = () => {

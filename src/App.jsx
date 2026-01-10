@@ -22,6 +22,7 @@ import OrganizationDetailPage from '@/pages/platform/OrganizationDetailPage';
 import PlatformLoginPage from '@/pages/platform/PlatformLoginPage';
 import HomePage from '@/pages/HomePage';
 import ClientAccessPage from '@/pages/ClientAccessPage';
+import ProLoginPage from '@/pages/ProLoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import SignupPage from '@/pages/SignupPage';
 import ProducerLandingPage from '@/pages/ProducerLandingPage';
@@ -1418,6 +1419,7 @@ function App() {
         {/* 🌍 PUBLIC ROUTES */}
         <Route path="/" element={<HomePage />} />
         <Route path="/landing" element={<Landing />} />
+        <Route path="/login" element={<ProLoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
