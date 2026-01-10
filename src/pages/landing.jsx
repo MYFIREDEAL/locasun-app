@@ -227,12 +227,20 @@ export default function Landing() {
                   </span>
                 </div>
               </div>
-              <Button
-                onClick={() => navigate('/login')}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-6"
-              >
-                Connexion
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => navigate('/login')}
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-full px-6"
+                >
+                  Espace Pro
+                </Button>
+                <Button
+                  onClick={() => window.location.href = 'https://evatime.vercel.app/client-access'}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-6"
+                >
+                  Espace Client
+                </Button>
+              </div>
             </div>
           </div>
         </header>
