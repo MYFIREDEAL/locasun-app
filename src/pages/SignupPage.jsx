@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { Building2, Globe, Mail, Lock, Loader2 } from 'lucide-react';
+import { Building2, Mail, Lock, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const SignupPage = () => {
@@ -13,7 +13,6 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     companyName: '',
-    domain: '',
     adminEmail: '',
     adminPassword: '',
   });
@@ -33,12 +32,6 @@ const SignupPage = () => {
 
     if (!formData.companyName || formData.companyName.trim().length < 2) {
       newErrors.companyName = "Le nom de l'entreprise doit contenir au moins 2 caractères";
-    }
-
-    if (!formData.domain || formData.domain.trim().length < 3) {
-      newErrors.domain = "Le domaine doit contenir au moins 3 caractères";
-    } else if (!/^[a-z0-9-]+\.[a-z]{2,}$/i.test(formData.domain.trim())) {
-      newErrors.domain = "Format de domaine invalide (ex: monentreprise.com)";
     }
 
     if (!formData.adminEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) {
@@ -72,7 +65,6 @@ const SignupPage = () => {
       const { data, error } = await supabase.functions.invoke('create-organization-onboarding', {
         body: {
           companyName: formData.companyName.trim(),
-          domain: formData.domain.trim().toLowerCase(),
           adminEmail: formData.adminEmail.trim().toLowerCase(),
           adminPassword: formData.adminPassword,
         },
@@ -170,31 +162,6 @@ const SignupPage = () => {
               {errors.companyName && (
                 <p className="text-red-500 text-xs mt-1">{errors.companyName}</p>
               )}
-            </div>
-
-            {/* Domain */}
-            <div>
-              <Label htmlFor="domain" className="text-sm font-medium text-gray-700 mb-1.5">
-                Domaine de l'entreprise *
-              </Label>
-              <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  id="domain"
-                  type="text"
-                  placeholder="Ex: acme.com"
-                  value={formData.domain}
-                  onChange={handleInputChange}
-                  disabled={loading}
-                  className={`pl-10 ${errors.domain ? 'border-red-500' : ''}`}
-                />
-              </div>
-              {errors.domain && (
-                <p className="text-red-500 text-xs mt-1">{errors.domain}</p>
-              )}
-              <p className="text-gray-500 text-xs mt-1">
-                Ce domaine sera utilisé pour accéder à votre application
-              </p>
             </div>
 
             {/* Admin Email */}

@@ -8,7 +8,6 @@ const corsHeaders = {
 
 interface OnboardingRequest {
   companyName: string
-  domain: string
   adminEmail: string
   adminPassword: string
 }
@@ -26,10 +25,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { companyName, domain, adminEmail, adminPassword }: OnboardingRequest = await req.json()
+    const { companyName, adminEmail, adminPassword }: OnboardingRequest = await req.json()
 
     // Validation
-    if (!companyName || !domain || !adminEmail || !adminPassword) {
+    if (!companyName || !adminEmail || !adminPassword) {
       return new Response(
         JSON.stringify({ error: 'Tous les champs sont requis' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -43,8 +42,6 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[Onboarding] Starting for company: ${companyName}, domain: ${domain}`)
-
     // Générer un slug unique à partir du nom de l'entreprise
     const slug = companyName
       .toLowerCase()
@@ -53,6 +50,11 @@ serve(async (req) => {
       .replace(/[^a-z0-9]+/g, '-') // Remplacer caractères spéciaux par -
       .replace(/^-+|-+$/g, '') // Retirer - au début/fin
       .substring(0, 50)
+
+    // Générer automatiquement le domaine à partir du slug
+    const domain = `${slug}.evatime.fr`
+
+    console.log(`[Onboarding] Starting for company: ${companyName}, domain: ${domain}, slug: ${slug}`)
 
     // Vérifier que le domaine n'existe pas déjà
     const { data: existingDomain } = await supabaseAdmin
