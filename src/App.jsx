@@ -1417,8 +1417,9 @@ function App() {
           <Route path="organizations/:id" element={<OrganizationDetailPage />} />
         </Route>
         {/* 🌍 PUBLIC ROUTES */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/landing" element={<Landing />} />
+        <Route path="/solaire" element={<HomePage />} />
         <Route path="/login" element={<ProLoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
