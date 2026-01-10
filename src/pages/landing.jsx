@@ -229,7 +229,7 @@ export default function Landing() {
                 onClick={handleToast}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-6"
               >
-                Démarrer gratuitement
+                Connexion
               </Button>
             </div>
           </div>
