@@ -97,7 +97,13 @@ const OfferCard = ({ project, projectStatus }) => {
         const initialSteps = JSON.parse(JSON.stringify(project.steps));
         initialSteps[0].status = 'in_progress'; // Première étape active
         
-        const { error: stepsError } = await supabase
+        console.log('💾 Sauvegarde steps dans Supabase:', {
+          prospect_id: currentUser.id,
+          project_type: project.type,
+          steps: initialSteps
+        });
+        
+        const { data, error: stepsError } = await supabase
           .from('project_steps_status')
           .upsert({
             prospect_id: currentUser.id,
@@ -106,10 +112,14 @@ const OfferCard = ({ project, projectStatus }) => {
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'prospect_id,project_type'
-          });
+          })
+          .select();
         
         if (stepsError) {
+          console.error('❌ ERREUR sauvegarde steps:', stepsError);
           logger.error('⚠️ Erreur initialisation steps:', stepsError);
+        } else {
+          console.log('✅ Steps sauvegardés avec succès:', data);
         }
         
         // ✅ Attendre 500ms pour que Supabase propage la donnée avant navigation
