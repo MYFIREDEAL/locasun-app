@@ -453,8 +453,16 @@ const ProjectDetails = ({ project, onBack }) => {
   ) : false;
   
   // ✅ PRIORITÉ ABSOLUE : Toujours utiliser Supabase, jamais le fallback localStorage
-  // Si pas encore chargé, afficher le template par défaut avec status initial
-  const steps = stepsFromSupabase || project.steps;
+  // Si pas encore chargé, afficher le template par défaut avec première étape en cours
+  const steps = stepsFromSupabase || (() => {
+    // Si pas de steps Supabase, initialiser le template avec première étape active
+    if (project.steps && project.steps.length > 0) {
+      const initialSteps = JSON.parse(JSON.stringify(project.steps));
+      initialSteps[0].status = STATUS_CURRENT; // Première étape en cours par défaut
+      return initialSteps;
+    }
+    return project.steps;
+  })();
   
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
