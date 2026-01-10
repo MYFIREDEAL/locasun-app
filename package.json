@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
-  "homepage": "https://myfiredeal.github.io/locasun-app",
+  "homepage": "https://evatime.fr",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

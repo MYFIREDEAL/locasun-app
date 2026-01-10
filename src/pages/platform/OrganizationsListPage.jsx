@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
 
 const OrganizationsListPage = () => {
   const navigate = useNavigate();
@@ -37,6 +38,25 @@ const OrganizationsListPage = () => {
   const handleOrganizationClick = (orgId) => {
     navigate(`/platform/organizations/${orgId}`);
   };
+
+  const copyToClipboard = (url, type) => {
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: 'Lien copié',
+        description: `Le lien de connexion ${type} a été copié dans le presse-papiers`,
+      });
+    }).catch((err) => {
+      console.error('Failed to copy:', err);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de copier le lien',
+        variant: 'destructive',
+      });
+    });
+  };
+
+  const getProLoginUrl = (slug) => `https://evatime.fr/login?org=${slug}`;
+  const getClientLoginUrl = (slug) => `https://evatime.fr/client-access?org=${slug}`;
 
   if (loading) {
     return (
@@ -82,22 +102,33 @@ const OrganizationsListPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Créée le
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Connexions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {organizations.map((org) => (
                 <tr
                   key={org.id}
-                  onClick={() => handleOrganizationClick(org.id)}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td 
+                    className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                    onClick={() => handleOrganizationClick(org.id)}
+                  >
                     <div className="text-sm font-medium text-gray-900">{org.name}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td 
+                    className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                    onClick={() => handleOrganizationClick(org.id)}
+                  >
                     <div className="text-sm text-gray-600">{org.slug}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td 
+                    className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                    onClick={() => handleOrganizationClick(org.id)}
+                  >
                     <div className="text-sm text-gray-600">
                       {new Date(org.created_at).toLocaleDateString('fr-FR', {
                         day: '2-digit',
@@ -106,6 +137,30 @@ const OrganizationsListPage = () => {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(getProLoginUrl(org.slug), 'PRO');
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
+                        title="Copier le lien de connexion PRO"
+                      >
+                        🔐 PRO
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(getClientLoginUrl(org.slug), 'CLIENT');
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded hover:bg-green-100 transition-colors"
+                        title="Copier le lien de connexion CLIENT"
+                      >
+                        👤 CLIENT
+                      </button>
                     </div>
                   </td>
                 </tr>

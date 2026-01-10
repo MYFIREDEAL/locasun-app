@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
 
 const OrganizationDetailPage = () => {
   const { id } = useParams();
@@ -69,6 +70,25 @@ const OrganizationDetailPage = () => {
     navigate('/platform/organizations');
   };
 
+  const copyToClipboard = (url, type) => {
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: 'Lien copié',
+        description: `Le lien de connexion ${type} a été copié dans le presse-papiers`,
+      });
+    }).catch((err) => {
+      console.error('Failed to copy:', err);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de copier le lien',
+        variant: 'destructive',
+      });
+    });
+  };
+
+  const getProLoginUrl = (slug) => `https://evatime.fr/login?org=${slug}`;
+  const getClientLoginUrl = (slug) => `https://evatime.fr/client-access?org=${slug}`;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -112,6 +132,54 @@ const OrganizationDetailPage = () => {
       </div>
 
       <div className="space-y-6">
+        {/* Section Connexion EVATIME */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Connexion à EVATIME</h3>
+          </div>
+          <div className="px-6 py-4">
+            <div className="space-y-4">
+              {/* Connexion PRO */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 text-2xl">🔐</div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-1">Connexion PRO</h4>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs bg-gray-100 px-3 py-2 rounded border border-gray-200 flex-1 break-all">
+                      {getProLoginUrl(organization.slug)}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(getProLoginUrl(organization.slug), 'PRO')}
+                      className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors whitespace-nowrap"
+                    >
+                      Copier
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connexion CLIENT */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 text-2xl">👤</div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-1">Connexion CLIENT</h4>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs bg-gray-100 px-3 py-2 rounded border border-gray-200 flex-1 break-all">
+                      {getClientLoginUrl(organization.slug)}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(getClientLoginUrl(organization.slug), 'CLIENT')}
+                      className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded hover:bg-green-100 transition-colors whitespace-nowrap"
+                    >
+                      Copier
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Section Organization */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
