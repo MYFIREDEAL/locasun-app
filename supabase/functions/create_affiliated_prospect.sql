@@ -18,7 +18,8 @@ create or replace function create_affiliated_prospect(
   p_address text default '',
   p_affiliate_slug text default null,
   p_tags text[] default '{}',
-  p_status text default null
+  p_status text default null,
+  p_host text default 'evatime.fr' -- 🔥 AJOUT: hostname pour résolution organization_id
 )
 returns uuid
 language plpgsql
@@ -30,12 +31,21 @@ declare
   v_first_step_id text;
   v_affiliate_name text;
   v_default_jack_id uuid := '82be903d-9600-4c53-9cd4-113bfaaac12e';
+  v_organization_id uuid; -- 🔥 AJOUT
 begin
+  -- 🔥 ÉTAPE 1: Résoudre organization_id depuis le hostname
+  v_organization_id := resolve_organization_from_host(p_host);
+  
+  if v_organization_id is null then
+    raise exception 'Organization non trouvée pour le domaine: %', p_host;
+  end if;
+
   -- Trouver le commercial via son slug
   if p_affiliate_slug is not null then
     select u.user_id, u.name into v_owner_id, v_affiliate_name
     from public.users u
-    where u.affiliate_slug = p_affiliate_slug;
+    where u.affiliate_slug = p_affiliate_slug
+      and u.organization_id = v_organization_id; -- 🔥 AJOUT: isolation multi-tenant
   end if;
 
   -- Fallback sur Jack Luc si slug non trouvé
@@ -70,6 +80,7 @@ begin
     tags,
     has_appointment,
     affiliate_name,
+    organization_id, -- 🔥 AJOUT
     created_at,
     updated_at
   ) values (
@@ -83,6 +94,7 @@ begin
     p_tags,
     false,
     v_affiliate_name,
+    v_organization_id, -- 🔥 AJOUT
     now(),
     now()
   )
@@ -96,5 +108,5 @@ $$;
 -- PERMISSIONS
 -- ============================================================================
 -- Autoriser l'exécution par les utilisateurs anonymes (pour l'inscription)
-grant execute on function create_affiliated_prospect(text, text, text, text, text, text, text[], text) to anon;
-grant execute on function create_affiliated_prospect(text, text, text, text, text, text, text[], text) to authenticated;
+grant execute on function create_affiliated_prospect(text, text, text, text, text, text, text[], text, text) to anon;
+grant execute on function create_affiliated_prospect(text, text, text, text, text, text, text[], text, text) to authenticated;
