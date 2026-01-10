@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 const OfferCard = ({ project, projectStatus }) => {
   const { currentUser, setCurrentUser } = useAppContext();
@@ -83,13 +84,18 @@ const OfferCard = ({ project, projectStatus }) => {
     }
 
     try {
+      console.log('🚀 Ajout du projet:', project.type);
+      
       // Ajouter le nouveau tag au prospect dans Supabase
       const updatedTags = [...(currentUser.tags || []), project.type];
       
+      console.log('📝 Mise à jour Supabase avec tags:', updatedTags);
       await updateProspect({
         id: currentUser.id,
         tags: updatedTags,
       });
+
+      console.log('✅ Supabase mis à jour');
 
       // 🔥 INITIALISER LES ÉTAPES DANS SUPABASE dès l'ajout du projet par le client
       if (project.steps && project.steps.length > 0) {
@@ -119,6 +125,8 @@ const OfferCard = ({ project, projectStatus }) => {
         tags: updatedTags
       });
 
+      console.log('📍 Navigation vers /dashboard avec projet:', project.type);
+
       toast({
         title: "Projet ajouté avec succès ! ✅",
         description: `Le projet "${project.clientTitle}" est maintenant dans votre tableau de bord.`,
@@ -128,6 +136,8 @@ const OfferCard = ({ project, projectStatus }) => {
       navigate('/dashboard', { 
         state: { openProjectType: project.type }
       });
+      
+      console.log('✅ Navigate() appelé');
     } catch (error) {
       logger.error('Erreur ajout projet:', error);
       toast({
