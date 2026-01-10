@@ -31,7 +31,7 @@ const ClientLayout = () => {
           email: currentUser.email,
           options: {
             shouldCreateUser: true,
-            emailRedirectTo: window.location.href
+            emailRedirectTo: 'https://evatime.fr/dashboard'
           }
         });
         

@@ -169,7 +169,7 @@ const RegistrationPage = () => {
         email: formData.email.trim(),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: 'https://evatime.fr/dashboard',
         }
       });
 

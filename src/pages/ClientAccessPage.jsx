@@ -104,7 +104,7 @@ const ClientAccessPage = () => {
         email: email.trim(),
         options: {
           shouldCreateUser: true, // ✅ Créer le user Auth (copié depuis RegistrationPage)
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: 'https://evatime.fr/dashboard',
         }
       });
 
