@@ -29,6 +29,7 @@ import TestSupabasePage from '@/pages/TestSupabasePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import SignaturePage from '@/pages/SignaturePage';
 import CosignerSignaturePage from '@/pages/CosignerSignaturePage';
+import Landing from '@/pages/landing';
 import { useOrganization } from '@/contexts/OrganizationContext';
 // ✅ allProjectsData maintenant chargé depuis Supabase (project_templates table)
 import { toast } from '@/components/ui/use-toast';
@@ -1416,6 +1417,7 @@ function App() {
         </Route>
         {/* 🌍 PUBLIC ROUTES */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
