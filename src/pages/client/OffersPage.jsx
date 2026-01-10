@@ -66,13 +66,10 @@ const OfferCard = ({ project, projectStatus }) => {
 
   const handleCtaClick = async () => {
     if (isProjectAdded && !isInactive) {
-      toast({
-        title: "Projet déjà ajouté !",
-        description: "Vous pouvez suivre ce projet dans votre Tableau de bord.",
-        variant: "default",
-      });
       // 🔥 Rediriger vers le projet dans le dashboard
-      navigate(`/dashboard?project=${project.type}`);
+      navigate('/dashboard', { 
+        state: { openProjectType: project.type }
+      });
       return;
     }
 
@@ -116,16 +113,21 @@ const OfferCard = ({ project, projectStatus }) => {
         }
       }
 
-      // ✅ Le real-time de App.jsx mettra à jour currentUser automatiquement
+      // ✅ Mettre à jour currentUser localement pour UI immédiate
+      setCurrentUser({
+        ...currentUser,
+        tags: updatedTags
+      });
+
       toast({
         title: "Projet ajouté avec succès ! ✅",
         description: `Le projet "${project.clientTitle}" est maintenant dans votre tableau de bord.`,
       });
       
-      // 🔥 Rediriger vers le dashboard avec le projet sélectionné
-      setTimeout(() => {
-        navigate(`/dashboard?project=${project.type}`);
-      }, 500);
+      // 🔥 Rediriger immédiatement vers le dashboard avec le projet sélectionné
+      navigate('/dashboard', { 
+        state: { openProjectType: project.type }
+      });
     } catch (error) {
       logger.error('Erreur ajout projet:', error);
       toast({

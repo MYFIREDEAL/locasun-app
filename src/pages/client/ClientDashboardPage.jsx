@@ -81,7 +81,16 @@ function ClientDashboardPage() {
 
   // Ouvrir automatiquement un projet depuis une notification ou query param
   useEffect(() => {
-    // 🔥 PRIORITÉ 1: Query param ?project=...
+    // 🔥 PRIORITÉ 1: location.state (depuis offres/notifications)
+    if (location.state?.openProjectType && projectsData[location.state.openProjectType]) {
+      const project = projectsData[location.state.openProjectType];
+      setSelectedProject(project);
+      // Nettoyer le state pour éviter de réouvrir à chaque render
+      navigate('/dashboard', { replace: true, state: {} });
+      return;
+    }
+    
+    // 🔥 PRIORITÉ 2: Query param ?project=... (fallback)
     const searchParams = new URLSearchParams(location.search);
     const projectParam = searchParams.get('project');
     
@@ -90,15 +99,6 @@ function ClientDashboardPage() {
       setSelectedProject(project);
       // Nettoyer l'URL
       navigate('/dashboard', { replace: true });
-      return;
-    }
-    
-    // 🔥 PRIORITÉ 2: location.state (notifications)
-    if (location.state?.openProjectType && projectsData[location.state.openProjectType]) {
-      const project = projectsData[location.state.openProjectType];
-      setSelectedProject(project);
-      // Nettoyer le state pour éviter de réouvrir à chaque render
-      navigate('/dashboard', { replace: true, state: {} });
     }
   }, [location.search, location.state, projectsData, navigate]);
 
