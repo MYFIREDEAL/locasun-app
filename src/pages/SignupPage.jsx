@@ -90,28 +90,19 @@ const SignupPage = () => {
       }
 
       toast({
-        title: "Organisation créée avec succès !",
-        description: "Vous allez être redirigé vers la page de connexion...",
+        title: "✅ Organisation créée avec succès !",
+        description: "Vous pouvez maintenant vous connecter avec vos identifiants.",
+        className: "bg-green-500 text-white",
       });
 
-      // Auto-login après création
-      setTimeout(async () => {
-        try {
-          const { error: loginError } = await supabase.auth.signInWithPassword({
+      // Redirection vers la page de connexion (auto-login impossible avec Auth Admin API)
+      setTimeout(() => {
+        navigate('/login', { 
+          state: { 
             email: formData.adminEmail.trim().toLowerCase(),
-            password: formData.adminPassword,
-          });
-
-          if (loginError) {
-            console.error('[SignupPage] Auto-login failed:', loginError);
-            navigate('/client-access');
-          } else {
-            navigate('/admin');
-          }
-        } catch (err) {
-          console.error('[SignupPage] Auto-login exception:', err);
-          navigate('/client-access');
-        }
+            message: "Votre organisation a été créée ! Connectez-vous pour accéder à votre espace."
+          } 
+        });
       }, 1500);
 
     } catch (error) {
