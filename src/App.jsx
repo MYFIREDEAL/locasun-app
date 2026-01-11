@@ -181,6 +181,12 @@ export const useAppContext = () => React.useContext(AppContext);
 
 function App() {
   const location = useLocation();
+  
+  // 🔥 ISOLATION: Landing page ne doit jamais exécuter la logique app
+  if (location.pathname === '/landing') {
+    return <Landing />;
+  }
+  
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
   
