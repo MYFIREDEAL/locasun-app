@@ -2,12 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Plus, Loader2 } from 'lucide-react';
 
 const OrganizationsListPage = () => {
   const navigate = useNavigate();
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formData, setFormData] = useState({
+    companyName: '',
+    adminEmail: '',
+  });
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -37,6 +48,71 @@ const OrganizationsListPage = () => {
 
   const handleOrganizationClick = (orgId) => {
     navigate(`/platform/organizations/${orgId}`);
+  };
+
+  const handleCreateOrganization = async (e) => {
+    e.preventDefault();
+
+    if (!formData.companyName || !formData.adminEmail) {
+      toast({
+        title: 'Erreur',
+        description: 'Tous les champs sont requis',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setCreating(true);
+
+      const res = await fetch(
+        'https://vvzxvtiyybilkswslqfn.supabase.co/functions/v1/platform_create_organization',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyName: formData.companyName,
+            adminEmail: formData.adminEmail,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de la création');
+      }
+
+      toast({
+        title: '✅ Organisation créée !',
+        description: 'Un email d\'invitation a été envoyé à l\'administrateur.',
+        className: 'bg-green-500 text-white',
+      });
+
+      // Rafraîchir la liste
+      const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, name, slug, created_at')
+        .order('created_at', { ascending: false });
+
+      setOrganizations(orgs || []);
+
+      // Fermer la modal et réinitialiser
+      setShowCreateModal(false);
+      setFormData({ companyName: '', adminEmail: '' });
+
+    } catch (error) {
+      console.error('[Platform] Error creating organization:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setCreating(false);
+    }
   };
 
   const copyToClipboard = (url, type) => {
@@ -77,11 +153,20 @@ const OrganizationsListPage = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Organisations</h2>
-        <p className="text-gray-600 mt-1">
-          {organizations.length} organisation{organizations.length !== 1 ? 's' : ''} enregistrée{organizations.length !== 1 ? 's' : ''}
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Organisations</h2>
+          <p className="text-gray-600 mt-1">
+            {organizations.length} organisation{organizations.length !== 1 ? 's' : ''} enregistrée{organizations.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <Button 
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Créer une organisation
+        </Button>
       </div>
 
       {organizations.length === 0 ? (
@@ -169,6 +254,66 @@ const OrganizationsListPage = () => {
           </table>
         </div>
       )}
+
+      {/* Modal de création */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Créer une nouvelle organisation</DialogTitle>
+            <DialogDescription>
+              Un email d'invitation sera envoyé à l'administrateur pour définir son mot de passe.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateOrganization} className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="companyName">Nom de l'organisation *</Label>
+              <Input
+                id="companyName"
+                placeholder="Ex: Acme Corporation"
+                value={formData.companyName}
+                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                disabled={creating}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="adminEmail">Email administrateur *</Label>
+              <Input
+                id="adminEmail"
+                type="email"
+                placeholder="admin@example.com"
+                value={formData.adminEmail}
+                onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
+                disabled={creating}
+                required
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreateModal(false)}
+                disabled={creating}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  'Créer l\'organisation'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
