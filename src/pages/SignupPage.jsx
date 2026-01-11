@@ -61,18 +61,27 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      // Appel de l'Edge Function
-      const { data, error } = await supabase.functions.invoke('create-organization-onboarding', {
-        body: {
-          companyName: formData.companyName.trim(),
-          adminEmail: formData.adminEmail.trim().toLowerCase(),
-          adminPassword: formData.adminPassword,
-        },
-      });
+      // Appel direct HTTP sans supabase-js (évite preflight CORS bloqué)
+      const res = await fetch(
+        'https://vvzxvtiyybilkswslqfn.supabase.co/functions/v1/create-organization-onboarding',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            companyName: formData.companyName.trim(),
+            adminEmail: formData.adminEmail.trim().toLowerCase(),
+            adminPassword: formData.adminPassword,
+          })
+        }
+      );
 
-      if (error) {
-        console.error('[SignupPage] Edge Function error:', error);
-        throw new Error(error.message || 'Erreur lors de la création de l\'organisation');
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error('[SignupPage] Edge Function error:', data);
+        throw new Error(data.error || 'Erreur lors de la création de l\'organisation');
       }
 
       if (!data?.success) {
