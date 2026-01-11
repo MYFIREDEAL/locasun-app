@@ -63,7 +63,7 @@ const SignupPage = () => {
     try {
       // Appel direct HTTP sans supabase-js (évite preflight CORS bloqué)
       const res = await fetch(
-        'https://vvzxvtiyybilkswslqfn.supabase.co/functions/v1/create-organization-onboarding',
+        'https://vvzxvtiyybilkswslqfn.supabase.co/functions/v1/create_organization_onboarding',
         {
           method: 'POST',
           headers: {
