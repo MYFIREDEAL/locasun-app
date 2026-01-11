@@ -795,9 +795,10 @@ const ProjectEditor = ({
     handleDragEnd(result);
   };
   const handleSave = () => {
+    // ✅ Toujours régénérer le type basé sur le titre actuel (pas sur le modèle source)
     const finalProject = {
       ...editedProject,
-      type: editedProject.type || slugify(editedProject.title),
+      type: slugify(editedProject.title) || `project-${Date.now()}`,
       id: editedProject.id || Date.now()
     };
     if (!finalProject.title) {
