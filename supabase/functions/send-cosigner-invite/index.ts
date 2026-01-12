@@ -20,106 +20,85 @@ serve(async (req) => {
 
     const { signature_procedure_id } = await req.json()
 
-    // Récupérer la procédure
-    const { data: procedure, error: procError } = await supabaseClient
-      .from('signature_procedures')
-      .select('id, signers, prospect_id')
-      .eq('id', signature_procedure_id)
-      .single()
-
-    if (procError || !procedure) {
+    // Vérifier RESEND_API_KEY OBLIGATOIRE
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendApiKey) {
+      console.error('❌ RESEND_API_KEY non configurée')
       return new Response(
-        JSON.stringify({ error: 'Procédure non trouvée' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'RESEND_API_KEY manquante' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Récupérer les cosigners pending
-    const pendingCosigners = (procedure.signers || []).filter(
-      (s: any) => s.role === 'cosigner' && s.status === 'pending'
-    )
+    // Récupérer les co-signataires depuis signature_cosigners
+    const { data: cosigners, error: cosignersError } = await supabaseClient
+      .from('signature_cosigners')
+      .select('email, access_token')
+      .eq('signature_procedure_id', signature_procedure_id)
+      .eq('status', 'pending')
 
-    if (pendingCosigners.length === 0) {
+    if (cosignersError) {
+      console.error('Erreur récupération cosigners:', cosignersError)
       return new Response(
-        JSON.stringify({ message: 'Aucun cosigner pending' }),
+        JSON.stringify({ error: 'Erreur récupération co-signataires' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!cosigners || cosigners.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'Aucun co-signataire en attente' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://evatime.fr'
+    let emailsSent = 0
 
-    // Envoyer email à chaque cosigner
-    for (const cosigner of pendingCosigners) {
-      // Générer token sécurisé
-      const token = crypto.randomUUID()
-      const expiresAt = new Date()
-      expiresAt.setHours(expiresAt.getHours() + 48) // 48h de validité
-
-      // Stocker le token
-      const { error: tokenError } = await supabaseClient
-        .from('cosigner_invite_tokens')
-        .insert({
-          token,
-          signature_procedure_id: procedure.id,
-          signer_email: cosigner.email,
-          expires_at: expiresAt.toISOString(),
-        })
-
-      if (tokenError) {
-        console.error('Erreur création token:', tokenError)
-        continue
-      }
-
-      // Envoyer email
-      const signUrl = `${frontendUrl}/sign/cosigner?token=${token}`
+    // Envoyer email à chaque co-signataire
+    for (const cosigner of cosigners) {
+      // Construire le lien de signature
+      const signUrl = `${frontendUrl}/sign/cosigner?token=${cosigner.access_token}`
 
       const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1f2937;">Invitation à signer un document</h2>
-          <p>Bonjour,</p>
-          <p>Vous êtes invité à signer un document contractuel.</p>
-          <p>Pour accéder au document et le signer, cliquez sur le lien ci-dessous :</p>
-          <a href="${signUrl}" 
-             style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
-            Accéder au document
+        <p>Vous avez été invité à signer un document.</p>
+        <p>
+          <a href="${signUrl}">
+            Signer le document
           </a>
-          <p style="color: #6b7280; font-size: 14px;">
-            Ce lien est valable 48 heures.<br>
-            Si vous n'êtes pas concerné par cette demande, veuillez ignorer cet email.
-          </p>
-        </div>
+        </p>
       `
 
-      // Utiliser Resend API
-      const resendApiKey = Deno.env.get('RESEND_API_KEY')
-      
-      if (resendApiKey) {
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: 'LOCASUN <noreply@locasun.fr>',
-            to: [cosigner.email],
-            subject: 'Invitation à signer un document',
-            html: emailHtml,
-          }),
-        })
+      // Envoi via Resend
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: 'LOCASUN <noreply@locasun.fr>',
+          to: [cosigner.email],
+          subject: 'Invitation à signer un document',
+          html: emailHtml,
+        }),
+      })
 
-        if (!resendResponse.ok) {
-          console.error('Erreur envoi email:', await resendResponse.text())
-        }
+      if (!resendResponse.ok) {
+        const errorText = await resendResponse.text()
+        console.error(`❌ Erreur envoi email à ${cosigner.email}:`, errorText)
+      } else {
+        console.log(`✅ Email envoyé à ${cosigner.email}`)
+        emailsSent++
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, sent: pendingCosigners.length }),
+      JSON.stringify({ success: true, sent: emailsSent }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Erreur send-cosigner-invite:', error)
+    console.error('❌ Erreur send-cosigner-invite:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
