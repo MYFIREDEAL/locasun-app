@@ -93,10 +93,13 @@ const CosignerSignaturePage = () => {
         body: { token, otp },
       });
 
+      console.log('🔍 [DEBUG] Response:', { data, verifyError, remaining: data?.remaining_attempts });
+
       if (verifyError || data?.error) {
         const errorMsg = data?.error || verifyError?.message || 'Code incorrect';
         setError(errorMsg);
         
+        console.log('🔢 [DEBUG] Setting remaining attempts:', data?.remaining_attempts);
         if (data?.remaining_attempts !== undefined) {
           setRemainingAttempts(data.remaining_attempts);
         }
