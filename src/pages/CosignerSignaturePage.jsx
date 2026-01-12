@@ -21,6 +21,7 @@ const CosignerSignaturePage = () => {
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
+  const [otpRequested, setOtpRequested] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -28,9 +29,12 @@ const CosignerSignaturePage = () => {
       return;
     }
 
-    // Demander OTP automatiquement
-    handleRequestOtp();
-  }, [token]);
+    // Demander OTP automatiquement UNE SEULE FOIS
+    if (!otpRequested) {
+      handleRequestOtp();
+      setOtpRequested(true);
+    }
+  }, [token, otpRequested]);
 
   const handleRequestOtp = async () => {
     try {
