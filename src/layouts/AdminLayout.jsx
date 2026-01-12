@@ -125,6 +125,27 @@ import React, { useEffect } from 'react';
                     Les workflows définissent quoi dire, quand, et quelle action déclencher.
                   </p>
                 </div>
+
+                <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                  <h2 className="mb-4 text-lg font-semibold">
+                    📁 Gestion des Projets
+                  </h2>
+
+                  <p className="mb-6 text-sm text-gray-600">
+                    Créez et configurez vos types de projets (ACC, Centrale, Autonomie...).
+                  </p>
+
+                  <a
+                    href="/admin/projects-management"
+                    className="block w-full rounded-lg bg-blue-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    🟢 Créer / gérer les projets
+                  </a>
+
+                  <p className="mt-4 text-xs text-gray-400">
+                    Définissez les étapes, les formulaires et les paramètres de chaque projet.
+                  </p>
+                </div>
               </aside>
             )}
           </div>
