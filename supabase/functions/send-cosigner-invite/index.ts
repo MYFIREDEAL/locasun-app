@@ -118,7 +118,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: 'LOCASUN <noreply@locasun.fr>',
+            from: 'EVATIME <noreply@evatime.fr>',
             to: [cosigner.email],
             subject: 'Invitation à signer un document',
             html: emailHtml,
