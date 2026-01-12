@@ -403,6 +403,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
       if (updates.email !== undefined) dbUpdates.email = updates.email;
       if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
       if (updates.company !== undefined) dbUpdates.company_name = updates.company;
+      if (updates.companyName !== undefined) dbUpdates.company_name = updates.companyName; // ✅ Support de companyName (formContactConfig)
       if (updates.address !== undefined) dbUpdates.address = updates.address;
       // ✅ Envoyer owner_id - la RPC update_prospect_safe gère les permissions selon le rôle
       if (updates.ownerId !== undefined) dbUpdates.owner_id = updates.ownerId;
