@@ -795,10 +795,16 @@ const ProjectEditor = ({
     handleDragEnd(result);
   };
   const handleSave = () => {
-    // ✅ Toujours régénérer le type basé sur le titre actuel (pas sur le modèle source)
+    // 🔍 Déterminer si c'est une création ou modification
+    const isExistingProject = project && project.type;
+    
     const finalProject = {
       ...editedProject,
-      type: slugify(editedProject.title) || `project-${Date.now()}`,
+      // ✅ Si modification → garder le type existant
+      // ✅ Si création → générer un nouveau type basé sur le titre
+      type: isExistingProject 
+        ? editedProject.type 
+        : (slugify(editedProject.title) || `project-${Date.now()}`),
       id: editedProject.id || Date.now()
     };
     if (!finalProject.title) {
