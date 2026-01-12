@@ -551,7 +551,26 @@ function App() {
       }
 
       if (prospect) {
-        setCurrentUser(prospect);
+        // 🔥 FIX: Transformer les données Supabase (snake_case → camelCase)
+        const transformedProspect = {
+          id: prospect.id,
+          name: prospect.name,
+          email: prospect.email,
+          phone: prospect.phone,
+          address: prospect.address,
+          companyName: prospect.company_name, // ✅ FIX: Mapper company_name → companyName
+          tags: prospect.tags || [],
+          userId: prospect.user_id,
+          ownerId: prospect.owner_id,
+          status: prospect.status,
+          hasAppointment: prospect.has_appointment,
+          affiliateName: prospect.affiliate_name,
+          formData: prospect.form_data || {},
+          createdAt: prospect.created_at,
+          updatedAt: prospect.updated_at,
+        };
+        
+        setCurrentUser(transformedProspect);
         setActiveAdminUser(null);
         
         // Synchroniser userProjects avec les tags du prospect

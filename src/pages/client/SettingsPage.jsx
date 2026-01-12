@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
     import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
     import { supabase } from '@/lib/supabase';
     import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+    import { logger } from '@/lib/logger';
 
     const SettingsSection = ({ title, children }) => (
       <motion.div
