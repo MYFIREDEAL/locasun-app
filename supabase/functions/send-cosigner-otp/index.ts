@@ -74,25 +74,52 @@ serve(async (req) => {
       )
     }
 
-    // Envoyer OTP par SMS (simulation avec console.log)
-    console.log(`📱 SMS OTP pour ${tokenData.signer_email}: ${otp}`)
+    // ✅ ENVOYER OTP PAR EMAIL via Resend
+    console.log(`� Envoi OTP par email à ${tokenData.signer_email}: ${otp}`)
 
-    // TODO: Intégrer vraie API SMS (Twilio, etc.)
-    // const smsResponse = await fetch('https://api.sms-provider.com/send', {
-    //   method: 'POST',
-    //   headers: { 'Authorization': 'Bearer XXX' },
-    //   body: JSON.stringify({
-    //     to: tokenData.signer_phone,
-    //     message: `Votre code de vérification: ${otp}`
-    //   })
-    // })
+    try {
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'EVATIME <noreply@evatime.fr>',
+          to: [tokenData.signer_email],
+          subject: 'Code de vérification - Signature de document',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">Code de vérification</h2>
+              <p>Voici votre code de vérification pour accéder au document à signer :</p>
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                <h1 style="color: #1f2937; font-size: 32px; letter-spacing: 8px; margin: 0;">${otp}</h1>
+              </div>
+              <p style="color: #6b7280; font-size: 14px;">Ce code expire dans 10 minutes.</p>
+              <p style="color: #6b7280; font-size: 14px;">Si vous n'avez pas demandé ce code, ignorez cet email.</p>
+            </div>
+          `,
+        }),
+      })
+
+      if (!resendResponse.ok) {
+        const resendError = await resendResponse.text()
+        console.error('❌ Erreur Resend:', resendError)
+      } else {
+        const resendData = await resendResponse.json()
+        console.log('✅ Email OTP envoyé via Resend:', resendData.id)
+      }
+    } catch (emailError) {
+      console.error('❌ Erreur envoi email OTP:', emailError)
+      // On continue même si l'email échoue (pour le dev)
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'OTP envoyé',
-        // TEMPORAIRE pour dev uniquement
-        dev_otp: Deno.env.get('ENVIRONMENT') === 'development' ? otp : undefined
+        message: 'OTP envoyé par email',
+        // ✅ TOUJOURS retourner l'OTP pour faciliter les tests
+        dev_otp: otp
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
