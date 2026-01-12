@@ -137,6 +137,18 @@ export function useSupabaseNotifications(userId) {
         }
         logger.debug('Notification count incremented successfully');
       } else {
+        // 🔥 Récupérer organization_id depuis prospects (requis par DB)
+        const { data: prospect, error: prospectError } = await supabase
+          .from('prospects')
+          .select('organization_id')
+          .eq('id', prospectId)
+          .single()
+
+        if (prospectError || !prospect?.organization_id) {
+          logger.error('Organization introuvable pour le prospect:', { prospectId, error: prospectError?.message });
+          throw new Error('Organization introuvable pour le prospect');
+        }
+
         // Créer nouvelle notification avec owner_id
         logger.debug('Creating new notification with count=1');
         const { error } = await supabase
@@ -144,6 +156,7 @@ export function useSupabaseNotifications(userId) {
           .insert({
             prospect_id: prospectId,
             owner_id: ownerId, // 🔥 OBLIGATOIRE pour real-time filter
+            organization_id: prospect.organization_id, // ✅ DEPUIS prospects
             project_type: projectType,
             prospect_name: prospectName,
             project_name: projectName,
