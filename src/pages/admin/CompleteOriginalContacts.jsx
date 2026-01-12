@@ -259,7 +259,7 @@ const CompleteOriginalContacts = () => {
   const tagFilterLabel = selectedTags.length === 0 
     ? 'Tags' 
     : selectedTags.length === 1 
-      ? selectedTags[0] 
+      ? (projectsData[selectedTags[0]]?.title || selectedTags[0])
       : `${selectedTags.length} tags`;
   const navigate = useNavigate();
   const location = useLocation();
@@ -540,7 +540,7 @@ const CompleteOriginalContacts = () => {
                           onChange={() => handleTagToggle(tag)}
                           className="mr-3 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span>{tag}</span>
+                        <span>{projectsData[tag]?.title || tag}</span>
                       </label>
                     ))}
                     {selectedTags.length > 0 && (
