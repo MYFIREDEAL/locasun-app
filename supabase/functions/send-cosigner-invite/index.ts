@@ -13,12 +13,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 send-cosigner-invite: Démarrage')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { signature_procedure_id } = await req.json()
+    console.log('📩 Procédure ID reçu:', signature_procedure_id)
 
     // Récupérer la procédure
     const { data: procedure, error: procError } = await supabaseClient
@@ -27,7 +30,10 @@ serve(async (req) => {
       .eq('id', signature_procedure_id)
       .single()
 
+    console.log('📋 Procédure récupérée:', { found: !!procedure, signersCount: procedure?.signers?.length })
+
     if (procError || !procedure) {
+      console.error('❌ Procédure non trouvée:', procError)
       return new Response(
         JSON.stringify({ error: 'Procédure non trouvée' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -39,7 +45,10 @@ serve(async (req) => {
       (s: any) => s.role === 'cosigner' && s.status === 'pending'
     )
 
+    console.log('👥 Cosigners pending:', pendingCosigners.length, pendingCosigners.map((c: any) => c.email))
+
     if (pendingCosigners.length === 0) {
+      console.log('⚠️ Aucun cosigner pending - arrêt')
       return new Response(
         JSON.stringify({ message: 'Aucun cosigner pending' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -48,8 +57,12 @@ serve(async (req) => {
 
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://evatime.fr'
 
+    console.log('📧 Envoi emails aux cosigners...')
+
     // Envoyer email à chaque cosigner
     for (const cosigner of pendingCosigners) {
+      console.log(`📤 Traitement cosigner: ${cosigner.email}`)
+      
       // Générer token sécurisé
       const token = crypto.randomUUID()
       const expiresAt = new Date()
@@ -66,9 +79,11 @@ serve(async (req) => {
         })
 
       if (tokenError) {
-        console.error('Erreur création token:', tokenError)
+        console.error('❌ Erreur création token:', tokenError)
         continue
       }
+
+      console.log(`✅ Token créé pour ${cosigner.email}:`, token.substring(0, 8) + '...')
 
       // Envoyer email
       const signUrl = `${frontendUrl}/sign/cosigner?token=${token}`
@@ -93,6 +108,8 @@ serve(async (req) => {
       // Utiliser Resend API
       const resendApiKey = Deno.env.get('RESEND_API_KEY')
       
+      console.log(`📮 Envoi email Resend à ${cosigner.email}`)
+      
       if (resendApiKey) {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -109,19 +126,27 @@ serve(async (req) => {
         })
 
         if (!resendResponse.ok) {
-          console.error('Erreur envoi email:', await resendResponse.text())
+          const errorText = await resendResponse.text()
+          console.error('❌ Erreur envoi email Resend:', errorText)
+        } else {
+          const resendData = await resendResponse.json()
+          console.log(`✅ Email envoyé via Resend:`, resendData)
         }
+      } else {
+        console.warn('⚠️ RESEND_API_KEY manquante - email non envoyé')
       }
     }
+
+    console.log('🎉 Traitement terminé - emails envoyés')
 
     return new Response(
       JSON.stringify({ success: true, sent: pendingCosigners.length }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Erreur send-cosigner-invite:', error)
+    console.error('❌ Erreur send-cosigner-invite:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
