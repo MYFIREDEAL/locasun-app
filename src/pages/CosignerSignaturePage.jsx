@@ -21,7 +21,6 @@ const CosignerSignaturePage = () => {
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
-  const [otpRequested, setOtpRequested] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -29,12 +28,19 @@ const CosignerSignaturePage = () => {
       return;
     }
 
-    // Demander OTP automatiquement UNE SEULE FOIS
-    if (!otpRequested) {
+    // Vérifier si OTP déjà demandé pour ce token (localStorage)
+    const otpKey = `otp_requested_${token}`;
+    const alreadyRequested = localStorage.getItem(otpKey);
+
+    if (!alreadyRequested) {
       handleRequestOtp();
-      setOtpRequested(true);
+      // Marquer comme demandé (expire après 10min comme l'OTP)
+      localStorage.setItem(otpKey, Date.now().toString());
+      
+      // Nettoyer après 10 minutes
+      setTimeout(() => localStorage.removeItem(otpKey), 10 * 60 * 1000);
     }
-  }, [token, otpRequested]);
+  }, [token]);
 
   const handleRequestOtp = async () => {
     try {
