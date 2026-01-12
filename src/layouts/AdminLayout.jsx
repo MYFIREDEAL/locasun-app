@@ -146,6 +146,27 @@ import React, { useEffect } from 'react';
                     Définissez les étapes, les formulaires et les paramètres de chaque projet.
                   </p>
                 </div>
+
+                <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                  <h2 className="mb-4 text-lg font-semibold">
+                    📝 Gestion des Formulaires
+                  </h2>
+
+                  <p className="mb-6 text-sm text-gray-600">
+                    Créez des formulaires dynamiques pour collecter des informations clients.
+                  </p>
+
+                  <a
+                    href="/admin/forms-management"
+                    className="block w-full rounded-lg bg-teal-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-teal-700"
+                  >
+                    🟢 Créer / gérer les formulaires
+                  </a>
+
+                  <p className="mt-4 text-xs text-gray-400">
+                    Configurez les champs, les conditions et les répétitions de formulaires.
+                  </p>
+                </div>
               </aside>
             )}
           </div>

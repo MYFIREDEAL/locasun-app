@@ -12,6 +12,7 @@ import CharlyPage from '@/pages/admin/CharlyPage';
 import ConfigurationIA from '@/pages/admin/ConfigurationIA';
 import WorkflowsCharlyPage from '@/pages/admin/WorkflowsCharlyPage';
 import ProjectsManagementPage from '@/pages/admin/ProjectsManagementPage';
+import FormsManagementPage from '@/pages/admin/FormsManagementPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
@@ -1461,6 +1462,7 @@ function App() {
           <Route path="configuration-ia" element={<ConfigurationIA />} />
           <Route path="workflows-charly" element={<WorkflowsCharlyPage />} />
           <Route path="projects-management" element={<ProjectsManagementPage />} />
+          <Route path="forms-management" element={<FormsManagementPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>
