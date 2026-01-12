@@ -188,6 +188,27 @@ import React, { useEffect } from 'react';
                     Créez et modifiez les templates de contrats pour ACC, Centrale, etc.
                   </p>
                 </div>
+
+                <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                  <h2 className="mb-4 text-lg font-semibold">
+                    🧱 Affichage des Projets
+                  </h2>
+
+                  <p className="mb-6 text-sm text-gray-600">
+                    Configurez l'apparence et les informations visibles par les clients.
+                  </p>
+
+                  <a
+                    href="/admin/project-display"
+                    className="block w-full rounded-lg bg-indigo-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+                  >
+                    🧱 Gérer l'affichage
+                  </a>
+
+                  <p className="mt-4 text-xs text-gray-400">
+                    Image de couverture, description client et texte des boutons.
+                  </p>
+                </div>
               </aside>
             )}
           </div>

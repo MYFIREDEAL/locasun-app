@@ -14,6 +14,7 @@ import WorkflowsCharlyPage from '@/pages/admin/WorkflowsCharlyPage';
 import ProjectsManagementPage from '@/pages/admin/ProjectsManagementPage';
 import FormsManagementPage from '@/pages/admin/FormsManagementPage';
 import ContractTemplatesPage from '@/pages/admin/ContractTemplatesPage';
+import ProjectDisplayManagementPage from '@/pages/admin/ProjectDisplayManagementPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
@@ -1465,6 +1466,7 @@ function App() {
           <Route path="projects-management" element={<ProjectsManagementPage />} />
           <Route path="forms-management" element={<FormsManagementPage />} />
           <Route path="contract-templates" element={<ContractTemplatesPage />} />
+          <Route path="project-display" element={<ProjectDisplayManagementPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>

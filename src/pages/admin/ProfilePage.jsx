@@ -2716,9 +2716,6 @@ const ProfilePage = () => {
           <button type="button" onClick={() => scrollToSection('gestion-pipelines-globales')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des Pipelines Globales
           </button>
-          <button type="button" onClick={() => scrollToSection('gestion-affichage-projets')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-            Gestion de l'Affichage des Projets
-          </button>
           <button type="button" onClick={() => scrollToSection('gestion-utilisateurs')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des utilisateurs
           </button>
