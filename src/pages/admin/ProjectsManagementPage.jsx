@@ -8,12 +8,57 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
-import { Trash2, Plus, FolderKanban, GripVertical } from 'lucide-react';
+import { Trash2, Plus, FolderKanban, GripVertical, ChevronDown } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { slugify } from '@/lib/utils';
 import { logger } from '@/lib/logger';
-import EmojiPickerButton from '@/components/ui/emoji-picker-button';
+
+// 🎨 Emojis utilisés dans l'application LOCASUN
+const EMOJI_COLLECTION = [
+  '🔌', '💡', '☀️', '💸', '🏭', '🆕', '✅', '⚡', '📝', '⏳',
+  '🌞', '➡️', '🔎', '🛠️', '✍️', '🏦', '📦', '👷', '📋', '⚡️',
+  '💶', '📈', '🔧',
+];
+
+// 🎯 Composant réutilisable : Emoji Picker avec bouton flèche
+const EmojiPickerButton = ({ value, onChange }) => (
+  <div className="flex items-center gap-2">
+    <Input 
+      value={value} 
+      onChange={(e) => onChange(e.target.value)}
+      className="w-16 text-center text-xl"
+    />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 w-10 p-0"
+          title="Choisir un emoji"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="start">
+        <div className="flex flex-wrap gap-1 max-h-96 overflow-y-auto">
+          {EMOJI_COLLECTION.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => onChange(emoji)}
+              className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  </div>
+);
 
 // Options de couleurs pour les badges projet
 const PROJECT_COLOR_OPTIONS = [
