@@ -167,6 +167,27 @@ import React, { useEffect } from 'react';
                     Configurez les champs, les conditions et les répétitions de formulaires.
                   </p>
                 </div>
+
+                <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                  <h2 className="mb-4 text-lg font-semibold">
+                    📄 Templates de Contrats
+                  </h2>
+
+                  <p className="mb-6 text-sm text-gray-600">
+                    Gérez vos modèles de contrats HTML pour chaque type de projet.
+                  </p>
+
+                  <a
+                    href="/admin/contract-templates"
+                    className="block w-full rounded-lg bg-purple-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                  >
+                    📄 Créer / gérer les templates
+                  </a>
+
+                  <p className="mt-4 text-xs text-gray-400">
+                    Créez et modifiez les templates de contrats pour ACC, Centrale, etc.
+                  </p>
+                </div>
               </aside>
             )}
           </div>
