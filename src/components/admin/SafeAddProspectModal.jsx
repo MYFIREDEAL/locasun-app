@@ -158,15 +158,32 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
                 <Label htmlFor={field.id} className="text-right">
                   {field.name}
                 </Label>
-                <Input
-                  id={field.id}
-                  type={field.type}
-                  value={formData[field.id] || ''}
-                  onChange={handleInputChange}
-                  placeholder={field.placeholder}
-                  className="col-span-3"
-                  required={field.required}
-                />
+                {field.type === 'select' ? (
+                  <select
+                    id={field.id}
+                    value={formData[field.id] || ''}
+                    onChange={handleInputChange}
+                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    required={field.required}
+                  >
+                    <option value="">-- Sélectionner --</option>
+                    {(field.options || []).map((option, idx) => (
+                      <option key={idx} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    id={field.id}
+                    type={field.type}
+                    value={formData[field.id] || ''}
+                    onChange={handleInputChange}
+                    placeholder={field.placeholder}
+                    className="col-span-3"
+                    required={field.required}
+                  />
+                )}
               </div>
             ))}
             {projectOptions.length > 0 && (

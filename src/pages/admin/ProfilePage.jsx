@@ -189,7 +189,7 @@ const PipelineStepCard = React.memo(({ step, index, provided, snapshot, onColorC
 
 const FormFieldEditor = ({ field, onSave, onCancel }) => {
   const [editedField, setEditedField] = useState(
-    field ? { ...field } : { name: '', type: 'text', placeholder: '', required: false }
+    field ? { ...field } : { name: '', type: 'text', placeholder: '', required: false, options: [] }
   );
 
   const handleSave = () => {
@@ -224,9 +224,55 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
             <SelectItem value="email">Email</SelectItem>
             <SelectItem value="number">Nombre</SelectItem>
             <SelectItem value="textarea">Zone de texte</SelectItem>
+            <SelectItem value="select">Liste déroulante</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {/* 🔥 Si type = select, afficher éditeur d'options */}
+      {editedField.type === 'select' && (
+        <div className="pl-2 space-y-2 border-l-2 border-blue-300">
+          <Label className="text-xs font-semibold text-blue-700">Options du menu déroulant :</Label>
+          <div className="space-y-1">
+            {(editedField.options || []).map((option, optIndex) => (
+              <div key={optIndex} className="flex items-center gap-2">
+                <Input 
+                  value={option}
+                  onChange={(e) => {
+                    const newOptions = [...(editedField.options || [])];
+                    newOptions[optIndex] = e.target.value;
+                    setEditedField({ ...editedField, options: newOptions });
+                  }}
+                  placeholder={`Option ${optIndex + 1}`}
+                  className="flex-1"
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => {
+                    const newOptions = (editedField.options || []).filter((_, i) => i !== optIndex);
+                    setEditedField({ ...editedField, options: newOptions });
+                  }}
+                >
+                  <Trash2 className="h-3 w-3 text-red-500" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              const newOptions = [...(editedField.options || []), ''];
+              setEditedField({ ...editedField, options: newOptions });
+            }}
+            className="text-xs"
+          >
+            <Plus className="h-3 w-3 mr-1" /> Ajouter une option
+          </Button>
+        </div>
+      )}
+
       <div>
         <Label htmlFor="field-placeholder">Placeholder</Label>
         <Input
@@ -3044,7 +3090,14 @@ const ProfilePage = () => {
                               </div>
                               <div className="flex-grow">
                                 <p className="font-medium">{field.name}{field.required && <span className="text-red-500">*</span>}</p>
-                                <p className="text-sm text-gray-500">Type: {field.type} | Placeholder: {field.placeholder || 'Aucun'}</p>
+                                <p className="text-sm text-gray-500">
+                                  Type: {field.type} | Placeholder: {field.placeholder || 'Aucun'}
+                                  {field.type === 'select' && field.options && field.options.length > 0 && (
+                                    <span className="ml-2 text-blue-600">
+                                      ({field.options.length} option{field.options.length > 1 ? 's' : ''}: {field.options.join(', ')})
+                                    </span>
+                                  )}
+                                </p>
                               </div>
                               <Button variant="ghost" size="icon" onClick={() => openFieldEditor(field)}>
                                 <Edit className="h-4 w-4" />
