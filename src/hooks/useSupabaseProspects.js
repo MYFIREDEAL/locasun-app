@@ -44,7 +44,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         name: prospect.name,
         email: prospect.email,
         phone: prospect.phone,
-        company: prospect.company_name,
+        companyName: prospect.company_name, // ✅ FIX: Utiliser companyName (cohérent avec formContactConfig)
+        company: prospect.company_name, // 🔥 Garder aussi company pour compatibilité
         address: prospect.address,
         ownerId: prospect.owner_id,
         status: prospect.status,
@@ -108,7 +109,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
               name: payload.new.name,
               email: payload.new.email,
               phone: payload.new.phone,
-              company: payload.new.company_name,
+              companyName: payload.new.company_name, // ✅ FIX: Utiliser companyName
+              company: payload.new.company_name, // 🔥 Garder aussi company pour compatibilité
               address: payload.new.address,
               ownerId: payload.new.owner_id,
               status: payload.new.status,
@@ -139,7 +141,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
               name: payload.new.name,
               email: payload.new.email,
               phone: payload.new.phone,
-              company: payload.new.company_name,
+              companyName: payload.new.company_name, // ✅ FIX: Utiliser companyName
+              company: payload.new.company_name, // 🔥 Garder aussi company pour compatibilité
               address: payload.new.address,
               ownerId: payload.new.owner_id,
               status: payload.new.status,
@@ -287,7 +290,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        company: data.company_name,
+        companyName: data.company_name, // ✅ FIX: Utiliser companyName
+        company: data.company_name, // 🔥 Garder aussi company pour compatibilité
         address: data.address,
         ownerId: data.owner_id,
         status: data.status,
@@ -459,7 +463,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
           name: dbProspect.name,
           email: dbProspect.email,
           phone: dbProspect.phone,
-          company: dbProspect.company_name,
+          companyName: dbProspect.company_name, // ✅ FIX: Utiliser companyName
+          company: dbProspect.company_name, // 🔥 Garder aussi company pour compatibilité
           address: dbProspect.address,
           ownerId: dbProspect.owner_id,
           status: dbProspect.status,
