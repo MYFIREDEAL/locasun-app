@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Shield, CheckCircle2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
@@ -21,6 +22,7 @@ const CosignerSignaturePage = () => {
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
+  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -304,38 +306,89 @@ const CosignerSignaturePage = () => {
             </form>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Document à signer</h1>
-            
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-red-700">{error}</p>
+          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
+            <div className="max-w-5xl mx-auto">
+              {/* Header */}
+              <div className="bg-white rounded-t-lg shadow-lg p-6 border-b">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Signature électronique - Co-signataire</h1>
+                <p className="text-gray-600">
+                  Signataire: <span className="font-semibold">{procedure?.signer_email}</span>
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Document vérifié et sécurisé
+                </p>
               </div>
-            )}
 
-            <div className="border rounded-lg overflow-hidden mb-6">
-              <iframe
-                src={pdfUrl}
-                className="w-full h-[600px]"
-                title="Document PDF"
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSign}
-                disabled={signing}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {signing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Signature en cours...
-                  </>
-                ) : (
-                  'Signer le document'
+              {/* PDF Viewer */}
+              <div className="bg-white shadow-lg p-6 border-b">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Document à signer</h2>
+                
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
                 )}
-              </Button>
+
+                <div className="border rounded-lg overflow-hidden" style={{ height: '600px' }}>
+                  <iframe
+                    src={pdfUrl}
+                    className="w-full h-full"
+                    title="Document PDF"
+                  />
+                </div>
+              </div>
+
+              {/* Consent Section */}
+              <div className="bg-white shadow-lg p-6 rounded-b-lg">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-blue-900 mb-2">Consentement à la signature électronique</h3>
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    En signant électroniquement ce document, je reconnais avoir lu et accepté l'intégralité 
+                    des termes du contrat ci-joint. Je consens à l'utilisation de la signature électronique 
+                    conforme au règlement eIDAS (article 26) et reconnais qu'elle a la même valeur juridique 
+                    qu'une signature manuscrite.
+                  </p>
+                  <p className="text-xs text-blue-700 mt-2">
+                    Cette signature est horodatée et scellée par un hash cryptographique SHA-256 du document.
+                  </p>
+                </div>
+
+                {/* Checkbox */}
+                <div className="flex items-start space-x-3 mb-6">
+                  <Checkbox
+                    id="accept"
+                    checked={accepted}
+                    onCheckedChange={setAccepted}
+                    className="mt-1"
+                  />
+                  <label htmlFor="accept" className="text-sm text-gray-700 cursor-pointer">
+                    J'ai lu et accepté les termes du contrat, et je consens à signer électroniquement ce document
+                  </label>
+                </div>
+
+                {/* Sign Button */}
+                <Button
+                  onClick={handleSign}
+                  disabled={!accepted || signing}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-6 text-lg"
+                >
+                  {signing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Signature en cours...
+                    </>
+                  ) : (
+                    <>
+                      ✍️ Signer le contrat
+                    </>
+                  )}
+                </Button>
+
+                {/* Legal Notice */}
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Signature électronique avancée (AES) conforme au règlement eIDAS (UE) n°910/2014 - Article 26
+                </p>
+              </div>
             </div>
           </div>
         )}
