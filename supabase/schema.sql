@@ -553,6 +553,7 @@ CREATE INDEX idx_chat_messages_read ON public.chat_messages(read);
 CREATE TABLE public.notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   prospect_id UUID REFERENCES public.prospects(id) ON DELETE CASCADE,
+  owner_id UUID REFERENCES public.users(user_id) ON DELETE CASCADE, -- 🔥 Admin qui doit voir la notification
   project_type TEXT,
   prospect_name TEXT,
   project_name TEXT,
@@ -562,6 +563,7 @@ CREATE TABLE public.notifications (
 );
 
 CREATE INDEX idx_notifications_prospect_id ON public.notifications(prospect_id);
+CREATE INDEX idx_notifications_owner_id ON public.notifications(owner_id);
 CREATE INDEX idx_notifications_read ON public.notifications(read);
 CREATE INDEX idx_notifications_created_at ON public.notifications(created_at DESC);
 
