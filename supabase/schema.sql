@@ -1222,6 +1222,17 @@ CREATE POLICY "Admins can view their notifications"
     )
   );
 
+-- Notifications: Clients peuvent créer des notifications pour leur admin
+CREATE POLICY "Clients can create notifications for their admin"
+  ON public.notifications
+  FOR INSERT
+  WITH CHECK (
+    -- Le client doit être le propriétaire du prospect
+    prospect_id IN (
+      SELECT id FROM public.prospects WHERE user_id = auth.uid()
+    )
+  );
+
 -- =====================================================
 -- RLS POLICIES - CLIENT NOTIFICATIONS
 -- =====================================================

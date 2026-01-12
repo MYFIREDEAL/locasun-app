@@ -18,9 +18,9 @@ WHERE n.prospect_id = p.id
 -- 3. Créer un index pour optimiser les requêtes filtrées par owner_id
 CREATE INDEX IF NOT EXISTS idx_notifications_owner_id ON public.notifications(owner_id);
 
--- 4. Ajouter une contrainte NOT NULL (après migration des données)
--- ALTER TABLE public.notifications ALTER COLUMN owner_id SET NOT NULL;
--- ⚠️ Décommenter cette ligne APRÈS avoir vérifié que toutes les lignes ont un owner_id
+-- 4. Ajouter une contrainte NOT NULL (après vérification : table vide, OK pour activer)
+ALTER TABLE public.notifications ALTER COLUMN owner_id SET NOT NULL;
+-- ✅ Activé car aucune donnée existante à migrer (vérification : 0 lignes)
 
 -- ================================================
 -- VÉRIFICATION
