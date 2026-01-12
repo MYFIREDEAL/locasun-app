@@ -13,14 +13,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
-import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut, Smile } from 'lucide-react';
+import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
+import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 const normalizePipelineStepLabel = (label) => (label || '').toString().trim().toUpperCase();
 const generatePipelineStepId = (prefix = 'pipeline-step') => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -29,6 +31,51 @@ const buildPipelineStep = (label, id, color) => ({
   label: normalizePipelineStepLabel(label),
   color: typeof color === 'string' && color.trim() ? color : null,
 });
+
+// 🎨 Emojis utilisés dans l'application LOCASUN
+const EMOJI_COLLECTION = [
+  '🔌', '💡', '☀️', '💸', '🏭', '🆕', '✅', '⚡', '📝', '⏳',
+  '🌞', '➡️', '🔎', '🛠️', '✍️', '🏦', '📦', '👷', '📋', '⚡️',
+  '💶', '📈', '🔧',
+];
+
+// 🎯 Composant réutilisable : Emoji Picker avec bouton flèche
+const EmojiPickerButton = ({ value, onChange }) => (
+  <div className="flex items-center gap-2">
+    <Input 
+      value={value} 
+      onChange={(e) => onChange(e.target.value)}
+      className="w-16 text-center text-xl"
+    />
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 w-10 p-0"
+          title="Choisir un emoji"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="start">
+        <div className="flex flex-wrap gap-1 max-h-96 overflow-y-auto">
+          {EMOJI_COLLECTION.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => onChange(emoji)}
+              className="w-10 h-10 flex items-center justify-center text-xl hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  </div>
+);
 
 const COLOR_OPTIONS = [
   { value: 'bg-blue-100', label: 'Bleu pastel' },
@@ -41,6 +88,20 @@ const COLOR_OPTIONS = [
   { value: 'bg-pink-100', label: 'Rose' },
   { value: 'bg-rose-100', label: 'Framboise' },
   { value: 'bg-gray-100', label: 'Gris doux' },
+];
+
+// Options de couleurs pour les badges de projets (tags)
+const PROJECT_COLOR_OPTIONS = [
+  { value: 'bg-blue-100 text-blue-800', label: 'Bleu', preview: 'bg-blue-100' },
+  { value: 'bg-green-100 text-green-800', label: 'Vert', preview: 'bg-green-100' },
+  { value: 'bg-orange-100 text-orange-800', label: 'Orange', preview: 'bg-orange-100' },
+  { value: 'bg-teal-100 text-teal-800', label: 'Turquoise', preview: 'bg-teal-100' },
+  { value: 'bg-purple-100 text-purple-800', label: 'Violet', preview: 'bg-purple-100' },
+  { value: 'bg-yellow-100 text-yellow-800', label: 'Jaune', preview: 'bg-yellow-100' },
+  { value: 'bg-pink-100 text-pink-800', label: 'Rose', preview: 'bg-pink-100' },
+  { value: 'bg-indigo-100 text-indigo-800', label: 'Indigo', preview: 'bg-indigo-100' },
+  { value: 'bg-red-100 text-red-800', label: 'Rouge', preview: 'bg-red-100' },
+  { value: 'bg-gray-100 text-gray-800', label: 'Gris', preview: 'bg-gray-100' },
 ];
 
 const DEFAULT_COLOR_BY_LABEL = {
@@ -190,72 +251,6 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
   );
 };
 
-// 🎨 Collection d'emojis pour le picker minimaliste
-const EMOJI_COLLECTION = [
-  // Visuels & Expressions standards en premier
-  '�', '😃', '🙂', '😎', '🤔', '👍', '👋', '✅', '❌', '⚠️',
-  '💯', '🎉', '🎊', '🎈', '⭐', '🌟', '✨', '💫', '🔥', '💥',
-  
-  // Énergie & Projets
-  '�🔌', '💡', '☀️', '🌞', '⚡', '�', '♻️', '�', '�', '🍃',
-  
-  // Business & Finance
-  '💸', '💰', '💳', '💵', '🏦', '📊', '📈', '📉', '�', '🏢',
-  
-  // Actions & Workflow
-  '✍️', '📝', '✏️', '📋', '📌', '📍', '🔎', '🔍', '🛠️', '⚙️',
-  
-  // Navigation & Étapes
-  '➡️', '⬅️', '⬆️', '⬇️', '🔄', '🔁', '↩️', '↪️', '⏳', '⌛',
-  
-  // Objets & Outils
-  '📦', '�', '📁', '🗂️', '📄', '�', '�️', '🏭', '�️', '🔑',
-  
-  // Success & Achievements
-  '🏆', '🥇', '🥈', '🥉', '�', '🎨', '🎁', '🆕', '🆙', '🆗',
-];
-
-// � Composant réutilisable : Bouton emoji picker minimaliste
-const EmojiPickerButton = ({ value, onChange, className = "" }) => {
-  return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <Input 
-        value={value} 
-        onChange={(e) => onChange(e.target.value)}
-        className="w-16 text-center text-xl"
-      />
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-10 w-10 p-0 hover:bg-gray-100"
-            title="Choisir un emoji"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-3" align="start">
-          <div className="flex flex-wrap gap-1 max-h-64 overflow-y-auto">
-            {EMOJI_COLLECTION.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => onChange(emoji)}
-                className="w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 rounded-md transition-colors"
-                title={emoji}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-};
-
 const FormEditor = ({
   form,
   onSave,
@@ -341,6 +336,51 @@ const FormEditor = ({
                 </div>
 
                 <div>
+                    <Label>À qui est destiné ce formulaire ?</Label>
+                    <div className="flex gap-4 mt-2">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="audience-client"
+                                name="audience"
+                                value="client"
+                                checked={(editedForm.audience || 'client') === 'client'}
+                                onChange={(e) => setEditedForm(prev => ({
+                                    ...prev,
+                                    audience: e.target.value
+                                }))}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                            />
+                            <Label htmlFor="audience-client" className="font-normal cursor-pointer">
+                                Client
+                            </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="audience-internal"
+                                name="audience"
+                                value="internal"
+                                checked={editedForm.audience === 'internal'}
+                                onChange={(e) => setEditedForm(prev => ({
+                                    ...prev,
+                                    audience: e.target.value
+                                }))}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                            />
+                            <Label htmlFor="audience-internal" className="font-normal cursor-pointer">
+                                Interne (équipe)
+                            </Label>
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {(editedForm.audience || 'client') === 'client' 
+                            ? 'Ce formulaire sera envoyable au client via le chat' 
+                            : 'Ce formulaire sera visible uniquement dans la fiche prospect (équipe)'}
+                    </p>
+                </div>
+
+                <div>
                     <Label>Projets associés</Label>
                     <MultiSelectSearch options={projectOptions} selected={selectedProjects} onChange={selected => setEditedForm(prev => ({
         ...prev,
@@ -350,23 +390,239 @@ const FormEditor = ({
 
                 <h3 className="text-md font-semibold text-gray-700 pt-4 border-t">Champs du formulaire</h3>
                 <div className="space-y-3">
-                    {(editedForm.fields || []).map((field, index) => <div key={field.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md">
-                            <Input value={field.label} onChange={e => handleFieldChange(index, 'label', e.target.value)} placeholder="Nom du champ" />
-                            <Select value={field.type} onValueChange={value => handleFieldChange(index, 'type', value)}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="text">Texte</SelectItem>
-                                    <SelectItem value="email">Email</SelectItem>
-                                    <SelectItem value="phone">Téléphone</SelectItem>
-                                    <SelectItem value="number">Nombre</SelectItem>
-                                    <SelectItem value="file">Fichier</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button variant="ghost" size="icon" onClick={() => removeField(index)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                    {(editedForm.fields || []).map((field, index) => <div key={field.id} className="flex flex-col gap-2 bg-gray-50 p-3 rounded-md">
+                            <div className="flex items-center gap-2">
+                                <Input value={field.label} onChange={e => handleFieldChange(index, 'label', e.target.value)} placeholder="Nom du champ" />
+                                <Select value={field.type} onValueChange={value => handleFieldChange(index, 'type', value)}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="text">Texte</SelectItem>
+                                        <SelectItem value="email">Email</SelectItem>
+                                        <SelectItem value="phone">Téléphone</SelectItem>
+                                        <SelectItem value="number">Nombre</SelectItem>
+                                        <SelectItem value="select">Liste déroulante</SelectItem>
+                                        <SelectItem value="file">Fichier</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="ghost" size="icon" onClick={() => removeField(index)}>
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                            </div>
+                            
+                            {/* 🔥 Si type = select, afficher éditeur d'options */}
+                            {field.type === 'select' && (
+                                <div className="pl-2 space-y-2 border-l-2 border-blue-300">
+                                    <Label className="text-xs font-semibold text-blue-700">Options du menu déroulant :</Label>
+                                    <div className="space-y-1">
+                                        {(field.options || []).map((option, optIndex) => (
+                                            <div key={optIndex} className="flex items-center gap-2">
+                                                <Input 
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                        const newOptions = [...(field.options || [])];
+                                                        newOptions[optIndex] = e.target.value;
+                                                        handleFieldChange(index, 'options', newOptions);
+                                                    }}
+                                                    placeholder={`Option ${optIndex + 1}`}
+                                                    className="flex-1"
+                                                />
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        const newOptions = (field.options || []).filter((_, i) => i !== optIndex);
+                                                        handleFieldChange(index, 'options', newOptions);
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-3 w-3 text-red-500" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => {
+                                            const newOptions = [...(field.options || []), ''];
+                                            handleFieldChange(index, 'options', newOptions);
+                                        }}
+                                        className="text-xs"
+                                    >
+                                        <Plus className="h-3 w-3 mr-1" /> Ajouter une option
+                                    </Button>
+                                </div>
+                            )}
+                            
+                            {/* 🔥 SYSTÈME DE CONDITIONS MULTIPLES */}
+                            <div className="pl-2 space-y-2 border-l-2 border-purple-300">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-semibold text-purple-700">Conditions d'affichage :</Label>
+                                    {field.show_if_conditions && field.show_if_conditions.length > 1 && (
+                                        <Select
+                                            value={field.condition_operator || 'AND'}
+                                            onValueChange={(value) => handleFieldChange(index, 'condition_operator', value)}
+                                        >
+                                            <SelectTrigger className="w-[100px] h-7 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="AND">ET (toutes)</SelectItem>
+                                                <SelectItem value="OR">OU (au moins une)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                                
+                                {(field.show_if_conditions || []).map((condition, condIndex) => (
+                                    <div key={condIndex} className="flex items-center gap-2 bg-purple-50 p-2 rounded">
+                                        <Select 
+                                            value={`${condition.field}::${condition.equals}`}
+                                            onValueChange={(value) => {
+                                                const [fieldId, expectedValue] = value.split('::');
+                                                const newConditions = [...(field.show_if_conditions || [])];
+                                                newConditions[condIndex] = { field: fieldId, equals: expectedValue };
+                                                handleFieldChange(index, 'show_if_conditions', newConditions);
+                                            }}
+                                        >
+                                            <SelectTrigger className="flex-1 h-8 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(editedForm.fields || [])
+                                                    .slice(0, index)
+                                                    .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'select')
+                                                    .map(previousField => {
+                                                        if (previousField.type === 'select' && previousField.options && previousField.options.length > 0) {
+                                                            return previousField.options.map(option => (
+                                                                <SelectItem 
+                                                                    key={`${previousField.id}::${option}`}
+                                                                    value={`${previousField.id}::${option}`}
+                                                                >
+                                                                    "{previousField.label}" = "{option}"
+                                                                </SelectItem>
+                                                            ));
+                                                        }
+                                                        return (
+                                                            <SelectItem 
+                                                                key={previousField.id} 
+                                                                value={`${previousField.id}::has_value`}
+                                                            >
+                                                                "{previousField.label}" rempli
+                                                            </SelectItem>
+                                                        );
+                                                    })
+                                                    .flat()
+                                                }
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => {
+                                                const newConditions = (field.show_if_conditions || []).filter((_, i) => i !== condIndex);
+                                                handleFieldChange(index, 'show_if_conditions', newConditions.length > 0 ? newConditions : undefined);
+                                            }}
+                                        >
+                                            <Trash2 className="h-3 w-3 text-red-500" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const newConditions = [...(field.show_if_conditions || []), { field: '', equals: '' }];
+                                        handleFieldChange(index, 'show_if_conditions', newConditions);
+                                    }}
+                                    className="text-xs w-full"
+                                >
+                                    <Plus className="h-3 w-3 mr-1" /> Ajouter une condition
+                                </Button>
+                                
+                                {(!field.show_if_conditions || field.show_if_conditions.length === 0) && (
+                                    <p className="text-xs text-gray-500 italic">Toujours visible (aucune condition)</p>
+                                )}
+                            </div>
+                            
+                            {/* 🔥 SYSTÈME DE CHAMPS RÉPÉTABLES */}
+                            {field.type === 'select' && (
+                                <div className="pl-2 space-y-2 border-l-2 border-green-300 mt-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-semibold text-green-700">Répétition de champs :</Label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`repeater-${field.id}`}
+                                                checked={field.is_repeater || false}
+                                                onChange={(e) => handleFieldChange(index, 'is_repeater', e.target.checked)}
+                                                className="h-4 w-4 text-green-600 focus:ring-green-500"
+                                            />
+                                            <Label htmlFor={`repeater-${field.id}`} className="text-xs font-normal cursor-pointer">
+                                                Utiliser comme compteur de répétition
+                                            </Label>
+                                        </div>
+                                    </div>
+                                    
+                                    {field.is_repeater && (
+                                        <div className="space-y-2 bg-green-50 p-3 rounded">
+                                            <Label className="text-xs">Champs à répéter :</Label>
+                                            <p className="text-xs text-gray-600 mb-2">
+                                                Sélectionnez les champs qui doivent être répétés N fois (où N = valeur choisie dans le menu déroulant)
+                                            </p>
+                                            
+                                            <div className="space-y-1">
+                                                {(editedForm.fields || [])
+                                                    .slice(index + 1)
+                                                    .map((laterField, laterIndex) => {
+                                                        const realIndex = index + 1 + laterIndex;
+                                                        const isSelected = (field.repeats_fields || []).includes(laterField.id);
+                                                        
+                                                        return (
+                                                            <div key={laterField.id} className="flex items-center gap-2 bg-white p-2 rounded border">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id={`repeat-${field.id}-${laterField.id}`}
+                                                                    checked={isSelected}
+                                                                    onChange={(e) => {
+                                                                        const currentRepeats = field.repeats_fields || [];
+                                                                        const newRepeats = e.target.checked
+                                                                            ? [...currentRepeats, laterField.id]
+                                                                            : currentRepeats.filter(id => id !== laterField.id);
+                                                                        handleFieldChange(index, 'repeats_fields', newRepeats);
+                                                                    }}
+                                                                    className="h-4 w-4 text-green-600 focus:ring-green-500"
+                                                                />
+                                                                <Label 
+                                                                    htmlFor={`repeat-${field.id}-${laterField.id}`}
+                                                                    className="text-xs font-normal cursor-pointer flex-1"
+                                                                >
+                                                                    {laterField.label} ({laterField.type})
+                                                                </Label>
+                                                            </div>
+                                                        );
+                                                    })
+                                                }
+                                            </div>
+                                            
+                                            {(editedForm.fields || []).slice(index + 1).length === 0 && (
+                                                <p className="text-xs text-orange-600 italic">
+                                                    Ajoutez des champs après celui-ci pour pouvoir les répéter
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {!field.is_repeater && (
+                                        <p className="text-xs text-gray-500 italic">
+                                            Activez cette option pour générer automatiquement N copies des champs suivants
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>)}
                 </div>
 
@@ -384,6 +640,7 @@ const FormEditor = ({
                                     <SelectItem value="email">Email</SelectItem>
                                     <SelectItem value="phone">Téléphone</SelectItem>
                                     <SelectItem value="number">Nombre</SelectItem>
+                                    <SelectItem value="select">Liste déroulante</SelectItem>
                                     <SelectItem value="file">Fichier</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -538,9 +795,16 @@ const ProjectEditor = ({
     handleDragEnd(result);
   };
   const handleSave = () => {
+    // 🔍 Déterminer si c'est une création ou modification
+    const isExistingProject = project && project.type;
+    
     const finalProject = {
       ...editedProject,
-      type: editedProject.type || slugify(editedProject.title),
+      // ✅ Si modification → garder le type existant
+      // ✅ Si création → générer un nouveau type basé sur le titre
+      type: isExistingProject 
+        ? editedProject.type 
+        : (slugify(editedProject.title) || `project-${Date.now()}`),
       id: editedProject.id || Date.now()
     };
     if (!finalProject.title) {
@@ -584,7 +848,9 @@ const ProjectEditor = ({
         }))} />
                     </div>
                 </div>
-                 <div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="project-icon">Icône (Emoji)</Label>
                     <EmojiPickerButton
                       value={editedProject.icon}
@@ -593,6 +859,31 @@ const ProjectEditor = ({
                         icon: newIcon
                       }))}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="project-color">Couleur du Badge</Label>
+                    <Select 
+                      value={editedProject.color || 'bg-blue-100 text-blue-800'} 
+                      onValueChange={(value) => setEditedProject(prev => ({
+                        ...prev,
+                        color: value
+                      }))}
+                    >
+                      <SelectTrigger id="project-color">
+                        <SelectValue placeholder="Choisir une couleur" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROJECT_COLOR_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              <span className={`w-4 h-4 rounded-full ${option.preview} border border-gray-300`} />
+                              {option.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <h3 className="text-md font-semibold text-gray-700 pt-4 border-t">Étapes de la Timeline</h3>
@@ -783,55 +1074,335 @@ const ActionEditor = ({
       [field]: value
     });
   };
+  
+  const addChecklistItem = () => {
+    const newChecklist = [...(action.checklist || []), {
+      id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: ''
+    }];
+    handleActionChange('checklist', newChecklist);
+  };
+  
+  const updateChecklistItem = (index, text) => {
+    const newChecklist = [...(action.checklist || [])];
+    newChecklist[index].text = text;
+    handleActionChange('checklist', newChecklist);
+  };
+  
+  const deleteChecklistItem = (index) => {
+    const newChecklist = [...(action.checklist || [])];
+    newChecklist.splice(index, 1);
+    handleActionChange('checklist', newChecklist);
+  };
+  
   return <div className="p-4 bg-white rounded-lg border space-y-4">
                 <div className="flex justify-between items-start">
-                    <div className="space-y-2 flex-grow">
-                        <Label>Message à dire</Label>
-                        <Textarea placeholder="Ex: Bonjour, merci de compléter les informations..." value={action.message} onChange={e => handleActionChange('message', e.target.value)} />
+                    <div className="flex-grow">
+                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">Type d'action</Label>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleActionChange('hasClientAction', true)}
+                                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                    action.hasClientAction !== false
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-lg">👤</span>
+                                    <span className="font-medium text-sm">Associée au client</span>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleActionChange('hasClientAction', false)}
+                                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                    action.hasClientAction === false
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-lg">💼</span>
+                                    <span className="font-medium text-sm">Associée au commercial</span>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={onDelete} className="ml-2">
                         <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                 </div>
                 
-                <div className="space-y-2">
-                    <Label>Action à associer</Label>
-                    <Select value={action.type} onValueChange={value => handleActionChange('type', value)}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Choisir une action" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">Aucune</SelectItem>
-                            <SelectItem value="show_form">Afficher un formulaire</SelectItem>
-                            <SelectItem value="start_signature">Lancer une signature</SelectItem>
-                            <SelectItem value="request_document">Demander un document</SelectItem>
-                            <SelectItem value="open_payment">Ouvrir un paiement</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <AnimatePresence>
-                    {action.type === 'show_form' && <motion.div initial={{
-        opacity: 0,
-        height: 0
-      }} animate={{
-        opacity: 1,
-        height: 'auto'
-      }} exit={{
-        opacity: 0,
-        height: 0
-      }} className="space-y-2 overflow-hidden">
-                            <Label>Formulaire à afficher</Label>
-                            <Select value={action.formId} onValueChange={value => handleActionChange('formId', value)}>
+                {action.hasClientAction !== false ? (
+                    <>
+                        <div className="space-y-2">
+                            <Label>Message à dire</Label>
+                            <Textarea placeholder="Ex: Bonjour, merci de compléter les informations..." value={action.message} onChange={e => handleActionChange('message', e.target.value)} />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Action à associer</Label>
+                            <Select value={action.type} onValueChange={value => handleActionChange('type', value)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Choisir un formulaire" />
+                                    <SelectValue placeholder="Choisir une action" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {Object.values(forms).map(form => <SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>)}
+                                    <SelectItem value="none">Aucune</SelectItem>
+                                    <SelectItem value="show_form">Afficher un formulaire</SelectItem>
+                                    <SelectItem value="start_signature">Lancer une signature</SelectItem>
+                                    <SelectItem value="request_document">Demander un document</SelectItem>
+                                    <SelectItem value="open_payment">Ouvrir un paiement</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </motion.div>}
-                </AnimatePresence>
+                        </div>
+
+                        <AnimatePresence>
+                            {action.type === 'show_form' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Formulaire à afficher</Label>
+                                    <Select value={action.formId} onValueChange={value => handleActionChange('formId', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Choisir un formulaire" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.values(forms).map(form => <SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </motion.div>}
+                            
+                            {action.type === 'request_document' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Type de document attendu</Label>
+                                    <input
+                                        type="text"
+                                        value={action.documentType || ''}
+                                        onChange={(e) => handleActionChange('documentType', e.target.value)}
+                                        placeholder="Ex: Facture EDF, RIB, Titre de propriété..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </motion.div>}
+
+                            {action.type === 'start_signature' && <motion.div initial={{
+                opacity: 0,
+                height: 0
+              }} animate={{
+                opacity: 1,
+                height: 'auto'
+              }} exit={{
+                opacity: 0,
+                height: 0
+              }} className="space-y-2 overflow-hidden">
+                                    <Label>Template de contrat à utiliser</Label>
+                                    <Select value={action.templateId} onValueChange={value => handleActionChange('templateId', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner un template" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {contractTemplates
+                                                .filter(template => template.isActive)
+                                                .map(template => (
+                                                    <SelectItem key={template.id} value={template.id}>
+                                                        {template.name}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {!action.templateId && (
+                                        <p className="text-xs text-red-500">⚠️ Template obligatoire pour sauvegarder</p>
+                                    )}
+                                </motion.div>}
+                        </AnimatePresence>
+
+                        <div className="space-y-2">
+                            <Label>Mode de gestion</Label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleActionChange('managementMode', 'automatic')}
+                                    className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                        (action.managementMode || 'automatic') === 'automatic'
+                                            ? 'border-green-500 bg-green-50 text-green-700'
+                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-lg">🤖</span>
+                                        <span className="font-medium text-sm">Géré par l'IA</span>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleActionChange('managementMode', 'manual')}
+                                    className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                        action.managementMode === 'manual'
+                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span className="text-lg">👤</span>
+                                        <span className="font-medium text-sm">Géré par commercial</span>
+                                    </div>
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {(action.managementMode || 'automatic') === 'automatic' 
+                                    ? '⚡ Envoyé automatiquement par Charly AI'
+                                    : '👨‍💼 Le commercial devra envoyer manuellement'}
+                            </p>
+                            
+                            <AnimatePresence>
+                                {action.managementMode === 'manual' && <motion.div initial={{
+                    opacity: 0,
+                    height: 0
+                  }} animate={{
+                    opacity: 1,
+                    height: 'auto'
+                  }} exit={{
+                    opacity: 0,
+                    height: 0
+                  }} className="pt-3 border-t overflow-hidden space-y-3">
+                                        <div className="flex items-start space-x-2">
+                                            <Checkbox 
+                                                id={`create-task-${action.id}`}
+                                                checked={action.createTask !== false}
+                                                onCheckedChange={checked => handleActionChange('createTask', checked)}
+                                            />
+                                            <div className="space-y-1 flex-1">
+                                                <Label htmlFor={`create-task-${action.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                                                    Créer automatiquement une tâche pour le commercial
+                                                </Label>
+                                                <p className="text-xs text-gray-500">
+                                                    Une tâche sera envoyée au commercial dès que cette étape devient l'étape en cours.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {action.createTask !== false && <div className="space-y-2 ml-6">
+                                                <Label className="text-sm">Titre de la tâche</Label>
+                                                <input
+                                                    type="text"
+                                                    value={action.taskTitle || 'Action requise pour ce client'}
+                                                    onChange={(e) => handleActionChange('taskTitle', e.target.value)}
+                                                    placeholder="Action requise pour ce client"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>}
+                                    </motion.div>}
+                            </AnimatePresence>
+                        </div>
+                        
+                        {action.type === 'show_form' && (
+                            <div className="space-y-2">
+                                <Label>Mode de vérification</Label>
+                                <Select value={action.verificationMode || 'human'} onValueChange={value => handleActionChange('verificationMode', value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Choisir le mode de vérification" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Pas de vérification (auto-validation)</SelectItem>
+                                        <SelectItem value="ai">IA automatique</SelectItem>
+                                        <SelectItem value="human">Humain (commercial vérifie)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-gray-500">
+                                    {action.verificationMode === 'none' && '✅ Validé automatiquement dès que le client termine'}
+                                    {action.verificationMode === 'ai' && '🤖 L\'IA analysera et validera automatiquement'}
+                                    {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie'}
+                                </p>
+                                
+                                {/* 🆕 Messages automatiques de validation/rejet */}
+                                {(!action.verificationMode || action.verificationMode === 'human') && (
+                                    <div className="space-y-4 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium text-gray-700">
+                                                ✅ Message si validé
+                                            </Label>
+                                            <p className="text-xs text-gray-500">
+                                                Ce message sera envoyé automatiquement dans le chat quand le commercial valide le formulaire
+                                            </p>
+                                            <Textarea
+                                                value={action.approvalMessage || 'Merci ! Votre formulaire a été validé.'}
+                                                onChange={(e) => handleActionChange('approvalMessage', e.target.value)}
+                                                placeholder="Merci ! Votre formulaire a été validé."
+                                                className="min-h-[60px]"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium text-gray-700">
+                                                ❌ Message si rejeté
+                                            </Label>
+                                            <p className="text-xs text-gray-500">
+                                                Message prédéfini affiché au commercial. Il pourra ajouter sa raison de refus avant d'envoyer dans le chat.
+                                            </p>
+                                            <Textarea
+                                                value={action.rejectionMessage || 'Oups !! Votre formulaire a été rejeté pour la raison suivante :'}
+                                                onChange={(e) => handleActionChange('rejectionMessage', e.target.value)}
+                                                placeholder="Oups !! Votre formulaire a été rejeté pour la raison suivante :"
+                                                className="min-h-[60px]"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700">Checklist de tâches pour le commercial</Label>
+                        <p className="text-xs text-gray-500">Liste des tâches à effectuer manuellement pour cette action</p>
+                        
+                        <div className="space-y-2">
+                            {(action.checklist || []).map((item, index) => (
+                                <div key={item.id} className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={item.text}
+                                        onChange={(e) => updateChecklistItem(index, e.target.value)}
+                                        placeholder="Ex: Vérifier le document"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => deleteChecklistItem(index)}
+                                        className="h-8 w-8"
+                                    >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={addChecklistItem}
+                            className="w-full border-dashed"
+                        >
+                            <Plus className="h-4 w-4 mr-2" /> Ajouter une tâche
+                        </Button>
+                    </div>
+                )}
             </div>;
 };
 const PromptCreatorDialog = ({
@@ -911,7 +1482,8 @@ const PromptCreatorDialog = ({
     newStepsConfig[stepIndex].actions.push({
       id: `action-${Date.now()}`,
       message: '',
-      type: 'none'
+      type: 'none',
+      hasClientAction: true
     });
     setPromptData(prev => ({
       ...prev,
@@ -1043,7 +1615,7 @@ const PromptCreatorDialog = ({
                                                             <div className="flex items-center space-x-2 pt-4 border-t mt-4">
                                                                 <Checkbox id={`form-complete-step-${index}`} checked={promptData.stepsConfig[index]?.autoCompleteStep || false} onCheckedChange={checked => handleStepConfigChange(index, 'autoCompleteStep', checked)} />
                                                                 <Label htmlFor={`form-complete-step-${index}`} className="text-sm text-gray-600">
-                                                                    Quand ce formulaire est complété, passer automatiquement cette étape en “Terminée” et activer la suivante.
+                                                                    Si action validée, passer automatiquement à l'étape suivante
                                                                 </Label>
                                                             </div>
                                                         </div>
@@ -1103,6 +1675,15 @@ const ProfilePage = () => {
     return supabasePrompts;
   }, [supabasePrompts]);
 
+  // 🔥 Hook Supabase pour la gestion des templates de contrats
+  const {
+    templates: contractTemplates,
+    loading: templatesLoading,
+    createTemplate,
+    updateTemplate,
+    deactivateTemplate
+  } = useSupabaseContractTemplates();
+
   // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
   const {
     users: supabaseUsers,
@@ -1110,20 +1691,30 @@ const ProfilePage = () => {
     addUser,
     updateUser,
     deleteUser: deleteUserSupabase
-  } = useSupabaseUsersCRUD();
+  } = useSupabaseUsersCRUD(activeAdminUser);
 
   // Transformer le array Supabase en objet compatible avec le code existant
-  // { userId: { id, name, email, ... } }
-  const users = useMemo(() => {
+  // { user_id: { id, user_id, name, email, ... } }
+  const usersByAuthId = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
-      acc[user.id] = {
-        id: user.id,
+      if (!user.user_id) return acc;
+      
+      // 🔥 FIX : Trouver le NOM du manager à partir de manager_id (UUID)
+      let managerName = null;
+      if (user.manager_id) {
+        const managerUser = supabaseUsers.find(u => u.user_id === user.manager_id);
+        managerName = managerUser ? managerUser.name : user.manager_id; // Fallback sur UUID si nom pas trouvé
+      }
+      
+      acc[user.user_id] = {
+        id: user.id,               // PK
+        user_id: user.user_id,     // AUTH UUID
         name: user.name,
         email: user.email,
         role: user.role,
         phone: user.phone,
         avatarUrl: user.avatar_url,
-        manager: user.manager_id, // TODO: résoudre le nom du manager si nécessaire
+        manager: managerName,      // 🔥 NOM du manager au lieu de UUID
         accessRights: user.access_rights,
       };
       return acc;
@@ -1132,10 +1723,16 @@ const ProfilePage = () => {
 
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isInviteUserOpen, setIsInviteUserOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
   const [isAccessRightsOpen, setIsAccessRightsOpen] = useState(false);
   const [isCreateCompanyOpen, setIsCreateCompanyOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [editUserData, setEditUserData] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedManager, setSelectedManager] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
@@ -1157,6 +1754,8 @@ const ProfilePage = () => {
   const [editingForm, setEditingForm] = useState(null);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
+  const [editingContractTemplate, setEditingContractTemplate] = useState(null);
+  const [isPreviewTemplateOpen, setIsPreviewTemplateOpen] = useState(false);
   const [selectedProjectForDisplay, setSelectedProjectForDisplay] = useState('');
   const [projectDisplayData, setProjectDisplayData] = useState({
     coverImage: '',
@@ -1194,6 +1793,9 @@ const ProfilePage = () => {
 
   const isGlobalAdmin = activeAdminUser?.role === 'Global Admin';
   const isAdmin = activeAdminUser?.role === 'Admin';
+  
+  // 🔒 UI GATE : vérifier que organization_id est chargé avant d'autoriser l'invitation
+  const isOrganizationReady = !!activeAdminUser?.organization_id;
   
   useEffect(() => {
     if (activeAdminUser) {
@@ -1436,7 +2038,7 @@ const ProfilePage = () => {
       await updateUser(currentUser.id, userInfo);
       // Le toast de succès est déjà affiché dans le hook
     } catch (err) {
-      console.error('Erreur sauvegarde modifications:', err);
+      logger.error('Erreur sauvegarde modifications', { error: err.message });
       toast({
         title: "Erreur",
         description: "Impossible de sauvegarder les modifications.",
@@ -1470,7 +2072,7 @@ const ProfilePage = () => {
       // Rediriger vers la page de login
       window.location.href = '/';
     } catch (error) {
-      console.error('Erreur déconnexion:', error);
+      logger.error('Erreur déconnexion', { error: error.message });
       toast({
         title: "Erreur",
         description: "Impossible de se déconnecter.",
@@ -1494,10 +2096,13 @@ const ProfilePage = () => {
   const openAccessRightsDialog = user => {
     setEditingUser(user);
     const isEditingAdmin = user.role === 'Admin' || user.role === 'Global Admin';
-    const allUserOptions = Object.values(users).filter(u => u.id !== user.id).map(u => ({
-      value: u.id,
-      label: u.name
-    }));
+    
+    const allUserOptions = Object.values(usersByAuthId)
+      .filter(u => u.user_id !== user.user_id)
+      .map(u => ({
+        value: u.user_id, // ✅ AUTH UUID
+        label: u.name
+      }));
     
     let userAccessRights = user.accessRights;
     if (!userAccessRights) {
@@ -1510,13 +2115,17 @@ const ProfilePage = () => {
         users: allUserOptions
       });
     } else {
-      const selectedUsers = (userAccessRights.users || []).map(userId => {
-        const foundUser = users[userId];
-        return foundUser ? {
-          value: foundUser.id,
-          label: foundUser.name
-        } : null;
+      const ids = userAccessRights?.users || [];
+      const selectedUsers = ids.map((authId) => {
+        const foundUser = usersByAuthId[authId];  // ✅ indexé par user_id
+        if (!foundUser) return null;
+        
+        return {
+          value: foundUser.user_id,  // AUTH UUID
+          label: foundUser.name,
+        };
       }).filter(Boolean);
+      
       setAccessRights({
         modules: userAccessRights.modules || ['Pipeline', 'Agenda', 'Contacts'],
         users: selectedUsers
@@ -1541,17 +2150,8 @@ const ProfilePage = () => {
       setIsAccessRightsOpen(false);
       setEditingUser(null);
     } catch (err) {
-      console.error('Erreur sauvegarde droits accès:', err);
+      logger.error('Erreur sauvegarde droits accès', { error: err.message });
     }
-  };
-  const handleAccessModuleChange = (moduleName, checked) => {
-    setAccessRights(prev => {
-      const newModules = checked ? [...prev.modules, moduleName] : prev.modules.filter(m => m !== moduleName);
-      return {
-        ...prev,
-        modules: newModules
-      };
-    });
   };
   const handleChangeRole = async () => {
     if (!editingUser) return;
@@ -1574,7 +2174,7 @@ const ProfilePage = () => {
       setIsChangeRoleOpen(false);
       setEditingUser(null);
     } catch (err) {
-      console.error('Erreur changement rôle:', err);
+      logger.error('Erreur changement rôle', { error: err.message });
     }
   };
   const handleDeleteUser = async (userToDelete) => {
@@ -1582,22 +2182,30 @@ const ProfilePage = () => {
       await deleteUserSupabase(userToDelete.id);
       // Le toast est déjà affiché dans le hook
     } catch (err) {
-      console.error('Erreur suppression utilisateur:', err);
+      logger.error('Erreur suppression utilisateur', { error: err.message });
     }
   };
   const handleCopyLink = user => {
     if (!user?.id) return;
     
-    const { origin, pathname } = window.location;
-    const cleanedPath = pathname
-      .replace(/\/index\.html$/, '')
-      .replace(/\/+$/, '');
-    const baseUrl = `${origin}${cleanedPath}`;
-    const link = `${baseUrl}/#/${user.id}`;
+    // 🔥 Trouver le user dans supabaseUsers pour récupérer affiliate_slug
+    const fullUser = supabaseUsers.find(u => u.id === user.id || u.user_id === user.user_id);
+    
+    if (!fullUser?.affiliate_slug) {
+      toast({
+        title: "Erreur",
+        description: "Ce commercial n'a pas de lien d'affiliation (affiliate_slug manquant).",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // ✅ Générer le VRAI lien d'affiliation pointant vers /inscription/{slug}
+    const link = `https://evatime.fr/inscription/${fullUser.affiliate_slug}`;
 
     navigator.clipboard.writeText(link).then(() => {
       toast({
-        title: "Lien copié !",
+        title: "Lien d'affiliation copié !",
         description: "Envoyez-le à votre client pour qu'il s'inscrive avec votre affiliation.",
         className: "bg-green-500 text-white"
       });
@@ -1680,7 +2288,7 @@ const ProfilePage = () => {
         className: "bg-green-500 text-white"
       });
     } catch (error) {
-      console.error('❌ Erreur suppression projet:', error);
+      logger.error('Erreur suppression projet', { error: error.message });
       toast({
         title: "Erreur !",
         description: error.message || "Impossible de supprimer le projet.",
@@ -1733,7 +2341,7 @@ const ProfilePage = () => {
           // 🔥 Sauvegarder dans Supabase (le real-time mettra à jour le contexte)
           await setCompanyLogo(reader.result);
         } catch (error) {
-          console.error('Error uploading logo:', error);
+          logger.error('Erreur upload logo', { error: error.message });
         }
       };
       reader.readAsDataURL(file);
@@ -1750,7 +2358,7 @@ const ProfilePage = () => {
       }
       setIsLogoMenuOpen(false);
     } catch (error) {
-      console.error('Error removing logo:', error);
+      logger.error('Erreur suppression logo', { error: error.message });
     }
   };
   const handleSaveForm = async (formToSave) => {
@@ -1761,6 +2369,7 @@ const ProfilePage = () => {
       name: formToSave.name,
       fields: formToSave.fields || [],
       projectIds: formToSave.projectIds || [],
+      audience: formToSave.audience || 'client', // 🔥 AJOUT: Audience par défaut 'client'
     });
 
     if (result.success) {
@@ -1843,11 +2452,62 @@ const ProfilePage = () => {
       });
     }
   };
+
+  // 🔥 Handlers pour les templates de contrats
+  const handleSaveContractTemplate = async (templateToSave) => {
+    const isNew = !templateToSave.id;
+    
+    const result = isNew 
+      ? await createTemplate({
+          name: templateToSave.name,
+          projectType: templateToSave.projectType || 'ACC',
+          contentHtml: templateToSave.contentHtml || '',
+        })
+      : await updateTemplate(templateToSave.id, {
+          name: templateToSave.name,
+          projectType: templateToSave.projectType,
+          contentHtml: templateToSave.contentHtml,
+        });
+
+    if (result.success) {
+      toast({
+        title: "✅ Template enregistré !",
+        description: `Le template "${templateToSave.name}" a été sauvegardé.`,
+        className: "bg-green-500 text-white"
+      });
+      setEditingContractTemplate(null);
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible d'enregistrer le template : ${result.error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeactivateContractTemplate = async (templateId) => {
+    const result = await deactivateTemplate(templateId);
+
+    if (result.success) {
+      toast({
+        title: "✅ Template désactivé !",
+        description: "Le template a été désactivé.",
+        className: "bg-green-500 text-white"
+      });
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: `Impossible de désactiver le template : ${result.error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   const openPromptCreator = prompt => {
     setEditingPrompt(prompt);
     setIsPromptCreatorOpen(true);
   };
-  const usersArray = useMemo(() => Object.values(users), [users]);
+  const usersArray = useMemo(() => Object.values(usersByAuthId), [usersByAuthId]);
   const managers = useMemo(() => usersArray.filter(u => u.role === 'Manager' || u.role === 'Admin'), [usersArray]);
   const managerOptions = useMemo(() => [{
     value: 'none',
@@ -1856,8 +2516,8 @@ const ProfilePage = () => {
     value: m.name,
     label: m.name
   }))], [managers]);
-  const allUserOptionsForAccess = useMemo(() => usersArray.filter(u => u.id !== editingUser?.id).map(u => ({
-    value: u.id,
+  const allUserOptionsForAccess = useMemo(() => usersArray.filter(u => u.user_id !== editingUser?.user_id).map(u => ({
+    value: u.user_id,
     label: u.name
   })), [usersArray, editingUser]);
   const filteredUsers = useMemo(() => usersArray.filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 5), [usersArray, searchTerm]);
@@ -1868,16 +2528,23 @@ const ProfilePage = () => {
     }));
   };
   const handleInviteUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.password) {
-      toast({
-        title: "Champs manquants",
-        description: "Veuillez remplir tous les champs obligatoires.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      // Validation des champs
+      if (!newUser.name || !newUser.email || !newUser.password) {
+        toast({
+          title: "Champs manquants",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 🔒 GUARD BLOQUANT : organization_id requis (ne doit pas arriver si bouton disabled)
+      const organizationId = activeAdminUser?.organization_id;
+      if (!organizationId) {
+        throw new Error("Organization non chargée — invitation bloquée");
+      }
+
       await addUser({
         name: newUser.name,
         email: newUser.email,
@@ -1885,6 +2552,7 @@ const ProfilePage = () => {
         role: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),
         manager: newUser.manager === 'none' ? '' : newUser.manager,
         phone: newUser.phone || '',
+        organizationId, // ✅ Depuis activeAdminUser
         accessRights: {
           modules: ['Pipeline', 'Agenda', 'Contacts'],
           users: []
@@ -1901,9 +2569,95 @@ const ProfilePage = () => {
         manager: ''
       });
     } catch (err) {
-      console.error('Erreur invitation utilisateur:', err);
+      logger.error('[InviteUser] error:', err);
+      toast({
+        title: "Invitation impossible",
+        description: err?.message || "Erreur inconnue",
+        variant: "destructive",
+      });
     }
   };
+
+  const openEditUserDialog = (user) => {
+    setEditingUser(user);
+    setEditUserData({
+      name: user.name || '',
+      email: user.email || '',
+      password: '' // Mot de passe vide par défaut (optionnel lors de l'édition)
+    });
+    setIsEditUserOpen(true);
+  };
+
+  const handleEditUserChange = (field, value) => {
+    setEditUserData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    
+    if (!editUserData.name || !editUserData.email) {
+      toast({
+        title: "Champs manquants",
+        description: "Le nom et l'email sont obligatoires.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const updates = {
+        name: editUserData.name
+      };
+
+      // 🔥 Si l'email a changé, utiliser la fonction RPC pour mettre à jour auth.users + public.users
+      if (editUserData.email !== editingUser.email) {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('admin_update_user_email', {
+          target_user_id: editingUser.user_id,
+          new_email: editUserData.email
+        });
+
+        if (rpcError) {
+          throw new Error(`Erreur changement email: ${rpcError.message}`);
+        }
+
+        toast({
+          title: "Email modifié !",
+          description: `L'email de connexion a été changé en ${editUserData.email}. L'utilisateur peut maintenant se connecter avec cette adresse.`,
+          className: "bg-green-500 text-white",
+          duration: 6000,
+        });
+
+        // L'email a déjà été mis à jour dans public.users par la RPC, donc pas besoin de le faire deux fois
+        updates.email = editUserData.email;
+      }
+
+      // Mettre à jour le nom (et l'email si pas déjà fait)
+      if (editUserData.email === editingUser.email) {
+        updates.email = editUserData.email;
+      }
+      
+      await updateUser(editingUser.id, updates);
+
+      setIsEditUserOpen(false);
+      setEditingUser(null);
+      setEditUserData({
+        name: '',
+        email: '',
+        password: ''
+      });
+    } catch (err) {
+      logger.error('Erreur modification utilisateur', { error: err.message });
+      toast({
+        title: "Erreur",
+        description: err.message || "Impossible de modifier l'utilisateur.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const containerVariants = {
     hidden: {
       opacity: 0
@@ -1962,18 +2716,6 @@ const ProfilePage = () => {
           <button type="button" onClick={() => scrollToSection('gestion-pipelines-globales')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des Pipelines Globales
           </button>
-          <button type="button" onClick={() => scrollToSection('gestion-projets')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-            Gestion des Projets
-          </button>
-          <button type="button" onClick={() => scrollToSection('gestion-formulaires')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-            Gestion des Formulaires
-          </button>
-          <button type="button" onClick={() => scrollToSection('gestion-affichage-projets')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-            Gestion de l'Affichage des Projets
-          </button>
-          <button type="button" onClick={() => scrollToSection('creation-prompt')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-            Création de Prompt
-          </button>
           <button type="button" onClick={() => scrollToSection('gestion-utilisateurs')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion des utilisateurs
           </button>
@@ -1997,23 +2739,96 @@ const ProfilePage = () => {
                   <Input id="nom" name="name" value={userInfo.name} onChange={handleUserInfoChange} />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" value={userInfo.email} onChange={handleUserInfoChange} />
+                  <Label htmlFor="email">Email de connexion</Label>
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    value={userInfo.email} 
+                    disabled 
+                    className="bg-gray-100 cursor-not-allowed" 
+                  />
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Pour changer votre email de connexion, contactez un Global Admin
+                  </p>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="phone">Téléphone</Label>
-                <div className="relative mt-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input id="phone" name="phone" type="tel" value={userInfo.phone} onChange={handleUserInfoChange} className="pl-10" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <div className="relative mt-1">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Input id="phone" name="phone" type="tel" value={userInfo.phone} onChange={handleUserInfoChange} className="pl-10" />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="role">Rôle</Label>
-                <Input id="role" name="role" value={userInfo.role === 'Admin' ? 'Admin' : userInfo.role === 'Global Admin' ? 'Admin Global (tous les droits)' : userInfo.role} disabled className="bg-gray-100" />
+                <div>
+                  <Label htmlFor="role">Rôle</Label>
+                  <Input id="role" name="role" value={userInfo.role === 'Admin' ? 'Admin' : userInfo.role === 'Global Admin' ? 'Admin Global (tous les droits)' : userInfo.role} disabled className="bg-gray-100" />
+                </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4">
+
+            {/* 🔗 Lien d'affiliation personnel */}
+            {(() => {
+              const currentUserFull = supabaseUsers.find(u => u.user_id === activeAdminUser?.id || u.email === userInfo.email);
+              const affiliateSlug = currentUserFull?.affiliate_slug;
+              const affiliateLink = affiliateSlug ? `https://evatime.fr/inscription/${affiliateSlug}` : null;
+
+              if (!affiliateLink) return null;
+
+              return (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Label className="text-blue-900 font-semibold mb-2 flex items-center gap-2">
+                        <Copy className="h-4 w-4" />
+                        Votre lien d'affiliation personnel
+                      </Label>
+                      <p className="text-xs text-blue-700 mb-3">
+                        Partagez ce lien avec vos clients. Quand ils s'inscrivent via ce lien, ils vous seront automatiquement attribués.
+                      </p>
+                      <div className="flex items-center gap-2 bg-white p-3 rounded-lg border border-blue-300">
+                        <Input 
+                          value={affiliateLink} 
+                          readOnly 
+                          className="flex-1 font-mono text-sm bg-transparent border-none focus:ring-0 cursor-pointer select-all" 
+                          onClick={(e) => e.target.select()}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(affiliateLink).then(() => {
+                              toast({
+                                title: "✅ Lien copié !",
+                                description: "Le lien d'affiliation a été copié dans votre presse-papiers.",
+                                className: "bg-green-500 text-white"
+                              });
+                            }).catch(() => {
+                              toast({
+                                title: "Erreur",
+                                description: "Impossible de copier le lien automatiquement. Copiez-le manuellement.",
+                                variant: "destructive"
+                              });
+                            });
+                          }}
+                          className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white border-none"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copier
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
               <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
@@ -2090,7 +2905,7 @@ const ProfilePage = () => {
                         alt="Logo de l'entreprise" 
                         className="max-w-xs max-h-48 object-contain rounded-lg shadow-md"
                         onError={(e) => {
-                          console.error('❌ Erreur chargement image:', companyLogo);
+                          logger.error('Erreur chargement image', { url: companyLogo });
                           e.target.style.display = 'none';
                         }}
                       />
@@ -2376,94 +3191,6 @@ const ProfilePage = () => {
               </DialogContent>
             </Dialog>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-projets">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Gestion des Projets</h2>
-                        <Button onClick={() => setCreateProjectOpen(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                            <Plus className="mr-2 h-4 w-4" /> Créer un projet
-                        </Button>
-                    </div>
-                    <div className="space-y-3">
-                        {Object.values(projectsData).map(p => <div key={p.type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-2xl">{p.icon}</span>
-                                    <span className="font-medium">{p.title}</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center space-x-2">
-                                        <Switch id={`publish-${p.type}`} checked={p.isPublic} onCheckedChange={checked => handleToggleProjectVisibility(p.type, checked)} />
-                                        <Label htmlFor={`publish-${p.type}`}>En ligne</Label>
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={() => setEditingProject(p)}>Modifier</Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="destructive" size="icon">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Supprimer "{p.title}" ?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Cette action est irréversible et supprimera ce modèle de projet.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteProjectClick(p.type)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            </div>)}
-                    </div>
-                </motion.div>
-
-                <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-formulaires">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                        <h2 className="text-xl font-semibold text-gray-800">Gestion des Formulaires</h2>
-                        <Button onClick={() => setEditingForm({
-              name: '',
-              fields: [],
-              projectIds: []
-            })} className="bg-teal-600 hover:bg-teal-700 w-full sm:w-auto">
-                            <Plus className="mr-2 h-4 w-4" /> Créer un formulaire
-                        </Button>
-                    </div>
-                    <div className="space-y-3">
-                        {Object.values(forms).map(f => <div key={`${f.id}-${f.name}-${f.updatedAt || f.createdAt}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <FileText className="h-5 w-5 text-gray-500" />
-                                    <span className="font-medium">{f.name}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setEditingForm(f)}>Modifier</Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="destructive" size="icon">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Supprimer "{f.name}" ?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Cette action est irréversible.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteForm(f.id)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            </div>)}
-                    </div>
-                </motion.div>
-              </div>
-
               <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-affichage-projets">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">🧱 Gestion de l’Affichage des Projets</h2>
                 <div className="space-y-6">
@@ -2520,53 +3247,6 @@ const ProfilePage = () => {
                         </AnimatePresence>}
                 </div>
               </motion.div>
-              
-              <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="creation-prompt">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                  <h2 className="text-xl font-semibold text-gray-800">Création de Prompt</h2>
-                  <Button onClick={() => openPromptCreator(null)} className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" /> Créer un nouveau prompt
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {Object.values(prompts).length > 0 ? Object.values(prompts).map(p => <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                            <Bot className="h-5 w-5 text-gray-500" />
-                            <div>
-                              <p className="font-medium">{p.name}</p>
-                              <p className="text-xs text-gray-500">{projectsData[p.projectId]?.title || 'Projet inconnu'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPromptCreator(p)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="h-8 w-8">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Supprimer "{p.name}" ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeletePrompt(p.id)} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                      </div>) : <div className="text-center text-gray-500 py-4">
-                      <Bot className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2">Aucun prompt créé. Cliquez sur le bouton pour en ajouter un.</p>
-                    </div>}
-                </div>
-              </motion.div>
 
               <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-utilisateurs">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -2616,11 +3296,82 @@ const ProfilePage = () => {
                         </div>
                       </div>
                       <DialogFooter className="px-6 pb-4">
-                        <Button onClick={handleInviteUser} className="bg-blue-600 hover:bg-blue-700">Inviter</Button>
+                        {!isOrganizationReady && (
+                          <p className="text-sm text-muted-foreground mr-auto">
+                            Chargement de l'organisation…
+                          </p>
+                        )}
+                        <Button 
+                          onClick={handleInviteUser} 
+                          disabled={!isOrganizationReady}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Inviter
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
+
+                {/* Dialog pour éditer un utilisateur existant */}
+                <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Modifier l'utilisateur</DialogTitle>
+                      <DialogDescription>
+                        Modifiez le nom de {editingUser?.name}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 px-6">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-nom" className="text-right col-span-1">Nom</Label>
+                        <Input 
+                          id="edit-nom" 
+                          className="col-span-3" 
+                          value={editUserData.name} 
+                          onChange={e => handleEditUserChange('name', e.target.value)} 
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-email" className="text-right col-span-1">Email</Label>
+                        <div className="col-span-3 space-y-1">
+                          <Input 
+                            id="edit-email" 
+                            type="email" 
+                            value={editUserData.email} 
+                            onChange={e => handleEditUserChange('email', e.target.value)}
+                          />
+                          <p className="text-xs text-amber-600 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Attention : Changer l'email modifie l'identifiant de connexion de l'utilisateur
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right col-span-1">Mot de passe</Label>
+                        <div className="col-span-3 space-y-1">
+                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p className="text-xs text-amber-800 flex items-start gap-2">
+                              <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span>Pour réinitialiser le mot de passe de cet utilisateur, envoyez-lui un lien "Mot de passe oublié" ou demandez-lui de le faire depuis la page de connexion.</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter className="px-6 pb-4">
+                      <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>Annuler</Button>
+                      <Button onClick={handleSaveEditUser} className="bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
                 <div className="mb-4">
                   <Input type="text" placeholder="Rechercher par nom ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="max-w-sm" />
                 </div>
@@ -2645,7 +3396,10 @@ const ProfilePage = () => {
                           <td className="px-6 py-4">{user.role}</td>
                           <td className="px-6 py-4">{user.manager || 'N/A'}</td>
                           <td className="px-6 py-4">
-                            <Button variant="outline" size="sm" onClick={() => openChangeRoleDialog(user)} disabled={user.role === 'Admin' || user.role === 'Global Admin'}>Changer le rôle</Button>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => openEditUserDialog(user)}>Modifier</Button>
+                              <Button variant="outline" size="sm" onClick={() => openChangeRoleDialog(user)} disabled={user.role === 'Admin' || user.role === 'Global Admin'}>Changer le rôle</Button>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <Button variant="outline" size="sm" onClick={() => openAccessRightsDialog(user)}>Modifier droits</Button>
@@ -2730,15 +3484,6 @@ const ProfilePage = () => {
                     </DialogHeader>
                     <div className="space-y-6 p-6">
                         <div>
-                            <Label className="font-semibold">Modules accessibles</Label>
-                            <div className="mt-2 space-y-2">
-                                {['Pipeline', 'Agenda', 'Contacts'].map(module => <div key={module} className="flex items-center space-x-2">
-                                        <Checkbox id={`module-${module}`} checked={(accessRights.modules || []).includes(module)} onCheckedChange={checked => handleAccessModuleChange(module, checked)} disabled={isEditingAdmin} />
-                                        <Label htmlFor={`module-${module}`} className={isEditingAdmin ? 'text-gray-500' : ''}>{module}</Label>
-                                    </div>)}
-                            </div>
-                        </div>
-                        <div>
                             <Label className="font-semibold">Accès aux données d’autres utilisateurs</Label>
                             <MultiSelectSearch options={allUserOptionsForAccess} selected={accessRights.users} onChange={selected => setAccessRights(prev => ({
                 ...prev,
@@ -2803,6 +3548,118 @@ const ProfilePage = () => {
                   <div className="p-6 max-h-[70vh] overflow-y-auto">
                       {editingForm && <FormEditor form={editingForm} onSave={handleSaveForm} onCancel={() => setEditingForm(null)} />}
                   </div>
+              </DialogContent>
+          </Dialog>
+
+          {/* Modal Template de Contrat */}
+          <Dialog open={!!editingContractTemplate} onOpenChange={isOpen => !isOpen && setEditingContractTemplate(null)}>
+              <DialogContent className="sm:max-w-3xl">
+                  <DialogHeader>
+                      <DialogTitle>
+                          {editingContractTemplate?.id 
+                              ? `Modifier le template "${editingContractTemplate.name}"` 
+                              : 'Créer un nouveau template de contrat'}
+                      </DialogTitle>
+                  </DialogHeader>
+                  <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                      <div>
+                          <Label htmlFor="template-name">Nom du template</Label>
+                          <Input 
+                              id="template-name"
+                              value={editingContractTemplate?.name || ''}
+                              onChange={(e) => setEditingContractTemplate(prev => ({
+                                  ...prev,
+                                  name: e.target.value
+                              }))}
+                              placeholder="Ex: Contrat ACC Standard"
+                          />
+                      </div>
+                      
+                      <div>
+                          <Label htmlFor="template-project-type">Type de projet</Label>
+                          <Select 
+                              value={editingContractTemplate?.projectType || 'ACC'}
+                              onValueChange={(value) => setEditingContractTemplate(prev => ({
+                                  ...prev,
+                                  projectType: value
+                              }))}
+                          >
+                              <SelectTrigger id="template-project-type">
+                                  <SelectValue placeholder="Sélectionner un type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {projectOptions.map(option => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                          {option.label}
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      </div>
+
+                      <div>
+                          <Label htmlFor="template-content">Contenu HTML</Label>
+                          <Textarea 
+                              id="template-content"
+                              value={editingContractTemplate?.contentHtml || ''}
+                              onChange={(e) => setEditingContractTemplate(prev => ({
+                                  ...prev,
+                                  contentHtml: e.target.value
+                              }))}
+                              placeholder="Entrez le contenu HTML du contrat..."
+                              rows={12}
+                              className="font-mono text-sm"
+                          />
+                      </div>
+                  </div>
+                  <DialogFooter className="px-6 pb-4">
+                      <Button 
+                          variant="outline" 
+                          onClick={() => setEditingContractTemplate(null)}
+                      >
+                          Annuler
+                      </Button>
+                      <Button 
+                          variant="secondary"
+                          onClick={() => setIsPreviewTemplateOpen(true)}
+                          disabled={!editingContractTemplate?.contentHtml}
+                      >
+                          👁️ Visualiser
+                      </Button>
+                      <Button 
+                          onClick={() => handleSaveContractTemplate(editingContractTemplate)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                      >
+                          Enregistrer
+                      </Button>
+                  </DialogFooter>
+              </DialogContent>
+          </Dialog>
+
+          {/* Modal Prévisualisation Template */}
+          <Dialog open={isPreviewTemplateOpen} onOpenChange={setIsPreviewTemplateOpen}>
+              <DialogContent className="sm:max-w-5xl max-h-[90vh]">
+                  <DialogHeader>
+                      <DialogTitle>
+                          Prévisualisation : {editingContractTemplate?.name || 'Template'}
+                      </DialogTitle>
+                      <DialogDescription>
+                          Aperçu du rendu HTML du template de contrat
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="p-6 max-h-[70vh] overflow-y-auto bg-white border rounded-lg">
+                      <div 
+                          className="prose max-w-none"
+                          dangerouslySetInnerHTML={{ __html: editingContractTemplate?.contentHtml || '' }}
+                      />
+                  </div>
+                  <DialogFooter className="px-6 pb-4">
+                      <Button 
+                          onClick={() => setIsPreviewTemplateOpen(false)}
+                      >
+                          Fermer
+                      </Button>
+                  </DialogFooter>
               </DialogContent>
           </Dialog>
           

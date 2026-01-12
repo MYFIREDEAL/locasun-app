@@ -3191,62 +3191,6 @@ const ProfilePage = () => {
               </DialogContent>
             </Dialog>
 
-              <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-affichage-projets">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">🧱 Gestion de l’Affichage des Projets</h2>
-                <div className="space-y-6">
-                    <div>
-                        <Label htmlFor="project-display-select">Sélecteur de projet</Label>
-                        <Select value={selectedProjectForDisplay} onValueChange={setSelectedProjectForDisplay}>
-                            <SelectTrigger id="project-display-select">
-                                <SelectValue placeholder="Choisir un projet" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {projectOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {selectedProjectForDisplay && <AnimatePresence>
-                            <motion.div key={selectedProjectForDisplay} initial={{
-              opacity: 0,
-              y: -10
-            }} animate={{
-              opacity: 1,
-              y: 0
-            }} exit={{
-              opacity: 0,
-              y: 10
-            }} className="space-y-4 pt-4 border-t">
-                                <div>
-                                    <Label htmlFor="project-cover-image">Image de couverture (URL)</Label>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Input id="project-cover-image" placeholder="https://exemple.com/image.jpg" value={projectDisplayData.coverImage} onChange={e => handleDisplayDataChange('coverImage', e.target.value)} />
-                                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                                        <Button variant="outline" onClick={() => fileInputRef.current.click()}>
-                                            <Upload className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                    {projectDisplayData.coverImage ? <div className="mt-2 relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
-                                            <img src={projectDisplayData.coverImage} alt="Aperçu" className="w-full h-full object-cover" />
-                                        </div> : <div className="mt-2 flex items-center justify-center w-full aspect-video rounded-lg bg-gray-100 border-2 border-dashed">
-                                            <ImageIcon className="h-10 w-10 text-gray-400" />
-                                        </div>}
-                                </div>
-                                <div>
-                                    <Label htmlFor="project-client-description">Description du projet</Label>
-                                    <Textarea id="project-client-description" placeholder="Courte description visible par le client..." value={projectDisplayData.clientDescription} onChange={e => handleDisplayDataChange('clientDescription', e.target.value)} rows={4} />
-                                </div>
-                                <div>
-                                    <Label htmlFor="project-cta-text">Texte du bouton (CTA)</Label>
-                                    <Input id="project-cta-text" placeholder="Ex: Ajouter ce projet" value={projectDisplayData.ctaText} onChange={e => handleDisplayDataChange('ctaText', e.target.value)} />
-                                </div>
-                                <div className="flex justify-end">
-                                    <Button onClick={handleSaveDisplayData} className="bg-green-600 hover:bg-green-700">Enregistrer les modifications</Button>
-                                </div>
-                            </motion.div>
-                        </AnimatePresence>}
-                </div>
-              </motion.div>
 
               <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-utilisateurs">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
