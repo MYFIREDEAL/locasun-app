@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 
@@ -97,6 +98,61 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
     });
   };
 
+  // 🔥 Fonction pour vérifier si un champ doit être affiché (conditions)
+  const shouldShowField = (field) => {
+    if (!field.show_if_conditions || field.show_if_conditions.length === 0) {
+      return true; // Pas de conditions = toujours visible
+    }
+
+    const operator = field.condition_operator || 'AND';
+    
+    const results = field.show_if_conditions.map(condition => {
+      const targetValue = formData[condition.field];
+      
+      if (condition.equals === 'has_value') {
+        return targetValue && targetValue.trim() !== '';
+      }
+      
+      return targetValue === condition.equals;
+    });
+
+    return operator === 'AND' 
+      ? results.every(r => r)  // Toutes les conditions doivent être vraies
+      : results.some(r => r);   // Au moins une condition doit être vraie
+  };
+
+  // 🔥 Fonction pour générer les champs répétés
+  const getRepeatedFields = () => {
+    const repeatedFields = [];
+    
+    formContactConfig.forEach((field, index) => {
+      if (field.is_repeater && field.type === 'select' && formData[field.id]) {
+        const repeatCount = parseInt(formData[field.id]) || 0;
+        const fieldsToRepeat = field.repeats_fields || [];
+        
+        for (let i = 0; i < repeatCount; i++) {
+          fieldsToRepeat.forEach(fieldId => {
+            const originalField = formContactConfig.find(f => f.id === fieldId);
+            if (originalField) {
+              repeatedFields.push({
+                ...originalField,
+                id: `${fieldId}_repeat_${i}`,
+                name: `${originalField.name} (${i + 1})`,
+                isRepeated: true,
+                originalId: fieldId,
+                repeatIndex: i
+              });
+            }
+          });
+        }
+      }
+    });
+    
+    return repeatedFields;
+  };
+
+  const allFields = [...formContactConfig, ...getRepeatedFields()];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -144,7 +200,7 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
 
   return (
     <DialogComponent open={open} onOpenChange={onOpenChange}>
-      <DialogContentComponent className="sm:max-w-md">
+      <DialogContentComponent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeaderComponent>
           <DialogTitleComponent>Ajouter un nouveau prospect</DialogTitleComponent>
           <DialogDescriptionComponent>
@@ -153,39 +209,69 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
         </DialogHeaderComponent>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4 px-6">
-            {formContactConfig.map(field => (
-              <div key={field.id} className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor={field.id} className="text-right">
-                  {field.name}
-                </Label>
-                {field.type === 'select' ? (
-                  <select
-                    id={field.id}
-                    value={formData[field.id] || ''}
-                    onChange={handleInputChange}
-                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    required={field.required}
-                  >
-                    <option value="">-- Sélectionner --</option>
-                    {(field.options || []).map((option, idx) => (
-                      <option key={idx} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Input
-                    id={field.id}
-                    type={field.type}
-                    value={formData[field.id] || ''}
-                    onChange={handleInputChange}
-                    placeholder={field.placeholder}
-                    className="col-span-3"
-                    required={field.required}
-                  />
-                )}
-              </div>
-            ))}
+            {allFields.filter(field => !field.isRepeated || field.isRepeated).map(field => {
+              // Vérifier les conditions d'affichage (seulement pour les champs non-répétés)
+              if (!field.isRepeated && !shouldShowField(field)) {
+                return null;
+              }
+
+              return (
+                <div key={field.id} className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor={field.id} className="text-right">
+                    {field.name}
+                  </Label>
+                  {field.type === 'select' ? (
+                    <select
+                      id={field.id}
+                      value={formData[field.id] || ''}
+                      onChange={handleInputChange}
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      required={field.required}
+                    >
+                      <option value="">-- Sélectionner --</option>
+                      {(field.options || []).map((option, idx) => (
+                        <option key={idx} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : field.type === 'textarea' ? (
+                    <Textarea
+                      id={field.id}
+                      value={formData[field.id] || ''}
+                      onChange={handleInputChange}
+                      placeholder={field.placeholder}
+                      className="col-span-3"
+                      rows={4}
+                      required={field.required}
+                    />
+                  ) : field.type === 'file' ? (
+                    <Input
+                      id={field.id}
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({ ...prev, [field.id]: file }));
+                        }
+                      }}
+                      className="col-span-3"
+                      required={field.required}
+                    />
+                  ) : (
+                    <Input
+                      id={field.id}
+                      type={field.type}
+                      value={formData[field.id] || ''}
+                      onChange={handleInputChange}
+                      placeholder={field.placeholder}
+                      className="col-span-3"
+                      required={field.required}
+                    />
+                  )}
+                </div>
+              );
+            })}
             {projectOptions.length > 0 && (
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2">Projets</Label>

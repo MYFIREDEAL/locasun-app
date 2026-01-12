@@ -188,8 +188,20 @@ const PipelineStepCard = React.memo(({ step, index, provided, snapshot, onColorC
 ));
 
 const FormFieldEditor = ({ field, onSave, onCancel }) => {
+  const { formContactConfig } = useAppContext();
+  
   const [editedField, setEditedField] = useState(
-    field ? { ...field } : { name: '', type: 'text', placeholder: '', required: false, options: [] }
+    field ? { ...field } : { 
+      name: '', 
+      type: 'text', 
+      placeholder: '', 
+      required: false, 
+      options: [],
+      show_if_conditions: [],
+      condition_operator: 'AND',
+      is_repeater: false,
+      repeats_fields: []
+    }
   );
 
   const handleSave = () => {
@@ -200,8 +212,11 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
     onSave({ ...editedField, id: editedField.id || `field-${Date.now()}` });
   };
 
+  // Récupérer l'index du champ actuel pour les conditions
+  const currentFieldIndex = field ? formContactConfig.findIndex(f => f.id === field.id) : formContactConfig.length;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
       <div>
         <Label htmlFor="field-name">Nom du champ</Label>
         <Input
@@ -222,9 +237,11 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
           <SelectContent>
             <SelectItem value="text">Texte</SelectItem>
             <SelectItem value="email">Email</SelectItem>
+            <SelectItem value="phone">Téléphone</SelectItem>
             <SelectItem value="number">Nombre</SelectItem>
             <SelectItem value="textarea">Zone de texte</SelectItem>
             <SelectItem value="select">Liste déroulante</SelectItem>
+            <SelectItem value="file">Fichier</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -270,6 +287,168 @@ const FormFieldEditor = ({ field, onSave, onCancel }) => {
           >
             <Plus className="h-3 w-3 mr-1" /> Ajouter une option
           </Button>
+        </div>
+      )}
+
+      {/* 🔥 SYSTÈME DE CONDITIONS MULTIPLES */}
+      <div className="pl-2 space-y-2 border-l-2 border-purple-300">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold text-purple-700">Conditions d'affichage :</Label>
+          {editedField.show_if_conditions && editedField.show_if_conditions.length > 1 && (
+            <Select
+              value={editedField.condition_operator || 'AND'}
+              onValueChange={(value) => setEditedField({ ...editedField, condition_operator: value })}
+            >
+              <SelectTrigger className="w-[100px] h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AND">ET (toutes)</SelectItem>
+                <SelectItem value="OR">OU (au moins une)</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        
+        {(editedField.show_if_conditions || []).map((condition, condIndex) => (
+          <div key={condIndex} className="flex items-center gap-2 bg-purple-50 p-2 rounded">
+            <Select 
+              value={`${condition.field}::${condition.equals}`}
+              onValueChange={(value) => {
+                const [fieldId, expectedValue] = value.split('::');
+                const newConditions = [...(editedField.show_if_conditions || [])];
+                newConditions[condIndex] = { field: fieldId, equals: expectedValue };
+                setEditedField({ ...editedField, show_if_conditions: newConditions });
+              }}
+            >
+              <SelectTrigger className="flex-1 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {formContactConfig
+                  .slice(0, currentFieldIndex)
+                  .filter(f => f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'select')
+                  .map(previousField => {
+                    if (previousField.type === 'select' && previousField.options && previousField.options.length > 0) {
+                      return previousField.options.map(option => (
+                        <SelectItem 
+                          key={`${previousField.id}::${option}`}
+                          value={`${previousField.id}::${option}`}
+                        >
+                          "{previousField.name}" = "{option}"
+                        </SelectItem>
+                      ));
+                    }
+                    return (
+                      <SelectItem 
+                        key={previousField.id} 
+                        value={`${previousField.id}::has_value`}
+                      >
+                        "{previousField.name}" rempli
+                      </SelectItem>
+                    );
+                  })
+                  .flat()
+                }
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => {
+                const newConditions = (editedField.show_if_conditions || []).filter((_, i) => i !== condIndex);
+                setEditedField({ ...editedField, show_if_conditions: newConditions.length > 0 ? newConditions : [] });
+              }}
+            >
+              <Trash2 className="h-3 w-3 text-red-500" />
+            </Button>
+          </div>
+        ))}
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const newConditions = [...(editedField.show_if_conditions || []), { field: '', equals: '' }];
+            setEditedField({ ...editedField, show_if_conditions: newConditions });
+          }}
+          className="text-xs w-full"
+        >
+          <Plus className="h-3 w-3 mr-1" /> Ajouter une condition
+        </Button>
+        
+        {(!editedField.show_if_conditions || editedField.show_if_conditions.length === 0) && (
+          <p className="text-xs text-gray-500 italic">Toujours visible (aucune condition)</p>
+        )}
+      </div>
+
+      {/* 🔥 SYSTÈME DE CHAMPS RÉPÉTABLES */}
+      {editedField.type === 'select' && (
+        <div className="pl-2 space-y-2 border-l-2 border-green-300">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold text-green-700">Répétition de champs :</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="repeater-checkbox"
+                checked={editedField.is_repeater || false}
+                onChange={(e) => setEditedField({ ...editedField, is_repeater: e.target.checked })}
+                className="h-4 w-4 text-green-600 focus:ring-green-500"
+              />
+              <Label htmlFor="repeater-checkbox" className="text-xs font-normal cursor-pointer">
+                Utiliser comme compteur de répétition
+              </Label>
+            </div>
+          </div>
+          
+          {editedField.is_repeater && (
+            <div className="space-y-2 bg-green-50 p-3 rounded">
+              <Label className="text-xs">Champs à répéter :</Label>
+              <p className="text-xs text-gray-600 mb-2">
+                Sélectionnez les champs qui doivent être répétés N fois (où N = valeur choisie dans le menu déroulant)
+              </p>
+              
+              <div className="space-y-1">
+                {formContactConfig
+                  .slice(currentFieldIndex + 1)
+                  .map((laterField) => {
+                    const isSelected = (editedField.repeats_fields || []).includes(laterField.id);
+                    
+                    return (
+                      <div key={laterField.id} className="flex items-center gap-2 bg-white p-2 rounded border">
+                        <input
+                          type="checkbox"
+                          id={`repeat-${laterField.id}`}
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const currentRepeats = editedField.repeats_fields || [];
+                            const newRepeats = e.target.checked
+                              ? [...currentRepeats, laterField.id]
+                              : currentRepeats.filter(id => id !== laterField.id);
+                            setEditedField({ ...editedField, repeats_fields: newRepeats });
+                          }}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500"
+                        />
+                        <Label 
+                          htmlFor={`repeat-${laterField.id}`}
+                          className="text-xs font-normal cursor-pointer flex-1"
+                        >
+                          {laterField.name} ({laterField.type})
+                        </Label>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+              
+              {formContactConfig.slice(currentFieldIndex + 1).length === 0 && (
+                <p className="text-xs text-orange-600 italic">
+                  Ajoutez des champs après celui-ci pour pouvoir les répéter
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
