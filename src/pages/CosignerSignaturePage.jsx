@@ -58,10 +58,16 @@ const CosignerSignaturePage = () => {
         return;
       }
 
-      // En dev, afficher l'OTP
-      if (data?.dev_otp) {
+      // ✅ Réinitialiser le compteur à 3 après envoi d'un nouveau code
+      setRemainingAttempts(3);
+      
+      // ✅ Message de succès (sans afficher le code)
+      setError(''); // Effacer les erreurs précédentes
+      
+      // En dev uniquement (localhost), afficher l'OTP
+      if (data?.dev_otp && window.location.hostname === 'localhost') {
         logger.debug('OTP DEV:', data.dev_otp);
-        setError(`[DEV] Votre OTP: ${data.dev_otp}`);
+        console.log('🔐 [DEV ONLY] Votre OTP:', data.dev_otp);
       }
     } catch (err) {
       logger.error('Erreur requestOtp', err);
