@@ -1463,14 +1463,24 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             // Mettre à jour le statut du panel
             await updateFormPanel(panel.panelId, { status: 'approved' });
 
-            // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante
-            logger.debug('🔍 Searching for related task', {
-                totalAppointments: appointments?.length || 0,
-                prospectId: prospect.id,
-                projectType: panel.projectType,
-                stepName: panel.stepName,
-                panel: panel
+            // 🔥 Récupérer l'action pour vérifier verificationMode
+            const action = getActionForPanel(panel);
+            const verificationMode = action?.verificationMode || 'human';
+            
+            logger.debug('🔍 Checking verification mode', {
+                verificationMode,
+                shouldSearchTask: verificationMode === 'human'
             });
+
+            // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante (UNIQUEMENT si verificationMode='human')
+            if (verificationMode === 'human') {
+                logger.debug('🔍 Searching for related task', {
+                    totalAppointments: appointments?.length || 0,
+                    prospectId: prospect.id,
+                    projectType: panel.projectType,
+                    stepName: panel.stepName,
+                    panel: panel
+                });
 
             // Filtrer les tâches pour debug
             const allTasks = appointments?.filter(apt => apt.type === 'task') || [];
@@ -1542,6 +1552,28 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 return allMatch;
             });
 
+            // 🔥 FALLBACK: Si pas trouvé avec step exact, chercher sans step
+            if (!relatedTask) {
+                logger.warn('⚠️ Task not found with exact step, trying fallback without step', {
+                    panelStep: panel.stepName
+                });
+                
+                relatedTask = appointments?.find(apt => 
+                    apt.type === 'task' &&
+                    apt.contactId === prospect.id &&
+                    apt.projectId === panel.projectType &&
+                    apt.status === 'pending' &&
+                    apt.title?.includes('Vérifier le formulaire')
+                );
+                
+                if (relatedTask) {
+                    logger.info('✅ Found task via fallback (without step match)', {
+                        taskId: relatedTask.id,
+                        taskStep: relatedTask.step
+                    });
+                }
+            }
+
             if (relatedTask) {
                 logger.info('✅ Found verification task, marking as completed', {
                     taskId: relatedTask.id,
@@ -1555,7 +1587,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                     className: 'bg-blue-500 text-white',
                 });
             } else {
-                logger.warn('⚠️ No related task found', {
+                logger.warn('⚠️ No related task found (even with fallback)', {
                     searchCriteria: {
                         type: 'task',
                         contactId: prospect.id,
@@ -1564,6 +1596,11 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                         status: 'pending',
                         titleContains: 'Vérifier le formulaire'
                     }
+                });
+            }
+            } else {
+                logger.debug('⏭️ Skipping task search (verificationMode !== human)', {
+                    verificationMode
                 });
             }
 
@@ -1651,25 +1688,35 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             // Mettre à jour le statut du panel
             await updateFormPanel(panel.panelId, { status: 'rejected' });
 
-            // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante
-            logger.debug('🔍 Searching for related task (reject)', {
-                totalAppointments: appointments?.length || 0,
-                prospectId: prospect.id,
-                projectType: panel.projectType,
-                stepName: panel.stepName
+            // 🔥 Récupérer l'action pour vérifier verificationMode
+            const action = getActionForPanel(panel);
+            const verificationMode = action?.verificationMode || 'human';
+            
+            logger.debug('🔍 Checking verification mode (reject)', {
+                verificationMode,
+                shouldSearchTask: verificationMode === 'human'
             });
 
-            // 🔍 Recherche détaillée avec logs de chaque critère
-            logger.debug('🔍 Searching for task with criteria (REJECT):', {
-                searchCriteria: {
-                    type: 'task',
-                    contactId: prospect.id,
-                    projectId: panel.projectType,
-                    step: panel.stepName,
-                    status: 'pending',
-                    titleIncludes: 'Vérifier le formulaire'
-                }
-            });
+            // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante (UNIQUEMENT si verificationMode='human')
+            if (verificationMode === 'human') {
+                logger.debug('🔍 Searching for related task (reject)', {
+                    totalAppointments: appointments?.length || 0,
+                    prospectId: prospect.id,
+                    projectType: panel.projectType,
+                    stepName: panel.stepName
+                });
+
+                // 🔍 Recherche détaillée avec logs de chaque critère
+                logger.debug('🔍 Searching for task with criteria (REJECT):', {
+                    searchCriteria: {
+                        type: 'task',
+                        contactId: prospect.id,
+                        projectId: panel.projectType,
+                        step: panel.stepName,
+                        status: 'pending',
+                        titleIncludes: 'Vérifier le formulaire'
+                    }
+                });
 
             const relatedTask = appointments?.find(apt => {
                 const checks = {
@@ -1712,6 +1759,28 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 return allMatch;
             });
 
+            // 🔥 FALLBACK: Si pas trouvé avec step exact, chercher sans step (REJECT)
+            if (!relatedTask) {
+                logger.warn('⚠️ Task not found with exact step (reject), trying fallback', {
+                    panelStep: panel.stepName
+                });
+                
+                relatedTask = appointments?.find(apt => 
+                    apt.type === 'task' &&
+                    apt.contactId === prospect.id &&
+                    apt.projectId === panel.projectType &&
+                    apt.status === 'pending' &&
+                    apt.title?.includes('Vérifier le formulaire')
+                );
+                
+                if (relatedTask) {
+                    logger.info('✅ Found task via fallback (reject, without step match)', {
+                        taskId: relatedTask.id,
+                        taskStep: relatedTask.step
+                    });
+                }
+            }
+
             if (relatedTask) {
                 logger.info('✅ Found verification task, marking as completed (rejected)', {
                     taskId: relatedTask.id,
@@ -1719,6 +1788,11 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                     title: relatedTask.title
                 });
                 await updateAppointment(relatedTask.id, { status: 'effectue' });
+            }
+            } else {
+                logger.debug('⏭️ Skipping task search (reject, verificationMode !== human)', {
+                    verificationMode
+                });
             }
 
             // 🆕 ENVOYER MESSAGE dans le chat
