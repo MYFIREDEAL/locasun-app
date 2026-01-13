@@ -64,21 +64,32 @@ export default function SignaturePage() {
         return;
       }
 
-      // Vérifier status
-      if (proc.status === 'signed') {
-        setProcedure(proc);
-        setSigned(true);
-        setLoading(false);
-        return;
-      }
-
-      if (proc.status !== 'pending') {
+      // Vérifier si refusée ou annulée
+      if (proc.status === 'refused' || proc.status === 'cancelled') {
         setError(`Signature ${proc.status === 'refused' ? 'refusée' : 'annulée'}`);
         setLoading(false);
         return;
       }
 
       setProcedure(proc);
+
+      // ✅ Vérifier si CE signataire principal a déjà signé (via signature_proofs)
+      const { data: existingProof } = await supabase
+        .from('signature_proofs')
+        .select('signed_at')
+        .eq('signature_procedure_id', proc.id)
+        .eq('signer_email', proc.signer_email) // Email du signataire principal
+        .maybeSingle();
+
+      if (existingProof) {
+        logger.info('Signataire principal a déjà signé', { 
+          email: proc.signer_email,
+          signedAt: existingProof.signed_at 
+        });
+        setSigned(true);
+        setLoading(false);
+        return;
+      }
 
       logger.debug('📋 Procédure chargée', { 
         signer_name: proc.signer_name, 
