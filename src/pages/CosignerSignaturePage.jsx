@@ -74,12 +74,19 @@ const CosignerSignaturePage = () => {
         setCosignerEmail(tokenData.signer_email);
         setCosignerName(cosigner?.name || tokenData.signer_email);
 
-        // ✅ CORRECTION : Vérifier le STATUS GLOBAL (comme SignaturePage.jsx)
-        // Car quand on signe, c'est procedure.status qui passe à 'signed', pas signers[].status
-        if (proc.status === 'signed') {
-          logger.info('Procédure déjà signée (co-signataire a signé)', { 
+        // ✅ CORRECTION FINALE : Vérifier si CE co-signataire a déjà signé
+        // On vérifie dans signature_proofs, pas le status global (car le principal peut avoir signé)
+        const { data: existingProof } = await supabase
+          .from('signature_proofs')
+          .select('signed_at')
+          .eq('signature_procedure_id', proc.id)
+          .eq('signer_email', tokenData.signer_email)
+          .maybeSingle();
+
+        if (existingProof) {
+          logger.info('Co-signataire a déjà signé', { 
             email: tokenData.signer_email,
-            signedAt: proc.signed_at 
+            signedAt: existingProof.signed_at 
           });
           setSigned(true); // ✅ Afficher directement la page de confirmation
           setLoading(false);
