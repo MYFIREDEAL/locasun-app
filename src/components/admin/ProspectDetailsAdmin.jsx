@@ -1636,7 +1636,6 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             }
 
             // 🆕 ENVOYER MESSAGE AUTO dans le chat
-            const action = getActionForPanel(panel);
             const approvalMessage = action?.approvalMessage || 'Merci ! Votre formulaire a été validé.';
             
             // 🔥 Vérifier qu'un message identique n'a pas déjà été envoyé récemment (< 2 secondes)
@@ -1796,7 +1795,6 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             }
 
             // 🆕 ENVOYER MESSAGE dans le chat
-            const action = getActionForPanel(panel);
             const rejectionMessage = action?.rejectionMessage || 'Oups !! Votre formulaire a été rejeté pour la raison suivante :';
             const fullMessage = `${rejectionMessage}\n\n${customReason}`;
             
