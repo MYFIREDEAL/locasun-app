@@ -140,7 +140,25 @@ export default function SignaturePage() {
 
       logger.debug('Hash SHA-256 calculé', { documentHash: documentHash.substring(0, 16) + '...' });
 
-      // 3. Capturer métadonnées de signature (AES)
+      // 3. Créer la preuve de signature via internal-signature
+      const { data: signData, error: signError } = await supabase.functions.invoke('internal-signature', {
+        body: {
+          signature_procedure_id: signatureProcedureId,
+          signer_email: procedure.signer_email,
+          signer_user_id: null,
+          pdf_file_id: procedure.file_id,
+          pdf_hash: documentHash,
+        },
+      });
+
+      if (signError) {
+        logger.error('Erreur création preuve signature', signError);
+        throw signError;
+      }
+
+      logger.debug('Preuve de signature créée', signData);
+
+      // 4. Capturer métadonnées de signature (AES)
       const signatureMetadata = {
         signed_at: new Date().toISOString(),
         user_agent: navigator.userAgent,
