@@ -76,7 +76,7 @@ export default function SignaturePage() {
       // ✅ Vérifier si CE signataire principal a déjà signé (via signature_proofs)
       const { data: existingProof } = await supabase
         .from('signature_proofs')
-        .select('signed_at')
+        .select('id, created_at') // ✅ Utiliser created_at au lieu de signed_at
         .eq('signature_procedure_id', proc.id)
         .eq('signer_email', proc.signer_email) // Email du signataire principal
         .maybeSingle();
@@ -84,7 +84,7 @@ export default function SignaturePage() {
       if (existingProof) {
         logger.info('Signataire principal a déjà signé', { 
           email: proc.signer_email,
-          signedAt: existingProof.signed_at 
+          signedAt: existingProof.created_at 
         });
         setSigned(true);
         setLoading(false);

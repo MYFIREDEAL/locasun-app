@@ -78,7 +78,7 @@ const CosignerSignaturePage = () => {
         // On vérifie dans signature_proofs, pas le status global (car le principal peut avoir signé)
         const { data: existingProof } = await supabase
           .from('signature_proofs')
-          .select('signed_at')
+          .select('id, created_at') // ✅ Utiliser created_at au lieu de signed_at
           .eq('signature_procedure_id', proc.id)
           .eq('signer_email', tokenData.signer_email)
           .maybeSingle();
@@ -86,7 +86,7 @@ const CosignerSignaturePage = () => {
         if (existingProof) {
           logger.info('Co-signataire a déjà signé', { 
             email: tokenData.signer_email,
-            signedAt: existingProof.signed_at 
+            signedAt: existingProof.created_at 
           });
           setSigned(true); // ✅ Afficher directement la page de confirmation
           setLoading(false);
