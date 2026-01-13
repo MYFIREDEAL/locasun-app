@@ -277,7 +277,7 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
                     onClick={() => handleDelete(file)}
                     className="p-2 hover:bg-red-50 rounded text-red-600 transition-colors disabled:opacity-50"
                     title="Supprimer"
-                    disabled={deleting || signingLoading}
+                    disabled={deleting}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
