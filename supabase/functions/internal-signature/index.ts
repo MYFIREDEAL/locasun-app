@@ -41,22 +41,9 @@ serve(async (req) => {
       )
     }
 
-    // Mettre à jour la procédure
-    const { error: updateError } = await supabaseClient
-      .from('signature_procedures')
-      .update({
-        status: 'signed',
-        signed_at: new Date().toISOString(),
-      })
-      .eq('id', signature_procedure_id)
-
-    if (updateError) {
-      console.error('Erreur update signature_procedures:', updateError)
-      return new Response(
-        JSON.stringify({ error: 'Erreur mise à jour procédure' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    // ✅ NE PAS mettre à jour la procédure ici
+    // Le front-end gère le status via le tableau signers
+    // Cette fonction crée SEULEMENT la preuve de signature
 
     return new Response(
       JSON.stringify({ 
