@@ -1513,11 +1513,19 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 
                 const allMatch = Object.values(checks).every(c => c);
                 
+                // 🔥 LOG DÉTAILLÉ pour debug
                 if (!allMatch && apt.type === 'task' && apt.contactId === prospect.id) {
-                    logger.debug('🔍 Task failed matching:', {
+                    logger.warn('🔍 Task failed matching:', {
                         taskId: apt.id,
                         title: apt.title,
                         checks: checks,
+                        COMPARISON: {
+                            taskStep: `"${apt.step}"`,
+                            panelStep: `"${panel.stepName}"`,
+                            areEqual: apt.step === panel.stepName,
+                            taskStepType: typeof apt.step,
+                            panelStepType: typeof panel.stepName
+                        },
                         taskData: {
                             contactId: apt.contactId,
                             projectId: apt.projectId,
@@ -1675,11 +1683,19 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 
                 const allMatch = Object.values(checks).every(c => c);
                 
+                // 🔥 LOG DÉTAILLÉ pour debug (REJECT)
                 if (!allMatch && apt.type === 'task' && apt.contactId === prospect.id) {
-                    logger.debug('🔍 Task failed matching (REJECT):', {
+                    logger.warn('🔍 Task failed matching (REJECT):', {
                         taskId: apt.id,
                         title: apt.title,
                         checks: checks,
+                        COMPARISON: {
+                            taskStep: `"${apt.step}"`,
+                            panelStep: `"${panel.stepName}"`,
+                            areEqual: apt.step === panel.stepName,
+                            taskStepType: typeof apt.step,
+                            panelStepType: typeof panel.stepName
+                        },
                         taskData: {
                             contactId: apt.contactId,
                             projectId: apt.projectId,
