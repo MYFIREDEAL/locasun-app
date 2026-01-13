@@ -19,6 +19,7 @@ const CosignerSignaturePage = () => {
   const [error, setError] = useState('');
   const [procedure, setProcedure] = useState(null);
   const [cosignerEmail, setCosignerEmail] = useState(''); // ✅ Email du co-signataire
+  const [cosignerName, setCosignerName] = useState(''); // ✅ Nom du co-signataire
   const [pdfUrl, setPdfUrl] = useState('');
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
@@ -64,14 +65,16 @@ const CosignerSignaturePage = () => {
 
         setProcedure(proc);
 
-        // ✅ Stocker l'email du co-signataire
-        setCosignerEmail(tokenData.signer_email);
-
-        // ✅ Vérifier si ce co-signataire a déjà signé (comme SignaturePage.jsx)
+        // ✅ Récupérer les infos du co-signataire depuis signers[]
         const cosigner = proc.signers?.find(
           s => s.email === tokenData.signer_email && s.role === 'cosigner'
         );
 
+        // ✅ Stocker l'email et le nom du co-signataire
+        setCosignerEmail(tokenData.signer_email);
+        setCosignerName(cosigner?.name || tokenData.signer_email);
+
+        // ✅ Vérifier si ce co-signataire a déjà signé (comme SignaturePage.jsx)
         if (cosigner?.status === 'signed') {
           logger.info('Co-signataire a déjà signé', { 
             email: tokenData.signer_email,
@@ -317,7 +320,8 @@ const CosignerSignaturePage = () => {
           </p>
           {procedure && cosignerEmail && (
             <div className="text-sm text-gray-500 space-y-1 bg-gray-50 p-4 rounded-lg">
-              <p><span className="font-semibold">Co-signataire:</span> {cosignerEmail}</p>
+              <p><span className="font-semibold">Signataire:</span> {cosignerName}</p>
+              <p><span className="font-semibold">Email:</span> {cosignerEmail}</p>
               <p><span className="font-semibold">Date:</span> {new Date().toLocaleString('fr-FR', {
                 year: 'numeric',
                 month: 'long',
