@@ -652,7 +652,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 // Construire le tableau signers
                 const signers = [
                   {
-                    role: 'principal', // Changé de 'type' à 'role' pour compatibilité avec send-cosigner-invite
+                    role: 'owner', // 🔥 Aligné avec Edge Function generate-signed-pdf
                     name: currentProspect?.name || 'Client',
                     email: currentProspect?.email,
                     phone: currentProspect?.phone || null,
@@ -667,7 +667,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 if (cosigners.length > 0) {
                   for (const cosigner of cosigners) {
                     signers.push({
-                      role: 'cosigner', // Changé de 'type' à 'role' pour compatibilité avec send-cosigner-invite
+                      role: 'cosigner', // ✅ Reste 'cosigner'
                       name: cosigner.name || '',
                       email: cosigner.email || '',
                       phone: cosigner.phone || '',

@@ -290,9 +290,14 @@ const CosignerSignaturePage = () => {
         const hasPendingSigners = updatedSigners.some(s => s.status === 'pending');
         const globalStatus = hasPendingSigners ? 'partially_signed' : 'completed';
 
-        logger.debug('Cosigner marqué signé - AVANT UPDATE', { 
+        // 🔍 LOGS DE DEBUG
+        logger.debug('📊 Co-signataire - Analyse des signataires:', { 
           email: cosignerEmail,
           procedureId,
+          totalSigners: updatedSigners.length,
+          signedCount: updatedSigners.filter(s => s.status === 'signed').length,
+          pendingCount: updatedSigners.filter(s => s.status === 'pending').length,
+          hasPendingSigners,
           globalStatus,
           allSigners: updatedSigners 
         });
@@ -303,6 +308,7 @@ const CosignerSignaturePage = () => {
           .update({
             signers: updatedSigners,
             status: globalStatus,
+            locked: globalStatus === 'completed' ? true : false, // 🔥 Verrouiller si completed
           })
           .eq('id', procedureId);
 
@@ -317,7 +323,7 @@ const CosignerSignaturePage = () => {
 
         // 🔥 Si completed, générer le PDF signé final
         if (globalStatus === 'completed') {
-          logger.debug('🚀 Appel generate-signed-pdf', { 
+          logger.debug('✅ Co-signataire - Status = completed - Appel generate-signed-pdf', { 
             signature_procedure_id: procedureId 
           });
           
@@ -326,10 +332,15 @@ const CosignerSignaturePage = () => {
           });
 
           if (pdfError) {
-            logger.error('❌ Erreur génération PDF signé', pdfError);
+            logger.error('❌ Co-signataire - Erreur génération PDF signé', pdfError);
           } else {
-            logger.debug('✅ PDF signé généré avec succès', pdfData);
+            logger.debug('✅ Co-signataire - PDF signé généré avec succès', pdfData);
           }
+        } else {
+          logger.debug('⏸️ Co-signataire - Status = partially_signed - Attente d\'autres signataires', {
+            globalStatus,
+            pendingSigners: updatedSigners.filter(s => s.status === 'pending')
+          });
         }
       }
 

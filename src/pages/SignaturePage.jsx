@@ -167,7 +167,7 @@ export default function SignaturePage() {
 
       // 5. Mettre à jour signers[] avec le principal signé
       const updatedSigners = (currentProc?.signers || []).map(signer => {
-        if (signer.email === procedure.signer_email && signer.role === 'principal') {
+        if (signer.email === procedure.signer_email && signer.role === 'owner') {
           return {
             ...signer,
             status: 'signed',
@@ -180,6 +180,16 @@ export default function SignaturePage() {
       // 6. Déterminer le status global
       const hasPendingSigners = updatedSigners.some(s => s.status === 'pending');
       const globalStatus = hasPendingSigners ? 'partially_signed' : 'completed';
+
+      // 🔍 LOGS DE DEBUG
+      logger.debug('📊 Analyse des signataires:', {
+        totalSigners: updatedSigners.length,
+        signedCount: updatedSigners.filter(s => s.status === 'signed').length,
+        pendingCount: updatedSigners.filter(s => s.status === 'pending').length,
+        hasPendingSigners,
+        globalStatus,
+        allSigners: updatedSigners
+      });
 
       // 7. Capturer métadonnées de signature (AES)
       const signatureMetadata = {
@@ -202,7 +212,8 @@ export default function SignaturePage() {
           signers: updatedSigners,
           signed_at: new Date().toISOString(),
           document_hash: documentHash,
-          signature_metadata: signatureMetadata
+          signature_metadata: signatureMetadata,
+          locked: globalStatus === 'completed' ? true : false, // 🔥 Verrouiller si completed
         })
         .eq('id', signatureProcedureId)
         .eq('access_token', token) // Sécurité: vérifier le token
@@ -224,17 +235,22 @@ export default function SignaturePage() {
 
       // 9. Si completed, générer le PDF signé final
       if (globalStatus === 'completed') {
-        logger.debug('Appel generate-signed-pdf', { procedure_id: signatureProcedureId });
+        logger.debug('✅ Status = completed - Appel generate-signed-pdf', { procedure_id: signatureProcedureId });
         
         const { data: pdfData, error: pdfError } = await supabase.functions.invoke('generate-signed-pdf', {
           body: { signature_procedure_id: signatureProcedureId },
         });
 
         if (pdfError) {
-          logger.error('Erreur génération PDF signé', pdfError);
+          logger.error('❌ Erreur génération PDF signé', pdfError);
         } else {
-          logger.debug('PDF signé généré avec succès', pdfData);
+          logger.debug('✅ PDF signé généré avec succès', pdfData);
         }
+      } else {
+        logger.debug('⏸️ Status = partially_signed - Attente des co-signataires', { 
+          globalStatus,
+          pendingSigners: updatedSigners.filter(s => s.status === 'pending')
+        });
       }
 
       // 10. Mettre à jour le state avec les données fraîches de la DB
