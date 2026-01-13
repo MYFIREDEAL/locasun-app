@@ -158,7 +158,30 @@ export default function SignaturePage() {
 
       logger.debug('Preuve de signature créée', signData);
 
-      // 4. Capturer métadonnées de signature (AES)
+      // 4. Récupérer la procédure pour vérifier les signataires
+      const { data: currentProc } = await supabase
+        .from('signature_procedures')
+        .select('signers')
+        .eq('id', signatureProcedureId)
+        .single();
+
+      // 5. Mettre à jour signers[] avec le principal signé
+      const updatedSigners = (currentProc?.signers || []).map(signer => {
+        if (signer.email === procedure.signer_email && signer.role === 'principal') {
+          return {
+            ...signer,
+            status: 'signed',
+            signed_at: new Date().toISOString(),
+          };
+        }
+        return signer;
+      });
+
+      // 6. Déterminer le status global
+      const hasPendingSigners = updatedSigners.some(s => s.status === 'pending');
+      const globalStatus = hasPendingSigners ? 'partially_signed' : 'completed';
+
+      // 7. Capturer métadonnées de signature (AES)
       const signatureMetadata = {
         signed_at: new Date().toISOString(),
         user_agent: navigator.userAgent,
@@ -171,11 +194,12 @@ export default function SignaturePage() {
         document_hash_algorithm: 'SHA-256'
       };
 
-      // 4. Mettre à jour la procédure de signature ET récupérer les données
+      // 8. Mettre à jour la procédure de signature
       const { data: updatedProc, error: updateError } = await supabase
         .from('signature_procedures')
         .update({
-          status: 'signed',
+          status: globalStatus,
+          signers: updatedSigners,
           signed_at: new Date().toISOString(),
           document_hash: documentHash,
           signature_metadata: signatureMetadata
@@ -194,13 +218,23 @@ export default function SignaturePage() {
         procedureId: signatureProcedureId,
         signer_name: updatedProc.signer_name,
         signer_email: updatedProc.signer_email,
+        globalStatus,
         signed_at: updatedProc.signed_at
       });
 
-      // 5. Mettre à jour le state avec les données fraîches de la DB (source de vérité)
+      // 9. Si completed, générer le PDF signé final
+      if (globalStatus === 'completed') {
+        supabase.functions.invoke('generate-signed-pdf', {
+          body: { signature_procedure_id: signatureProcedureId },
+        }).catch(err => {
+          logger.error('Erreur génération PDF signé', err);
+        });
+      }
+
+      // 10. Mettre à jour le state avec les données fraîches de la DB
       setProcedure(updatedProc);
 
-      // 6. Succès
+      // 11. Succès
       setSigned(true);
       setSigning(false);
 
