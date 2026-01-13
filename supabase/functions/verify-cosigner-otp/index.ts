@@ -96,6 +96,11 @@ serve(async (req) => {
       )
     }
 
+    // ✅ Trouver le co-signataire dans signers[] pour récupérer son nom
+    const cosigner = procedure.signers?.find(
+      (s: any) => s.email === tokenData.signer_email && s.role === 'cosigner'
+    )
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -103,6 +108,7 @@ serve(async (req) => {
           id: procedure.id,
           file_id: procedure.file_id,
           signer_email: tokenData.signer_email,
+          signer_name: cosigner?.name || tokenData.signer_email, // ✅ Ajouter le nom
         }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

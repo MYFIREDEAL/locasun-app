@@ -178,8 +178,9 @@ const CosignerSignaturePage = () => {
       // OTP validé - Charger le PDF
       setProcedure(data.procedure);
       
-      // ✅ Stocker l'email du co-signataire depuis la réponse OTP
+      // ✅ Stocker l'email ET le nom du co-signataire depuis la réponse OTP
       setCosignerEmail(data.procedure.signer_email);
+      setCosignerName(data.procedure.signer_name || data.procedure.signer_email);
       
       // Récupérer l'URL du PDF
       const { data: file } = await supabase
