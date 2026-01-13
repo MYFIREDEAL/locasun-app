@@ -652,7 +652,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 // Construire le tableau signers
                 const signers = [
                   {
-                    role: 'owner', // 🔥 Aligné avec Edge Function generate-signed-pdf
+                    role: 'principal',
                     name: currentProspect?.name || 'Client',
                     email: currentProspect?.email,
                     phone: currentProspect?.phone || null,

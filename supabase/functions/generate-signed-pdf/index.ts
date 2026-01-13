@@ -309,6 +309,7 @@ serve(async (req) => {
       .from('signature_procedures')
       .update({
         signed_file_id: fileRecord.id,
+        locked: true,
       })
       .eq('id', signature_procedure_id)
 

@@ -167,7 +167,7 @@ export default function SignaturePage() {
 
       // 5. Mettre à jour signers[] avec le principal signé
       const updatedSigners = (currentProc?.signers || []).map(signer => {
-        if (signer.email === procedure.signer_email && signer.role === 'owner') {
+        if (signer.email === procedure.signer_email && signer.role === 'principal') {
           return {
             ...signer,
             status: 'signed',
