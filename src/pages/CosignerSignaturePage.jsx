@@ -291,11 +291,17 @@ const CosignerSignaturePage = () => {
 
         // 🔥 Si completed, générer le PDF signé final
         if (globalStatus === 'completed') {
-          supabase.functions.invoke('generate-signed-pdf', {
+          logger.debug('Appel generate-signed-pdf', { procedure_id: procedure.id });
+          
+          const { data: pdfData, error: pdfError } = await supabase.functions.invoke('generate-signed-pdf', {
             body: { signature_procedure_id: procedure.id },
-          }).catch(err => {
-            logger.error('Erreur génération PDF signé', err);
           });
+
+          if (pdfError) {
+            logger.error('Erreur génération PDF signé', pdfError);
+          } else {
+            logger.debug('PDF signé généré avec succès', pdfData);
+          }
         }
       }
 
