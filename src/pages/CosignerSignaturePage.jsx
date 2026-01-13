@@ -18,6 +18,7 @@ const CosignerSignaturePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [procedure, setProcedure] = useState(null);
+  const [cosignerEmail, setCosignerEmail] = useState(''); // ✅ Email du co-signataire
   const [pdfUrl, setPdfUrl] = useState('');
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
@@ -62,6 +63,9 @@ const CosignerSignaturePage = () => {
         }
 
         setProcedure(proc);
+
+        // ✅ Stocker l'email du co-signataire
+        setCosignerEmail(tokenData.signer_email);
 
         // ✅ Vérifier si ce co-signataire a déjà signé (comme SignaturePage.jsx)
         const cosigner = proc.signers?.find(
@@ -171,6 +175,9 @@ const CosignerSignaturePage = () => {
       // OTP validé - Charger le PDF
       setProcedure(data.procedure);
       
+      // ✅ Stocker l'email du co-signataire depuis la réponse OTP
+      setCosignerEmail(data.procedure.signer_email);
+      
       // Récupérer l'URL du PDF
       const { data: file } = await supabase
         .from('project_files')
@@ -216,7 +223,7 @@ const CosignerSignaturePage = () => {
       const { data: signData, error: signError } = await supabase.functions.invoke('internal-signature', {
         body: {
           signature_procedure_id: procedure.id,
-          signer_email: procedure.signer_email,
+          signer_email: cosignerEmail, // ✅ Utiliser l'email du co-signataire stocké
           signer_user_id: null,
           pdf_file_id: procedure.file_id,
           pdf_hash: pdfHash,
@@ -241,7 +248,7 @@ const CosignerSignaturePage = () => {
 
       if (procData?.signers) {
         const updatedSigners = procData.signers.map(signer => {
-          if (signer.email === procedure.signer_email && signer.role === 'cosigner') {
+          if (signer.email === cosignerEmail && signer.role === 'cosigner') { // ✅ Utiliser cosignerEmail
             return {
               ...signer,
               status: 'signed',
@@ -265,7 +272,7 @@ const CosignerSignaturePage = () => {
           .eq('id', procedure.id);
 
         logger.debug('Cosigner marqué signé', { 
-          email: procedure.signer_email, 
+          email: cosignerEmail, // ✅ Utiliser cosignerEmail
           globalStatus,
           allSigners: updatedSigners 
         });
@@ -301,11 +308,25 @@ const CosignerSignaturePage = () => {
 
   if (signed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Signature enregistrée !</h2>
-          <p className="text-gray-600">Votre signature a été enregistrée avec succès.</p>
+          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Contrat signé !</h1>
+          <p className="text-gray-600 mb-4">
+            Votre signature électronique a été enregistrée avec succès.
+          </p>
+          {procedure && cosignerEmail && (
+            <div className="text-sm text-gray-500 space-y-1 bg-gray-50 p-4 rounded-lg">
+              <p><span className="font-semibold">Co-signataire:</span> {cosignerEmail}</p>
+              <p><span className="font-semibold">Date:</span> {new Date().toLocaleString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</p>
+            </div>
+          )}
         </div>
       </div>
     );
