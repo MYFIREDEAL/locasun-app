@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { PDFDocument, rgb, StandardFonts } from 'https://cdn.skypack.dev/pdf-lib@1.17.1'
+import { PDFDocument, rgb, StandardFonts } from 'https://esm.sh/pdf-lib@1.17.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,19 +14,25 @@ serve(async (req) => {
   }
 
   try {
+    console.error('🚀 START generate-signed-pdf')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { signature_procedure_id } = await req.json()
+    console.error('📋 Procedure ID:', signature_procedure_id)
 
     // Récupérer la procédure
+    console.error('📥 Fetching procedure...')
     const { data: procedure, error: procError } = await supabaseClient
       .from('signature_procedures')
       .select('*, project_files!signature_procedures_file_id_fkey(*)')
       .eq('id', signature_procedure_id)
       .single()
+    
+    console.error('✅ Procedure fetched:', procedure?.id)
 
     if (procError || !procedure) {
       return new Response(
@@ -55,6 +61,7 @@ serve(async (req) => {
     }
 
     // Récupérer le PDF original
+    console.error('[1/10] Téléchargement PDF original:', procedure.project_files.storage_path)
     const { data: pdfData, error: pdfError } = await supabaseClient.storage
       .from('project-files')
       .download(procedure.project_files.storage_path)
@@ -67,10 +74,13 @@ serve(async (req) => {
     }
 
     // Charger le PDF avec pdf-lib
+    console.error('[2/10] Chargement PDF en mémoire')
     const pdfBytes = await pdfData.arrayBuffer()
+    console.error('[3/10] Parsing PDF avec pdf-lib')
     const pdfDoc = await PDFDocument.load(pdfBytes)
 
     // Récupérer les preuves de signature
+    console.error('[4/10] Récupération des preuves de signature')
     const { data: proofs, error: proofsError } = await supabaseClient
       .from('signature_proofs')
       .select('*')
@@ -85,6 +95,7 @@ serve(async (req) => {
     }
 
     // Ajouter une page de signatures
+    console.error('[5/10] Création page certificat et embedding fonts')
     const signaturePage = pdfDoc.addPage([595.28, 841.89]) // A4
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
@@ -240,7 +251,9 @@ serve(async (req) => {
     }
 
     // Sauvegarder le PDF modifié
+    console.error('[6/10] Sauvegarde PDF final en mémoire')
     const signedPdfBytes = await pdfDoc.save()
+    console.error(`[6/10] PDF sauvegardé : ${signedPdfBytes.byteLength} bytes`)
 
     // Uploader le PDF signé
     const timestamp = Date.now()
@@ -248,12 +261,14 @@ serve(async (req) => {
     const signedFileName = `${originalName}_signed_${timestamp}.pdf`
     const signedStoragePath = `${procedure.prospect_id}/${procedure.project_type}/${signedFileName}`
 
+    console.error(`[7/10] Upload vers storage: ${signedStoragePath}`)
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('project-files')
       .upload(signedStoragePath, signedPdfBytes, {
         contentType: 'application/pdf',
         upsert: false,
       })
+    console.error('[7/10] Upload terminé')
 
     if (uploadError) {
       console.error('Erreur upload PDF signé:', uploadError)
@@ -264,6 +279,7 @@ serve(async (req) => {
     }
 
     // Créer l'entrée dans project_files
+    console.error('[8/10] Création entrée project_files')
     const { data: fileRecord, error: fileError } = await supabaseClient
       .from('project_files')
       .insert({
@@ -288,6 +304,7 @@ serve(async (req) => {
     }
 
     // Mettre à jour la procédure avec signed_file_id
+    console.error('[9/10] Update procédure avec signed_file_id')
     const { error: updateError } = await supabaseClient
       .from('signature_procedures')
       .update({
@@ -305,6 +322,7 @@ serve(async (req) => {
     }
 
     // 🔥 Envoyer emails de confirmation
+    console.error('[10/10] Envoi emails et notifications')
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://myfiredeal.github.io/locasun-app'
 
@@ -385,9 +403,8 @@ serve(async (req) => {
       .insert({
         prospect_id: procedure.prospect_id,
         project_type: procedure.project_type,
-        sender: 'system',
-        content: '✅ Le contrat a été signé par toutes les parties. Le document final est disponible dans l\'onglet Fichiers.',
-        message_type: 'system',
+        sender: 'admin',
+        text: '✅ Le contrat a été signé par toutes les parties. Le document final est disponible dans l\'onglet Fichiers.',
       })
       .catch(err => console.error('Erreur création message chat:', err))
 
