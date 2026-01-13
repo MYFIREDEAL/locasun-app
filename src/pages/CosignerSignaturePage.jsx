@@ -30,18 +30,73 @@ const CosignerSignaturePage = () => {
       return;
     }
 
-    // Vérifier si OTP déjà demandé pour ce token (localStorage)
-    const otpKey = `otp_requested_${token}`;
-    const alreadyRequested = localStorage.getItem(otpKey);
+    // ✅ Charger la procédure et vérifier si déjà signé (comme SignaturePage.jsx)
+    const loadProcedure = async () => {
+      try {
+        setLoading(true);
+        
+        // Récupérer les infos du token
+        const { data: tokenData, error: tokenError } = await supabase
+          .from('cosigner_invite_tokens')
+          .select('signature_procedure_id, signer_email')
+          .eq('token', token)
+          .single();
 
-    if (!alreadyRequested) {
-      handleRequestOtp();
-      // Marquer comme demandé (expire après 10min comme l'OTP)
-      localStorage.setItem(otpKey, Date.now().toString());
-      
-      // Nettoyer après 10 minutes
-      setTimeout(() => localStorage.removeItem(otpKey), 10 * 60 * 1000);
-    }
+        if (tokenError || !tokenData) {
+          setError('Lien invalide');
+          setLoading(false);
+          return;
+        }
+
+        // Charger la procédure de signature
+        const { data: proc, error: procError } = await supabase
+          .from('signature_procedures')
+          .select('*')
+          .eq('id', tokenData.signature_procedure_id)
+          .single();
+
+        if (procError || !proc) {
+          setError('Procédure de signature introuvable');
+          setLoading(false);
+          return;
+        }
+
+        setProcedure(proc);
+
+        // ✅ Vérifier si ce co-signataire a déjà signé (comme SignaturePage.jsx)
+        const cosigner = proc.signers?.find(
+          s => s.email === tokenData.signer_email && s.role === 'cosigner'
+        );
+
+        if (cosigner?.status === 'signed') {
+          logger.info('Co-signataire a déjà signé', { 
+            email: tokenData.signer_email,
+            signedAt: cosigner.signed_at 
+          });
+          setSigned(true); // ✅ Afficher directement la page de confirmation
+          setLoading(false);
+          return;
+        }
+        
+        setLoading(false);
+
+        // Si pas encore signé, demander l'OTP
+        const otpKey = `otp_requested_${token}`;
+        const alreadyRequested = localStorage.getItem(otpKey);
+
+        if (!alreadyRequested) {
+          handleRequestOtp();
+          localStorage.setItem(otpKey, Date.now().toString());
+          setTimeout(() => localStorage.removeItem(otpKey), 10 * 60 * 1000);
+        }
+      } catch (err) {
+        logger.error('Erreur chargement procédure', err);
+        setError('Erreur chargement');
+        setLoading(false);
+      }
+    };
+
+    loadProcedure();
   }, [token]);
 
   const handleRequestOtp = async () => {
@@ -55,6 +110,14 @@ const CosignerSignaturePage = () => {
 
       if (otpError) {
         setError(otpError.message || 'Erreur envoi OTP');
+        return;
+      }
+
+      // ✅ Vérifier si le co-signataire a déjà signé
+      if (data?.already_signed) {
+        logger.info('Co-signataire a déjà signé', { signedAt: data.signed_at });
+        setSigned(true); // Afficher la page de confirmation
+        setLoading(false);
         return;
       }
 

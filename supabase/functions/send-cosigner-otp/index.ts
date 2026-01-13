@@ -42,6 +42,26 @@ serve(async (req) => {
       )
     }
 
+    // ✅ VÉRIFIER SI LE CO-SIGNATAIRE A DÉJÀ SIGNÉ
+    const { data: existingProof } = await supabaseClient
+      .from('signature_proofs')
+      .select('id, created_at')
+      .eq('signature_procedure_id', tokenData.signature_procedure_id)
+      .eq('signer_email', tokenData.signer_email)
+      .single()
+
+    if (existingProof) {
+      console.log('✅ Co-signataire a déjà signé, redirection vers confirmation')
+      return new Response(
+        JSON.stringify({ 
+          already_signed: true,
+          message: 'Vous avez déjà signé ce document',
+          signed_at: existingProof.created_at
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Générer OTP 6 chiffres
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
 
