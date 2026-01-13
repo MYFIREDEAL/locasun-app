@@ -252,15 +252,31 @@ const CosignerSignaturePage = () => {
       logger.debug('Preuve de signature créée', signData);
 
       // 🔥 Marquer le cosigner comme signé
-      const { data: procData } = await supabase
+      const { data: procData, error: procDataError } = await supabase
         .from('signature_procedures')
-        .select('signers')
+        .select('id, signers')
         .eq('id', procedure.id)
         .single();
 
+      if (procDataError) {
+        logger.error('Erreur récupération procédure', procDataError);
+        setError('Erreur lors de la signature');
+        setSigning(false);
+        return;
+      }
+
+      if (!procData) {
+        logger.error('Procédure introuvable');
+        setError('Procédure introuvable');
+        setSigning(false);
+        return;
+      }
+
+      const procedureId = procData.id; // ✅ Utiliser l'ID de la DB, pas du state
+
       if (procData?.signers) {
         const updatedSigners = procData.signers.map(signer => {
-          if (signer.email === cosignerEmail && signer.role === 'cosigner') { // ✅ Utiliser cosignerEmail
+          if (signer.email === cosignerEmail && signer.role === 'cosigner') {
             return {
               ...signer,
               status: 'signed',
@@ -274,33 +290,45 @@ const CosignerSignaturePage = () => {
         const hasPendingSigners = updatedSigners.some(s => s.status === 'pending');
         const globalStatus = hasPendingSigners ? 'partially_signed' : 'completed';
 
+        logger.debug('Cosigner marqué signé - AVANT UPDATE', { 
+          email: cosignerEmail,
+          procedureId,
+          globalStatus,
+          allSigners: updatedSigners 
+        });
+
         // 🔥 Mettre à jour la procédure
-        await supabase
+        const { error: updateError } = await supabase
           .from('signature_procedures')
           .update({
             signers: updatedSigners,
             status: globalStatus,
           })
-          .eq('id', procedure.id);
+          .eq('id', procedureId);
 
-        logger.debug('Cosigner marqué signé', { 
-          email: cosignerEmail, // ✅ Utiliser cosignerEmail
-          globalStatus,
-          allSigners: updatedSigners 
-        });
+        if (updateError) {
+          logger.error('Erreur mise à jour procédure', updateError);
+          setError('Erreur lors de la signature');
+          setSigning(false);
+          return;
+        }
+
+        logger.debug('Procédure mise à jour avec succès', { globalStatus });
 
         // 🔥 Si completed, générer le PDF signé final
         if (globalStatus === 'completed') {
-          logger.debug('Appel generate-signed-pdf', { procedure_id: procedure.id });
+          logger.debug('🚀 Appel generate-signed-pdf', { 
+            signature_procedure_id: procedureId 
+          });
           
           const { data: pdfData, error: pdfError } = await supabase.functions.invoke('generate-signed-pdf', {
-            body: { signature_procedure_id: procedure.id },
+            body: { signature_procedure_id: procedureId },
           });
 
           if (pdfError) {
-            logger.error('Erreur génération PDF signé', pdfError);
+            logger.error('❌ Erreur génération PDF signé', pdfError);
           } else {
-            logger.debug('PDF signé généré avec succès', pdfData);
+            logger.debug('✅ PDF signé généré avec succès', pdfData);
           }
         }
       }
