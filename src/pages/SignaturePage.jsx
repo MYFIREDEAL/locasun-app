@@ -213,7 +213,6 @@ export default function SignaturePage() {
           signed_at: new Date().toISOString(),
           document_hash: documentHash,
           signature_metadata: signatureMetadata,
-          locked: globalStatus === 'completed' ? true : false, // 🔥 Verrouiller si completed
         })
         .eq('id', signatureProcedureId)
         .eq('access_token', token) // Sécurité: vérifier le token

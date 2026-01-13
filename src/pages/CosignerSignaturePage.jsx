@@ -308,7 +308,6 @@ const CosignerSignaturePage = () => {
           .update({
             signers: updatedSigners,
             status: globalStatus,
-            locked: globalStatus === 'completed' ? true : false, // 🔥 Verrouiller si completed
           })
           .eq('id', procedureId);
 
