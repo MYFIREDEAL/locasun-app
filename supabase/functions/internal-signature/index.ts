@@ -42,8 +42,10 @@ serve(async (req) => {
     }
 
     // ✅ NE PAS mettre à jour la procédure ici
-    // Le front-end gère le status via le tableau signers
-    // Cette fonction crée SEULEMENT la preuve de signature
+    // Le front-end gère le status ET le signed_file_id via le tableau signers
+    // Cette fonction crée SEULEMENT la preuve de signature (signature_proofs)
+    
+    console.log('✅ Signature proof créée avec succès');
 
     return new Response(
       JSON.stringify({ 
@@ -53,9 +55,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Erreur internal-signature:', error)
+    console.error('❌ Erreur internal-signature:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
