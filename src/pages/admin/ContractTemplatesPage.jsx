@@ -68,6 +68,43 @@ const ContractTemplatesPage = () => {
 
   const [editingContractTemplate, setEditingContractTemplate] = useState(null);
   const [isPreviewTemplateOpen, setIsPreviewTemplateOpen] = useState(false);
+  
+  // 🆕 États pour le choix du mode de création
+  const [isModeSelectionOpen, setIsModeSelectionOpen] = useState(false);
+  const [creationMode, setCreationMode] = useState(null); // null | 'pdf' | 'manual'
+
+  // 🆕 Gestionnaire pour démarrer la création (affiche le choix du mode)
+  const handleStartCreation = () => {
+    setIsModeSelectionOpen(true);
+  };
+
+  // 🆕 Gestionnaire pour continuer après sélection du mode
+  const handleModeSelected = (mode) => {
+    setCreationMode(mode);
+    setIsModeSelectionOpen(false);
+    
+    if (mode === 'manual') {
+      // Mode manuel : afficher directement le formulaire avec contentHtml vide
+      setEditingContractTemplate({
+        name: '',
+        projectType: 'ACC',
+        contentHtml: ''
+      });
+    } else if (mode === 'pdf') {
+      // Mode PDF : ouvrir l'interface d'upload PDF (à implémenter)
+      // Pour l'instant, on affiche le formulaire aussi (le workflow PDF sera ajouté plus tard)
+      setEditingContractTemplate({
+        name: '',
+        projectType: 'ACC',
+        contentHtml: ''
+      });
+      toast({
+        title: "🚧 Fonctionnalité en développement",
+        description: "L'import PDF sera disponible prochainement. Vous pouvez saisir le HTML manuellement.",
+        className: "bg-blue-500 text-white"
+      });
+    }
+  };
 
   const handleSaveContractTemplate = async (templateToSave) => {
     const isNew = !templateToSave.id;
@@ -140,11 +177,7 @@ const ContractTemplatesPage = () => {
               <div className="flex flex-col gap-4 mb-6">
                 <h2 className="text-lg font-semibold text-gray-800">Mes templates</h2>
                 <Button 
-                  onClick={() => setEditingContractTemplate({
-                    name: '',
-                    projectType: 'ACC',
-                    contentHtml: ''
-                  })} 
+                  onClick={handleStartCreation}
                   className="bg-purple-600 hover:bg-purple-700 w-full"
                 >
                   <Plus className="mr-2 h-4 w-4" /> Nouveau template
@@ -348,11 +381,7 @@ const ContractTemplatesPage = () => {
                     Choisissez un template dans la liste ou créez-en un nouveau
                   </p>
                   <Button 
-                    onClick={() => setEditingContractTemplate({
-                      name: '',
-                      projectType: 'ACC',
-                      contentHtml: ''
-                    })} 
+                    onClick={handleStartCreation}
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     <Plus className="mr-2 h-4 w-4" /> Créer un template
@@ -363,6 +392,69 @@ const ContractTemplatesPage = () => {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* 🆕 Modal Choix du mode de création */}
+      <Dialog open={isModeSelectionOpen} onOpenChange={setIsModeSelectionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choisissez votre méthode de création</DialogTitle>
+            <DialogDescription>
+              Comment souhaitez-vous créer votre template de contrat ?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-6">
+            {/* Option 1 : Import PDF */}
+            <button
+              onClick={() => handleModeSelected('pdf')}
+              className="w-full p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    📄 Importer un PDF et générer le HTML
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Uploadez un PDF, placez les champs dynamiques avec l'éditeur visuel, puis générez automatiquement le HTML
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Option 2 : HTML manuel */}
+            <button
+              onClick={() => handleModeSelected('manual')}
+              className="w-full p-6 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                  <Edit className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    ✍️ J'ai déjà mon HTML
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Collez ou écrivez directement votre HTML dans l'éditeur. Parfait si vous avez déjà préparé votre template
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsModeSelectionOpen(false)}
+            >
+              Annuler
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Prévisualisation Template */}
       <Dialog open={isPreviewTemplateOpen} onOpenChange={setIsPreviewTemplateOpen}>
