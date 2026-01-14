@@ -441,49 +441,50 @@ const ContractTemplateEditorPage = () => {
     console.log('JSON généré:', jsonString);
   };
 
-  // 🆕 STEP 4 : Conversion JSON → HTML COMPLET (texte PDF + overlays)
+  // 🆕 STEP 4 : Conversion JSON → HTML COMPLET (PDF en image de fond + overlays)
   const convertJsonToHtml = (blocks) => {
-    // Générer le HTML complet du contrat (texte PDF + blocs)
-    let html = `<html>\n<head>\n<meta charset="UTF-8">\n<style>\n`;
-    html += `body { font-family: Arial, sans-serif; margin: 20px; }\n`;
-    html += `.contract-root { position: relative; }\n`;
-    html += `.page { position: relative; margin-bottom: 40px; page-break-after: always; }\n`;
-    html += `.page-text { white-space: pre-wrap; line-height: 1.6; }\n`;
-    html += `.page-overlay { position: absolute; top: 0; left: 0; pointer-events: none; }\n`;
-    html += `.contract-variable { color: #9333ea; font-weight: bold; background: #f3e8ff; padding: 2px 4px; border-radius: 3px; }\n`;
-    html += `.signature-block { margin: 20px 0; padding: 15px; border: 2px solid #ddd; border-radius: 8px; }\n`;
-    html += `.signature-label { font-weight: bold; margin-bottom: 10px; }\n`;
-    html += `.signature-line { border-bottom: 2px solid #000; margin-top: 30px; padding-bottom: 5px; }\n`;
-    html += `.paraphe-block { display: inline-block; margin: 5px; padding: 5px 10px; border: 1px solid #666; border-radius: 4px; }\n`;
-    html += `.paraphe-label { font-size: 0.9em; color: #666; }\n`;
-    html += `.reserve-block { min-height: 50px; border: 1px dashed #ccc; margin: 10px 0; }\n`;
+    // Générer le HTML avec les pages PDF en images de fond
+    let html = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<style>\n`;
+    html += `body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }\n`;
+    html += `.contract-root { max-width: 794px; margin: 0 auto; background: white; }\n`;
+    html += `.page { position: relative; margin-bottom: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }\n`;
+    html += `.page-background { display: block; width: 100%; height: auto; }\n`;
+    html += `.page-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }\n`;
+    html += `.overlay-item { position: absolute; }\n`;
+    html += `.contract-variable { display: inline-block; color: #7c3aed; font-weight: bold; font-size: 14px; }\n`;
+    html += `.signature-block { background: rgba(255,255,255,0.95); border: 2px solid #d1d5db; border-radius: 8px; padding: 10px; }\n`;
+    html += `.signature-label { font-weight: bold; margin-bottom: 8px; font-size: 13px; color: #374151; }\n`;
+    html += `.signature-line { border-bottom: 2px solid #000; margin-top: 20px; min-height: 40px; }\n`;
+    html += `.paraphe-block { background: rgba(255,255,255,0.95); border: 1px solid #9ca3af; border-radius: 4px; padding: 4px 8px; font-size: 11px; }\n`;
+    html += `.reserve-block { background: rgba(255,255,200,0.2); border: 1px dashed #fbbf24; min-height: 30px; }\n`;
+    html += `@media print { .page { page-break-after: always; margin: 0; box-shadow: none; } }\n`;
     html += `</style>\n</head>\n<body>\n<div class="contract-root">\n`;
 
-    // Pour chaque page du PDF
-    pdfTextPages.forEach((textPage, pageIndex) => {
-      html += `\n<!-- Page ${textPage.pageNum} -->\n`;
-      html += `<section class="page" data-page="${textPage.pageNum}">\n`;
+    // Pour chaque page du PDF (utiliser les canvas rendus)
+    pdfPages.forEach((pdfPage) => {
+      const pageImageData = pdfPage.canvas.toDataURL('image/png');
       
-      // Texte de la page
-      html += `  <div class="page-text">\n`;
-      html += textPage.text.split('\n').map(line => `    ${line}`).join('\n');
-      html += `\n  </div>\n`;
+      html += `\n<!-- Page ${pdfPage.pageNum} -->\n`;
+      html += `<div class="page" data-page="${pdfPage.pageNum}" style="width:${pdfPage.width}px; height:${pdfPage.height}px;">\n`;
+      
+      // Image de fond (le PDF)
+      html += `  <img src="${pageImageData}" class="page-background" alt="Page ${pdfPage.pageNum}" />\n`;
       
       // Overlay avec les blocs de cette page
-      const pageBlocks = blocks.filter(b => b.page === textPage.pageNum);
+      const pageBlocks = blocks.filter(b => b.page === pdfPage.pageNum);
       
       if (pageBlocks.length > 0) {
         html += `  <div class="page-overlay">\n`;
         
         pageBlocks.forEach(block => {
-          const style = `position:absolute; left:${block.x}px; top:${block.y}px; width:${block.width}px; height:${block.height}px;`;
+          const style = `left:${block.x}px; top:${block.y}px; width:${block.width}px; height:${block.height}px;`;
           
           switch (block.type) {
             case 'text_variable':
               // Variable strictement au format {{...}}
               if (block.variable) {
-                html += `    <div style="${style}">\n`;
-                html += `      <span class="contract-variable">${block.variable}</span>\n`;
+                html += `    <div class="overlay-item contract-variable" style="${style}">\n`;
+                html += `      ${block.variable}\n`;
                 html += `    </div>\n`;
               }
               break;
@@ -504,8 +505,8 @@ const ContractTemplateEditorPage = () => {
                   signatureVar = `Signature ${roleLabel}`;
                 }
                 
-                html += `    <div class="signature-block" style="${style}" data-role="${block.role}">\n`;
-                html += `      <p class="signature-label">${roleLabel}</p>\n`;
+                html += `    <div class="overlay-item signature-block" style="${style}" data-role="${block.role}">\n`;
+                html += `      <div class="signature-label">${roleLabel}</div>\n`;
                 html += `      <div class="signature-line">${signatureVar}</div>\n`;
                 html += `    </div>\n`;
               }
@@ -514,14 +515,14 @@ const ContractTemplateEditorPage = () => {
             case 'paraphe':
               if (block.role) {
                 const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
-                html += `    <div class="paraphe-block" style="${style}" data-role="${block.role}">\n`;
-                html += `      <span class="paraphe-label">${roleLabel} - Paraphe</span>\n`;
+                html += `    <div class="overlay-item paraphe-block" style="${style}" data-role="${block.role}">\n`;
+                html += `      ${roleLabel} - Paraphe\n`;
                 html += `    </div>\n`;
               }
               break;
 
             case 'reserve_block':
-              html += `    <div class="reserve-block" style="${style}"><!-- Zone réservée --></div>\n`;
+              html += `    <div class="overlay-item reserve-block" style="${style}"></div>\n`;
               break;
 
             default:
@@ -532,7 +533,7 @@ const ContractTemplateEditorPage = () => {
         html += `  </div>\n`;
       }
       
-      html += `</section>\n`;
+      html += `</div>\n`;
     });
 
     html += `</div>\n</body>\n</html>`;
@@ -542,10 +543,10 @@ const ContractTemplateEditorPage = () => {
 
   // 🆕 STEP 4 : Générer et prévisualiser le HTML
   const handleGenerateHtml = () => {
-    if (pdfTextPages.length === 0) {
+    if (pdfPages.length === 0) {
       toast({
         title: "❌ Erreur",
-        description: "Aucun texte extrait du PDF. Veuillez recharger le PDF.",
+        description: "Aucun PDF chargé. Veuillez uploader un PDF d'abord.",
         variant: "destructive"
       });
       return;
@@ -554,10 +555,9 @@ const ContractTemplateEditorPage = () => {
     const html = convertJsonToHtml(overlayBlocks);
     
     console.log('=== HTML COMPLET GÉNÉRÉ ===');
-    console.log('Texte PDF extrait:', pdfTextPages.length, 'pages');
+    console.log('Pages PDF:', pdfPages.length);
     console.log('Blocs overlay:', overlayBlocks.length);
-    console.log('HTML (premiers 1000 caractères):');
-    console.log(html.substring(0, 1000));
+    console.log('Taille HTML:', (html.length / 1024).toFixed(2), 'KB');
     console.log('============================');
     
     // Copier dans le clipboard
@@ -569,7 +569,7 @@ const ContractTemplateEditorPage = () => {
     
     toast({
       title: "✅ HTML complet généré",
-      description: `${pdfTextPages.length} page(s) de texte + ${overlayBlocks.length} bloc(s). Retour au formulaire...`,
+      description: `${pdfPages.length} page(s) PDF + ${overlayBlocks.length} bloc(s). Retour au formulaire...`,
       duration: 2000
     });
     
