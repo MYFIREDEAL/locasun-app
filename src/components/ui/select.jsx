@@ -40,22 +40,21 @@ import React from 'react';
           position={position}
           {...props}
         >
-          <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1">
+          <SelectPrimitive.ScrollUpButton className="hidden">
             <ChevronUp className="h-4 w-4" />
           </SelectPrimitive.ScrollUpButton>
 
           <SelectPrimitive.Viewport
             className={cn(
-              'p-1 max-h-[300px]',
+              'p-1 max-h-[300px] overflow-y-auto',
               position === 'popper' &&
                 'w-full min-w-[var(--radix-select-trigger-width)]'
             )}
-            style={{ overflowY: 'auto' }}
           >
             {children}
           </SelectPrimitive.Viewport>
 
-          <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1">
+          <SelectPrimitive.ScrollDownButton className="hidden">
             <ChevronDown className="h-4 w-4" />
           </SelectPrimitive.ScrollDownButton>
         </SelectPrimitive.Content>
