@@ -25,8 +25,9 @@ import {
   AlertDialogTrigger 
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
-import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move } from 'lucide-react';
+import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown } from 'lucide-react';
 
 // 🆕 Step 3 : Types de blocs (liste FERMÉE)
 const BLOCK_TYPES = [
@@ -167,43 +168,61 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {/* Sélection du type */}
       <div>
         <Label htmlFor="block-type">Type de bloc</Label>
-        <Select value={blockType} onValueChange={setBlockType} modal={false}>
-          <SelectTrigger id="block-type" className="mt-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BLOCK_TYPES.map(type => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full justify-between mt-1">
+              {BLOCK_TYPES.find(t => t.value === blockType)?.label || 'Sélectionner...'}
+              <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-0" align="start">
+            <div className="max-h-[300px] overflow-y-auto">
+              {BLOCK_TYPES.map(type => (
+                <button
+                  key={type.value}
+                  onClick={() => setBlockType(type.value)}
+                  className="w-full px-3 py-2 text-left hover:bg-muted transition-colors"
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Si text_variable : sélection de variable */}
       {blockType === 'text_variable' && (
         <div>
           <Label htmlFor="variable">Variable (liste fermée)</Label>
-          <Select value={selectedVariable} onValueChange={setSelectedVariable} modal={false}>
-            <SelectTrigger id="variable" className="mt-1">
-              <SelectValue placeholder="Sélectionnez une variable..." />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px] overflow-y-auto">
-              {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
-                <React.Fragment key={category}>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
-                    {category}
-                  </div>
-                  {variables.map(variable => (
-                    <SelectItem key={variable.value} value={variable.value}>
-                      {variable.label}
-                    </SelectItem>
-                  ))}
-                </React.Fragment>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-between mt-1">
+                {TEXT_VARIABLES && Object.values(TEXT_VARIABLES).flat().find(v => v.value === selectedVariable)?.label || 'Sélectionnez une variable...'}
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <div className="max-h-[300px] overflow-y-auto">
+                {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
+                  <React.Fragment key={category}>
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-0">
+                      {category}
+                    </div>
+                    {variables.map(variable => (
+                      <button
+                        key={variable.value}
+                        onClick={() => setSelectedVariable(variable.value)}
+                        className="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-sm"
+                      >
+                        {variable.label}
+                      </button>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
@@ -211,18 +230,27 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {(blockType === 'signature' || blockType === 'paraphe') && (
         <div>
           <Label htmlFor="role">Rôle (liste fermée)</Label>
-          <Select value={selectedRole} onValueChange={setSelectedRole} modal={false}>
-            <SelectTrigger id="role" className="mt-1">
-              <SelectValue placeholder="Sélectionnez un rôle..." />
-            </SelectTrigger>
-            <SelectContent>
-              {SIGNATURE_ROLES.map(role => (
-                <SelectItem key={role.value} value={role.value}>
-                  {role.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-between mt-1">
+                {SIGNATURE_ROLES.find(r => r.value === selectedRole)?.label || 'Sélectionnez un rôle...'}
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <div className="max-h-[300px] overflow-y-auto">
+                {SIGNATURE_ROLES.map(role => (
+                  <button
+                    key={role.value}
+                    onClick={() => setSelectedRole(role.value)}
+                    className="w-full px-3 py-2 text-left hover:bg-muted transition-colors"
+                  >
+                    {role.label}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
