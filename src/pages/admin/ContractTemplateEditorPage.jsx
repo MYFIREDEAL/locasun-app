@@ -244,6 +244,8 @@ const ContractTemplateEditorPage = () => {
   const [isBlockConfigOpen, setIsBlockConfigOpen] = useState(false);
   const [blockConfigData, setBlockConfigData] = useState(null);
   const [pdfNumPages, setPdfNumPages] = useState(1);
+  const [pdfPages, setPdfPages] = useState([]); // Stocker les canvas de chaque page
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   // Configurer PDF.js worker
   useEffect(() => {
@@ -275,25 +277,55 @@ const ContractTemplateEditorPage = () => {
   const handlePdfUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file && file.type === 'application/pdf') {
+      setIsLoadingPdf(true);
       const url = URL.createObjectURL(file);
       setPdfUrl(url);
 
-      // Détecter le nombre de pages avec PDF.js
+      // Détecter le nombre de pages et rendre chaque page avec PDF.js
       try {
         const loadingTask = pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
         setPdfNumPages(pdf.numPages);
-        console.log(`PDF chargé: ${pdf.numPages} pages`);
+        
+        // Rendre chaque page dans un canvas
+        const pages = [];
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: 1.5 }); // Scale pour bonne qualité
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          
+          await page.render({
+            canvasContext: context,
+            viewport: viewport
+          }).promise;
+          
+          pages.push({
+            pageNum,
+            canvas,
+            width: viewport.width,
+            height: viewport.height
+          });
+        }
+        
+        setPdfPages(pages);
+        setIsLoadingPdf(false);
+        
         toast({
           title: "✅ PDF chargé",
-          description: `${pdf.numPages} page(s) détectée(s)`
+          description: `${pdf.numPages} page(s) détectée(s) et rendues`
         });
       } catch (error) {
         console.error('Erreur lors du chargement du PDF:', error);
-        setPdfNumPages(1); // Fallback
+        setIsLoadingPdf(false);
+        setPdfNumPages(1);
         toast({
-          title: "✅ PDF chargé",
-          description: "Vous pouvez maintenant ajouter des blocs"
+          title: "❌ Erreur",
+          description: "Impossible de charger le PDF",
+          variant: "destructive"
         });
       }
     }
@@ -557,50 +589,85 @@ const ContractTemplateEditorPage = () => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
           >
-            {/* PDF */}
-            <iframe 
-              src={pdfUrl}
-              className="border border-gray-300 rounded-lg shadow-lg"
-              style={{ 
-                width: `${794 * zoom}px`, 
-                height: `${pdfNumPages * 1123 * zoom}px`, 
-                pointerEvents: 'none' 
-              }}
-            />
-            
-            {/* Overlay blocs */}
-            {overlayBlocks.map(block => (
-              <div
-                key={block.id}
-                className={`absolute border-2 ${selectedBlockId === block.id ? 'border-purple-600 bg-purple-100/30' : 'border-blue-500 bg-blue-100/20'} cursor-move`}
-                style={{
-                  left: block.x,
-                  top: block.y,
-                  width: block.width,
-                  height: block.height
-                }}
-                onMouseDown={(e) => handleMouseDown(e, block.id, 'drag')}
-              >
-                <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-2 py-1 rounded-br max-w-[200px] truncate">
-                  {getBlockLabel(block)}
+            {isLoadingPdf ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Chargement et rendu du PDF...</p>
                 </div>
-                
-                <button
-                  className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl hover:bg-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteBlock(block.id);
-                  }}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-                
-                <div
-                  className="absolute bottom-0 right-0 w-4 h-4 bg-purple-600 cursor-nwse-resize rounded-tl"
-                  onMouseDown={(e) => handleMouseDown(e, block.id, 'resize')}
-                />
               </div>
-            ))}
+            ) : (
+              <>
+                {/* Render PDF pages as images */}
+                <div className="relative">
+                  {pdfPages.map((page, idx) => (
+                    <div 
+                      key={page.pageNum}
+                      className="mb-4 relative"
+                      style={{
+                        width: `${page.width * zoom}px`,
+                        height: `${page.height * zoom}px`
+                      }}
+                    >
+                      <img
+                        src={page.canvas.toDataURL()}
+                        alt={`Page ${page.pageNum}`}
+                        className="border border-gray-300 rounded-lg shadow-lg"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          pointerEvents: 'none'
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+            
+                {/* Overlay blocs */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                  {overlayBlocks.map(block => {
+                    // Calculer la position Y en fonction de la page
+                    let offsetY = 0;
+                    for (let i = 0; i < block.page - 1 && i < pdfPages.length; i++) {
+                      offsetY += pdfPages[i].height * zoom + 16; // 16px = mb-4
+                    }
+                    
+                    return (
+                      <div
+                        key={block.id}
+                        className={`absolute border-2 pointer-events-auto ${selectedBlockId === block.id ? 'border-purple-600 bg-purple-100/30' : 'border-blue-500 bg-blue-100/20'} cursor-move`}
+                        style={{
+                          left: block.x * zoom,
+                          top: (block.y + offsetY),
+                          width: block.width * zoom,
+                          height: block.height * zoom
+                        }}
+                        onMouseDown={(e) => handleMouseDown(e, block.id, 'drag')}
+                      >
+                        <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-2 py-1 rounded-br max-w-[200px] truncate">
+                          {getBlockLabel(block)}
+                        </div>
+                        
+                        <button
+                          className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl hover:bg-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteBlock(block.id);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                        
+                        <div
+                          className="absolute bottom-0 right-0 w-4 h-4 bg-purple-600 cursor-nwse-resize rounded-tl"
+                          onMouseDown={(e) => handleMouseDown(e, block.id, 'resize')}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
