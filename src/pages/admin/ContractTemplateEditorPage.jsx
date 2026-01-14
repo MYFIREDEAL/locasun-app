@@ -93,6 +93,9 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
   const [blockType, setBlockType] = useState('text_variable');
   const [selectedVariable, setSelectedVariable] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
+  const [isTypePopoverOpen, setIsTypePopoverOpen] = useState(false);
+  const [isVariablePopoverOpen, setIsVariablePopoverOpen] = useState(false);
+  const [isRolePopoverOpen, setIsRolePopoverOpen] = useState(false);
 
   const handleSubmit = () => {
     // Validation
@@ -126,7 +129,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {/* Sélection du type */}
       <div>
         <Label htmlFor="block-type">Type de bloc</Label>
-        <Popover>
+        <Popover open={isTypePopoverOpen} onOpenChange={setIsTypePopoverOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-full justify-between mt-1">
               {BLOCK_TYPES.find(t => t.value === blockType)?.label || 'Sélectionner...'}
@@ -138,7 +141,10 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
               {BLOCK_TYPES.map(type => (
                 <button
                   key={type.value}
-                  onClick={() => setBlockType(type.value)}
+                  onClick={() => {
+                    setBlockType(type.value);
+                    setIsTypePopoverOpen(false);
+                  }}
                   className="w-full px-3 py-2 text-left hover:bg-muted transition-colors"
                 >
                   {type.label}
@@ -153,7 +159,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {blockType === 'text_variable' && (
         <div>
           <Label htmlFor="variable">Variable (liste fermée)</Label>
-          <Popover>
+          <Popover open={isVariablePopoverOpen} onOpenChange={setIsVariablePopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-full justify-between mt-1">
                 {TEXT_VARIABLES && Object.values(TEXT_VARIABLES).flat().find(v => v.value === selectedVariable)?.label || 'Sélectionnez une variable...'}
@@ -170,7 +176,10 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
                     {variables.map(variable => (
                       <button
                         key={variable.value}
-                        onClick={() => setSelectedVariable(variable.value)}
+                        onClick={() => {
+                          setSelectedVariable(variable.value);
+                          setIsVariablePopoverOpen(false);
+                        }}
                         className="w-full px-4 py-2 text-left hover:bg-purple-50 transition-colors text-sm border-b border-gray-100 last:border-0"
                       >
                         {variable.label}
@@ -188,7 +197,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {(blockType === 'signature' || blockType === 'paraphe') && (
         <div>
           <Label htmlFor="role">Rôle (liste fermée)</Label>
-          <Popover>
+          <Popover open={isRolePopoverOpen} onOpenChange={setIsRolePopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-full justify-between mt-1">
                 {SIGNATURE_ROLES.find(r => r.value === selectedRole)?.label || 'Sélectionnez un rôle...'}
@@ -200,7 +209,10 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
                 {SIGNATURE_ROLES.map(role => (
                   <button
                     key={role.value}
-                    onClick={() => setSelectedRole(role.value)}
+                    onClick={() => {
+                      setSelectedRole(role.value);
+                      setIsRolePopoverOpen(false);
+                    }}
                     className="w-full px-3 py-2 text-left hover:bg-muted transition-colors"
                   >
                     {role.label}
