@@ -28,6 +28,58 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move } from 'lucide-react';
 
+// 🆕 Step 3 : Types de blocs (liste FERMÉE)
+const BLOCK_TYPES = [
+  { value: 'text_variable', label: '📝 Variable texte' },
+  { value: 'signature', label: '✍️ Signature' },
+  { value: 'paraphe', label: '🔖 Paraphe' },
+  { value: 'reserve_block', label: '📦 Bloc réservé' }
+];
+
+// 🆕 Step 3 : Variables disponibles (liste FERMÉE)
+const TEXT_VARIABLES = {
+  'CLIENT': [
+    { value: '{{client_firstname}}', label: 'Prénom client' },
+    { value: '{{client_lastname}}', label: 'Nom client' },
+    { value: '{{client_email}}', label: 'Email client' },
+    { value: '{{client_phone}}', label: 'Téléphone client' },
+    { value: '{{client_address}}', label: 'Adresse client' },
+    { value: '{{client_zip}}', label: 'Code postal client' },
+    { value: '{{client_city}}', label: 'Ville client' }
+  ],
+  'SOCIÉTÉ': [
+    { value: '{{company_name}}', label: 'Nom société' },
+    { value: '{{company_representative_name}}', label: 'Nom représentant' },
+    { value: '{{company_representative_role}}', label: 'Rôle représentant' }
+  ],
+  'DATES / LIEU': [
+    { value: '{{contract_date}}', label: 'Date du contrat' },
+    { value: '{{signature_date}}', label: 'Date de signature' },
+    { value: '{{contract_place}}', label: 'Lieu du contrat' }
+  ],
+  'RÉFÉRENCE / MONTANT': [
+    { value: '{{contract_reference}}', label: 'Référence contrat' },
+    { value: '{{contract_amount}}', label: 'Montant contrat' }
+  ],
+  'CO-SIGNATAIRES': [
+    { value: '{{cosigner_label_X}}', label: 'Label co-signataire X' },
+    { value: '{{cosigner_name_X}}', label: 'Nom co-signataire X' },
+    { value: '{{cosigner_email_X}}', label: 'Email co-signataire X' },
+    { value: '{{cosigner_phone_X}}', label: 'Téléphone co-signataire X' },
+    { value: '{{cosigner_section_X}}', label: 'Section co-signataire X' },
+    { value: '{{cosigner_signature_line_X}}', label: 'Ligne signature co-signataire X' }
+  ]
+};
+
+// 🆕 Step 3 : Rôles pour signatures/paraphes (liste FERMÉE)
+const SIGNATURE_ROLES = [
+  { value: 'client', label: 'Client' },
+  { value: 'company', label: 'Société' },
+  { value: 'cosigner_1', label: 'Co-signataire 1' },
+  { value: 'cosigner_2', label: 'Co-signataire 2' },
+  { value: 'cosigner_3', label: 'Co-signataire 3' }
+];
+
 // Options de projets (même liste que ProfilePage)
 const projectOptions = [
   { value: 'ACC', label: 'ACC' },
@@ -57,6 +109,125 @@ const itemVariants = {
   }
 };
 
+// 🆕 Step 3 : Composant de configuration de bloc
+const BlockConfigForm = ({ onSave, onCancel }) => {
+  const [blockType, setBlockType] = useState('text_variable');
+  const [selectedVariable, setSelectedVariable] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
+
+  const handleSubmit = () => {
+    // Validation
+    if (blockType === 'text_variable' && !selectedVariable) {
+      toast({
+        title: "❌ Erreur",
+        description: "Veuillez sélectionner une variable",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if ((blockType === 'signature' || blockType === 'paraphe') && !selectedRole) {
+      toast({
+        title: "❌ Erreur",
+        description: "Veuillez sélectionner un rôle",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    onSave({
+      type: blockType,
+      variable: selectedVariable || null,
+      role: selectedRole || null
+    });
+  };
+
+  return (
+    <div className="space-y-4 py-4">
+      {/* Sélection du type */}
+      <div>
+        <Label htmlFor="block-type">Type de bloc</Label>
+        <Select value={blockType} onValueChange={setBlockType}>
+          <SelectTrigger id="block-type" className="mt-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {BLOCK_TYPES.map(type => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Si text_variable : sélection de variable */}
+      {blockType === 'text_variable' && (
+        <div>
+          <Label htmlFor="variable">Variable (liste fermée)</Label>
+          <Select value={selectedVariable} onValueChange={setSelectedVariable}>
+            <SelectTrigger id="variable" className="mt-1">
+              <SelectValue placeholder="Sélectionnez une variable..." />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
+                <React.Fragment key={category}>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                    {category}
+                  </div>
+                  {variables.map(variable => (
+                    <SelectItem key={variable.value} value={variable.value}>
+                      {variable.label}
+                    </SelectItem>
+                  ))}
+                </React.Fragment>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Si signature ou paraphe : sélection de rôle */}
+      {(blockType === 'signature' || blockType === 'paraphe') && (
+        <div>
+          <Label htmlFor="role">Rôle (liste fermée)</Label>
+          <Select value={selectedRole} onValueChange={setSelectedRole}>
+            <SelectTrigger id="role" className="mt-1">
+              <SelectValue placeholder="Sélectionnez un rôle..." />
+            </SelectTrigger>
+            <SelectContent>
+              {SIGNATURE_ROLES.map(role => (
+                <SelectItem key={role.value} value={role.value}>
+                  {role.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Si reserve_block : aucun champ supplémentaire */}
+      {blockType === 'reserve_block' && (
+        <div className="p-3 bg-gray-100 rounded-lg">
+          <p className="text-sm text-gray-600">
+            ℹ️ Un bloc réservé n'a pas de configuration supplémentaire
+          </p>
+        </div>
+      )}
+
+      {/* Boutons */}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button onClick={handleSubmit} className="bg-purple-600 hover:bg-purple-700">
+          Créer le bloc
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const ContractTemplatesPage = () => {
   const {
     templates: contractTemplates,
@@ -79,11 +250,16 @@ const ContractTemplatesPage = () => {
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
   
   // 🆕 États pour l'overlay et les blocs (Step 2)
-  const [overlayBlocks, setOverlayBlocks] = useState([]); // { id, x, y, width, height }
+  const [overlayBlocks, setOverlayBlocks] = useState([]); // { id, x, y, width, height, type, variable, role, page }
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // 🆕 Step 3 : États pour la configuration des blocs
+  const [isBlockConfigOpen, setIsBlockConfigOpen] = useState(false);
+  const [blockConfigData, setBlockConfigData] = useState(null);
+  const [generatedJson, setGeneratedJson] = useState(null);
 
   // 🆕 Gestionnaire pour démarrer la création (affiche le choix du mode)
   const handleStartCreation = () => {
@@ -148,19 +324,36 @@ const ContractTemplatesPage = () => {
 
   // 🆕 Step 2 : Gestion des blocs overlay
   const handleAddBlock = () => {
-    const newBlock = {
+    // 🆕 Step 3 : Ouvrir la modal de configuration au lieu de créer directement
+    const tempBlock = {
       id: `block-${Date.now()}`,
-      x: 50, // Position initiale
+      x: 50,
       y: 50,
       width: 200,
-      height: 100
+      height: 100,
+      page: 1 // Par défaut page 1
     };
+    setBlockConfigData(tempBlock);
+    setIsBlockConfigOpen(true);
+  };
+
+  // 🆕 Step 3 : Sauvegarder le bloc configuré
+  const handleSaveBlockConfig = (config) => {
+    const newBlock = {
+      ...blockConfigData,
+      type: config.type,
+      variable: config.variable || null,
+      role: config.role || null
+    };
+    
     setOverlayBlocks([...overlayBlocks, newBlock]);
     setSelectedBlockId(newBlock.id);
+    setIsBlockConfigOpen(false);
+    setBlockConfigData(null);
     
     toast({
       title: "✅ Bloc ajouté",
-      description: "Vous pouvez maintenant le déplacer et le redimensionner",
+      description: `Bloc ${BLOCK_TYPES.find(t => t.value === config.type)?.label} créé`,
       className: "bg-green-500 text-white"
     });
   };
@@ -244,6 +437,40 @@ const ContractTemplatesPage = () => {
   const handleMouseUp = () => {
     setIsDragging(false);
     setIsResizing(false);
+  };
+
+  // 🆕 Step 3 : Génération du JSON structuré
+  const handleGenerateJson = () => {
+    const jsonData = overlayBlocks.map(block => {
+      const obj = {
+        type: block.type,
+        page: block.page,
+        x: block.x,
+        y: block.y,
+        width: block.width,
+        height: block.height
+      };
+
+      // Ajouter variable si type = text_variable
+      if (block.type === 'text_variable' && block.variable) {
+        obj.variable = block.variable;
+      }
+
+      // Ajouter role si type = signature ou paraphe
+      if ((block.type === 'signature' || block.type === 'paraphe') && block.role) {
+        obj.role = block.role;
+      }
+
+      return obj;
+    });
+
+    setGeneratedJson(jsonData);
+    
+    toast({
+      title: "✅ JSON généré",
+      description: `${jsonData.length} bloc(s) structuré(s)`,
+      className: "bg-green-500 text-white"
+    });
   };
 
   const handleSaveContractTemplate = async (templateToSave) => {
@@ -701,7 +928,9 @@ const ContractTemplatesPage = () => {
                       style={{ zIndex: 10 }}
                     >
                       <div className="relative w-full h-full pointer-events-auto">
-                        {overlayBlocks.map(block => (
+                        {overlayBlocks.map(block => {
+                          const blockTypeLabel = BLOCK_TYPES.find(t => t.value === block.type)?.label || '🔷';
+                          return (
                           <div
                             key={block.id}
                             className={`absolute border-2 bg-blue-500 bg-opacity-20 cursor-move transition-all ${
@@ -717,6 +946,11 @@ const ContractTemplatesPage = () => {
                             }}
                             onMouseDown={(e) => handleBlockMouseDown(block.id, e)}
                           >
+                            {/* Label du type de bloc */}
+                            <div className="absolute top-1 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+                              {blockTypeLabel}
+                            </div>
+                            
                             {/* Icône de déplacement */}
                             <div className="absolute top-1 left-1 bg-blue-600 rounded p-1">
                               <Move className="h-3 w-3 text-white" />
@@ -740,7 +974,8 @@ const ContractTemplatesPage = () => {
                               style={{ borderBottomRightRadius: '2px' }}
                             />
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -748,11 +983,45 @@ const ContractTemplatesPage = () => {
                 
                 {/* 🆕 Info sur les blocs */}
                 {overlayBlocks.length > 0 && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      <Square className="inline h-4 w-4 mr-1" />
-                      {overlayBlocks.length} bloc{overlayBlocks.length > 1 ? 's' : ''} positionné{overlayBlocks.length > 1 ? 's' : ''}
-                    </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        <Square className="inline h-4 w-4 mr-1" />
+                        {overlayBlocks.length} bloc{overlayBlocks.length > 1 ? 's' : ''} positionné{overlayBlocks.length > 1 ? 's' : ''}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={handleGenerateJson}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        📋 Générer JSON
+                      </Button>
+                    </div>
+                    
+                    {/* 🆕 Affichage du JSON généré */}
+                    {generatedJson && (
+                      <div className="p-3 bg-gray-900 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-gray-400 font-mono">JSON généré</span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(JSON.stringify(generatedJson, null, 2));
+                              toast({
+                                title: "✅ Copié !",
+                                description: "JSON copié dans le presse-papier",
+                                className: "bg-green-500 text-white"
+                              });
+                            }}
+                            className="text-xs text-blue-400 hover:text-blue-300"
+                          >
+                            📋 Copier
+                          </button>
+                        </div>
+                        <pre className="text-xs text-green-400 font-mono overflow-auto max-h-60">
+                          {JSON.stringify(generatedJson, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -767,6 +1036,26 @@ const ContractTemplatesPage = () => {
               Fermer
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🆕 Step 3 : Modal Configuration de bloc */}
+      <Dialog open={isBlockConfigOpen} onOpenChange={setIsBlockConfigOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configuration du bloc</DialogTitle>
+            <DialogDescription>
+              Choisissez le type de bloc et ses paramètres
+            </DialogDescription>
+          </DialogHeader>
+          
+          <BlockConfigForm
+            onSave={handleSaveBlockConfig}
+            onCancel={() => {
+              setIsBlockConfigOpen(false);
+              setBlockConfigData(null);
+            }}
+          />
         </DialogContent>
       </Dialog>
 
