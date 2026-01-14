@@ -7,6 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { X, ZoomIn, ZoomOut, Square, Trash2, Move, ChevronDown, Download, ArrowLeft, FileText } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
+// Configuration du worker PDF.js depuis le dossier public
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+
 // 🆕 Step 3 : Types de blocs (liste FERMÉE)
 const BLOCK_TYPES = [
   { value: 'text_variable', label: '📝 Variable texte' },
@@ -246,11 +249,6 @@ const ContractTemplateEditorPage = () => {
   const [pdfNumPages, setPdfNumPages] = useState(1);
   const [pdfPages, setPdfPages] = useState([]); // Stocker les canvas de chaque page
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
-
-  // Configurer PDF.js worker
-  useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-  }, []);
 
   // Helper pour obtenir le label complet d'un bloc
   const getBlockLabel = (block) => {
