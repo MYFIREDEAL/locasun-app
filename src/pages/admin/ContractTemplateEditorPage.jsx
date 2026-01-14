@@ -237,6 +237,27 @@ const ContractTemplateEditorPage = () => {
   const [isBlockConfigOpen, setIsBlockConfigOpen] = useState(false);
   const [blockConfigData, setBlockConfigData] = useState(null);
 
+  // Helper pour obtenir le label complet d'un bloc
+  const getBlockLabel = (block) => {
+    const typeLabel = BLOCK_TYPES.find(t => t.value === block.type)?.label || block.type;
+    
+    if (block.variable) {
+      // Trouver le label de la variable
+      const variableObj = Object.values(TEXT_VARIABLES)
+        .flat()
+        .find(v => v.value === block.variable);
+      return variableObj ? variableObj.label : block.variable;
+    }
+    
+    if (block.role) {
+      // Trouver le label du rôle
+      const roleObj = SIGNATURE_ROLES.find(r => r.value === block.role);
+      return roleObj ? roleObj.label : block.role;
+    }
+    
+    return typeLabel;
+  };
+
   // Upload PDF
   const handlePdfUpload = (e) => {
     const file = e.target.files?.[0];
@@ -444,8 +465,8 @@ const ContractTemplateEditorPage = () => {
                 }}
                 onMouseDown={(e) => handleMouseDown(e, block.id, 'drag')}
               >
-                <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-2 py-1 rounded-br">
-                  {BLOCK_TYPES.find(t => t.value === block.type)?.label}
+                <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-2 py-1 rounded-br max-w-[200px] truncate">
+                  {getBlockLabel(block)}
                 </div>
                 
                 <button
