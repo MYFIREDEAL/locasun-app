@@ -549,24 +549,21 @@ const ContractTemplateEditorPage = () => {
             </div>
           </div>
         ) : (
-          <div className="min-h-full">
-            <div 
-              className="relative mx-auto"
-              style={{ 
-                width: `${794 * zoom}px`,
-                transform: `scale(${zoom})`, 
-                transformOrigin: 'top center'
-              }}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-            >
+          <div 
+            className="relative mx-auto"
+            style={{ 
+              width: `${794 * zoom}px`
+            }}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
             {/* PDF */}
             <iframe 
               src={pdfUrl}
               className="border border-gray-300 rounded-lg shadow-lg"
               style={{ 
-                width: '794px', 
-                height: `${pdfNumPages * 1123}px`, 
+                width: `${794 * zoom}px`, 
+                height: `${pdfNumPages * 1123 * zoom}px`, 
                 pointerEvents: 'none' 
               }}
             />
@@ -604,7 +601,6 @@ const ContractTemplateEditorPage = () => {
                 />
               </div>
             ))}
-          </div>
           </div>
         )}
       </div>
