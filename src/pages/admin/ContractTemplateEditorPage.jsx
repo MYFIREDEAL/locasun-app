@@ -537,7 +537,7 @@ const ContractTemplateEditorPage = () => {
             <iframe 
               src={pdfUrl}
               className="border border-gray-300 rounded-lg shadow-lg"
-              style={{ width: '794px', height: '4000px', pointerEvents: 'none' }}
+              style={{ width: '794px', height: '56000px', pointerEvents: 'none' }}
             />
             
             {/* Overlay blocs */}
