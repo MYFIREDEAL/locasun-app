@@ -597,7 +597,13 @@ const ContractTemplateEditorPage = () => {
       type: config.type,
       variable: config.variable,
       role: config.role,
-      page: 1
+      page: 1,
+      // 🆕 Ajouter les propriétés signataires si c'est un signatory_block
+      ...(config.type === 'signatory_block' && {
+        signatoryType: config.signatoryType,
+        signatoryFields: config.signatoryFields,
+        cosignerNumber: config.cosignerNumber
+      })
     };
     setOverlayBlocks([...overlayBlocks, newBlock]);
     setIsBlockConfigOpen(false);
