@@ -588,6 +588,13 @@ const ContractTemplateEditorPage = () => {
 
   // Sauvegarder la config du bloc
   const handleSaveBlockConfig = (config) => {
+    console.log('=== SAVE BLOCK CONFIG ===');
+    console.log('Config reçue:', config);
+    console.log('Type:', config.type);
+    console.log('signatoryType:', config.signatoryType);
+    console.log('signatoryFields:', config.signatoryFields);
+    console.log('========================');
+    
     const newBlock = {
       id: Date.now().toString(),
       x: 100,
@@ -605,6 +612,11 @@ const ContractTemplateEditorPage = () => {
         cosignerNumber: config.cosignerNumber
       })
     };
+    
+    console.log('=== NEW BLOCK CRÉÉ ===');
+    console.log('newBlock:', newBlock);
+    console.log('======================');
+    
     setOverlayBlocks([...overlayBlocks, newBlock]);
     setIsBlockConfigOpen(false);
     toast({
