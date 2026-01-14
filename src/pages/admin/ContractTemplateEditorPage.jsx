@@ -530,7 +530,7 @@ const ContractTemplateEditorPage = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6 bg-gray-50">
         {!pdfUrl ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -549,12 +549,17 @@ const ContractTemplateEditorPage = () => {
             </div>
           </div>
         ) : (
-          <div 
-            className="relative inline-block"
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-          >
+          <div className="min-h-full">
+            <div 
+              className="relative mx-auto"
+              style={{ 
+                width: `${794 * zoom}px`,
+                transform: `scale(${zoom})`, 
+                transformOrigin: 'top center'
+              }}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+            >
             {/* PDF */}
             <iframe 
               src={pdfUrl}
@@ -599,6 +604,7 @@ const ContractTemplateEditorPage = () => {
                 />
               </div>
             ))}
+          </div>
           </div>
         )}
       </div>
