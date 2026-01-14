@@ -50,12 +50,39 @@ const TEXT_VARIABLES = {
     { value: '{{contract_amount}}', label: 'Montant contrat' }
   ],
   'CO-SIGNATAIRES': [
-    { value: '{{cosigner_label_X}}', label: 'Label co-signataire X' },
-    { value: '{{cosigner_name_X}}', label: 'Nom co-signataire X' },
-    { value: '{{cosigner_email_X}}', label: 'Email co-signataire X' },
-    { value: '{{cosigner_phone_X}}', label: 'Téléphone co-signataire X' },
-    { value: '{{cosigner_section_X}}', label: 'Section co-signataire X' },
-    { value: '{{cosigner_signature_line_X}}', label: 'Ligne signature co-signataire X' }
+    { value: '{{cosigner_label_X}}', label: 'Label co-signataire X (générique)' },
+    { value: '{{cosigner_name_X}}', label: 'Nom co-signataire X (générique)' },
+    { value: '{{cosigner_email_X}}', label: 'Email co-signataire X (générique)' },
+    { value: '{{cosigner_phone_X}}', label: 'Téléphone co-signataire X (générique)' },
+    { value: '{{cosigner_section_X}}', label: 'Section co-signataire X (générique)' },
+    { value: '{{cosigner_signature_line_X}}', label: 'Ligne signature co-signataire X (générique)' },
+    // Co-signataire 1
+    { value: '{{cosigner_name_1}}', label: 'Nom co-signataire 1' },
+    { value: '{{cosigner_email_1}}', label: 'Email co-signataire 1' },
+    { value: '{{cosigner_phone_1}}', label: 'Téléphone co-signataire 1' },
+    { value: '{{cosigner_address_1}}', label: 'Adresse co-signataire 1' },
+    { value: '{{cosigner_zip_1}}', label: 'Code postal co-signataire 1' },
+    { value: '{{cosigner_city_1}}', label: 'Ville co-signataire 1' },
+    { value: '{{cosigner_birthdate_1}}', label: 'Né(e) le co-signataire 1' },
+    { value: '{{cosigner_signature_line_1}}', label: 'Ligne signature co-signataire 1' },
+    // Co-signataire 2
+    { value: '{{cosigner_name_2}}', label: 'Nom co-signataire 2' },
+    { value: '{{cosigner_email_2}}', label: 'Email co-signataire 2' },
+    { value: '{{cosigner_phone_2}}', label: 'Téléphone co-signataire 2' },
+    { value: '{{cosigner_address_2}}', label: 'Adresse co-signataire 2' },
+    { value: '{{cosigner_zip_2}}', label: 'Code postal co-signataire 2' },
+    { value: '{{cosigner_city_2}}', label: 'Ville co-signataire 2' },
+    { value: '{{cosigner_birthdate_2}}', label: 'Né(e) le co-signataire 2' },
+    { value: '{{cosigner_signature_line_2}}', label: 'Ligne signature co-signataire 2' },
+    // Co-signataire 3
+    { value: '{{cosigner_name_3}}', label: 'Nom co-signataire 3' },
+    { value: '{{cosigner_email_3}}', label: 'Email co-signataire 3' },
+    { value: '{{cosigner_phone_3}}', label: 'Téléphone co-signataire 3' },
+    { value: '{{cosigner_address_3}}', label: 'Adresse co-signataire 3' },
+    { value: '{{cosigner_zip_3}}', label: 'Code postal co-signataire 3' },
+    { value: '{{cosigner_city_3}}', label: 'Ville co-signataire 3' },
+    { value: '{{cosigner_birthdate_3}}', label: 'Né(e) le co-signataire 3' },
+    { value: '{{cosigner_signature_line_3}}', label: 'Ligne signature co-signataire 3' }
   ],
   'CO-SIGNATAIRES SOCIÉTÉ': [
     { value: '{{company_cosigner_label_1}}', label: 'Label co-signataire société 1' },
