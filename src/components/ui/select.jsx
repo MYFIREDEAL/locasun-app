@@ -1,6 +1,6 @@
 import React from 'react';
     import * as SelectPrimitive from '@radix-ui/react-select';
-    import { Check, ChevronDown } from 'lucide-react';
+    import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
     import { cn } from '@/lib/utils';
 
@@ -32,7 +32,7 @@ import React from 'react';
         <SelectPrimitive.Content
           ref={ref}
           className={cn(
-            'relative z-50 max-h-[300px] min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+            'relative z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
             position === 'popper' &&
               'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
             className
@@ -40,15 +40,24 @@ import React from 'react';
           position={position}
           {...props}
         >
+          <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1">
+            <ChevronUp className="h-4 w-4" />
+          </SelectPrimitive.ScrollUpButton>
+
           <SelectPrimitive.Viewport
             className={cn(
-              'p-1 overflow-y-auto',
+              'p-1 max-h-[300px]',
               position === 'popper' &&
                 'w-full min-w-[var(--radix-select-trigger-width)]'
             )}
+            style={{ overflowY: 'auto' }}
           >
             {children}
           </SelectPrimitive.Viewport>
+
+          <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1">
+            <ChevronDown className="h-4 w-4" />
+          </SelectPrimitive.ScrollDownButton>
         </SelectPrimitive.Content>
       </SelectPrimitive.Portal>
     ));
