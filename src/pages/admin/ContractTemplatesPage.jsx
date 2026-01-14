@@ -47,10 +47,16 @@ const TEXT_VARIABLES = {
     { value: '{{client_phone}}', label: 'Téléphone client' },
     { value: '{{client_address}}', label: 'Adresse client' },
     { value: '{{client_zip}}', label: 'Code postal client' },
-    { value: '{{client_city}}', label: 'Ville client' }
+    { value: '{{client_city}}', label: 'Ville client' },
+    { value: '{{client_birthdate}}', label: 'Né(e) le' },
+    { value: '{{client_nationality}}', label: 'Nationalité' }
   ],
   'SOCIÉTÉ': [
     { value: '{{company_name}}', label: 'Nom société' },
+    { value: '{{company_siret}}', label: 'SIRET' },
+    { value: '{{company_address}}', label: 'Adresse société' },
+    { value: '{{company_zip}}', label: 'Code postal société' },
+    { value: '{{company_city}}', label: 'Ville société' },
     { value: '{{company_representative_name}}', label: 'Nom représentant' },
     { value: '{{company_representative_role}}', label: 'Rôle représentant' }
   ],
