@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -308,6 +308,14 @@ const ContractTemplatesPage = () => {
   const [isBlockConfigOpen, setIsBlockConfigOpen] = useState(false);
   const [blockConfigData, setBlockConfigData] = useState(null);
   const [generatedJson, setGeneratedJson] = useState(null);
+
+  // 🆕 Forcer le scroll body pour désactiver le scroll lock Radix Dialog
+  useEffect(() => {
+    document.body.style.overflow = "auto";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   // 🆕 Gestionnaire pour démarrer la création (affiche le choix du mode)
   const handleStartCreation = () => {
@@ -1090,7 +1098,11 @@ const ContractTemplatesPage = () => {
 
       {/* 🆕 Step 3 : Modal Configuration de bloc */}
       <Dialog open={isBlockConfigOpen} onOpenChange={setIsBlockConfigOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent 
+          className="sm:max-w-md overflow-visible"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Configuration du bloc</DialogTitle>
             <DialogDescription>
