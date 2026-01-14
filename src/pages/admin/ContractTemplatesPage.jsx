@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
-import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X } from 'lucide-react';
+import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move } from 'lucide-react';
 
 // Options de projets (même liste que ProfilePage)
 const projectOptions = [
@@ -77,6 +77,13 @@ const ContractTemplatesPage = () => {
   const [uploadedPdfFile, setUploadedPdfFile] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
+  
+  // 🆕 États pour l'overlay et les blocs (Step 2)
+  const [overlayBlocks, setOverlayBlocks] = useState([]); // { id, x, y, width, height }
+  const [selectedBlockId, setSelectedBlockId] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // 🆕 Gestionnaire pour démarrer la création (affiche le choix du mode)
   const handleStartCreation = () => {
@@ -134,6 +141,109 @@ const ContractTemplatesPage = () => {
     setPdfUrl(null);
     setUploadedPdfFile(null);
     setCreationMode(null);
+    // Reset des blocs overlay
+    setOverlayBlocks([]);
+    setSelectedBlockId(null);
+  };
+
+  // 🆕 Step 2 : Gestion des blocs overlay
+  const handleAddBlock = () => {
+    const newBlock = {
+      id: `block-${Date.now()}`,
+      x: 50, // Position initiale
+      y: 50,
+      width: 200,
+      height: 100
+    };
+    setOverlayBlocks([...overlayBlocks, newBlock]);
+    setSelectedBlockId(newBlock.id);
+    
+    toast({
+      title: "✅ Bloc ajouté",
+      description: "Vous pouvez maintenant le déplacer et le redimensionner",
+      className: "bg-green-500 text-white"
+    });
+  };
+
+  const handleDeleteBlock = (blockId) => {
+    setOverlayBlocks(overlayBlocks.filter(block => block.id !== blockId));
+    if (selectedBlockId === blockId) {
+      setSelectedBlockId(null);
+    }
+    
+    toast({
+      title: "🗑️ Bloc supprimé",
+      className: "bg-gray-500 text-white"
+    });
+  };
+
+  const handleBlockMouseDown = (blockId, e) => {
+    e.stopPropagation();
+    setSelectedBlockId(blockId);
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY
+    });
+  };
+
+  const handleResizeMouseDown = (blockId, e) => {
+    e.stopPropagation();
+    setSelectedBlockId(blockId);
+    setIsResizing(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY
+    });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!selectedBlockId) return;
+
+    if (isDragging) {
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+
+      setOverlayBlocks(overlayBlocks.map(block => {
+        if (block.id === selectedBlockId) {
+          return {
+            ...block,
+            x: Math.max(0, block.x + deltaX),
+            y: Math.max(0, block.y + deltaY)
+          };
+        }
+        return block;
+      }));
+
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY
+      });
+    } else if (isResizing) {
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+
+      setOverlayBlocks(overlayBlocks.map(block => {
+        if (block.id === selectedBlockId) {
+          return {
+            ...block,
+            width: Math.max(50, block.width + deltaX),
+            height: Math.max(30, block.height + deltaY)
+          };
+        }
+        return block;
+      }));
+
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
   };
 
   const handleSaveContractTemplate = async (templateToSave) => {
@@ -540,6 +650,16 @@ const ContractTemplatesPage = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* 🆕 Bouton Ajouter un bloc */}
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleAddBlock}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Square className="h-4 w-4 mr-1" />
+                      Ajouter un bloc
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -549,6 +669,8 @@ const ContractTemplatesPage = () => {
                         }
                         setPdfUrl(null);
                         setUploadedPdfFile(null);
+                        setOverlayBlocks([]);
+                        setSelectedBlockId(null);
                       }}
                     >
                       <X className="h-4 w-4 mr-1" />
@@ -557,17 +679,82 @@ const ContractTemplatesPage = () => {
                   </div>
                 </div>
 
-                {/* Container du PDF avec scroll */}
+                {/* Container du PDF avec overlay */}
                 <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-100">
-                  <div className="h-[60vh] overflow-auto">
+                  <div 
+                    className="h-[60vh] overflow-auto relative"
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                  >
+                    {/* PDF en arrière-plan */}
                     <iframe
                       src={pdfUrl}
                       className="w-full h-full"
                       title="PDF Viewer"
                       style={{ minHeight: '600px' }}
                     />
+                    
+                    {/* 🆕 Overlay avec blocs */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{ zIndex: 10 }}
+                    >
+                      <div className="relative w-full h-full pointer-events-auto">
+                        {overlayBlocks.map(block => (
+                          <div
+                            key={block.id}
+                            className={`absolute border-2 bg-blue-500 bg-opacity-20 cursor-move transition-all ${
+                              selectedBlockId === block.id 
+                                ? 'border-blue-600 shadow-lg' 
+                                : 'border-blue-400'
+                            }`}
+                            style={{
+                              left: `${block.x}px`,
+                              top: `${block.y}px`,
+                              width: `${block.width}px`,
+                              height: `${block.height}px`
+                            }}
+                            onMouseDown={(e) => handleBlockMouseDown(block.id, e)}
+                          >
+                            {/* Icône de déplacement */}
+                            <div className="absolute top-1 left-1 bg-blue-600 rounded p-1">
+                              <Move className="h-3 w-3 text-white" />
+                            </div>
+                            
+                            {/* Bouton supprimer */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteBlock(block.id);
+                              }}
+                              className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 rounded p-1 transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3 text-white" />
+                            </button>
+                            
+                            {/* Handle de redimensionnement (coin bas-droit) */}
+                            <div
+                              className="absolute bottom-0 right-0 w-4 h-4 bg-blue-600 cursor-se-resize"
+                              onMouseDown={(e) => handleResizeMouseDown(block.id, e)}
+                              style={{ borderBottomRightRadius: '2px' }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
+                
+                {/* 🆕 Info sur les blocs */}
+                {overlayBlocks.length > 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <Square className="inline h-4 w-4 mr-1" />
+                      {overlayBlocks.length} bloc{overlayBlocks.length > 1 ? 's' : ''} positionné{overlayBlocks.length > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
