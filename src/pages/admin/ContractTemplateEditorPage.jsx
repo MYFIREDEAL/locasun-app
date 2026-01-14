@@ -635,88 +635,104 @@ const ContractTemplateEditorPage = () => {
   };
 
   // 🆕 STEP 4 : Conversion JSON → HTML COMPLET (PDF en image de fond + overlays)
-  // 🆕 GÉNÉRATION HTML FINALE : Texte légal complet, AUCUN base64
+  // 🆕 GÉNÉRATION HTML FINALE : Texte PDF complet + blocs signataires
   const convertJsonToHtml = (blocks) => {
     let html = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<style>\n`;
     html += `body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #1f2937; }\n`;
     html += `.contract-root { max-width: 800px; margin: 0 auto; }\n`;
-    html += `.contract-title { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 40px; text-transform: uppercase; }\n`;
+    html += `.pdf-page { margin-bottom: 40px; page-break-after: always; }\n`;
+    html += `.pdf-text { white-space: pre-wrap; font-size: 14px; }\n`;
     html += `.signatory-section { margin: 30px 0; padding: 20px; background: #f9fafb; border-left: 4px solid #7c3aed; }\n`;
     html += `.signatory-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #7c3aed; }\n`;
     html += `.signatory-text { margin: 8px 0; }\n`;
     html += `.signature-line { border-bottom: 2px solid #000; margin-top: 30px; padding-bottom: 5px; min-height: 50px; }\n`;
     html += `.legal-text { text-align: justify; }\n`;
-    html += `@media print { .signatory-section { break-inside: avoid; } }\n`;
+    html += `.variable-placeholder { color: #7c3aed; font-weight: bold; background: #f3e8ff; padding: 2px 6px; border-radius: 4px; }\n`;
+    html += `@media print { .pdf-page { break-inside: avoid; } .signatory-section { break-inside: avoid; } }\n`;
     html += `</style>\n</head>\n<body>\n<div class="contract-root">\n`;
 
-    // Titre du contrat (optionnel)
-    html += `<h1 class="contract-title">CONTRAT</h1>\n\n`;
+    // 📄 CONTENU DU PDF PAGE PAR PAGE
+    if (pdfTextPages && pdfTextPages.length > 0) {
+      pdfTextPages.forEach(page => {
+        html += `\n<!-- Page ${page.pageNum} du PDF -->\n`;
+        html += `<div class="pdf-page">\n`;
+        html += `  <div class="pdf-text">${page.text}</div>\n`;
+        html += `</div>\n`;
+      });
+    }
 
-    // Section "ENTRE LES SOUSSIGNÉS"
-    html += `<h2>ENTRE LES SOUSSIGNÉS :</h2>\n\n`;
-
-    // Grouper les blocs par type de signataire
+    // 📝 SECTION SIGNATAIRES (si des blocs signataires sont placés)
     const signatoryBlocks = blocks.filter(b => b.type === 'signatory_block');
     
-    let hasIndividual = false;
-    let hasCompany = false;
-    let cosigners = [];
+    if (signatoryBlocks.length > 0) {
+      html += `\n<!-- Section Signataires -->\n`;
+      html += `<h2>ENTRE LES SOUSSIGNÉS :</h2>\n\n`;
 
-    signatoryBlocks.forEach(block => {
-      if (block.signatoryType === 'individual') hasIndividual = true;
-      if (block.signatoryType === 'company') hasCompany = true;
-      if (block.signatoryType === 'cosigner') {
-        cosigners.push(block.cosignerNumber);
+      let hasIndividual = false;
+      let hasCompany = false;
+      let cosigners = [];
+
+      signatoryBlocks.forEach(block => {
+        if (block.signatoryType === 'individual') hasIndividual = true;
+        if (block.signatoryType === 'company') hasCompany = true;
+        if (block.signatoryType === 'cosigner') {
+          cosigners.push(block.cosignerNumber);
+        }
+      });
+
+      // 🔵 PERSONNE PHYSIQUE
+      if (hasIndividual) {
+        html += `<!-- Personne physique -->\n`;
+        html += `<div class="signatory-section">\n`;
+        html += `  <p class="signatory-text legal-text">\n`;
+        html += `    Monsieur <span class="variable-placeholder">{{client_firstname}} {{client_lastname}}</span>, demeurant <span class="variable-placeholder">{{client_address}}</span>, né(e) à <span class="variable-placeholder">{{client_birthplace}}</span>, de nationalité <span class="variable-placeholder">{{client_nationality}}</span>.\n`;
+        html += `  </p>\n`;
+        html += `  <div class="signature-line">Signature : <span class="variable-placeholder">{{client_signature}}</span></div>\n`;
+        html += `</div>\n\n`;
       }
-    });
 
-    // 🔵 PERSONNE PHYSIQUE
-    if (hasIndividual) {
-      html += `<!-- Personne physique -->\n`;
-      html += `<div class="signatory-section">\n`;
-      html += `  <p class="signatory-text legal-text">\n`;
-      html += `    Monsieur <strong>{{client_firstname}} {{client_lastname}}</strong>, demeurant <strong>{{client_address}}</strong>, né(e) à <strong>{{client_birthplace}}</strong>, de nationalité <strong>{{client_nationality}}</strong>.\n`;
-      html += `  </p>\n`;
-      html += `  <div class="signature-line">Signature : <strong>{{client_signature}}</strong></div>\n`;
-      html += `</div>\n\n`;
+      // 🟣 SOCIÉTÉ
+      if (hasCompany) {
+        html += `<!-- Société -->\n`;
+        html += `<div class="signatory-section">\n`;
+        html += `  <p class="signatory-text legal-text">\n`;
+        html += `    La société <span class="variable-placeholder">{{company_name}}</span> (<span class="variable-placeholder">{{company_legal_form}}</span>),<br>\n`;
+        html += `    au capital de <span class="variable-placeholder">{{company_capital}}</span> euros,<br>\n`;
+        html += `    dont le siège social est situé <span class="variable-placeholder">{{company_address}} {{company_zip}} {{company_city}}</span>,<br>\n`;
+        html += `    immatriculée sous le numéro <span class="variable-placeholder">{{company_rcs_number}}</span> au Registre du Commerce et des Sociétés de <span class="variable-placeholder">{{company_rcs_city}}</span>,<br>\n`;
+        html += `    représentée par <span class="variable-placeholder">{{company_representative_name}}</span>, en qualité de <span class="variable-placeholder">{{company_representative_role}}</span>, spécialement habilité(e) aux fins des présentes.\n`;
+        html += `  </p>\n`;
+        html += `  <div class="signature-line">Signature : <span class="variable-placeholder">{{company_signature}}</span></div>\n`;
+        html += `</div>\n\n`;
+      }
+
+      // 🟢 CO-SIGNATAIRES
+      [...new Set(cosigners)].sort().forEach(num => {
+        html += `<!-- Co-signataire ${num} -->\n`;
+        html += `<div class="signatory-section">\n`;
+        html += `  <p class="signatory-title">ET</p>\n`;
+        html += `  <p class="signatory-text legal-text">\n`;
+        html += `    Monsieur <span class="variable-placeholder">{{cosigner_name_${num}}}</span>, demeurant <span class="variable-placeholder">{{cosigner_address_${num}}}</span>, de nationalité <span class="variable-placeholder">{{cosigner_nationality_${num}}}</span>.\n`;
+        html += `  </p>\n`;
+        html += `  <div class="signature-line">Signature : <span class="variable-placeholder">{{cosigner_signature_line_${num}}}</span></div>\n`;
+        html += `</div>\n\n`;
+      });
     }
 
-    // 🟣 SOCIÉTÉ
-    if (hasCompany) {
-      html += `<!-- Société -->\n`;
-      html += `<div class="signatory-section">\n`;
-      html += `  <p class="signatory-text legal-text">\n`;
-      html += `    La société <strong>{{company_name}}</strong> (<strong>{{company_legal_form}}</strong>),<br>\n`;
-      html += `    <strong>{{company_legal_form}}</strong> au capital de <strong>{{company_capital}}</strong> euros,<br>\n`;
-      html += `    dont le siège social est situé <strong>{{company_address}} {{company_zip}} {{company_city}}</strong>,<br>\n`;
-      html += `    immatriculée sous le numéro <strong>{{company_rcs_number}}</strong> au Registre du Commerce et des Sociétés de <strong>{{company_rcs_city}}</strong>,<br>\n`;
-      html += `    représentée par <strong>{{company_representative_name}}</strong>, en qualité de <strong>{{company_representative_role}}</strong>, spécialement habilité(e) aux fins des présentes.\n`;
-      html += `  </p>\n`;
-      html += `  <div class="signature-line">Signature : <strong>{{company_signature}}</strong></div>\n`;
-      html += `</div>\n\n`;
-    }
-
-    // 🟢 CO-SIGNATAIRES
-    [...new Set(cosigners)].sort().forEach(num => {
-      html += `<!-- Co-signataire ${num} -->\n`;
-      html += `<div class="signatory-section">\n`;
-      html += `  <p class="signatory-title">ET</p>\n`;
-      html += `  <p class="signatory-text legal-text">\n`;
-      html += `    Monsieur <strong>{{cosigner_name_${num}}}</strong>, demeurant <strong>{{cosigner_address_${num}}}</strong>, de nationalité <strong>{{cosigner_nationality_${num}}}</strong>.\n`;
-      html += `  </p>\n`;
-      html += `  <div class="signature-line">Signature : <strong>{{cosigner_signature_line_${num}}}</strong></div>\n`;
-      html += `</div>\n\n`;
-    });
-
-    // Autres blocs (texte, signatures séparées, etc.)
+    // 📌 VARIABLES PLACÉES (blocs text_variable, signature, paraphe)
     const otherBlocks = blocks.filter(b => b.type !== 'signatory_block');
     if (otherBlocks.length > 0) {
-      html += `<!-- Autres éléments du contrat -->\n`;
-      html += `<div style="margin-top: 40px;">\n`;
+      html += `\n<!-- Variables additionnelles placées -->\n`;
+      html += `<div style="margin-top: 40px; border-top: 2px dashed #e5e7eb; padding-top: 20px;">\n`;
+      html += `  <h3 style="color: #6b7280; font-size: 14px;">Variables placées sur le PDF :</h3>\n`;
       
       otherBlocks.forEach(block => {
         if (block.type === 'text_variable' && block.variable) {
-          html += `  <p>${block.variable}</p>\n`;
+          html += `  <p><span class="variable-placeholder">${block.variable}</span> <span style="color: #9ca3af; font-size: 12px;">(Page ${block.page})</span></p>\n`;
+        }
+        if (block.type === 'signature' && block.role) {
+          const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
+          html += `  <p><span class="variable-placeholder">Signature ${roleLabel}</span> <span style="color: #9ca3af; font-size: 12px;">(Page ${block.page})</span></p>\n`;
         }
       });
       
