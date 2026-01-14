@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -277,6 +278,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
 };
 
 const ContractTemplatesPage = () => {
+  const navigate = useNavigate();
   const {
     templates: contractTemplates,
     loading: templatesLoading,
@@ -335,8 +337,8 @@ const ContractTemplatesPage = () => {
         contentHtml: ''
       });
     } else if (mode === 'pdf') {
-      // Mode PDF : ouvrir l'interface d'upload/viewer PDF
-      setIsPdfViewerOpen(true);
+      // Mode PDF : rediriger vers l'éditeur plein écran
+      navigate('/admin/contract-templates/editor');
     }
   };
 
