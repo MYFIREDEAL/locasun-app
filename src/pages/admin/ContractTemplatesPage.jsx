@@ -167,7 +167,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {/* Sélection du type */}
       <div>
         <Label htmlFor="block-type">Type de bloc</Label>
-        <Select value={blockType} onValueChange={setBlockType}>
+        <Select value={blockType} onValueChange={setBlockType} modal={false}>
           <SelectTrigger id="block-type" className="mt-1">
             <SelectValue />
           </SelectTrigger>
@@ -185,7 +185,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {blockType === 'text_variable' && (
         <div>
           <Label htmlFor="variable">Variable (liste fermée)</Label>
-          <Select value={selectedVariable} onValueChange={setSelectedVariable}>
+          <Select value={selectedVariable} onValueChange={setSelectedVariable} modal={false}>
             <SelectTrigger id="variable" className="mt-1">
               <SelectValue placeholder="Sélectionnez une variable..." />
             </SelectTrigger>
@@ -211,7 +211,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
       {(blockType === 'signature' || blockType === 'paraphe') && (
         <div>
           <Label htmlFor="role">Rôle (liste fermée)</Label>
-          <Select value={selectedRole} onValueChange={setSelectedRole}>
+          <Select value={selectedRole} onValueChange={setSelectedRole} modal={false}>
             <SelectTrigger id="role" className="mt-1">
               <SelectValue placeholder="Sélectionnez un rôle..." />
             </SelectTrigger>
@@ -699,6 +699,7 @@ const ContractTemplatesPage = () => {
                           ...prev,
                           projectType: value
                         }))}
+                        modal={false}
                       >
                         <SelectTrigger id="template-project-type" className="mt-1">
                           <SelectValue placeholder="Sélectionner un type" />
