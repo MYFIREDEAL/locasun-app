@@ -68,6 +68,23 @@ const TEXT_VARIABLES = {
     { value: '{{cosigner_phone_X}}', label: 'Téléphone co-signataire X' },
     { value: '{{cosigner_section_X}}', label: 'Section co-signataire X' },
     { value: '{{cosigner_signature_line_X}}', label: 'Ligne signature co-signataire X' }
+  ],
+  'CO-SIGNATAIRES SOCIÉTÉ': [
+    { value: '{{company_cosigner_label_1}}', label: 'Label co-signataire société 1' },
+    { value: '{{company_cosigner_name_1}}', label: 'Nom co-signataire société 1' },
+    { value: '{{company_cosigner_email_1}}', label: 'Email co-signataire société 1' },
+    { value: '{{company_cosigner_phone_1}}', label: 'Téléphone co-signataire société 1' },
+    { value: '{{company_cosigner_signature_line_1}}', label: 'Ligne signature co-signataire société 1' },
+    { value: '{{company_cosigner_label_2}}', label: 'Label co-signataire société 2' },
+    { value: '{{company_cosigner_name_2}}', label: 'Nom co-signataire société 2' },
+    { value: '{{company_cosigner_email_2}}', label: 'Email co-signataire société 2' },
+    { value: '{{company_cosigner_phone_2}}', label: 'Téléphone co-signataire société 2' },
+    { value: '{{company_cosigner_signature_line_2}}', label: 'Ligne signature co-signataire société 2' },
+    { value: '{{company_cosigner_label_3}}', label: 'Label co-signataire société 3' },
+    { value: '{{company_cosigner_name_3}}', label: 'Nom co-signataire société 3' },
+    { value: '{{company_cosigner_email_3}}', label: 'Email co-signataire société 3' },
+    { value: '{{company_cosigner_phone_3}}', label: 'Téléphone co-signataire société 3' },
+    { value: '{{company_cosigner_signature_line_3}}', label: 'Ligne signature co-signataire société 3' }
   ]
 };
 
@@ -75,9 +92,12 @@ const TEXT_VARIABLES = {
 const SIGNATURE_ROLES = [
   { value: 'client', label: '👤 Client (signataire principal)' },
   { value: 'company', label: '🏢 Société (signataire principal)' },
-  { value: 'cosigner_1', label: '✍️ Co-signataire 1' },
-  { value: 'cosigner_2', label: '✍️ Co-signataire 2' },
-  { value: 'cosigner_3', label: '✍️ Co-signataire 3' }
+  { value: 'cosigner_client_1', label: '✍️ Co-signataire client 1' },
+  { value: 'cosigner_client_2', label: '✍️ Co-signataire client 2' },
+  { value: 'cosigner_client_3', label: '✍️ Co-signataire client 3' },
+  { value: 'cosigner_company_1', label: '🏢 Co-signataire société 1' },
+  { value: 'cosigner_company_2', label: '🏢 Co-signataire société 2' },
+  { value: 'cosigner_company_3', label: '🏢 Co-signataire société 3' }
 ];
 
 // Options de projets (même liste que ProfilePage)
