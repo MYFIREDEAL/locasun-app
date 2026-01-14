@@ -73,11 +73,11 @@ const TEXT_VARIABLES = {
 
 // 🆕 Step 3 : Rôles pour signatures/paraphes (liste FERMÉE)
 const SIGNATURE_ROLES = [
-  { value: 'client', label: 'Client' },
-  { value: 'company', label: 'Société' },
-  { value: 'cosigner_1', label: 'Co-signataire 1' },
-  { value: 'cosigner_2', label: 'Co-signataire 2' },
-  { value: 'cosigner_3', label: 'Co-signataire 3' }
+  { value: 'client', label: '👤 Client (signataire principal)' },
+  { value: 'company', label: '🏢 Société (signataire principal)' },
+  { value: 'cosigner_1', label: '✍️ Co-signataire 1' },
+  { value: 'cosigner_2', label: '✍️ Co-signataire 2' },
+  { value: 'cosigner_3', label: '✍️ Co-signataire 3' }
 ];
 
 // Options de projets (même liste que ProfilePage)
@@ -169,7 +169,7 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
             <SelectTrigger id="variable" className="mt-1">
               <SelectValue placeholder="Sélectionnez une variable..." />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px] overflow-y-auto">
               {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
                 <React.Fragment key={category}>
                   <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
