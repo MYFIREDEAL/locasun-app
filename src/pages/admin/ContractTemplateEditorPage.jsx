@@ -160,14 +160,14 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
               <div className="max-h-[300px] overflow-y-auto">
                 {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
                   <React.Fragment key={category}>
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-0">
-                      {category}
+                    <div className="px-3 py-2.5 text-xs font-bold text-white bg-purple-600 sticky top-0 border-b border-purple-700">
+                      📁 {category}
                     </div>
                     {variables.map(variable => (
                       <button
                         key={variable.value}
                         onClick={() => setSelectedVariable(variable.value)}
-                        className="w-full px-3 py-2 text-left hover:bg-muted transition-colors text-sm"
+                        className="w-full px-4 py-2 text-left hover:bg-purple-50 transition-colors text-sm border-b border-gray-100 last:border-0"
                       >
                         {variable.label}
                       </button>
