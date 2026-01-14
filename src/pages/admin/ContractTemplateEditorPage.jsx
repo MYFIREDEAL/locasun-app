@@ -331,6 +331,77 @@ const ContractTemplateEditorPage = () => {
     console.log('JSON généré:', jsonString);
   };
 
+  // 🆕 STEP 4 : Conversion JSON → HTML
+  const convertJsonToHtml = (blocks) => {
+    let html = '';
+
+    blocks.forEach(block => {
+      switch (block.type) {
+        case 'text_variable':
+          // Insérer la variable telle quelle
+          if (block.variable) {
+            html += `<span class="contract-variable">${block.variable}</span>\n`;
+          }
+          break;
+
+        case 'signature':
+          // Générer une ligne de signature HTML
+          if (block.role) {
+            const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
+            html += `<div class="signature-block" data-role="${block.role}">\n`;
+            html += `  <p class="signature-label">${roleLabel}</p>\n`;
+            html += `  <div class="signature-line">\n`;
+            html += `    <span class="signature-placeholder">Signature :</span>\n`;
+            html += `    <div class="signature-area"></div>\n`;
+            html += `  </div>\n`;
+            html += `</div>\n`;
+          }
+          break;
+
+        case 'paraphe':
+          // Générer une zone HTML dédiée pour paraphe
+          if (block.role) {
+            const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
+            html += `<div class="paraphe-block" data-role="${block.role}">\n`;
+            html += `  <span class="paraphe-label">${roleLabel} - Paraphe :</span>\n`;
+            html += `  <div class="paraphe-area"></div>\n`;
+            html += `</div>\n`;
+          }
+          break;
+
+        case 'reserve_block':
+          // Wrapper HTML vide (zone réservée)
+          html += `<div class="reserve-block">\n`;
+          html += `  <!-- Zone réservée -->\n`;
+          html += `</div>\n`;
+          break;
+
+        default:
+          break;
+      }
+    });
+
+    return html;
+  };
+
+  // 🆕 STEP 4 : Générer et prévisualiser le HTML
+  const handleGenerateHtml = () => {
+    const html = convertJsonToHtml(overlayBlocks);
+    
+    console.log('=== HTML GÉNÉRÉ (STEP 4) ===');
+    console.log(html);
+    console.log('============================');
+    
+    // Copier dans le clipboard
+    navigator.clipboard.writeText(html);
+    
+    toast({
+      title: "✅ HTML généré et copié",
+      description: `${overlayBlocks.length} bloc(s) convertis. Voir console pour détails.`,
+      duration: 3000
+    });
+  };
+
   // Supprimer bloc
   const handleDeleteBlock = (id) => {
     setOverlayBlocks(overlayBlocks.filter(b => b.id !== id));
@@ -421,6 +492,17 @@ const ContractTemplateEditorPage = () => {
           >
             <Download className="h-4 w-4 mr-2" />
             Générer JSON ({overlayBlocks.length})
+          </Button>
+
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={handleGenerateHtml}
+            disabled={overlayBlocks.length === 0}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Générer HTML ({overlayBlocks.length})
           </Button>
         </div>
       </div>
