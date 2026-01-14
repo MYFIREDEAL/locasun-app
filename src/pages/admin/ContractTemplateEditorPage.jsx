@@ -755,6 +755,12 @@ const ContractTemplateEditorPage = () => {
       return;
     }
     
+    console.log('=== DEBUG AVANT GÉNÉRATION HTML ===');
+    console.log('overlayBlocks:', JSON.stringify(overlayBlocks, null, 2));
+    console.log('Nombre de blocs:', overlayBlocks.length);
+    console.log('Blocs signataires:', overlayBlocks.filter(b => b.type === 'signatory_block'));
+    console.log('====================================');
+    
     const html = convertJsonToHtml(overlayBlocks);
     
     console.log('=== HTML COMPLET GÉNÉRÉ ===');
