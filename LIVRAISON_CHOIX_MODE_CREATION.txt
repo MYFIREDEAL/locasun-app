@@ -1,0 +1,113 @@
+┌─────────────────────────────────────────────────────────────┐
+│  🎯 LIVRAISON : CHOIX MODE CRÉATION TEMPLATE                │
+│  ✅ TERMINÉ ET DÉPLOYÉ                                      │
+└─────────────────────────────────────────────────────────────┘
+
+📦 COMMIT : a9757e9
+📝 MESSAGE : "feat: choix mode création template (PDF ou HTML manuel)"
+🔗 BRANCHE : main
+✅ PUSH : Réussi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 WORKFLOW AVANT
+──────────────────
+Clic "Nouveau template"
+       ↓
+Formulaire avec HTML vide
+       ↓
+Saisie manuelle
+       ↓
+Enregistrement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎨 WORKFLOW APRÈS (NOUVEAU)
+──────────────────────────
+
+Clic "Nouveau template"
+       ↓
+   ┌───────────────────────────────────────┐
+   │  Modal : Choisissez votre méthode     │
+   ├───────────────────────────────────────┤
+   │                                       │
+   │  📄 Importer un PDF et générer HTML   │
+   │     (workflow à venir)                │
+   │                                       │
+   │  ✍️ J'ai déjà mon HTML                │
+   │     (fonctionne immédiatement)        │
+   │                                       │
+   └───────────────────────────────────────┘
+       ↓
+   Sélection
+       ↓
+   ┌─────────────┬─────────────┐
+   │   Mode PDF  │ Mode Manuel │
+   └─────────────┴─────────────┘
+       ↓               ↓
+   (À venir)      Formulaire HTML
+                       ↓
+                  Enregistrement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ INTERDICTIONS RESPECTÉES
+────────────────────────────
+✓ Aucune modification du moteur HTML
+✓ Aucune modification des variables dynamiques
+✓ Aucune modification du workflow de signature
+✓ Aucune modification des templates existants
+✓ Aucune modification du schéma SQL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 STATISTIQUES
+───────────────
+Fichiers modifiés : 1
+  • src/pages/admin/ContractTemplatesPage.jsx
+
+Fichiers créés : 1
+  • FEATURE_CHOIX_MODE_CREATION_TEMPLATE.md
+
+Lignes ajoutées : 219
+Lignes supprimées : 10
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 TESTS MANUELS RECOMMANDÉS
+─────────────────────────────
+1. Ouvrir /admin/contract-templates
+2. Cliquer "Nouveau template"
+3. Vérifier l'apparition de la modal de choix
+4. Tester "J'ai déjà mon HTML"
+   → Doit ouvrir le formulaire avec contentHtml vide
+5. Tester "Importer un PDF"
+   → Doit afficher toast "en développement"
+6. Tester "Annuler"
+   → Doit fermer la modal sans action
+7. Éditer un template existant
+   → Doit ouvrir directement (sans modal de choix)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 PROCHAINES ÉTAPES (HORS SCOPE)
+──────────────────────────────────
+Mode PDF complet :
+  1. Upload PDF
+  2. Affichage dans viewer
+  3. Overlay pour placer champs
+  4. Génération JSON des positions
+  5. Conversion JSON → HTML
+  6. Injection dans textarea existant
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👨‍💻 ÉQUIPE EVATIME
+──────────────────
+Architecte : ChatGPT
+Product Owner : Jack
+Développeur : Claude (moi)
+
+📅 Date : 14 janvier 2026
+🕒 Durée : ~15 minutes
+✅ Status : PRODUCTION READY
