@@ -317,6 +317,33 @@ const ContractTemplatesPage = () => {
   const [blockConfigData, setBlockConfigData] = useState(null);
   const [generatedJson, setGeneratedJson] = useState(null);
 
+  // 🆕 STEP 5 : Injection automatique du HTML généré depuis l'éditeur PDF
+  useEffect(() => {
+    const shouldInject = localStorage.getItem('shouldInjectHtml');
+    const generatedHtml = localStorage.getItem('generatedContractHtml');
+    
+    if (shouldInject === 'true' && generatedHtml) {
+      // Créer ou mettre à jour le template en édition avec le HTML généré
+      setEditingContractTemplate(prev => ({
+        ...prev,
+        name: prev?.name || '',
+        projectType: prev?.projectType || 'ACC',
+        contentHtml: generatedHtml
+      }));
+      
+      // Nettoyer le localStorage
+      localStorage.removeItem('shouldInjectHtml');
+      localStorage.removeItem('generatedContractHtml');
+      
+      // Toast de confirmation
+      toast({
+        title: "✅ HTML injecté automatiquement",
+        description: "Le contenu HTML a été inséré dans le textarea. Vous pouvez maintenant l'ajuster si besoin.",
+        duration: 4000
+      });
+    }
+  }, []);
+
   // 🆕 Forcer le scroll body pour désactiver le scroll lock Radix Dialog
   useEffect(() => {
     document.body.style.overflow = "auto";

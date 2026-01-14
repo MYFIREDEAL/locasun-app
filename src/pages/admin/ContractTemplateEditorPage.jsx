@@ -459,11 +459,20 @@ const ContractTemplateEditorPage = () => {
     // Copier dans le clipboard
     navigator.clipboard.writeText(html);
     
+    // 🆕 STEP 5 : Stocker le HTML dans localStorage pour injection automatique
+    localStorage.setItem('generatedContractHtml', html);
+    localStorage.setItem('shouldInjectHtml', 'true');
+    
     toast({
       title: "✅ HTML généré et copié",
-      description: `${overlayBlocks.length} bloc(s) convertis. Voir console pour détails.`,
-      duration: 3000
+      description: `${overlayBlocks.length} bloc(s) convertis. Retour au formulaire...`,
+      duration: 2000
     });
+    
+    // Rediriger vers le formulaire après 1 seconde
+    setTimeout(() => {
+      navigate('/admin/contract-templates');
+    }, 1000);
   };
 
   // Supprimer bloc
