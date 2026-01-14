@@ -261,6 +261,7 @@ const ContractTemplateEditorPage = () => {
   const [pdfNumPages, setPdfNumPages] = useState(1);
   const [pdfPages, setPdfPages] = useState([]); // Stocker les canvas de chaque page
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfTextPages, setPdfTextPages] = useState([]); // 🆕 Stocker le texte extrait de chaque page
 
   // Helper pour obtenir le label complet d'un bloc
   const getBlockLabel = (block) => {
@@ -297,12 +298,15 @@ const ContractTemplateEditorPage = () => {
         const pdf = await loadingTask.promise;
         setPdfNumPages(pdf.numPages);
         
-        // Rendre chaque page dans un canvas
+        // Rendre chaque page dans un canvas + extraire le texte
         const pages = [];
+        const textPages = [];
+        
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           const page = await pdf.getPage(pageNum);
           const viewport = page.getViewport({ scale: 1.5 }); // Scale pour bonne qualité
           
+          // Rendu canvas (visuel)
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.width = viewport.width;
@@ -319,14 +323,56 @@ const ContractTemplateEditorPage = () => {
             width: viewport.width,
             height: viewport.height
           });
+          
+          // 🆕 Extraction du texte
+          const textContent = await page.getTextContent();
+          let pageText = '';
+          
+          // Reconstruire le texte avec espaces et retours ligne
+          textContent.items.forEach((item, index) => {
+            pageText += item.str;
+            
+            // Ajouter un espace si l'élément suivant n'est pas sur la même ligne
+            if (index < textContent.items.length - 1) {
+              const currentItem = item;
+              const nextItem = textContent.items[index + 1];
+              
+              // Si changement de ligne (Y différent)
+              if (currentItem.transform && nextItem.transform) {
+                const currentY = currentItem.transform[5];
+                const nextY = nextItem.transform[5];
+                
+                if (Math.abs(currentY - nextY) > 2) {
+                  pageText += '\n';
+                } else {
+                  pageText += ' ';
+                }
+              } else {
+                pageText += ' ';
+              }
+            }
+          });
+          
+          textPages.push({
+            pageNum,
+            text: pageText.trim()
+          });
         }
         
         setPdfPages(pages);
+        setPdfTextPages(textPages);
         setIsLoadingPdf(false);
+        
+        console.log('=== TEXTE EXTRAIT DU PDF ===');
+        textPages.forEach(tp => {
+          console.log(`--- Page ${tp.pageNum} ---`);
+          console.log(tp.text.substring(0, 500)); // Premier 500 caractères
+        });
+        console.log('============================');
         
         toast({
           title: "✅ PDF chargé",
-          description: `${pdf.numPages} page(s) détectée(s) et rendues`
+          description: `${pdf.numPages} page(s) détectée(s), texte extrait`
         });
       } catch (error) {
         console.error('Erreur lors du chargement du PDF:', error);
@@ -395,65 +441,123 @@ const ContractTemplateEditorPage = () => {
     console.log('JSON généré:', jsonString);
   };
 
-  // 🆕 STEP 4 : Conversion JSON → HTML
+  // 🆕 STEP 4 : Conversion JSON → HTML COMPLET (texte PDF + overlays)
   const convertJsonToHtml = (blocks) => {
-    let html = '';
+    // Générer le HTML complet du contrat (texte PDF + blocs)
+    let html = `<html>\n<head>\n<meta charset="UTF-8">\n<style>\n`;
+    html += `body { font-family: Arial, sans-serif; margin: 20px; }\n`;
+    html += `.contract-root { position: relative; }\n`;
+    html += `.page { position: relative; margin-bottom: 40px; page-break-after: always; }\n`;
+    html += `.page-text { white-space: pre-wrap; line-height: 1.6; }\n`;
+    html += `.page-overlay { position: absolute; top: 0; left: 0; pointer-events: none; }\n`;
+    html += `.contract-variable { color: #9333ea; font-weight: bold; background: #f3e8ff; padding: 2px 4px; border-radius: 3px; }\n`;
+    html += `.signature-block { margin: 20px 0; padding: 15px; border: 2px solid #ddd; border-radius: 8px; }\n`;
+    html += `.signature-label { font-weight: bold; margin-bottom: 10px; }\n`;
+    html += `.signature-line { border-bottom: 2px solid #000; margin-top: 30px; padding-bottom: 5px; }\n`;
+    html += `.paraphe-block { display: inline-block; margin: 5px; padding: 5px 10px; border: 1px solid #666; border-radius: 4px; }\n`;
+    html += `.paraphe-label { font-size: 0.9em; color: #666; }\n`;
+    html += `.reserve-block { min-height: 50px; border: 1px dashed #ccc; margin: 10px 0; }\n`;
+    html += `</style>\n</head>\n<body>\n<div class="contract-root">\n`;
 
-    blocks.forEach(block => {
-      switch (block.type) {
-        case 'text_variable':
-          // Insérer la variable telle quelle
-          if (block.variable) {
-            html += `<span class="contract-variable">${block.variable}</span>\n`;
+    // Pour chaque page du PDF
+    pdfTextPages.forEach((textPage, pageIndex) => {
+      html += `\n<!-- Page ${textPage.pageNum} -->\n`;
+      html += `<section class="page" data-page="${textPage.pageNum}">\n`;
+      
+      // Texte de la page
+      html += `  <div class="page-text">\n`;
+      html += textPage.text.split('\n').map(line => `    ${line}`).join('\n');
+      html += `\n  </div>\n`;
+      
+      // Overlay avec les blocs de cette page
+      const pageBlocks = blocks.filter(b => b.page === textPage.pageNum);
+      
+      if (pageBlocks.length > 0) {
+        html += `  <div class="page-overlay">\n`;
+        
+        pageBlocks.forEach(block => {
+          const style = `position:absolute; left:${block.x}px; top:${block.y}px; width:${block.width}px; height:${block.height}px;`;
+          
+          switch (block.type) {
+            case 'text_variable':
+              // Variable strictement au format {{...}}
+              if (block.variable) {
+                html += `    <div style="${style}">\n`;
+                html += `      <span class="contract-variable">${block.variable}</span>\n`;
+                html += `    </div>\n`;
+              }
+              break;
+
+            case 'signature':
+              if (block.role) {
+                const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
+                
+                // Utiliser la variable de signature appropriée selon le rôle
+                let signatureVar = '';
+                if (block.role.startsWith('cosigner_client_')) {
+                  const num = block.role.replace('cosigner_client_', '');
+                  signatureVar = `{{cosigner_signature_line_${num}}}`;
+                } else if (block.role.startsWith('cosigner_company_')) {
+                  const num = block.role.replace('cosigner_company_', '');
+                  signatureVar = `{{company_cosigner_signature_line_${num}}}`;
+                } else {
+                  signatureVar = `Signature ${roleLabel}`;
+                }
+                
+                html += `    <div class="signature-block" style="${style}" data-role="${block.role}">\n`;
+                html += `      <p class="signature-label">${roleLabel}</p>\n`;
+                html += `      <div class="signature-line">${signatureVar}</div>\n`;
+                html += `    </div>\n`;
+              }
+              break;
+
+            case 'paraphe':
+              if (block.role) {
+                const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
+                html += `    <div class="paraphe-block" style="${style}" data-role="${block.role}">\n`;
+                html += `      <span class="paraphe-label">${roleLabel} - Paraphe</span>\n`;
+                html += `    </div>\n`;
+              }
+              break;
+
+            case 'reserve_block':
+              html += `    <div class="reserve-block" style="${style}"><!-- Zone réservée --></div>\n`;
+              break;
+
+            default:
+              break;
           }
-          break;
-
-        case 'signature':
-          // Générer une ligne de signature HTML
-          if (block.role) {
-            const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
-            html += `<div class="signature-block" data-role="${block.role}">\n`;
-            html += `  <p class="signature-label">${roleLabel}</p>\n`;
-            html += `  <div class="signature-line">\n`;
-            html += `    <span class="signature-placeholder">Signature :</span>\n`;
-            html += `    <div class="signature-area"></div>\n`;
-            html += `  </div>\n`;
-            html += `</div>\n`;
-          }
-          break;
-
-        case 'paraphe':
-          // Générer une zone HTML dédiée pour paraphe
-          if (block.role) {
-            const roleLabel = SIGNATURE_ROLES.find(r => r.value === block.role)?.label || block.role;
-            html += `<div class="paraphe-block" data-role="${block.role}">\n`;
-            html += `  <span class="paraphe-label">${roleLabel} - Paraphe :</span>\n`;
-            html += `  <div class="paraphe-area"></div>\n`;
-            html += `</div>\n`;
-          }
-          break;
-
-        case 'reserve_block':
-          // Wrapper HTML vide (zone réservée)
-          html += `<div class="reserve-block">\n`;
-          html += `  <!-- Zone réservée -->\n`;
-          html += `</div>\n`;
-          break;
-
-        default:
-          break;
+        });
+        
+        html += `  </div>\n`;
       }
+      
+      html += `</section>\n`;
     });
 
+    html += `</div>\n</body>\n</html>`;
+    
     return html;
   };
 
   // 🆕 STEP 4 : Générer et prévisualiser le HTML
   const handleGenerateHtml = () => {
+    if (pdfTextPages.length === 0) {
+      toast({
+        title: "❌ Erreur",
+        description: "Aucun texte extrait du PDF. Veuillez recharger le PDF.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const html = convertJsonToHtml(overlayBlocks);
     
-    console.log('=== HTML GÉNÉRÉ (STEP 4) ===');
-    console.log(html);
+    console.log('=== HTML COMPLET GÉNÉRÉ ===');
+    console.log('Texte PDF extrait:', pdfTextPages.length, 'pages');
+    console.log('Blocs overlay:', overlayBlocks.length);
+    console.log('HTML (premiers 1000 caractères):');
+    console.log(html.substring(0, 1000));
     console.log('============================');
     
     // Copier dans le clipboard
@@ -464,8 +568,8 @@ const ContractTemplateEditorPage = () => {
     localStorage.setItem('shouldInjectHtml', 'true');
     
     toast({
-      title: "✅ HTML généré et copié",
-      description: `${overlayBlocks.length} bloc(s) convertis. Retour au formulaire...`,
+      title: "✅ HTML complet généré",
+      description: `${pdfTextPages.length} page(s) de texte + ${overlayBlocks.length} bloc(s). Retour au formulaire...`,
       duration: 2000
     });
     
