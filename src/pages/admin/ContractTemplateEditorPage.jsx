@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { X, ZoomIn, ZoomOut, Square, Trash2, Move, ChevronDown, Download, ArrowLeft } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Square, Trash2, Move, ChevronDown, Download, ArrowLeft, FileText } from 'lucide-react';
 
 // 🆕 Step 3 : Types de blocs (liste FERMÉE)
 const BLOCK_TYPES = [
