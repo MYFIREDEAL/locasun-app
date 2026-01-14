@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
-import { Plus, FileText, Edit } from 'lucide-react';
+import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X } from 'lucide-react';
 
 // Options de projets (même liste que ProfilePage)
 const projectOptions = [
@@ -72,6 +72,11 @@ const ContractTemplatesPage = () => {
   // 🆕 États pour le choix du mode de création
   const [isModeSelectionOpen, setIsModeSelectionOpen] = useState(false);
   const [creationMode, setCreationMode] = useState(null); // null | 'pdf' | 'manual'
+  
+  // 🆕 États pour le PDF viewer (Step 1)
+  const [uploadedPdfFile, setUploadedPdfFile] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
 
   // 🆕 Gestionnaire pour démarrer la création (affiche le choix du mode)
   const handleStartCreation = () => {
@@ -91,19 +96,44 @@ const ContractTemplatesPage = () => {
         contentHtml: ''
       });
     } else if (mode === 'pdf') {
-      // Mode PDF : ouvrir l'interface d'upload PDF (à implémenter)
-      // Pour l'instant, on affiche le formulaire aussi (le workflow PDF sera ajouté plus tard)
-      setEditingContractTemplate({
-        name: '',
-        projectType: 'ACC',
-        contentHtml: ''
-      });
+      // Mode PDF : ouvrir l'interface d'upload/viewer PDF
+      setIsPdfViewerOpen(true);
+    }
+  };
+
+  // 🆕 Gestionnaire pour upload PDF
+  const handlePdfUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadedPdfFile(file);
+      
+      // Créer une URL pour afficher le PDF
+      const url = URL.createObjectURL(file);
+      setPdfUrl(url);
+      
       toast({
-        title: "🚧 Fonctionnalité en développement",
-        description: "L'import PDF sera disponible prochainement. Vous pouvez saisir le HTML manuellement.",
-        className: "bg-blue-500 text-white"
+        title: "✅ PDF chargé",
+        description: `${file.name} est prêt à être visualisé`,
+        className: "bg-green-500 text-white"
+      });
+    } else {
+      toast({
+        title: "❌ Erreur",
+        description: "Veuillez sélectionner un fichier PDF valide",
+        variant: "destructive"
       });
     }
+  };
+
+  // 🆕 Nettoyer l'URL du PDF lors de la fermeture
+  const handleClosePdfViewer = () => {
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+    }
+    setIsPdfViewerOpen(false);
+    setPdfUrl(null);
+    setUploadedPdfFile(null);
+    setCreationMode(null);
   };
 
   const handleSaveContractTemplate = async (templateToSave) => {
@@ -451,6 +481,103 @@ const ContractTemplatesPage = () => {
               onClick={() => setIsModeSelectionOpen(false)}
             >
               Annuler
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🆕 Modal PDF Viewer (Step 1) */}
+      <Dialog open={isPdfViewerOpen} onOpenChange={handleClosePdfViewer}>
+        <DialogContent className="sm:max-w-6xl max-h-[95vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-purple-600" />
+              Visualisation du PDF
+            </DialogTitle>
+            <DialogDescription>
+              {uploadedPdfFile ? `${uploadedPdfFile.name} (${(uploadedPdfFile.size / 1024).toFixed(2)} KB)` : 'Importez un fichier PDF pour le visualiser'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Zone d'upload */}
+            {!pdfUrl && (
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-purple-400 transition-colors">
+                <Upload className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-700 mb-2">
+                  Importez votre fichier PDF
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Cliquez pour sélectionner ou glissez-déposez votre PDF
+                </p>
+                <label htmlFor="pdf-upload" className="cursor-pointer">
+                  <input
+                    id="pdf-upload"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                    className="hidden"
+                  />
+                  <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                    <span>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Sélectionner un PDF
+                    </span>
+                  </Button>
+                </label>
+              </div>
+            )}
+
+            {/* Viewer PDF */}
+            {pdfUrl && (
+              <div className="space-y-3">
+                {/* Barre d'actions */}
+                <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {uploadedPdfFile?.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (pdfUrl) {
+                          URL.revokeObjectURL(pdfUrl);
+                        }
+                        setPdfUrl(null);
+                        setUploadedPdfFile(null);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Changer de PDF
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Container du PDF avec scroll */}
+                <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-100">
+                  <div className="h-[60vh] overflow-auto">
+                    <iframe
+                      src={pdfUrl}
+                      className="w-full h-full"
+                      title="PDF Viewer"
+                      style={{ minHeight: '600px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="px-6 pb-4">
+            <Button 
+              variant="outline" 
+              onClick={handleClosePdfViewer}
+            >
+              Fermer
             </Button>
           </DialogFooter>
         </DialogContent>
