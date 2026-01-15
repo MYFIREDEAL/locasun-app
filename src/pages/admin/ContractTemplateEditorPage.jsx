@@ -588,13 +588,6 @@ const ContractTemplateEditorPage = () => {
 
   // Sauvegarder la config du bloc
   const handleSaveBlockConfig = (config) => {
-    console.log('=== SAVE BLOCK CONFIG ===');
-    console.log('Config reçue:', config);
-    console.log('Type:', config.type);
-    console.log('signatoryType:', config.signatoryType);
-    console.log('signatoryFields:', config.signatoryFields);
-    console.log('========================');
-    
     const newBlock = {
       id: Date.now().toString(),
       x: 100,
@@ -612,10 +605,6 @@ const ContractTemplateEditorPage = () => {
         cosignerNumber: config.cosignerNumber
       })
     };
-    
-    console.log('=== NEW BLOCK CRÉÉ ===');
-    console.log('newBlock:', newBlock);
-    console.log('======================');
     
     setOverlayBlocks([...overlayBlocks, newBlock]);
     setIsBlockConfigOpen(false);
@@ -773,19 +762,7 @@ const ContractTemplateEditorPage = () => {
       return;
     }
     
-    console.log('=== DEBUG AVANT GÉNÉRATION HTML ===');
-    console.log('overlayBlocks:', JSON.stringify(overlayBlocks, null, 2));
-    console.log('Nombre de blocs:', overlayBlocks.length);
-    console.log('Blocs signataires:', overlayBlocks.filter(b => b.type === 'signatory_block'));
-    console.log('====================================');
-    
     const html = convertJsonToHtml(overlayBlocks);
-    
-    console.log('=== HTML COMPLET GÉNÉRÉ ===');
-    console.log('Pages PDF:', pdfPages.length);
-    console.log('Blocs overlay:', overlayBlocks.length);
-    console.log('Taille HTML:', (html.length / 1024).toFixed(2), 'KB');
-    console.log('============================');
     
     // Copier dans le clipboard
     navigator.clipboard.writeText(html);
