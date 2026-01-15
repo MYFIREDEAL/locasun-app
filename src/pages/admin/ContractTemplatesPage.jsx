@@ -318,125 +318,26 @@ const extractVariablesFromTemplate = (htmlContent) => {
   return Array.from(variables);
 };
 
-// 🔥 Fonction de génération INTELLIGENTE des champs de formulaire
+// 🔥 Fonction de génération CONTRACT-DRIVEN des champs de formulaire
+// Règle: field.id = nom exact de la variable du contrat
 const generateFormFieldsFromVariables = (variables, htmlContent) => {
   const fields = [];
-  let fieldCounter = 0; // 🔥 Compteur global pour éviter les IDs en double
   
-  // 1️⃣ Détecter les blocs conditionnels dans le template
-  const hasCompanyBlock = htmlContent.includes('{{#if_company}}');
-  const hasIndividualBlock = htmlContent.includes('{{#if_individual}}');
-  const hasCosigner1 = variables.some(v => v.startsWith('cosigner_') && v.includes('_1'));
-  const hasCosigner2 = variables.some(v => v.startsWith('cosigner_') && v.includes('_2'));
-  const hasCosigner3 = variables.some(v => v.startsWith('cosigner_') && v.includes('_3'));
-  
-  // 2️⃣ Catégoriser les variables
-  const companyVars = variables.filter(v => v.startsWith('company_'));
-  const clientVars = variables.filter(v => v.startsWith('client_'));
-  const cosignerVars = variables.filter(v => v.startsWith('cosigner_'));
-  const otherVars = variables.filter(v => 
-    !v.startsWith('company_') && 
-    !v.startsWith('client_') && 
-    !v.startsWith('cosigner_') &&
+  // Filtrer les variables de signature et dates spéciales
+  const filteredVariables = variables.filter(v => 
     !v.includes('signature') &&
     v !== 'current_date'
   );
   
-  let typeFieldId = null;
-  let cosignerCountFieldId = null;
-  
-  // 3️⃣ Si template a SOCIÉTÉ ET PARTICULIER → Créer champ "Type"
-  if (hasCompanyBlock && hasIndividualBlock) {
-    typeFieldId = `field-type-${Date.now()}`;
-    fields.push({
-      id: typeFieldId,
-      label: 'Type de signataire',
-      type: 'select',
-      required: true,
-      options: ['Particulier', 'Société'],
-      placeholder: ''
-    });
-    
-    // 3a️⃣ Ajouter champs PARTICULIER avec condition
-    clientVars.forEach(varName => {
-      const config = CONTRACT_VARIABLES[varName] || { 
-        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
-        type: 'text' 
-      };
-      
-      fields.push({
-        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
-        label: config.label,
-        type: config.type,
-        required: config.required || false,
-        options: config.options || undefined,
-        placeholder: config.placeholder || '',
-        show_if_conditions: [{ field: typeFieldId, equals: 'Particulier' }]
-      });
-    });
-    
-    // 3b️⃣ Ajouter champs SOCIÉTÉ avec condition
-    companyVars.forEach(varName => {
-      const config = CONTRACT_VARIABLES[varName] || { 
-        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
-        type: 'text' 
-      };
-      
-      fields.push({
-        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
-        label: config.label,
-        type: config.type,
-        required: config.required || false,
-        options: config.options || undefined,
-        placeholder: config.placeholder || '',
-        show_if_conditions: [{ field: typeFieldId, equals: 'Société' }]
-      });
-    });
-  } else if (hasCompanyBlock) {
-    // Seulement société
-    companyVars.forEach(varName => {
-      const config = CONTRACT_VARIABLES[varName] || { 
-        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
-        type: 'text' 
-      };
-      
-      fields.push({
-        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
-        label: config.label,
-        type: config.type,
-        required: config.required || false,
-        options: config.options || undefined,
-        placeholder: config.placeholder || ''
-      });
-    });
-  } else if (hasIndividualBlock) {
-    // Seulement particulier
-    clientVars.forEach(varName => {
-      const config = CONTRACT_VARIABLES[varName] || { 
-        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
-        type: 'text' 
-      };
-      
-      fields.push({
-        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
-        label: config.label,
-        type: config.type,
-        required: config.required || false,
-        options: config.options || undefined,
-        placeholder: config.placeholder || ''
-      });
-    });
-  }
-  
-  // 4️⃣ Ajouter les autres champs (projet, contrat, dates...)
-  otherVars.forEach(varName => {
+  // Pour CHAQUE variable du contrat, créer un champ avec id = variableName
+  filteredVariables.forEach(varName => {
     const config = CONTRACT_VARIABLES[varName] || { 
       label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
       type: 'text' 
     };
     
     fields.push({
-      id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
+      id: varName,  // 🔥 ID = nom exact de la variable du contrat
       label: config.label,
       type: config.type,
       required: config.required || false,
@@ -444,59 +345,6 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
       placeholder: config.placeholder || ''
     });
   });
-  
-  // 5️⃣ Si co-signataires détectés → Créer système de répétition
-  if (hasCosigner1 || hasCosigner2 || hasCosigner3) {
-    const maxCosigners = hasCosigner3 ? 3 : (hasCosigner2 ? 2 : 1);
-    cosignerCountFieldId = `field-cosigner-count-${Date.now()}`;
-    
-    // Champ "Nombre de co-signataires"
-    const cosignerCountField = {
-      id: cosignerCountFieldId,
-      label: 'Nombre de co-signataires',
-      type: 'select',
-      required: false,
-      options: Array.from({ length: maxCosigners + 1 }, (_, i) => String(i)),
-      placeholder: '',
-      is_repeater: true,
-      repeats_fields: [] // Sera rempli après
-    };
-    
-    fields.push(cosignerCountField);
-    
-    // Créer les champs répétables (sans _1, _2, _3)
-    const cosignerFieldTypes = new Set();
-    cosignerVars.forEach(v => {
-      const baseField = v.replace(/_[123]$/, ''); // Enlever _1, _2, _3
-      cosignerFieldTypes.add(baseField);
-    });
-    
-    const repeatableFieldIds = [];
-    
-    let fieldCounter = 0;
-    cosignerFieldTypes.forEach(baseField => {
-      const fullVarName = `${baseField}_1`; // Utiliser _1 comme référence
-      const config = CONTRACT_VARIABLES[fullVarName] || { 
-        label: baseField.replace(/cosigner_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
-        type: 'text' 
-      };
-      
-      const fieldId = `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`;
-      repeatableFieldIds.push(fieldId);
-      
-      fields.push({
-        id: fieldId,
-        label: config.label,
-        type: config.type,
-        required: false,
-        options: config.options || undefined,
-        placeholder: config.placeholder || ''
-      });
-    });
-    
-    // Lier les champs au repeater
-    cosignerCountField.repeats_fields = repeatableFieldIds;
-  }
   
   return fields;
 };

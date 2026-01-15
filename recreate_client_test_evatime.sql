@@ -8,17 +8,10 @@ DECLARE
   v_admin_user_id uuid;
   v_organization_id uuid;
 BEGIN
-  -- Récupérer l'organization_id pour localhost
-  SELECT id INTO v_organization_id
-  FROM organizations
-  WHERE domain = 'localhost'
-  LIMIT 1;
+  -- 🔥 UTILISER L'ORGANIZATION_ID EXISTANT (au lieu de chercher 'localhost')
+  v_organization_id := '06bb4924-7eaa-47bc-a671-2f283d58cdc0';
 
-  IF v_organization_id IS NULL THEN
-    RAISE EXCEPTION 'Organization localhost non trouvée. Crée-la d''abord avec: INSERT INTO organizations (domain, name) VALUES (''localhost'', ''EVATIME Test'');';
-  END IF;
-
-  RAISE NOTICE '✅ Organization trouvée: %', v_organization_id;
+  RAISE NOTICE '✅ Organization utilisée: %', v_organization_id;
 
   -- ========================================
   -- 1️⃣ CRÉER LE CLIENT TEST
