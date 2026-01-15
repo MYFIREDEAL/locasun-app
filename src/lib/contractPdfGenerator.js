@@ -165,11 +165,10 @@ export async function generateContractPDF({
 }
 
 /**
- * Injecte les données du prospect ET des co-signataires dans le template HTML
+ * Injecte les données du prospect dans le template HTML
  * @param {string} html - Template HTML
  * @param {Object} prospect - Données du prospect (depuis Supabase)
- * @param {Array} cosigners - Tableau des co-signataires [{name, email, phone}]
- * @param {Object} formData - Données du formulaire mappées
+ * @param {Object} formData - Données du formulaire (contract-driven)
  * @returns {string} - HTML avec données injectées
  */
 function injectProspectData(html, prospect, formData = {}) {
@@ -372,7 +371,7 @@ export async function uploadContractPDF({
  * @param {string} params.templateId - ID du template de contrat
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
- * @param {Array} params.cosigners - Tableau des co-signataires [{name, email, phone}]
+ * @param {Object} params.formData - Données du formulaire (contract-driven)
  * @param {string} params.organizationId - ID de l'organisation (requis pour RLS)
  * @returns {Promise<Object>} - { success, data } ou { success: false, error }
  */

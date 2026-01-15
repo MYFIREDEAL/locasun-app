@@ -342,8 +342,6 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
     }
   });
   
-  const hasCosigners = cosignerIndexes.size > 0;
-  
   // 🔥 SÉPARER les variables par catégorie
   const clientVariables = filteredVariables.filter(v => v.startsWith('client_'));
   const companyVariables = filteredVariables.filter(v => v.startsWith('company_'));
@@ -435,7 +433,7 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
   });
   
   // 5️⃣ SI co-signataires détectés → Ajouter champ UI-only + champs conditionnels
-  if (hasCosigners) {
+  if (cosignerIndexes.size > 0) {
     // Ajouter le sélecteur UI-only (PAS une variable de contrat)
     fields.push({
       id: "__cosigner_count",

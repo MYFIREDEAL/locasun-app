@@ -578,7 +578,6 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
               projectType: projectType,
               prospectId: prospectId,
               formData: specificFormData, // 🔥 Injection directe sans transformation
-              cosigners: [],
               organizationId: activeAdminUser?.organization_id,
             });
 
@@ -619,22 +618,6 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   },
                 ];
 
-                // Ajouter les co-signataires
-                if (cosigners.length > 0) {
-                  for (const cosigner of cosigners) {
-                    signers.push({
-                      role: 'cosigner', // ✅ Reste 'cosigner'
-                      name: cosigner.name || '',
-                      email: cosigner.email || '',
-                      phone: cosigner.phone || '',
-                      access_token: crypto.randomUUID(),
-                      requires_auth: false,
-                      status: 'pending',
-                      signed_at: null,
-                    });
-                  }
-                }
-
                 // 🔥 VALIDATION: organization_id requis par RLS
                 if (!activeAdminUser?.organization_id) {
                   throw new Error('Organization ID manquant - Impossible de créer la procédure de signature');
@@ -672,23 +655,6 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
 
                 signatureProcedure = newProcedure;
                 logger.debug('Procédure de signature créée', { procedureId: signatureProcedure.id, signersCount: signers.length });
-
-                // 🔥 ENVOYER EMAIL AUX CO-SIGNATAIRES via Edge Function
-                if (cosigners.length > 0) {
-                  try {
-                    const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('send-cosigner-invite', {
-                      body: { signature_procedure_id: signatureProcedure.id }
-                    });
-
-                    if (inviteError) {
-                      logger.error('❌ Erreur envoi invitations co-signataires', inviteError);
-                    } else {
-                      logger.info('✅ Invitations envoyées aux co-signataires', { sent: inviteResult?.sent || 0 });
-                    }
-                  } catch (err) {
-                    logger.error('❌ Erreur send-cosigner-invite', err);
-                  }
-                }
               }
 
               // 🔥 ENVOYER LE LIEN DANS LE CHAT (pour le client principal)
