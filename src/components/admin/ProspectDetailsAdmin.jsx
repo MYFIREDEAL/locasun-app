@@ -614,6 +614,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 
                 if (formDefinition?.fields) {
                   formDefinition.fields.forEach(field => {
+                    if (field.id === config.countField) {
+                      return;
+                    }
                     const variableName = findVariableByLabel(field.label);
                     if (variableName) {
                       autoGeneralFieldMappings[field.id] = variableName;
