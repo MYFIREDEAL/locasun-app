@@ -28,6 +28,7 @@ import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
+import { findVariableByLabel } from '@/constants/contractVariables';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
@@ -601,8 +602,32 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   countValue: specificFormData[config.countField]
                 });
                 
-                // 🔥 EXTRAIRE LES DONNÉES GÉNÉRALES (client, société, projet, etc.)
-                const generalFieldMappings = config.generalFieldMappings || {};
+                // 🧱 ÉTAPE 1 — Charger la définition du formulaire
+                const { data: formDefinition } = await supabase
+                  .from('forms')
+                  .select('fields')
+                  .eq('form_id', config.formId)
+                  .single();
+                
+                // 🧱 ÉTAPE 2 — Construire le auto-mapping
+                const autoGeneralFieldMappings = {};
+                
+                if (formDefinition?.fields) {
+                  formDefinition.fields.forEach(field => {
+                    const variableName = findVariableByLabel(field.label);
+                    if (variableName) {
+                      autoGeneralFieldMappings[field.id] = variableName;
+                    }
+                  });
+                }
+                
+                // 🧱 ÉTAPE 3 — Priorité des mappings (OBLIGATOIRE)
+                const generalFieldMappings =
+                  Object.keys(config.generalFieldMappings || {}).length > 0
+                    ? config.generalFieldMappings
+                    : autoGeneralFieldMappings;
+                
+                // 🧱 ÉTAPE 4 — Extraction des données
                 const generalData = {};
                 
                 Object.entries(generalFieldMappings).forEach(([fieldId, varName]) => {
@@ -611,6 +636,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                     generalData[varName] = value;
                   }
                 });
+                
+                // 🧪 ÉTAPE 5 — LOG DE DEBUG FINAL
+                console.log('🧩 FINAL generalData', generalData);
                 
                 logger.info('📋 Données générales extraites', { generalData });
                 
