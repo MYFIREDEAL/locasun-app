@@ -1129,6 +1129,34 @@ const ContractTemplatesPage = () => {
                         rows={20}
                         className="font-mono text-sm mt-1"
                       />
+                      
+                      {/* Bouton de nettoyage immédiat */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const cleaned = cleanConditionalTags(editingContractTemplate.contentHtml);
+                            setEditingContractTemplate(prev => ({
+                              ...prev,
+                              contentHtml: cleaned
+                            }));
+                            toast({
+                              title: "🧹 HTML nettoyé !",
+                              description: "Les balises conditionnelles ont été déplacées hors des <p>",
+                              className: "bg-green-500 text-white"
+                            });
+                          }}
+                          className="text-xs"
+                        >
+                          🧹 Nettoyer HTML maintenant
+                        </Button>
+                        <span className="text-xs text-gray-500">
+                          Cliquez pour corriger automatiquement les balises conditionnelles
+                        </span>
+                      </div>
+                      
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p className="text-xs text-blue-800 font-semibold mb-1">💡 Guide des balises conditionnelles:</p>
                         <ul className="text-xs text-blue-700 space-y-1 ml-4">
