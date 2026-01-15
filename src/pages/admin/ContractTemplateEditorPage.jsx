@@ -95,43 +95,48 @@ const TEXT_VARIABLES = {
 const PREDEFINED_BLOCKS = {
   'PERSONNE PHYSIQUE': [
     {
-      label: '👤 Bloc Client Complet',
-      content: `<p><strong>Monsieur/Madame {{client_firstname}} {{client_lastname}}</strong></p>
+      label: '👤 Bloc Client Complet (conditionnel)',
+      content: `{{#if_individual}}
+<p><strong>Monsieur/Madame {{client_firstname}} {{client_lastname}}</strong></p>
 <p>Né(e) le {{client_birthdate}} à {{client_birthplace}}</p>
 <p>De nationalité {{client_nationality}}</p>
 <p>Demeurant {{client_address}}, {{client_zip}} {{client_city}}</p>
 <p>Email: {{client_email}} - Téléphone: {{client_phone}}</p>
 <p><br></p>
 <p>Lu et approuvé,</p>
-<p>Signature: {{client_signature}}</p>`
+<p>Signature: {{client_signature}}</p>
+{{/if_individual}}`
     },
     {
-      label: '👤 Identité Simple Client',
-      content: `<p>Monsieur/Madame <strong>{{client_firstname}} {{client_lastname}}</strong>, demeurant {{client_address}}, {{client_zip}} {{client_city}}</p>`
+      label: '👤 Identité Simple Client (conditionnel)',
+      content: `{{#if_individual}}<p>Monsieur/Madame <strong>{{client_firstname}} {{client_lastname}}</strong>, demeurant {{client_address}}, {{client_zip}} {{client_city}}</p>{{/if_individual}}`
     }
   ],
   'SOCIÉTÉ': [
     {
-      label: '🏢 Bloc Société Complet',
-      content: `<p><strong>SOCIÉTÉ {{company_name}} ({{company_legal_form}})</strong></p>
+      label: '🏢 Bloc Société Complet (conditionnel)',
+      content: `{{#if_company}}
+<p><strong>SOCIÉTÉ {{company_name}} ({{company_legal_form}})</strong></p>
 <p>Au capital de {{company_capital}} euros</p>
-<p>Société dont le siège social est situé {{company_address}}, {{client_zip}} {{company_city}}</p>
+<p>Société dont le siège social est situé {{company_address}}, {{company_zip}} {{company_city}}</p>
 <p>Immatriculée sous le numéro {{company_rcs_number}} au Registre du Commerce et des Sociétés de {{company_rcs_city}}</p>
 <p>SIRET: {{company_siret}}</p>
 <p>Représentée par {{company_representative_name}}, en qualité de {{company_representative_role}}, spécialement habilité aux fins des présentes</p>
 <p><br></p>
 <p>Lu et approuvé,</p>
-<p>Signature: {{company_signature}}</p>`
+<p>Signature: {{company_signature}}</p>
+{{/if_company}}`
     },
     {
-      label: '🏢 En-tête Société Simple',
-      content: `<p><strong>{{company_name}}</strong> ({{company_legal_form}}), au capital de {{company_capital}} euros, SIRET: {{company_siret}}</p>`
+      label: '🏢 En-tête Société Simple (conditionnel)',
+      content: `{{#if_company}}<p><strong>{{company_name}}</strong> ({{company_legal_form}}), au capital de {{company_capital}} euros, SIRET: {{company_siret}}</p>{{/if_company}}`
     }
   ],
   'CO-SIGNATAIRES': [
     {
-      label: '✍️ Co-signataire 1 Complet',
-      content: `<p><strong>ET</strong></p>
+      label: '✍️ Co-signataire 1 Complet (conditionnel)',
+      content: `{{#if_cosigner_1}}
+<p><strong>ET</strong></p>
 <p>Monsieur/Madame <strong>{{cosigner_name_1}}</strong></p>
 <p>Né(e) le {{cosigner_birthdate_1}}</p>
 <p>De nationalité {{cosigner_nationality_1}}</p>
@@ -139,11 +144,13 @@ const PREDEFINED_BLOCKS = {
 <p>Email: {{cosigner_email_1}} - Téléphone: {{cosigner_phone_1}}</p>
 <p><br></p>
 <p>Lu et approuvé,</p>
-<p>{{cosigner_signature_line_1}}</p>`
+<p>{{cosigner_signature_line_1}}</p>
+{{/if_cosigner_1}}`
     },
     {
-      label: '✍️ Co-signataire 2 Complet',
-      content: `<p><strong>ET</strong></p>
+      label: '✍️ Co-signataire 2 Complet (conditionnel)',
+      content: `{{#if_cosigner_2}}
+<p><strong>ET</strong></p>
 <p>Monsieur/Madame <strong>{{cosigner_name_2}}</strong></p>
 <p>Né(e) le {{cosigner_birthdate_2}}</p>
 <p>De nationalité {{cosigner_nationality_2}}</p>
@@ -151,11 +158,13 @@ const PREDEFINED_BLOCKS = {
 <p>Email: {{cosigner_email_2}} - Téléphone: {{cosigner_phone_2}}</p>
 <p><br></p>
 <p>Lu et approuvé,</p>
-<p>{{cosigner_signature_line_2}}</p>`
+<p>{{cosigner_signature_line_2}}</p>
+{{/if_cosigner_2}}`
     },
     {
-      label: '✍️ Co-signataire 3 Complet',
-      content: `<p><strong>ET</strong></p>
+      label: '✍️ Co-signataire 3 Complet (conditionnel)',
+      content: `{{#if_cosigner_3}}
+<p><strong>ET</strong></p>
 <p>Monsieur/Madame <strong>{{cosigner_name_3}}</strong></p>
 <p>Né(e) le {{cosigner_birthdate_3}}</p>
 <p>De nationalité {{cosigner_nationality_3}}</p>
@@ -163,7 +172,8 @@ const PREDEFINED_BLOCKS = {
 <p>Email: {{cosigner_email_3}} - Téléphone: {{cosigner_phone_3}}</p>
 <p><br></p>
 <p>Lu et approuvé,</p>
-<p>{{cosigner_signature_line_3}}</p>`
+<p>{{cosigner_signature_line_3}}</p>
+{{/if_cosigner_3}}`
     }
   ],
   'PROJET': [
@@ -504,10 +514,15 @@ const ContractTemplateEditorPage = () => {
 
             {/* Exemple */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="font-semibold text-green-900 mb-2">✅ Exemple de blocs</h4>
+              <h4 className="font-semibold text-green-900 mb-2">✅ Blocs conditionnels</h4>
               <div className="text-xs text-green-800 space-y-2">
-                <p className="font-semibold">🏢 Bloc Société :</p>
-                <p className="text-[10px] leading-tight">SOCIÉTÉ <span className="font-bold text-purple-700">{'{{company_name}}'}</span> (<span className="font-bold text-purple-700">{'{{company_legal_form}}'}</span>), au capital de <span className="font-bold text-purple-700">{'{{company_capital}}'}</span> euros, SIRET: <span className="font-bold text-purple-700">{'{{company_siret}}'}</span></p>
+                <p className="font-semibold mb-1">Les blocs s'affichent automatiquement selon le type de prospect :</p>
+                <ul className="text-[10px] leading-tight space-y-1 ml-4">
+                  <li>• <strong>Bloc Société</strong> → Affiché uniquement si entreprise</li>
+                  <li>• <strong>Bloc Client</strong> → Affiché uniquement si particulier</li>
+                  <li>• <strong>Bloc Co-signataire</strong> → Affiché uniquement si co-signataire existe</li>
+                </ul>
+                <p className="text-[10px] italic mt-2">Pas de lignes vides, pas de blocs inutiles ! ✨</p>
               </div>
             </div>
 
