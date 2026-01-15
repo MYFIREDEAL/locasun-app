@@ -204,14 +204,14 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
 
   // 🔥 PRÉPARER TOUTES LES DONNÉES POUR LE RENDERER
   const contractData = {
-    // CLIENT (depuis prospect)
-    client_firstname: firstName || formData.client_firstname || '',
-    client_lastname: lastName || formData.client_lastname || '',
-    client_email: prospect.email || formData.client_email || '',
-    client_phone: prospect.phone || formData.client_phone || '',
-    client_address: street || prospect.address || formData.client_address || '',
-    client_city: city || formData.client_city || '',
-    client_zip: zipCode || formData.client_zip || '',
+    // CLIENT (formData PRIORITAIRE sur prospect)
+    client_firstname: formData.client_firstname || firstName || '',
+    client_lastname: formData.client_lastname || lastName || '',
+    client_email: formData.client_email || prospect.email || '',
+    client_phone: formData.client_phone || prospect.phone || '',
+    client_address: formData.client_address || street || prospect.address || '',
+    client_city: formData.client_city || city || '',
+    client_zip: formData.client_zip || zipCode || '',
     
     // SOCIÉTÉ (depuis formData prioritaire)
     company_name: formData.company_name || prospect.company_name || '',
