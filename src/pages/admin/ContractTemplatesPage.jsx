@@ -329,8 +329,24 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
     v !== 'current_date'
   );
   
-  // Pour CHAQUE variable du contrat, créer un champ avec id = variableName
-  filteredVariables.forEach(varName => {
+  // 🔥 DÉTECTER les co-signataires dans les variables
+  const cosignerIndexes = new Set();
+  filteredVariables.forEach(v => {
+    const match = v.match(/^cosigner_.*_(\d+)$/);
+    if (match) {
+      cosignerIndexes.add(Number(match[1]));
+    }
+  });
+  
+  const hasCosigners = cosignerIndexes.size > 0;
+  const maxCosignerIndex = hasCosigners ? Math.max(...cosignerIndexes) : 0;
+  
+  // 🔥 SÉPARER les variables : co-signataires vs autres
+  const cosignerVariables = filteredVariables.filter(v => v.match(/^cosigner_.*_\d+$/));
+  const nonCosignerVariables = filteredVariables.filter(v => !v.match(/^cosigner_.*_\d+$/));
+  
+  // 1️⃣ Ajouter les champs NON co-signataires
+  nonCosignerVariables.forEach(varName => {
     const config = CONTRACT_VARIABLES[varName] || { 
       label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
       type: 'text' 
@@ -345,6 +361,42 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
       placeholder: config.placeholder || ''
     });
   });
+  
+  // 2️⃣ SI co-signataires détectés → Ajouter champ UI-only + champs conditionnels
+  if (hasCosigners) {
+    // Ajouter le sélecteur UI-only (PAS une variable de contrat)
+    fields.push({
+      id: "__cosigner_count",
+      label: "Nombre de co-signataires",
+      type: "select",
+      options: ["0", "1", "2", "3"],
+      required: true
+    });
+    
+    // Ajouter les champs co-signataires avec conditions d'affichage
+    cosignerVariables.forEach(varName => {
+      const config = CONTRACT_VARIABLES[varName] || { 
+        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+        type: 'text' 
+      };
+      
+      // Extraire l'index du co-signataire (cosigner_name_1 → 1)
+      const indexMatch = varName.match(/^cosigner_.*_(\d+)$/);
+      const cosignerIndex = indexMatch ? Number(indexMatch[1]) : 1;
+      
+      fields.push({
+        id: varName,  // 🔥 ID = nom exact de la variable du contrat
+        label: config.label,
+        type: config.type,
+        required: config.required || false,
+        options: config.options || undefined,
+        placeholder: config.placeholder || '',
+        show_if_conditions: [
+          { field: "__cosigner_count", gte: String(cosignerIndex) }
+        ]
+      });
+    });
+  }
   
   return fields;
 };
