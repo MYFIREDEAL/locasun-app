@@ -9,7 +9,7 @@ import { renderContractTemplate } from '@/utils/contractRenderer';
  * @param {Object} params
  * @param {string} params.templateHtml - HTML du template
  * @param {Object} params.prospectData - Données du prospect
- * @param {Array} params.cosigners - Tableau des co-signataires [{name, email, phone}]
+ * @param {Object} params.formData - Données du formulaire (contract-driven)
  * @param {string} params.projectType - Type de projet
  * @param {string} params.prospectId - ID du prospect
  * @param {string} params.organizationId - ID de l'organisation (requis pour RLS)
@@ -18,8 +18,7 @@ import { renderContractTemplate } from '@/utils/contractRenderer';
 export async function generateContractPDF({
   templateHtml,
   prospectData,
-  cosigners = [],
-  formData = {}, // 🔥 Données générales du formulaire mappées
+  formData = {}, // 🔥 Données du formulaire (contract-driven, plus de cosigners)
   projectType,
   prospectId,
   organizationId, // ✅ Requis pour multi-tenant RLS
@@ -27,10 +26,10 @@ export async function generateContractPDF({
   let tempContainer = null;
   
   try {
-    logger.debug('Génération PDF contract', { projectType, prospectId, cosignersCount: cosigners.length });
+    logger.debug('Génération PDF contract', { projectType, prospectId });
 
-    // 1. Injecter les données du prospect ET des cosigners ET du formulaire dans le HTML
-    const htmlWithData = injectProspectData(templateHtml, prospectData, cosigners, formData);
+    // 1. Injecter les données du prospect ET du formulaire dans le HTML
+    const htmlWithData = injectProspectData(templateHtml, prospectData, formData);
     
     logger.debug('HTML après injection', { 
       htmlLength: htmlWithData.length,
@@ -173,17 +172,16 @@ export async function generateContractPDF({
  * @param {Object} formData - Données du formulaire mappées
  * @returns {string} - HTML avec données injectées
  */
-function injectProspectData(html, prospect, cosigners = [], formData = {}) {
+function injectProspectData(html, prospect, formData = {}) {
   if (!html || html.trim() === '') {
     logger.warn('Template HTML vide ou undefined');
     return '<div style="padding: 40px; font-family: Arial;"><h1>Contrat</h1><p>Template non configuré</p></div>';
   }
 
-  logger.debug('Injection données prospect + cosigners + formData', { 
+  logger.debug('Injection données prospect + formData', { 
     name: prospect.name, 
     email: prospect.email,
     phone: prospect.phone,
-    cosignersCount: cosigners.length,
     formDataKeys: Object.keys(formData)
   });
 
@@ -202,25 +200,19 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
 
-  // 🔥 PRÉPARER TOUTES LES DONNÉES POUR LE RENDERER
-  const contractData = {
-    // CLIENT (formData PRIORITAIRE sur prospect)
-    client_firstname: formData.client_firstname || firstName || '',
-    client_lastname: formData.client_lastname || lastName || '',
-    client_email: formData.client_email || prospect.email || '',
-    client_phone: formData.client_phone || prospect.phone || '',
-    client_address: formData.client_address || street || prospect.address || '',
-    client_city: formData.client_city || city || '',
-    client_zip: formData.client_zip || zipCode || '',
+  // 🔥 FALLBACKS depuis prospect (utilisés si formData ne les contient pas)
+  const prospectFallbacks = {
+    // CLIENT
+    client_firstname: firstName || '',
+    client_lastname: lastName || '',
+    client_email: prospect.email || '',
+    client_phone: prospect.phone || '',
+    client_address: street || prospect.address || '',
+    client_city: city || '',
+    client_zip: zipCode || '',
     
-    // SOCIÉTÉ (depuis formData prioritaire)
-    company_name: formData.company_name || prospect.company_name || '',
-    company_siret: formData.company_siret || '',
-    company_legal_form: formData.company_legal_form || '',
-    company_capital: formData.company_capital || '',
-    company_address: formData.company_address || '',
-    company_city: formData.company_city || '',
-    company_zip: formData.company_zip || '',
+    // SOCIÉTÉ
+    company_name: prospect.company_name || '',
     
     // DATES
     signature_date: new Date().toLocaleDateString('fr-FR', { 
@@ -228,37 +220,18 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
       month: '2-digit', 
       year: 'numeric' 
     }),
-    contract_date: formData.contract_date || new Date().toLocaleDateString('fr-FR'),
-    
-    // 🔥 AJOUTER TOUTES LES DONNÉES DU FORMULAIRE
-    ...formData,
+    contract_date: new Date().toLocaleDateString('fr-FR'),
   };
 
-  // 🔥 AJOUTER LES CO-SIGNATAIRES DYNAMIQUEMENT
-  cosigners.forEach((cosigner, index) => {
-    const num = index + 1;
-    
-    // Pour chaque propriété du cosignataire, créer les variables
-    Object.entries(cosigner).forEach(([varName, value]) => {
-      const cleanVarName = varName.replace(/^cosigner_/, '');
-      
-      // 🔥 3 FORMATS pour compatibilité maximale:
-      // 1. cosigner_xxx_1 (utilisé dans templates)
-      contractData[`cosigner_${cleanVarName}_${num}`] = value || '';
-      // 2. cosigner_1_xxx (format alternatif)
-      contractData[`cosigner_${num}_${cleanVarName}`] = value || '';
-      // 3. cosigner_xxx_1 SANS le préfixe cosigner_ si déjà présent (pour le renderer)
-      // Si la variable est "name", on veut aussi "cosigner_name_1" pour if_cosigner_1
-      if (!varName.startsWith('cosigner_')) {
-        contractData[`cosigner_${varName}_${num}`] = value || '';
-      }
-    });
-  });
+  // 🔥 CONTRACT DATA = Fallbacks + FormData (formData écrase les fallbacks)
+  const contractData = {
+    ...prospectFallbacks,
+    ...formData,
+  };
 
   logger.debug('Données contractData préparées', { 
     hasClient: !!(contractData.client_firstname || contractData.client_lastname),
     hasCompany: !!contractData.company_name,
-    cosignersCount: cosigners.length,
     totalKeys: Object.keys(contractData).length
   });
 
@@ -407,12 +380,11 @@ export async function executeContractSignatureAction({
   templateId,
   projectType,
   prospectId,
-  cosigners = [],
-  formData = {}, // 🔥 Données générales du formulaire mappées
+  formData = {}, // 🔥 Données du formulaire (contract-driven)
   organizationId, // ✅ Requis pour multi-tenant RLS
 }) {
   try {
-    logger.debug('Exécution action launch_signature', { templateId, projectType, prospectId, cosignersCount: cosigners.length });
+    logger.debug('Exécution action launch_signature', { templateId, projectType, prospectId });
 
     // 1. Charger le template
     const { data: template, error: templateError } = await supabase
@@ -436,12 +408,11 @@ export async function executeContractSignatureAction({
       throw new Error(`Prospect introuvable: ${prospectId}`);
     }
 
-    // 3. Générer le PDF (inclut upload automatique) AVEC les cosigners ET formData
+    // 3. Générer le PDF (inclut upload automatique) avec formData
     const pdfResult = await generateContractPDF({
       templateHtml: template.content_html,
       prospectData: prospect,
-      cosigners, // ⭐ Passer les cosigners
-      formData, // 🔥 Passer les données du formulaire
+      formData, // 🔥 Injection directe des données du formulaire
       projectType,
       prospectId,
       organizationId, // ✅ Passer l'organization_id
