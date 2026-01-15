@@ -329,6 +329,10 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
     v !== 'current_date'
   );
   
+  // 🔥 DÉTECTER les types de signataires
+  const hasClientVars = filteredVariables.some(v => v.startsWith('client_'));
+  const hasCompanyVars = filteredVariables.some(v => v.startsWith('company_'));
+  
   // 🔥 DÉTECTER les co-signataires dans les variables
   const cosignerIndexes = new Set();
   filteredVariables.forEach(v => {
@@ -339,14 +343,82 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
   });
   
   const hasCosigners = cosignerIndexes.size > 0;
-  const maxCosignerIndex = hasCosigners ? Math.max(...cosignerIndexes) : 0;
   
-  // 🔥 SÉPARER les variables : co-signataires vs autres
+  // 🔥 SÉPARER les variables par catégorie
+  const clientVariables = filteredVariables.filter(v => v.startsWith('client_'));
+  const companyVariables = filteredVariables.filter(v => v.startsWith('company_'));
   const cosignerVariables = filteredVariables.filter(v => v.match(/^cosigner_.*_\d+$/));
-  const nonCosignerVariables = filteredVariables.filter(v => !v.match(/^cosigner_.*_\d+$/));
+  const otherVariables = filteredVariables.filter(v => 
+    !v.startsWith('client_') && 
+    !v.startsWith('company_') && 
+    !v.match(/^cosigner_.*_\d+$/)
+  );
   
-  // 1️⃣ Ajouter les champs NON co-signataires
-  nonCosignerVariables.forEach(varName => {
+  // 1️⃣ SI client ET société → Ajouter sélecteur de type UI-only
+  if (hasClientVars && hasCompanyVars) {
+    fields.push({
+      id: "__signer_type",
+      label: "Type de signataire",
+      type: "select",
+      options: ["Particulier", "Société"],
+      required: true
+    });
+  }
+  
+  // 2️⃣ Ajouter les champs CLIENT avec conditions si nécessaire
+  clientVariables.forEach(varName => {
+    const config = CONTRACT_VARIABLES[varName] || { 
+      label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+      type: 'text' 
+    };
+    
+    const field = {
+      id: varName,  // 🔥 ID = nom exact de la variable du contrat
+      label: config.label,
+      type: config.type,
+      required: config.required || false,
+      options: config.options || undefined,
+      placeholder: config.placeholder || ''
+    };
+    
+    // Ajouter condition d'affichage si les deux types existent
+    if (hasClientVars && hasCompanyVars) {
+      field.show_if_conditions = [
+        { field: "__signer_type", equals: "Particulier" }
+      ];
+    }
+    
+    fields.push(field);
+  });
+  
+  // 3️⃣ Ajouter les champs SOCIÉTÉ avec conditions si nécessaire
+  companyVariables.forEach(varName => {
+    const config = CONTRACT_VARIABLES[varName] || { 
+      label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+      type: 'text' 
+    };
+    
+    const field = {
+      id: varName,  // 🔥 ID = nom exact de la variable du contrat
+      label: config.label,
+      type: config.type,
+      required: config.required || false,
+      options: config.options || undefined,
+      placeholder: config.placeholder || ''
+    };
+    
+    // Ajouter condition d'affichage si les deux types existent
+    if (hasClientVars && hasCompanyVars) {
+      field.show_if_conditions = [
+        { field: "__signer_type", equals: "Société" }
+      ];
+    }
+    
+    fields.push(field);
+  });
+  
+  // 4️⃣ Ajouter les autres champs (projet, dates, etc.)
+  otherVariables.forEach(varName => {
     const config = CONTRACT_VARIABLES[varName] || { 
       label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
       type: 'text' 
@@ -362,7 +434,7 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
     });
   });
   
-  // 2️⃣ SI co-signataires détectés → Ajouter champ UI-only + champs conditionnels
+  // 5️⃣ SI co-signataires détectés → Ajouter champ UI-only + champs conditionnels
   if (hasCosigners) {
     // Ajouter le sélecteur UI-only (PAS une variable de contrat)
     fields.push({
