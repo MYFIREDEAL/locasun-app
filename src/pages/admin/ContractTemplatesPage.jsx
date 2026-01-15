@@ -595,6 +595,13 @@ const ContractTemplatesPage = () => {
         contentHtml: ''
       });
     } else if (mode === 'pdf') {
+      // 🔥 Nettoyer le localStorage pour un nouveau template
+      localStorage.removeItem('editingTemplateId');
+      localStorage.removeItem('editingTemplateName');
+      localStorage.removeItem('editingTemplateHtml');
+      localStorage.removeItem('generatedContractHtml');
+      localStorage.removeItem('shouldInjectHtml');
+      
       // Mode PDF : rediriger vers l'éditeur plein écran
       navigate('/admin/contract-templates/editor');
     }
