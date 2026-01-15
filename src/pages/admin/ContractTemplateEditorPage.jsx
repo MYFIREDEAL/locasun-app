@@ -26,6 +26,7 @@ const TEXT_VARIABLES = {
     { value: '{{company_name}}', label: 'Nom société' },
     { value: '{{company_legal_form}}', label: 'Forme juridique' },
     { value: '{{company_capital}}', label: 'Capital social' },
+    { value: '{{company_siret}}', label: 'SIRET' },
     { value: '{{company_address}}', label: 'Adresse siège social' },
     { value: '{{company_zip}}', label: 'Code postal société' },
     { value: '{{company_city}}', label: 'Ville société' },
@@ -78,9 +79,158 @@ const TEXT_VARIABLES = {
   ],
   DATES: [
     { value: '{{current_date}}', label: 'Date du jour' },
+    { value: '{{contract_date}}', label: 'Date du contrat' },
     { value: '{{contract_start_date}}', label: 'Date début contrat' },
     { value: '{{contract_end_date}}', label: 'Date fin contrat' },
-    { value: '{{signature_date}}', label: 'Date de signature' }
+    { value: '{{signature_date}}', label: 'Date de signature' },
+    { value: '{{contract_place}}', label: 'Lieu du contrat' }
+  ],
+  'CONTRAT': [
+    { value: '{{contract_reference}}', label: 'Référence contrat' },
+    { value: '{{contract_amount}}', label: 'Montant contrat' }
+  ]
+};
+
+// 📦 BLOCS PRÉ-RÉDIGÉS (texte complet avec variables intégrées)
+const PREDEFINED_BLOCKS = {
+  'PERSONNE PHYSIQUE': [
+    {
+      label: '👤 Bloc Client Complet',
+      content: `<p><strong>Monsieur/Madame {{client_firstname}} {{client_lastname}}</strong></p>
+<p>Né(e) le {{client_birthdate}} à {{client_birthplace}}</p>
+<p>De nationalité {{client_nationality}}</p>
+<p>Demeurant {{client_address}}, {{client_zip}} {{client_city}}</p>
+<p>Email: {{client_email}} - Téléphone: {{client_phone}}</p>
+<p><br></p>
+<p>Lu et approuvé,</p>
+<p>Signature: {{client_signature}}</p>`
+    },
+    {
+      label: '👤 Identité Simple Client',
+      content: `<p>Monsieur/Madame <strong>{{client_firstname}} {{client_lastname}}</strong>, demeurant {{client_address}}, {{client_zip}} {{client_city}}</p>`
+    }
+  ],
+  'SOCIÉTÉ': [
+    {
+      label: '🏢 Bloc Société Complet',
+      content: `<p><strong>SOCIÉTÉ {{company_name}} ({{company_legal_form}})</strong></p>
+<p>Au capital de {{company_capital}} euros</p>
+<p>Société dont le siège social est situé {{company_address}}, {{client_zip}} {{company_city}}</p>
+<p>Immatriculée sous le numéro {{company_rcs_number}} au Registre du Commerce et des Sociétés de {{company_rcs_city}}</p>
+<p>SIRET: {{company_siret}}</p>
+<p>Représentée par {{company_representative_name}}, en qualité de {{company_representative_role}}, spécialement habilité aux fins des présentes</p>
+<p><br></p>
+<p>Lu et approuvé,</p>
+<p>Signature: {{company_signature}}</p>`
+    },
+    {
+      label: '🏢 En-tête Société Simple',
+      content: `<p><strong>{{company_name}}</strong> ({{company_legal_form}}), au capital de {{company_capital}} euros, SIRET: {{company_siret}}</p>`
+    }
+  ],
+  'CO-SIGNATAIRES': [
+    {
+      label: '✍️ Co-signataire 1 Complet',
+      content: `<p><strong>ET</strong></p>
+<p>Monsieur/Madame <strong>{{cosigner_name_1}}</strong></p>
+<p>Né(e) le {{cosigner_birthdate_1}}</p>
+<p>De nationalité {{cosigner_nationality_1}}</p>
+<p>Demeurant {{cosigner_address_1}}, {{cosigner_zip_1}} {{cosigner_city_1}}</p>
+<p>Email: {{cosigner_email_1}} - Téléphone: {{cosigner_phone_1}}</p>
+<p><br></p>
+<p>Lu et approuvé,</p>
+<p>{{cosigner_signature_line_1}}</p>`
+    },
+    {
+      label: '✍️ Co-signataire 2 Complet',
+      content: `<p><strong>ET</strong></p>
+<p>Monsieur/Madame <strong>{{cosigner_name_2}}</strong></p>
+<p>Né(e) le {{cosigner_birthdate_2}}</p>
+<p>De nationalité {{cosigner_nationality_2}}</p>
+<p>Demeurant {{cosigner_address_2}}, {{cosigner_zip_2}} {{cosigner_city_2}}</p>
+<p>Email: {{cosigner_email_2}} - Téléphone: {{cosigner_phone_2}}</p>
+<p><br></p>
+<p>Lu et approuvé,</p>
+<p>{{cosigner_signature_line_2}}</p>`
+    },
+    {
+      label: '✍️ Co-signataire 3 Complet',
+      content: `<p><strong>ET</strong></p>
+<p>Monsieur/Madame <strong>{{cosigner_name_3}}</strong></p>
+<p>Né(e) le {{cosigner_birthdate_3}}</p>
+<p>De nationalité {{cosigner_nationality_3}}</p>
+<p>Demeurant {{cosigner_address_3}}, {{cosigner_zip_3}} {{cosigner_city_3}}</p>
+<p>Email: {{cosigner_email_3}} - Téléphone: {{cosigner_phone_3}}</p>
+<p><br></p>
+<p>Lu et approuvé,</p>
+<p>{{cosigner_signature_line_3}}</p>`
+    }
+  ],
+  'PROJET': [
+    {
+      label: '🔆 Bloc Projet Solaire',
+      content: `<p><strong>OBJET DU CONTRAT</strong></p>
+<p>Installation de type: {{project_type}}</p>
+<p>Puissance: {{project_power}} kWc</p>
+<p>Adresse d'installation: {{project_address}}, {{project_zip}} {{project_city}}</p>
+<p>Montant total du projet: {{project_amount}} €</p>`
+    }
+  ],
+  'CLAUSES LÉGALES': [
+    {
+      label: '📄 En-tête Contrat',
+      content: `<p style="text-align: center;"><strong>CONTRAT N° {{contract_reference}}</strong></p>
+<p style="text-align: center;">Fait à {{contract_place}}, le {{contract_date}}</p>
+<p><br></p>
+<p><strong>ENTRE LES SOUSSIGNÉS :</strong></p>`
+    },
+    {
+      label: '📄 Signatures Finales',
+      content: `<p><br></p>
+<p><strong>SIGNATURES</strong></p>
+<p>Fait en 2 exemplaires originaux, à {{contract_place}}, le {{signature_date}}</p>
+<p><br></p>
+<table style="width: 100%;">
+  <tr>
+    <td style="width: 50%; vertical-align: top;">
+      <p><strong>Le Client</strong></p>
+      <p>{{client_firstname}} {{client_lastname}}</p>
+      <p>Lu et approuvé</p>
+      <p><br></p>
+      <p>{{client_signature}}</p>
+    </td>
+    <td style="width: 50%; vertical-align: top;">
+      <p><strong>La Société</strong></p>
+      <p>{{company_name}}</p>
+      <p>{{company_representative_name}}</p>
+      <p><br></p>
+      <p>{{company_signature}}</p>
+    </td>
+  </tr>
+</table>`
+    },
+    {
+      label: '⚖️ Clause Confidentialité',
+      content: `<p><strong>ARTICLE X - CONFIDENTIALITÉ</strong></p>
+<p>Les parties s'engagent à conserver confidentielles toutes les informations échangées dans le cadre du présent contrat. Cette obligation de confidentialité perdurera pendant toute la durée du contrat et pendant une période de 5 ans suivant sa résiliation.</p>`
+    },
+    {
+      label: '💰 Modalités de Paiement',
+      content: `<p><strong>ARTICLE X - MODALITÉS DE PAIEMENT</strong></p>
+<p>Le montant total du présent contrat s'élève à {{contract_amount}} € TTC.</p>
+<p>Ce montant sera réglé selon les modalités suivantes :</p>
+<ul>
+  <li>Acompte de 30% à la signature</li>
+  <li>40% au démarrage des travaux</li>
+  <li>Solde de 30% à la réception des travaux</li>
+</ul>`
+    },
+    {
+      label: '🚫 Clause de Résiliation',
+      content: `<p><strong>ARTICLE X - RÉSILIATION</strong></p>
+<p>En cas de manquement grave de l'une des parties à ses obligations contractuelles, l'autre partie pourra, après mise en demeure restée infructueuse pendant 30 jours, résilier le présent contrat de plein droit.</p>
+<p>La résiliation prendra effet à la date de réception de la lettre recommandée avec accusé de réception notifiant la résiliation.</p>`
+    }
   ]
 };
 
@@ -91,6 +241,7 @@ const ContractTemplateEditorPage = () => {
   const [editorContent, setEditorContent] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [isVariablePopoverOpen, setIsVariablePopoverOpen] = useState(false);
+  const [isBlockPopoverOpen, setIsBlockPopoverOpen] = useState(false);
 
   // Insérer une variable à la position du curseur
   const insertVariable = (variable) => {
@@ -118,6 +269,29 @@ const ContractTemplateEditorPage = () => {
     }
     
     setIsVariablePopoverOpen(false);
+  };
+
+  // Insérer un bloc pré-rédigé à la position du curseur
+  const insertBlock = (blockContent) => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      const selection = editor.getSelection();
+      const position = selection ? selection.index : editor.getLength();
+      
+      // Insérer le bloc HTML
+      editor.clipboard.dangerouslyPasteHTML(position, blockContent);
+      
+      // Positionner le curseur après le bloc
+      editor.setSelection(position + blockContent.length);
+      
+      toast({
+        title: "✅ Bloc inséré",
+        description: "Le bloc de texte pré-rédigé a été ajouté",
+        duration: 2000
+      });
+    }
+    
+    setIsBlockPopoverOpen(false);
   };
 
   // Sauvegarder et injecter dans le formulaire
@@ -224,41 +398,76 @@ const ContractTemplateEditorPage = () => {
             <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between bg-gray-50">
               <h3 className="font-semibold text-gray-900">✏️ Éditeur de contrat</h3>
               
-              {/* Bouton insérer variable */}
-              <Popover open={isVariablePopoverOpen} onOpenChange={setIsVariablePopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
-                    <Plus className="h-4 w-4" />
-                    Insérer une variable
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="end">
-                  <div className="max-h-[500px] overflow-y-auto">
-                    {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
-                      <div key={category} className="border-b border-gray-100 last:border-0">
-                        <div className="px-4 py-2 bg-gray-50 font-semibold text-sm text-gray-700 sticky top-0">
-                          {category}
+              <div className="flex items-center gap-2">
+                {/* Bouton insérer un bloc */}
+                <Popover open={isBlockPopoverOpen} onOpenChange={setIsBlockPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="border-blue-300 hover:bg-blue-50 gap-2">
+                      <FileText className="h-4 w-4" />
+                      Insérer un bloc
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-96 p-0" align="end">
+                    <div className="max-h-[500px] overflow-y-auto">
+                      {Object.entries(PREDEFINED_BLOCKS).map(([category, blocks]) => (
+                        <div key={category} className="border-b border-gray-100 last:border-0">
+                          <div className="px-4 py-2 bg-blue-50 font-semibold text-sm text-blue-900 sticky top-0">
+                            {category}
+                          </div>
+                          <div className="py-1">
+                            {blocks.map((block, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => insertBlock(block.content)}
+                                className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm transition-colors"
+                              >
+                                <span className="text-gray-700">{block.label}</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <div className="py-1">
-                          {variables.map((variable) => (
-                            <button
-                              key={variable.value}
-                              onClick={() => insertVariable(variable.value)}
-                              className="w-full text-left px-4 py-2 hover:bg-purple-50 text-sm transition-colors flex items-center justify-between group"
-                            >
-                              <span className="text-gray-700">{variable.label}</span>
-                              <code className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                {variable.value}
-                              </code>
-                            </button>
-                          ))}
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Bouton insérer variable */}
+                <Popover open={isVariablePopoverOpen} onOpenChange={setIsVariablePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
+                      <Plus className="h-4 w-4" />
+                      Insérer une variable
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="end">
+                    <div className="max-h-[500px] overflow-y-auto">
+                      {Object.entries(TEXT_VARIABLES).map(([category, variables]) => (
+                        <div key={category} className="border-b border-gray-100 last:border-0">
+                          <div className="px-4 py-2 bg-gray-50 font-semibold text-sm text-gray-700 sticky top-0">
+                            {category}
+                          </div>
+                          <div className="py-1">
+                            {variables.map((variable) => (
+                              <button
+                                key={variable.value}
+                                onClick={() => insertVariable(variable.value)}
+                                className="w-full text-left px-4 py-2 hover:bg-purple-50 text-sm transition-colors flex items-center justify-between group"
+                              >
+                                <span className="text-gray-700">{variable.label}</span>
+                                <code className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {variable.value}
+                                </code>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             
             {/* Éditeur Quill */}
@@ -285,22 +494,20 @@ const ContractTemplateEditorPage = () => {
                 💡 Comment ça marche ?
               </h4>
               <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-                <li>Écrivez votre contrat dans l'éditeur</li>
-                <li>Cliquez sur "Insérer une variable" (bouton violet)</li>
-                <li>Choisissez la catégorie puis la variable</li>
-                <li>La variable s'insère automatiquement en violet</li>
-                <li>Continuez votre texte normalement</li>
-                <li>Cliquez "Sauvegarder le contrat" quand c'est fini</li>
+                <li><strong>Méthode 1 - Blocs complets :</strong> Cliquez "Insérer un bloc" (bleu) pour ajouter des sections entières pré-rédigées</li>
+                <li><strong>Méthode 2 - Variables :</strong> Cliquez "Insérer une variable" (violet) pour ajouter des champs individuels</li>
+                <li>Les variables s'insèrent automatiquement en violet</li>
+                <li>Continuez à écrire normalement entre les blocs</li>
+                <li>Cliquez "Sauvegarder le contrat" quand c'est terminé</li>
               </ol>
             </div>
 
             {/* Exemple */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="font-semibold text-green-900 mb-2">✅ Exemple</h4>
-              <div className="text-xs text-green-800 space-y-1">
-                <p>Monsieur <span className="font-bold text-purple-700">{'{{client_firstname}}'}</span> <span className="font-bold text-purple-700">{'{{client_lastname}}'}</span>,</p>
-                <p>demeurant <span className="font-bold text-purple-700">{'{{client_address}}'}</span></p>
-                <p>né(e) à <span className="font-bold text-purple-700">{'{{client_birthplace}}'}</span></p>
+              <h4 className="font-semibold text-green-900 mb-2">✅ Exemple de blocs</h4>
+              <div className="text-xs text-green-800 space-y-2">
+                <p className="font-semibold">🏢 Bloc Société :</p>
+                <p className="text-[10px] leading-tight">SOCIÉTÉ <span className="font-bold text-purple-700">{'{{company_name}}'}</span> (<span className="font-bold text-purple-700">{'{{company_legal_form}}'}</span>), au capital de <span className="font-bold text-purple-700">{'{{company_capital}}'}</span> euros, SIRET: <span className="font-bold text-purple-700">{'{{company_siret}}'}</span></p>
               </div>
             </div>
 
