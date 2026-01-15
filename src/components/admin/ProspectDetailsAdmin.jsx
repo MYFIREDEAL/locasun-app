@@ -697,12 +697,13 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                             const value = specificFormData[fieldId];
                             
                             // Mapping par index (0=nom, 1=email, 2=téléphone)
+                            // ⚠️ Utiliser les noms standards (name, email, phone) car cosigners est un tableau
                             if (fieldId.includes('-0-')) {
-                              cosignerData[`cosigner_name_${i + 1}`] = value;
+                              cosignerData.name = value;
                             } else if (fieldId.includes('-1-')) {
-                              cosignerData[`cosigner_email_${i + 1}`] = value;
+                              cosignerData.email = value;
                             } else if (fieldId.includes('-2-')) {
-                              cosignerData[`cosigner_phone_${i + 1}`] = value;
+                              cosignerData.phone = value;
                             }
                           }
                         });
