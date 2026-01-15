@@ -663,16 +663,53 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   for (let i = 0; i < cosignersCount; i++) {
                     const cosignerData = {};
                     
-                    // Pour chaque champ mappé, extraire sa valeur
+                    // Support pour le nouveau système (fieldMappings)
                     Object.entries(fieldMappings).forEach(([fieldId, varName]) => {
                       const dataKey = `${config.countField}_repeat_${i}_${fieldId}`;
                       const value = specificFormData[dataKey];
                       
                       if (value) {
-                        // Stocker avec le nom de variable (ex: cosigner_name, cosigner_email, etc.)
                         cosignerData[varName] = value;
                       }
                     });
+                    
+                    // 🔥 FALLBACK: Support pour l'ancien système (nameField/emailField/phoneField)
+                    if (Object.keys(cosignerData).length === 0) {
+                      console.log(`🔄 Fallback co-signataire ${i + 1}: détection automatique des champs`);
+                      
+                      // Détecter le pattern de base comme pour les données générales
+                      const fieldIdPattern = Object.keys(specificFormData).find(key => 
+                        key.includes(`${config.countField}_repeat_${i}_`) && 
+                        key.includes('field-') &&
+                        !key.includes('cosigner-count')
+                      );
+                      
+                      if (fieldIdPattern) {
+                        // Extraire le préfixe du pattern
+                        const parts = fieldIdPattern.split('_repeat_')[1].split('-');
+                        const basePattern = `field-${parts[1]}`;
+                        
+                        console.log(`🔍 Pattern co-signataire ${i + 1}:`, basePattern);
+                        
+                        // Chercher tous les champs pour ce co-signataire
+                        Object.keys(specificFormData).forEach(fieldId => {
+                          if (fieldId.includes(`${config.countField}_repeat_${i}_${basePattern}`)) {
+                            const value = specificFormData[fieldId];
+                            
+                            // Mapping par index (0=nom, 1=email, 2=téléphone)
+                            if (fieldId.includes('-0-')) {
+                              cosignerData[`cosigner_name_${i + 1}`] = value;
+                            } else if (fieldId.includes('-1-')) {
+                              cosignerData[`cosigner_email_${i + 1}`] = value;
+                            } else if (fieldId.includes('-2-')) {
+                              cosignerData[`cosigner_phone_${i + 1}`] = value;
+                            }
+                          }
+                        });
+                        
+                        console.log(`✅ Co-signataire ${i + 1} extrait avec fallback:`, cosignerData);
+                      }
+                    }
                     
                     // Ajouter le co-signataire s'il a au moins une donnée
                     if (Object.keys(cosignerData).length > 0) {
