@@ -645,7 +645,37 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 
                 logger.info('📋 Données générales extraites', { generalData });
                 
-                // Extraire le nombre de co-signataires
+                // 1️⃣ Lire le nombre de co-signataires
+                const cosignerCount = parseInt(
+                  specificFormData[config.countField] || '0',
+                  10
+                );
+                
+                // 2️⃣ Construire les données co-signataires
+                const cosignersData = {};
+                
+                for (let i = 0; i < cosignerCount; i++) {
+                  const index = i + 1;
+                  
+                  Object.entries(config.fieldMappings || {}).forEach(([baseFieldId, variableBase]) => {
+                    const repeatKey = `${config.countField}_repeat_${i}_${baseFieldId}`;
+                    const value = specificFormData[repeatKey];
+                    
+                    if (value) {
+                      cosignersData[`${variableBase}_${index}`] = value;
+                    }
+                  });
+                }
+                
+                // 3️⃣ Fusionner dans les données finales
+                formGeneralData = {
+                  ...generalData,
+                  ...cosignersData
+                };
+                
+                logger.info('✅ Données co-signataires extraites', { cosignerCount, cosignersData });
+                
+                // Extraire le nombre de co-signataires (pour backward compatibility)
                 const countValue = specificFormData[config.countField];
                 const cosignersCount = parseInt(countValue, 10);
 
@@ -673,9 +703,6 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 }
 
                 logger.info('✅ Co-signataires extraits', { count: cosigners.length, cosigners });
-                
-                // 🔥 Passer les données générales au générateur
-                formGeneralData = generalData;
               }
             }
 
