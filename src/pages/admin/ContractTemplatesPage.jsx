@@ -808,21 +808,29 @@ const ContractTemplatesPage = () => {
     ];
     
     conditionalTags.forEach(tag => {
-      // Regex pour détecter <p>{{#tag}}</p> ou <p>{{/tag}}</p>
-      const openingRegex = new RegExp(`<p>\\s*\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi');
-      const closingRegex = new RegExp(`<p>\\s*\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi');
+      // 🔥 NETTOYAGE AGRESSIF : plusieurs passes pour tous les cas
       
-      // Remplacer par les balises HORS des <p>
-      cleaned = cleaned.replace(openingRegex, `{{#${tag}}}`);
-      cleaned = cleaned.replace(closingRegex, `{{/${tag}}}`);
+      // 1. Balise ouvrante seule dans un <p>
+      cleaned = cleaned.replace(new RegExp(`<p>\\s*\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi'), `{{#${tag}}}`);
       
-      // Aussi gérer le cas où la balise est au milieu d'un <p> avec du texte
-      // Ex: <p>Du texte {{#if_xxx}}</p> → Du texte</p>{{#if_xxx}}
-      const mixedOpeningRegex = new RegExp(`(<p>[^<]*?)\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi');
-      cleaned = cleaned.replace(mixedOpeningRegex, `$1</p>{{#${tag}}}`);
+      // 2. Balise fermante seule dans un <p>
+      cleaned = cleaned.replace(new RegExp(`<p>\\s*\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi'), `{{/${tag}}}`);
       
-      const mixedClosingRegex = new RegExp(`(<p>[^<]*?)\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi');
-      cleaned = cleaned.replace(mixedClosingRegex, `$1</p>{{/${tag}}}`);
+      // 3. Balise ouvrante avec <br> ou autre
+      cleaned = cleaned.replace(new RegExp(`<p>(<br>)*\\s*\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi'), `{{#${tag}}}`);
+      
+      // 4. Balise fermante avec <br> ou autre
+      cleaned = cleaned.replace(new RegExp(`<p>(<br>)*\\s*\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi'), `{{/${tag}}}`);
+      
+      // 5. Cas mixte : texte PUIS balise dans le même <p>
+      // Ex: <p>Du texte {{#if_xxx}}</p> → <p>Du texte</p>{{#if_xxx}}
+      cleaned = cleaned.replace(new RegExp(`(<p>[^{]*?)\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi'), `$1</p>{{#${tag}}}`);
+      cleaned = cleaned.replace(new RegExp(`(<p>[^{]*?)\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi'), `$1</p>{{/${tag}}}`);
+      
+      // 6. Balise collée au début du <p> SANS espace
+      // Ex: <p>{{#if_xxx}}Texte</p> → {{#if_xxx}}<p>Texte</p>
+      cleaned = cleaned.replace(new RegExp(`<p>\\{\\{#${tag}\\}\\}([^<])`, 'gi'), `{{#${tag}}}<p>$1`);
+      cleaned = cleaned.replace(new RegExp(`<p>\\{\\{\\/${tag}\\}\\}([^<])`, 'gi'), `{{/${tag}}}<p>$1`);
     });
     
     return cleaned;
@@ -833,6 +841,13 @@ const ContractTemplatesPage = () => {
     
     // 🔥 Nettoyer le HTML avant sauvegarde
     const cleanedHtml = cleanConditionalTags(templateToSave.contentHtml);
+    
+    // Debug: afficher avant/après
+    console.log('🧹 Nettoyage HTML template:', {
+      avant: templateToSave.contentHtml?.substring(0, 200),
+      après: cleanedHtml?.substring(0, 200),
+      différence: templateToSave.contentHtml !== cleanedHtml
+    });
     
     const result = isNew 
       ? await createTemplate({
