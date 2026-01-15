@@ -527,10 +527,24 @@ const ContractTemplatesPage = () => {
     const editingTemplateId = localStorage.getItem('editingTemplateId');
     const editingTemplateName = localStorage.getItem('editingTemplateName');
     
+    console.log('🔍 useEffect injection check:', {
+      shouldInject,
+      hasGeneratedHtml: !!generatedHtml,
+      editingTemplateId,
+      editingTemplateName,
+      contractTemplatesCount: contractTemplates?.length
+    });
+    
     if (shouldInject === 'true' && generatedHtml) {
       // Si on édite un template existant, charger ses données complètes
       if (editingTemplateId) {
         const existingTemplate = contractTemplates.find(t => t.id === editingTemplateId);
+        
+        console.log('🔍 Recherche template existant:', {
+          editingTemplateId,
+          found: !!existingTemplate,
+          templateName: existingTemplate?.name
+        });
         
         if (existingTemplate) {
           setEditingContractTemplate({
@@ -539,10 +553,13 @@ const ContractTemplatesPage = () => {
           });
           
           toast({
-            title: "✅ Template mis à jour",
-            description: `Modification de "${existingTemplate.name}" - HTML injecté depuis l'éditeur`,
-            duration: 4000
+            title: "✅ Template chargé",
+            description: `"${existingTemplate.name}" - Cliquez sur Enregistrer pour sauvegarder les modifications`,
+            duration: 5000,
+            className: "bg-blue-500 text-white"
           });
+        } else {
+          console.warn('⚠️ Template non trouvé dans contractTemplates');
         }
       } else {
         // Nouveau template
@@ -554,8 +571,8 @@ const ContractTemplatesPage = () => {
         }));
         
         toast({
-          title: "✅ HTML injecté automatiquement",
-          description: "Le contenu HTML a été inséré dans le textarea. Vous pouvez maintenant l'ajuster si besoin.",
+          title: "✅ HTML injecté",
+          description: "Le contenu HTML a été inséré. Donnez un nom et enregistrez.",
           duration: 4000
         });
       }
