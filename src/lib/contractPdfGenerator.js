@@ -307,6 +307,42 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
     totalVars: Object.keys(variables).length
   });
 
+  // 🔥 TRAITER LES BLOCS CONDITIONNELS HANDLEBARS AVANT DE REMPLACER LES VARIABLES
+  // Détecter si c'est une société ou un particulier
+  const isCompany = !!(formData.company_name || prospect.company_name);
+  const isIndividual = !isCompany;
+  
+  // Traiter {{#if_company}} ... {{/if_company}}
+  result = result.replace(/\{\{#if_company\}\}([\s\S]*?)\{\{\/if_company\}\}/gi, (match, content) => {
+    return isCompany ? content : '';
+  });
+  
+  // Traiter {{#if_individual}} ... {{/if_individual}}
+  result = result.replace(/\{\{#if_individual\}\}([\s\S]*?)\{\{\/if_individual\}\}/gi, (match, content) => {
+    return isIndividual ? content : '';
+  });
+  
+  // Traiter {{#if_cosigner_1}} ... {{/if_cosigner_1}}
+  result = result.replace(/\{\{#if_cosigner_1\}\}([\s\S]*?)\{\{\/if_cosigner_1\}\}/gi, (match, content) => {
+    return cosigners.length >= 1 ? content : '';
+  });
+  
+  // Traiter {{#if_cosigner_2}} ... {{/if_cosigner_2}}
+  result = result.replace(/\{\{#if_cosigner_2\}\}([\s\S]*?)\{\{\/if_cosigner_2\}\}/gi, (match, content) => {
+    return cosigners.length >= 2 ? content : '';
+  });
+  
+  // Traiter {{#if_cosigner_3}} ... {{/if_cosigner_3}}
+  result = result.replace(/\{\{#if_cosigner_3\}\}([\s\S]*?)\{\{\/if_cosigner_3\}\}/gi, (match, content) => {
+    return cosigners.length >= 3 ? content : '';
+  });
+  
+  logger.debug('Blocs conditionnels traités', { 
+    isCompany, 
+    isIndividual, 
+    cosignersCount: cosigners.length 
+  });
+
   // Remplacer toutes les variables
   Object.entries(variables).forEach(([placeholder, value]) => {
     // Échapper les accolades pour regex
