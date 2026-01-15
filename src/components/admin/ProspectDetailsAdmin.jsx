@@ -26,11 +26,9 @@ import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
-import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
-import { findVariableByLabel } from '@/constants/contractVariables';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
 const STATUS_COMPLETED = 'completed';
@@ -176,7 +174,6 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
 const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminUser }) => {
   const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed, registerClientForm } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
-  const { forms: supabaseForms, loading: formsLoading } = useSupabaseForms(); // 🔥 Charger les formulaires depuis Supabase
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
@@ -576,79 +573,6 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 const formData = prospectData.form_data;
                 const config = action.cosignersConfig;
                 
-                // 🔥 Accéder aux données du formulaire: form_data[projectType][formId]
-                const projectFormData = formData[projectType] || {};
-                const specificFormData = projectFormData[config.formId] || {};
-                
-                // 🔥 AUTO-MAPPING: Charger le formulaire depuis Supabase et construire les mappings automatiquement
-                let autoGeneralFieldMappings = {};
-                let autoFieldMappings = {};
-                
-                // Charger le formulaire depuis la base de données
-                const formDefinition = supabaseForms[config.formId];
-                
-                if (formDefinition && formDefinition.fields) {
-                  logger.info('🎯 AUTO-MAPPING: Formulaire trouvé dans Supabase', {
-                    formId: config.formId,
-                    formName: formDefinition.name,
-                    fieldsCount: formDefinition.fields.length
-                  });
-                  
-                  // Construire automatiquement generalFieldMappings
-                  formDefinition.fields.forEach(field => {
-                    // Ignorer les champs répétables (qui seront traités pour les co-signataires)
-                    if (!field.id.includes('_repeat_')) {
-                      const variableName = findVariableByLabel(field.label);
-                      if (variableName) {
-                        autoGeneralFieldMappings[field.id] = variableName;
-                        logger.info(`✅ Mapping auto: "${field.label}" → ${variableName} (${field.id})`);
-                      } else {
-                        logger.warn(`⚠️ Pas de mapping trouvé pour: "${field.label}" (${field.id})`);
-                      }
-                    }
-                  });
-                  
-                  // Construire automatiquement fieldMappings pour les co-signataires
-                  // On va chercher les champs qui ne sont PAS dans le formulaire de base
-                  // mais qui apparaissent dans form_data avec le pattern countField_repeat_X_fieldId
-                  const allKeys = Object.keys(specificFormData);
-                  
-                  // Trouver tous les champs répétables uniques
-                  const repeatableFieldIds = new Set();
-                  allKeys.forEach(key => {
-                    const match = key.match(/^(.+?)_repeat_\d+_(.+)$/);
-                    if (match) {
-                      const fieldId = match[2];
-                      repeatableFieldIds.add(fieldId);
-                    }
-                  });
-                  
-                  // Mapper chaque champ répétable
-                  repeatableFieldIds.forEach(fieldId => {
-                    // Trouver la définition du champ dans le formulaire
-                    const fieldDef = formDefinition.fields.find(f => f.id === fieldId);
-                    if (fieldDef) {
-                      const variableName = findVariableByLabel(fieldDef.label);
-                      if (variableName) {
-                        autoFieldMappings[fieldId] = variableName;
-                        logger.info(`✅ Mapping répétable auto: "${fieldDef.label}" → ${variableName} (${fieldId})`);
-                      }
-                    }
-                  });
-                  
-                  logger.info('🎯 AUTO-MAPPING TERMINÉ', {
-                    generalMappingsCount: Object.keys(autoGeneralFieldMappings).length,
-                    repeatableMappingsCount: Object.keys(autoFieldMappings).length,
-                    autoGeneralFieldMappings,
-                    autoFieldMappings
-                  });
-                } else {
-                  logger.warn('⚠️ Formulaire non trouvé dans Supabase, utilisation des mappings manuels', {
-                    formId: config.formId,
-                    availableForms: Object.keys(supabaseForms)
-                  });
-                }
-                
                 // 🔥 DEBUG: Voir la structure complète de form_data
                 console.log('🔥🔥🔥 DEBUG form_data COMPLET:', {
                   formDataKeys: Object.keys(formData),
@@ -657,6 +581,10 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   formId: config.formId,
                   configComplet: config
                 });
+                
+                // 🔥 Accéder aux données du formulaire: form_data[projectType][formId]
+                const projectFormData = formData[projectType] || {};
+                const specificFormData = projectFormData[config.formId] || {};
                 
                 console.log('🔥🔥🔥 DEBUG APRÈS extraction:', {
                   projectFormData: projectFormData,
@@ -674,11 +602,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 });
                 
                 // 🔥 EXTRAIRE LES DONNÉES GÉNÉRALES (client, société, projet, etc.)
-                // Utiliser d'abord les mappings automatiques, puis fallback sur la config manuelle
-                const generalFieldMappings = Object.keys(autoGeneralFieldMappings).length > 0 
-                  ? autoGeneralFieldMappings 
-                  : (config.generalFieldMappings || {});
-                
+                const generalFieldMappings = config.generalFieldMappings || {};
                 const generalData = {};
                 
                 Object.entries(generalFieldMappings).forEach(([fieldId, varName]) => {
@@ -688,20 +612,14 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   }
                 });
                 
-                logger.info('📋 Données générales extraites', { 
-                  generalData,
-                  usedAutoMapping: Object.keys(autoGeneralFieldMappings).length > 0
-                });
+                logger.info('📋 Données générales extraites', { generalData });
                 
                 // Extraire le nombre de co-signataires
                 const countValue = specificFormData[config.countField];
                 const cosignersCount = parseInt(countValue, 10);
 
                 if (!isNaN(cosignersCount) && cosignersCount > 0) {
-                  // Utiliser d'abord les mappings automatiques, puis fallback sur la config manuelle
-                  const fieldMappings = Object.keys(autoFieldMappings).length > 0
-                    ? autoFieldMappings
-                    : (config.fieldMappings || {});
+                  const fieldMappings = config.fieldMappings || {};
                   
                   for (let i = 0; i < cosignersCount; i++) {
                     const cosignerData = {};
@@ -723,11 +641,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   }
                 }
 
-                logger.info('✅ Co-signataires extraits', { 
-                  count: cosigners.length, 
-                  cosigners,
-                  usedAutoMapping: Object.keys(autoFieldMappings).length > 0
-                });
+                logger.info('✅ Co-signataires extraits', { count: cosigners.length, cosigners });
                 
                 // 🔥 Passer les données générales au générateur
                 formGeneralData = generalData;
