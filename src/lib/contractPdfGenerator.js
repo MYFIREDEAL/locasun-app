@@ -273,8 +273,12 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
     allOwnPropertyNames: Object.getOwnPropertyNames(contractData),
     sampleValues: {
       client_firstname: contractData.client_firstname,
+      client_phone: contractData.client_phone,  // 🔥 VOIR LA VALEUR DU TÉLÉPHONE
+      client_email: contractData.client_email,
       cosigner_name_1: contractData.cosigner_name_1
-    }
+    },
+    formDataKeys: Object.keys(formData),  // 🔥 VOIR TOUTES LES CLÉS DU FORMULAIRE
+    formDataSample: formData  // 🔥 VOIR TOUT LE CONTENU DU FORMULAIRE
   });
 
   // 🔥 UTILISER LE RENDERER CENTRALISÉ AU LIEU DE LA LOGIQUE DUPLIQUÉE
