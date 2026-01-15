@@ -266,7 +266,15 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
     htmlLength: html.length,
     dataKeys: Object.keys(contractData).length,
     hasClientFirstname: !!contractData.client_firstname,
-    hasCompanyName: !!contractData.company_name
+    hasCompanyName: !!contractData.company_name,
+    contractDataType: typeof contractData,
+    contractDataConstructor: contractData?.constructor?.name,
+    allEnumerableKeys: Object.keys(contractData),
+    allOwnPropertyNames: Object.getOwnPropertyNames(contractData),
+    sampleValues: {
+      client_firstname: contractData.client_firstname,
+      cosigner_name_1: contractData.cosigner_name_1
+    }
   });
 
   // 🔥 UTILISER LE RENDERER CENTRALISÉ AU LIEU DE LA LOGIQUE DUPLIQUÉE
