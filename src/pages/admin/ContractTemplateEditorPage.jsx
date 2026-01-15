@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -252,6 +252,24 @@ const ContractTemplateEditorPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isVariablePopoverOpen, setIsVariablePopoverOpen] = useState(false);
   const [isBlockPopoverOpen, setIsBlockPopoverOpen] = useState(false);
+  
+  // 🆕 Charger le template existant depuis localStorage (si modification)
+  useEffect(() => {
+    const editingTemplateHtml = localStorage.getItem('editingTemplateHtml');
+    const editingTemplateName = localStorage.getItem('editingTemplateName');
+    
+    if (editingTemplateHtml) {
+      setEditorContent(editingTemplateHtml);
+      
+      if (editingTemplateName) {
+        toast({
+          title: "📝 Template chargé",
+          description: `Modification de "${editingTemplateName}"`,
+          duration: 3000
+        });
+      }
+    }
+  }, []);
 
   // Insérer une variable à la position du curseur
   const insertVariable = (variable) => {

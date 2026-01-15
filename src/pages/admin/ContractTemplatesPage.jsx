@@ -400,28 +400,50 @@ const ContractTemplatesPage = () => {
   useEffect(() => {
     const shouldInject = localStorage.getItem('shouldInjectHtml');
     const generatedHtml = localStorage.getItem('generatedContractHtml');
+    const editingTemplateId = localStorage.getItem('editingTemplateId');
+    const editingTemplateName = localStorage.getItem('editingTemplateName');
     
     if (shouldInject === 'true' && generatedHtml) {
-      // Créer ou mettre à jour le template en édition avec le HTML généré
-      setEditingContractTemplate(prev => ({
-        ...prev,
-        name: prev?.name || '',
-        projectType: prev?.projectType || 'ACC',
-        contentHtml: generatedHtml
-      }));
+      // Si on édite un template existant, charger ses données complètes
+      if (editingTemplateId) {
+        const existingTemplate = contractTemplates.find(t => t.id === editingTemplateId);
+        
+        if (existingTemplate) {
+          setEditingContractTemplate({
+            ...existingTemplate,
+            contentHtml: generatedHtml
+          });
+          
+          toast({
+            title: "✅ Template mis à jour",
+            description: `Modification de "${existingTemplate.name}" - HTML injecté depuis l'éditeur`,
+            duration: 4000
+          });
+        }
+      } else {
+        // Nouveau template
+        setEditingContractTemplate(prev => ({
+          ...prev,
+          name: editingTemplateName || prev?.name || '',
+          projectType: prev?.projectType || 'ACC',
+          contentHtml: generatedHtml
+        }));
+        
+        toast({
+          title: "✅ HTML injecté automatiquement",
+          description: "Le contenu HTML a été inséré dans le textarea. Vous pouvez maintenant l'ajuster si besoin.",
+          duration: 4000
+        });
+      }
       
       // Nettoyer le localStorage
       localStorage.removeItem('shouldInjectHtml');
       localStorage.removeItem('generatedContractHtml');
-      
-      // Toast de confirmation
-      toast({
-        title: "✅ HTML injecté automatiquement",
-        description: "Le contenu HTML a été inséré dans le textarea. Vous pouvez maintenant l'ajuster si besoin.",
-        duration: 4000
-      });
+      localStorage.removeItem('editingTemplateId');
+      localStorage.removeItem('editingTemplateName');
+      localStorage.removeItem('editingTemplateHtml');
     }
-  }, []);
+  }, [contractTemplates]);
 
   // 🆕 Forcer le scroll body pour désactiver le scroll lock Radix Dialog
   useEffect(() => {
@@ -1045,6 +1067,22 @@ const ContractTemplatesPage = () => {
                       Annuler
                     </Button>
                     <div className="flex items-center gap-2">
+                      {editingContractTemplate.id && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            // Sauvegarder l'ID du template à éditer
+                            localStorage.setItem('editingTemplateId', editingContractTemplate.id);
+                            localStorage.setItem('editingTemplateName', editingContractTemplate.name);
+                            localStorage.setItem('editingTemplateHtml', editingContractTemplate.contentHtml || '');
+                            
+                            // Rediriger vers l'éditeur PDF
+                            navigate('/admin/contract-templates/editor');
+                          }}
+                        >
+                          <Upload className="mr-2 h-4 w-4" /> Ouvrir dans l'éditeur PDF
+                        </Button>
+                      )}
                       <Button 
                         variant="secondary"
                         onClick={() => setIsPreviewTemplateOpen(true)}
