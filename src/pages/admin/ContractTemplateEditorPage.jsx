@@ -333,16 +333,30 @@ const ContractTemplateEditorPage = () => {
       return;
     }
 
+    // Récupérer l'ID du template si on édite un template existant
+    const editingTemplateId = localStorage.getItem('editingTemplateId');
+    const editingTemplateName = localStorage.getItem('editingTemplateName');
+    
     // Stocker dans localStorage pour injection
     localStorage.setItem('generatedContractHtml', editorContent);
     localStorage.setItem('shouldInjectHtml', 'true');
+    
+    // 🔥 Préserver l'ID et le nom du template pour la mise à jour
+    if (editingTemplateId) {
+      localStorage.setItem('editingTemplateId', editingTemplateId);
+    }
+    if (editingTemplateName) {
+      localStorage.setItem('editingTemplateName', editingTemplateName);
+    }
     
     // Copier dans clipboard
     navigator.clipboard.writeText(editorContent);
     
     toast({
       title: "✅ Contrat sauvegardé",
-      description: "Redirection vers le formulaire...",
+      description: editingTemplateId 
+        ? `Modification de "${editingTemplateName}" enregistrée`
+        : "Redirection vers le formulaire...",
       duration: 2000
     });
     
