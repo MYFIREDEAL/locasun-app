@@ -220,19 +220,23 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         projectType 
       });
 
-      // 🔥 EXTRAIRE CO-SIGNATAIRES DEPUIS LE FORMULAIRE (si configuré)
+      // 🔥 EXTRAIRE DONNÉES DEPUIS LE FORMULAIRE (si configuré)
       let cosigners = [];
+      let formGeneralData = {};
       if (action.cosignersConfig?.formId) {
-        cosigners = await extractCosignersFromForm({
+        const extractedData = await extractDataFromForm({
           formId: action.cosignersConfig.formId,
           prospectId,
           projectType,
           config: action.cosignersConfig
         });
         
-        logger.debug('Co-signataires extraits pour génération PDF', { 
-          count: cosigners.length,
-          cosigners
+        cosigners = extractedData.cosigners;
+        formGeneralData = extractedData.generalData;
+        
+        logger.debug('Données extraites pour génération PDF', { 
+          cosignersCount: cosigners.length,
+          generalDataKeys: Object.keys(formGeneralData)
         });
       }
 
@@ -242,12 +246,13 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         className: "bg-blue-500 text-white",
       });
 
-      // Exécuter la génération + upload avec co-signataires
+      // Exécuter la génération + upload avec co-signataires ET données formulaire
       const result = await executeContractSignatureAction({
         templateId: action.templateId,
         projectType,
         prospectId,
         cosigners: cosigners,
+        formData: formGeneralData, // 🔥 Passer les données générales
         organizationId: prospectData.organization_id,
       });
 
@@ -377,7 +382,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
  * @param {Object} params.config - Configuration du mapping (countField, nameField, emailField, phoneField)
  * @returns {Array} Tableau des co-signataires [{name, email, phone}]
  */
-async function extractCosignersFromForm({ formId, prospectId, projectType, config }) {
+async function extractDataFromForm({ formId, prospectId, projectType, config }) {
   try {
     // 1. Récupérer les données du prospect (form_data contient toutes les réponses aux formulaires)
     const { data: prospect, error: prospectError } = await supabase
@@ -387,52 +392,77 @@ async function extractCosignersFromForm({ formId, prospectId, projectType, confi
       .single();
 
     if (prospectError || !prospect || !prospect.form_data) {
-      logger.warn('Aucune donnée formulaire trouvée pour extraction co-signataires', {
+      logger.warn('Aucune donnée formulaire trouvée pour extraction', {
         formId,
         prospectId,
         projectType,
         error: prospectError?.message
       });
-      return [];
+      return { cosigners: [], generalData: {} };
     }
 
     const formData = prospect.form_data;
     logger.debug('Données formulaire récupérées', { formData });
+    
+    // Accéder aux données du formulaire spécifique
+    const projectFormData = formData[projectType] || {};
+    const specificFormData = projectFormData[formId] || {};
 
-    // 2. Extraire le nombre de co-signataires depuis le champ count
-    const countValue = formData[config.countField];
+    // 2. Extraire les données générales (client, société, projet, etc.)
+    const generalFieldMappings = config.generalFieldMappings || {};
+    const generalData = {};
+    
+    Object.entries(generalFieldMappings).forEach(([fieldId, varName]) => {
+      const value = specificFormData[fieldId];
+      if (value) {
+        generalData[varName] = value;
+      }
+    });
+    
+    logger.debug('Données générales extraites', { generalData });
+
+    // 3. Extraire le nombre de co-signataires depuis le champ count
+    const countValue = specificFormData[config.countField];
     const cosignersCount = parseInt(countValue, 10);
 
     if (isNaN(cosignersCount) || cosignersCount <= 0) {
       logger.debug('Aucun co-signataire à extraire', { countValue });
-      return [];
+      return { cosigners: [], generalData };
     }
 
-    // 3. Extraire les données de chaque co-signataire
+    // 4. Extraire les données de chaque co-signataire DYNAMIQUEMENT
     const cosigners = [];
+    const fieldMappings = config.fieldMappings || {};
+    
     for (let i = 0; i < cosignersCount; i++) {
-      // Format: {countField}_repeat_{i}_{fieldId}
-      const nameKey = `${config.countField}_repeat_${i}_${config.nameField}`;
-      const emailKey = `${config.countField}_repeat_${i}_${config.emailField}`;
-      const phoneKey = `${config.countField}_repeat_${i}_${config.phoneField}`;
-
-      const name = formData[nameKey];
-      const email = formData[emailKey];
-      const phone = formData[phoneKey];
-
-      if (name && email) {
-        cosigners.push({ name, email, phone });
+      const cosignerData = {};
+      
+      // Pour chaque champ mappé, extraire sa valeur
+      Object.entries(fieldMappings).forEach(([fieldId, varName]) => {
+        const dataKey = `${config.countField}_repeat_${i}_${fieldId}`;
+        const value = specificFormData[dataKey];
+        
+        if (value) {
+          // Stocker avec le nom de variable (ex: cosigner_name, cosigner_email, etc.)
+          cosignerData[varName] = value;
+        }
+      });
+      
+      // Ajouter le co-signataire s'il a au moins une donnée
+      if (Object.keys(cosignerData).length > 0) {
+        cosigners.push(cosignerData);
       }
     }
 
-    logger.debug('Co-signataires extraits avec succès', { 
-      count: cosigners.length,
+    logger.debug('Extraction complète réussie', { 
+      cosignersCount: cosigners.length,
+      generalDataKeys: Object.keys(generalData),
       cosigners 
     });
 
-    return cosigners;
+    return { cosigners, generalData };
   } catch (error) {
-    logger.error('Erreur extraction co-signataires', { error: error.message });
-    return [];
+    logger.error('Erreur extraction données formulaire', { error: error.message });
+    return { cosigners: [], generalData: {} };
   }
 }

@@ -28,7 +28,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
-import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown } from 'lucide-react';
+import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown, Sparkles, FormInput } from 'lucide-react';
+import { useAppContext } from '@/App';
+import { CONTRACT_VARIABLES } from '@/constants/contractVariables';
 
 // 🆕 Step 3 : Types de blocs (liste FERMÉE)
 const BLOCK_TYPES = [
@@ -133,16 +135,6 @@ const SIGNATURE_ROLES = [
   { value: 'cosigner_company_1', label: '🏢 Co-signataire société 1' },
   { value: 'cosigner_company_2', label: '🏢 Co-signataire société 2' },
   { value: 'cosigner_company_3', label: '🏢 Co-signataire société 3' }
-];
-
-// Options de projets (même liste que ProfilePage)
-const projectOptions = [
-  { value: 'ACC', label: 'ACC' },
-  { value: 'Centrale', label: 'Centrale' },
-  { value: 'Investissement', label: 'Investissement' },
-  { value: 'Autonomie', label: 'Autonomie' },
-  { value: 'Borne', label: 'Borne' },
-  { value: 'Autre', label: 'Autre' },
 ];
 
 // Animation variants
@@ -310,8 +302,209 @@ const BlockConfigForm = ({ onSave, onCancel }) => {
   );
 };
 
+// 🔥 Fonction d'extraction des variables depuis le HTML du template
+const extractVariablesFromTemplate = (htmlContent) => {
+  if (!htmlContent) return [];
+  
+  const regex = /\{\{([^}#/]+)\}\}/g;
+  const variables = new Set();
+  let match;
+  
+  while ((match = regex.exec(htmlContent)) !== null) {
+    const varName = match[1].trim();
+    variables.add(varName);
+  }
+  
+  return Array.from(variables);
+};
+
+// 🔥 Fonction de génération INTELLIGENTE des champs de formulaire
+const generateFormFieldsFromVariables = (variables, htmlContent) => {
+  const fields = [];
+  let fieldCounter = 0; // 🔥 Compteur global pour éviter les IDs en double
+  
+  // 1️⃣ Détecter les blocs conditionnels dans le template
+  const hasCompanyBlock = htmlContent.includes('{{#if_company}}');
+  const hasIndividualBlock = htmlContent.includes('{{#if_individual}}');
+  const hasCosigner1 = variables.some(v => v.startsWith('cosigner_') && v.includes('_1'));
+  const hasCosigner2 = variables.some(v => v.startsWith('cosigner_') && v.includes('_2'));
+  const hasCosigner3 = variables.some(v => v.startsWith('cosigner_') && v.includes('_3'));
+  
+  // 2️⃣ Catégoriser les variables
+  const companyVars = variables.filter(v => v.startsWith('company_'));
+  const clientVars = variables.filter(v => v.startsWith('client_'));
+  const cosignerVars = variables.filter(v => v.startsWith('cosigner_'));
+  const otherVars = variables.filter(v => 
+    !v.startsWith('company_') && 
+    !v.startsWith('client_') && 
+    !v.startsWith('cosigner_') &&
+    !v.includes('signature') &&
+    v !== 'current_date'
+  );
+  
+  let typeFieldId = null;
+  let cosignerCountFieldId = null;
+  
+  // 3️⃣ Si template a SOCIÉTÉ ET PARTICULIER → Créer champ "Type"
+  if (hasCompanyBlock && hasIndividualBlock) {
+    typeFieldId = `field-type-${Date.now()}`;
+    fields.push({
+      id: typeFieldId,
+      label: 'Type de signataire',
+      type: 'select',
+      required: true,
+      options: ['Particulier', 'Société'],
+      placeholder: ''
+    });
+    
+    // 3a️⃣ Ajouter champs PARTICULIER avec condition
+    clientVars.forEach(varName => {
+      const config = CONTRACT_VARIABLES[varName] || { 
+        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+        type: 'text' 
+      };
+      
+      fields.push({
+        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
+        label: config.label,
+        type: config.type,
+        required: config.required || false,
+        options: config.options || undefined,
+        placeholder: config.placeholder || '',
+        show_if_conditions: [{ field: typeFieldId, equals: 'Particulier' }]
+      });
+    });
+    
+    // 3b️⃣ Ajouter champs SOCIÉTÉ avec condition
+    companyVars.forEach(varName => {
+      const config = CONTRACT_VARIABLES[varName] || { 
+        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+        type: 'text' 
+      };
+      
+      fields.push({
+        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
+        label: config.label,
+        type: config.type,
+        required: config.required || false,
+        options: config.options || undefined,
+        placeholder: config.placeholder || '',
+        show_if_conditions: [{ field: typeFieldId, equals: 'Société' }]
+      });
+    });
+  } else if (hasCompanyBlock) {
+    // Seulement société
+    companyVars.forEach(varName => {
+      const config = CONTRACT_VARIABLES[varName] || { 
+        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+        type: 'text' 
+      };
+      
+      fields.push({
+        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
+        label: config.label,
+        type: config.type,
+        required: config.required || false,
+        options: config.options || undefined,
+        placeholder: config.placeholder || ''
+      });
+    });
+  } else if (hasIndividualBlock) {
+    // Seulement particulier
+    clientVars.forEach(varName => {
+      const config = CONTRACT_VARIABLES[varName] || { 
+        label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+        type: 'text' 
+      };
+      
+      fields.push({
+        id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
+        label: config.label,
+        type: config.type,
+        required: config.required || false,
+        options: config.options || undefined,
+        placeholder: config.placeholder || ''
+      });
+    });
+  }
+  
+  // 4️⃣ Ajouter les autres champs (projet, contrat, dates...)
+  otherVars.forEach(varName => {
+    const config = CONTRACT_VARIABLES[varName] || { 
+      label: varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+      type: 'text' 
+    };
+    
+    fields.push({
+      id: `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`,
+      label: config.label,
+      type: config.type,
+      required: config.required || false,
+      options: config.options || undefined,
+      placeholder: config.placeholder || ''
+    });
+  });
+  
+  // 5️⃣ Si co-signataires détectés → Créer système de répétition
+  if (hasCosigner1 || hasCosigner2 || hasCosigner3) {
+    const maxCosigners = hasCosigner3 ? 3 : (hasCosigner2 ? 2 : 1);
+    cosignerCountFieldId = `field-cosigner-count-${Date.now()}`;
+    
+    // Champ "Nombre de co-signataires"
+    const cosignerCountField = {
+      id: cosignerCountFieldId,
+      label: 'Nombre de co-signataires',
+      type: 'select',
+      required: false,
+      options: Array.from({ length: maxCosigners + 1 }, (_, i) => String(i)),
+      placeholder: '',
+      is_repeater: true,
+      repeats_fields: [] // Sera rempli après
+    };
+    
+    fields.push(cosignerCountField);
+    
+    // Créer les champs répétables (sans _1, _2, _3)
+    const cosignerFieldTypes = new Set();
+    cosignerVars.forEach(v => {
+      const baseField = v.replace(/_[123]$/, ''); // Enlever _1, _2, _3
+      cosignerFieldTypes.add(baseField);
+    });
+    
+    const repeatableFieldIds = [];
+    
+    let fieldCounter = 0;
+    cosignerFieldTypes.forEach(baseField => {
+      const fullVarName = `${baseField}_1`; // Utiliser _1 comme référence
+      const config = CONTRACT_VARIABLES[fullVarName] || { 
+        label: baseField.replace(/cosigner_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+        type: 'text' 
+      };
+      
+      const fieldId = `field-${Date.now()}-${fieldCounter++}-${Math.random().toString(36).slice(2, 9)}`;
+      repeatableFieldIds.push(fieldId);
+      
+      fields.push({
+        id: fieldId,
+        label: config.label,
+        type: config.type,
+        required: false,
+        options: config.options || undefined,
+        placeholder: config.placeholder || ''
+      });
+    });
+    
+    // Lier les champs au repeater
+    cosignerCountField.repeats_fields = repeatableFieldIds;
+  }
+  
+  return fields;
+};
+
 const ContractTemplatesPage = () => {
   const navigate = useNavigate();
+  const { projectsData } = useAppContext(); // 🔥 Charger les projets depuis le contexte
+  
   const {
     templates: contractTemplates,
     loading: templatesLoading,
@@ -319,6 +512,14 @@ const ContractTemplatesPage = () => {
     updateTemplate,
     deactivateTemplate
   } = useSupabaseContractTemplates();
+
+  // 🔥 Créer la liste des projets dynamiquement depuis projectsData
+  const projectOptions = [
+    ...Object.entries(projectsData || {}).map(([projectType, projectData]) => ({
+      value: projectType,
+      label: projectData.title || projectType // Afficher le titre (ex: "Autoconsommation Collective") au lieu du type (ex: "ACC")
+    }))
+  ];
 
   const [editingContractTemplate, setEditingContractTemplate] = useState(null);
   const [isPreviewTemplateOpen, setIsPreviewTemplateOpen] = useState(false);
@@ -640,6 +841,54 @@ const ContractTemplatesPage = () => {
     }
   };
 
+  // 🔥 NOUVEAU : Générer un formulaire à partir du template
+  const handleGenerateForm = () => {
+    if (!editingContractTemplate?.contentHtml) {
+      toast({
+        title: "❌ Erreur",
+        description: "Aucun contenu HTML à analyser",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Extraire les variables du template
+    const variables = extractVariablesFromTemplate(editingContractTemplate.contentHtml);
+    
+    if (variables.length === 0) {
+      toast({
+        title: "⚠️ Aucune variable détectée",
+        description: "Le template ne contient pas de variables {{xxx}}",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Générer les champs du formulaire (avec détection des blocs conditionnels)
+    const formFields = generateFormFieldsFromVariables(variables, editingContractTemplate.contentHtml);
+
+    // Créer le formulaire pré-rempli
+    const prefilledForm = {
+      name: `Formulaire - ${editingContractTemplate.name}`,
+      fields: formFields,
+      projectIds: editingContractTemplate.projectType ? [editingContractTemplate.projectType] : [],
+      audience: 'internal' // Formulaire interne pour les admins
+    };
+
+    // Rediriger vers la page de gestion des formulaires avec le formulaire pré-rempli
+    navigate('/admin/forms-management', { 
+      state: { 
+        prefilledForm 
+      }
+    });
+
+    toast({
+      title: "🎯 Redirection vers le créateur de formulaire",
+      description: `${formFields.length} champs pré-remplis à partir des variables détectées`,
+      className: "bg-blue-500 text-white"
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4 sm:p-6 lg:p-8">
       <motion.div
@@ -790,19 +1039,20 @@ const ContractTemplatesPage = () => {
                     </div>
                     
                     <div>
-                      <Label htmlFor="template-project-type">Type de projet</Label>
+                      <Label htmlFor="template-project-type">Type de projet (optionnel)</Label>
                       <Select 
-                        value={editingContractTemplate.projectType || 'ACC'}
+                        value={editingContractTemplate.projectType || ''}
                         onValueChange={(value) => setEditingContractTemplate(prev => ({
                           ...prev,
-                          projectType: value
+                          projectType: value === 'TOUS' ? null : value
                         }))}
                         modal={false}
                       >
                         <SelectTrigger id="template-project-type" className="mt-1">
-                          <SelectValue placeholder="Sélectionner un type" />
+                          <SelectValue placeholder="Tous les projets" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="TOUS">🌍 Tous les projets (universel)</SelectItem>
                           {projectOptions.map(option => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
@@ -854,6 +1104,15 @@ const ContractTemplatesPage = () => {
                       >
                         Enregistrer
                       </Button>
+                      {editingContractTemplate.id && (
+                        <Button 
+                          onClick={handleGenerateForm}
+                          className="bg-teal-600 hover:bg-teal-700"
+                          disabled={!editingContractTemplate.contentHtml}
+                        >
+                          <FormInput className="mr-2 h-4 w-4" /> Générer formulaire
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

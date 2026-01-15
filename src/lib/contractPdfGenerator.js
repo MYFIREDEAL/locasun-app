@@ -18,6 +18,7 @@ export async function generateContractPDF({
   templateHtml,
   prospectData,
   cosigners = [],
+  formData = {}, // 🔥 Données générales du formulaire mappées
   projectType,
   prospectId,
   organizationId, // ✅ Requis pour multi-tenant RLS
@@ -27,8 +28,8 @@ export async function generateContractPDF({
   try {
     logger.debug('Génération PDF contract', { projectType, prospectId, cosignersCount: cosigners.length });
 
-    // 1. Injecter les données du prospect ET des cosigners dans le HTML
-    const htmlWithData = injectProspectData(templateHtml, prospectData, cosigners);
+    // 1. Injecter les données du prospect ET des cosigners ET du formulaire dans le HTML
+    const htmlWithData = injectProspectData(templateHtml, prospectData, cosigners, formData);
     
     logger.debug('HTML après injection', { 
       htmlLength: htmlWithData.length,
@@ -170,17 +171,18 @@ export async function generateContractPDF({
  * @param {Array} cosigners - Tableau des co-signataires [{name, email, phone}]
  * @returns {string} - HTML avec données injectées
  */
-function injectProspectData(html, prospect, cosigners = []) {
+function injectProspectData(html, prospect, cosigners = [], formData = {}) {
   if (!html || html.trim() === '') {
     logger.warn('Template HTML vide ou undefined');
     return '<div style="padding: 40px; font-family: Arial;"><h1>Contrat</h1><p>Template non configuré</p></div>';
   }
 
-  logger.debug('Injection données prospect + cosigners', { 
+  logger.debug('Injection données prospect + cosigners + formData', { 
     name: prospect.name, 
     email: prospect.email,
     phone: prospect.phone,
-    cosignersCount: cosigners.length
+    cosignersCount: cosigners.length,
+    formDataKeys: Object.keys(formData)
   });
 
   // Parser l'adresse complète (peut contenir ville, code postal)
@@ -240,43 +242,60 @@ function injectProspectData(html, prospect, cosigners = []) {
     }),
   };
 
-  // 🔥 AJOUTER LES VARIABLES DES CO-SIGNATAIRES
-  // Support des 2 formats: {{cosigner_1_name}} ET {{cosigner_name_1}}
+  // 🔥 AJOUTER LES DONNÉES DU FORMULAIRE MAPPÉES (priorité sur les données prospect)
+  Object.entries(formData).forEach(([varName, value]) => {
+    // Ajouter avec double accolades
+    variables[`{{${varName}}}`] = value || '';
+    logger.debug(`Injection formData: {{${varName}}} = ${value}`);
+  });
+
+  // 🔥 AJOUTER LES VARIABLES DES CO-SIGNATAIRES DYNAMIQUEMENT
   cosigners.forEach((cosigner, index) => {
     const num = index + 1; // Index commence à 1
     
-    // Séparer nom/prénom du co-signataire
-    const cosignerNameParts = (cosigner.name || '').split(' ');
-    const cosignerFirstName = cosignerNameParts[0] || '';
-    const cosignerLastName = cosignerNameParts.slice(1).join(' ') || '';
-    
-    // Format 1: {{cosigner_1_name}}
-    variables[`{{cosigner_${num}_name}}`] = cosigner.name || '';
-    variables[`{{cosigner_${num}_firstname}}`] = cosignerFirstName;
-    variables[`{{cosigner_${num}_lastname}}`] = cosignerLastName;
-    variables[`{{cosigner_${num}_email}}`] = cosigner.email || '';
-    variables[`{{cosigner_${num}_phone}}`] = cosigner.phone || '';
-    
-    // Format 2: {{cosigner_name_1}} (utilisé dans le template)
-    variables[`{{cosigner_name_${num}}}`] = cosigner.name || '';
-    variables[`{{cosigner_firstname_${num}}}`] = cosignerFirstName;
-    variables[`{{cosigner_lastname_${num}}}`] = cosignerLastName;
-    variables[`{{cosigner_email_${num}}}`] = cosigner.email || '';
-    variables[`{{cosigner_phone_${num}}}`] = cosigner.phone || '';
+    // Injecter TOUTES les variables du cosignataire
+    Object.entries(cosigner).forEach(([varName, value]) => {
+      // Enlever le préfixe 'cosigner_' si présent pour le traiter
+      const cleanVarName = varName.replace(/^cosigner_/, '');
+      
+      // Support des 2 formats: {{cosigner_1_xxx}} ET {{cosigner_xxx_1}}
+      variables[`{{cosigner_${num}_${cleanVarName}}}`] = value || '';
+      variables[`{{cosigner_${cleanVarName}_${num}}}`] = value || '';
+      
+      // Si c'est le nom, créer aussi firstname/lastname
+      if (cleanVarName === 'name' || varName === 'cosigner_name') {
+        const nameParts = (value || '').split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        variables[`{{cosigner_${num}_firstname}}`] = firstName;
+        variables[`{{cosigner_firstname_${num}}}`] = firstName;
+        variables[`{{cosigner_${num}_lastname}}`] = lastName;
+        variables[`{{cosigner_lastname_${num}}}`] = lastName;
+      }
+    });
     
     // Variables pour les sections conditionnelles et labels
-    variables[`{{cosigner_section_${num}}}`] = ''; // Vide = visible (pas de style="display:none")
+    variables[`{{cosigner_section_${num}}}`] = ''; // Vide = visible
     variables[`{{cosigner_label_${num}}}`] = `Co-signataire ${num}`;
     variables[`{{cosigner_signature_line_${num}}}`] = '________________________';
   });
 
   // 🔥 Remplir les co-signataires manquants (sections cachées)
+  // Détecter toutes les variables utilisées pour savoir lesquelles vider
+  const allVarNames = new Set();
+  cosigners.forEach(c => {
+    Object.keys(c).forEach(k => {
+      const cleanName = k.replace(/^cosigner_/, '');
+      allVarNames.add(cleanName);
+    });
+  });
+  
   for (let i = cosigners.length + 1; i <= 3; i++) {
-    variables[`{{cosigner_name_${i}}}`] = '';
-    variables[`{{cosigner_firstname_${i}}}`] = '';
-    variables[`{{cosigner_lastname_${i}}}`] = '';
-    variables[`{{cosigner_email_${i}}}`] = '';
-    variables[`{{cosigner_phone_${i}}}`] = '';
+    allVarNames.forEach(varName => {
+      variables[`{{cosigner_${i}_${varName}}}`] = '';
+      variables[`{{cosigner_${varName}_${i}}}`] = '';
+    });
     variables[`{{cosigner_section_${i}}}`] = 'display:none'; // Cacher la section
     variables[`{{cosigner_label_${i}}}`] = '';
     variables[`{{cosigner_signature_line_${i}}}`] = '';
@@ -417,6 +436,7 @@ export async function executeContractSignatureAction({
   projectType,
   prospectId,
   cosigners = [],
+  formData = {}, // 🔥 Données générales du formulaire mappées
   organizationId, // ✅ Requis pour multi-tenant RLS
 }) {
   try {
@@ -444,11 +464,12 @@ export async function executeContractSignatureAction({
       throw new Error(`Prospect introuvable: ${prospectId}`);
     }
 
-    // 3. Générer le PDF (inclut upload automatique) AVEC les cosigners
+    // 3. Générer le PDF (inclut upload automatique) AVEC les cosigners ET formData
     const pdfResult = await generateContractPDF({
       templateHtml: template.content_html,
       prospectData: prospect,
       cosigners, // ⭐ Passer les cosigners
+      formData, // 🔥 Passer les données du formulaire
       projectType,
       prospectId,
       organizationId, // ✅ Passer l'organization_id

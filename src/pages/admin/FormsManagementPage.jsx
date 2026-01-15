@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -450,6 +451,7 @@ const FormEditor = ({
 };
 
 const FormsManagementPage = () => {
+  const location = useLocation();
   const { projectsData } = useAppContext();
   const {
     forms: supabaseForms,
@@ -464,6 +466,24 @@ const FormsManagementPage = () => {
   }, [supabaseForms]);
 
   const [editingForm, setEditingForm] = useState(null);
+
+  // 🔥 NOUVEAU : Récupérer le formulaire pré-rempli depuis le state de navigation
+  useEffect(() => {
+    const prefilledForm = location.state?.prefilledForm;
+    if (prefilledForm) {
+      setEditingForm(prefilledForm);
+      
+      toast({
+        title: "📋 Formulaire pré-rempli",
+        description: `${prefilledForm.fields.length} champs détectés depuis le template. Vous pouvez les ajuster avant de sauvegarder.`,
+        className: "bg-blue-500 text-white",
+        duration: 5000
+      });
+      
+      // Nettoyer le state pour éviter de ré-ouvrir si on rafraîchit
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleSaveForm = async (formToSave) => {
     // Générer un ID unique si nouveau formulaire

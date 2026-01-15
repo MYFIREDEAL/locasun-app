@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { findVariableByLabel } from '@/constants/contractVariables';
 
 const ActionEditor = ({
   action,
@@ -341,91 +342,139 @@ const ActionEditor = ({
                                                                 )}
                                                             </div>
 
-                                                            {/* Ligne 2: Nom du co-signataire */}
-                                                            <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                                <div>
-                                                                    <p className="text-sm font-semibold text-gray-700">👤 Champ "Nom"</p>
-                                                                    <p className="text-xs text-gray-500 mt-0.5">
-                                                                        Champ répété contenant le nom
-                                                                    </p>
-                                                                </div>
-                                                                <Select
-                                                                    value={action.cosignersConfig?.nameField || ''}
-                                                                    onValueChange={value => handleActionChange('cosignersConfig', {
-                                                                        ...(action.cosignersConfig || {}),
-                                                                        nameField: value
-                                                                    })}
-                                                                >
-                                                                    <SelectTrigger className="w-full">
-                                                                        <SelectValue placeholder="Sélectionner le champ nom" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {repeatedFields.map(field => (
-                                                                            <SelectItem key={field.id} value={field.id}>
-                                                                                {field.label}
-                                                                            </SelectItem>
-                                                                        ))}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-
-                                                            {/* Ligne 3: Email du co-signataire */}
-                                                            <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                                <div>
-                                                                    <p className="text-sm font-semibold text-gray-700">📧 Champ "Email"</p>
-                                                                    <p className="text-xs text-gray-500 mt-0.5">
-                                                                        Champ répété contenant l'email
-                                                                    </p>
-                                                                </div>
-                                                                <Select
-                                                                    value={action.cosignersConfig?.emailField || ''}
-                                                                    onValueChange={value => handleActionChange('cosignersConfig', {
-                                                                        ...(action.cosignersConfig || {}),
-                                                                        emailField: value
-                                                                    })}
-                                                                >
-                                                                    <SelectTrigger className="w-full">
-                                                                        <SelectValue placeholder="Sélectionner le champ email" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {repeatedFields.map(field => (
-                                                                            <SelectItem key={field.id} value={field.id}>
-                                                                                {field.label}
-                                                                            </SelectItem>
-                                                                        ))}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-
-                                                            {/* Ligne 4: Téléphone du co-signataire */}
-                                                            <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                                <div>
-                                                                    <p className="text-sm font-semibold text-gray-700">📱 Champ "Téléphone"</p>
-                                                                    <p className="text-xs text-gray-500 mt-0.5">
-                                                                        Champ répété contenant le téléphone (optionnel)
-                                                                    </p>
-                                                                </div>
-                                                                <Select
-                                                                    value={action.cosignersConfig?.phoneField || ''}
-                                                                    onValueChange={value => handleActionChange('cosignersConfig', {
-                                                                        ...(action.cosignersConfig || {}),
-                                                                        phoneField: value
-                                                                    })}
-                                                                >
-                                                                    <SelectTrigger className="w-full">
-                                                                        <SelectValue placeholder="Sélectionner le champ téléphone" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="">-- Aucun --</SelectItem>
-                                                                        {repeatedFields.map(field => (
-                                                                            <SelectItem key={field.id} value={field.id}>
-                                                                                {field.label}
-                                                                            </SelectItem>
-                                                                        ))}
-                                                                    </SelectContent>
-                                                                </Select>
+                                                            {/* 🔥 MAPPING DYNAMIQUE DE TOUS LES CHAMPS RÉPÉTÉS */}
+                                                            <div className="space-y-2">
+                                                                <p className="text-sm font-semibold text-gray-700 mb-2">
+                                                                    📋 Mappez les champs du formulaire aux variables du contrat :
+                                                                </p>
+                                                                
+                                                                {repeatedFields.map((field, index) => {
+                                                                    // 🔥 Suggestion basée sur CONTRACT_VARIABLES avec préfixe cosigner_
+                                                                    const baseVar = findVariableByLabel(field.label);
+                                                                    const suggestedVarName = baseVar 
+                                                                        ? baseVar.replace(/^client_/, 'cosigner_').replace(/_\d+$/, '') // Remplacer client_ par cosigner_ et enlever _1, _2, _3
+                                                                        : `cosigner_${field.label
+                                                                            .toLowerCase()
+                                                                            .replace(/\s+/g, '_')
+                                                                            .replace(/[éèê]/g, 'e')
+                                                                            .replace(/[àâ]/g, 'a')
+                                                                            .replace(/[^a-z0-9_]/g, '')
+                                                                            .replace(/_+/g, '_')
+                                                                            .replace(/^_|_$/g, '')}`;
+                                                                    
+                                                                    const currentMapping = action.cosignersConfig?.fieldMappings?.[field.id] || suggestedVarName;
+                                                                    
+                                                                    return (
+                                                                        <div key={field.id} className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                                            <div>
+                                                                                <p className="text-sm font-medium text-gray-700">{field.label}</p>
+                                                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                                                    Champ de type: {field.type}
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={currentMapping}
+                                                                                    onChange={(e) => {
+                                                                                        const newMappings = {
+                                                                                            ...(action.cosignersConfig?.fieldMappings || {}),
+                                                                                            [field.id]: e.target.value
+                                                                                        };
+                                                                                        handleActionChange('cosignersConfig', {
+                                                                                            ...(action.cosignersConfig || {}),
+                                                                                            fieldMappings: newMappings
+                                                                                        });
+                                                                                    }}
+                                                                                    placeholder="Nom de variable..."
+                                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                                />
+                                                                                <p className="text-xs text-gray-400 font-mono">
+                                                                                    → {`{{${currentMapping}_{i}}}`}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </>
+                                                    );
+                                                })()}
+
+                                                {/* 🔥 MAPPING DES CHAMPS GÉNÉRAUX (client, société, projet, etc.) */}
+                                                {action.cosignersConfig?.formId && (() => {
+                                                    const selectedForm = forms?.find(f => f.id === action.cosignersConfig.formId);
+                                                    if (!selectedForm) return null;
+                                                    
+                                                    // Champs NON-repeater (tous sauf ceux dans repeats_fields)
+                                                    const repeaterFieldIds = new Set();
+                                                    selectedForm.fields.forEach(field => {
+                                                        if (field.is_repeater && field.repeats_fields) {
+                                                            field.repeats_fields.forEach(id => repeaterFieldIds.add(id));
+                                                        }
+                                                    });
+                                                    
+                                                    const generalFields = selectedForm.fields.filter(f => 
+                                                        !f.is_repeater && !repeaterFieldIds.has(f.id)
+                                                    );
+                                                    
+                                                    if (generalFields.length === 0) return null;
+                                                    
+                                                    return (
+                                                        <div className="mt-6 space-y-2 border-t pt-4">
+                                                            <p className="text-sm font-semibold text-gray-700 mb-2">
+                                                                📋 Mapping des champs généraux (client, société, projet...)
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 mb-3">
+                                                                Mappez les champs du formulaire aux variables du contrat
+                                                            </p>
+                                                            
+                                                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                                                                {generalFields.map(field => {
+                                                                    // 🔥 Suggestion intelligente basée sur CONTRACT_VARIABLES
+                                                                    const suggestedVar = findVariableByLabel(field.label) || field.label
+                                                                        .toLowerCase()
+                                                                        .replace(/\s+/g, '_')
+                                                                        .replace(/[^a-z0-9_]/g, '')
+                                                                        .replace(/_+/g, '_')
+                                                                        .replace(/^_|_$/g, '');
+                                                                    
+                                                                    const currentMapping = action.cosignersConfig?.generalFieldMappings?.[field.id] || suggestedVar;
+                                                                    
+                                                                    return (
+                                                                        <div key={field.id} className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
+                                                                            <div>
+                                                                                <p className="text-sm font-medium text-gray-700">{field.label}</p>
+                                                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                                                    Type: {field.type}
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={currentMapping}
+                                                                                    onChange={(e) => {
+                                                                                        const newMappings = {
+                                                                                            ...(action.cosignersConfig?.generalFieldMappings || {}),
+                                                                                            [field.id]: e.target.value
+                                                                                        };
+                                                                                        handleActionChange('cosignersConfig', {
+                                                                                            ...(action.cosignersConfig || {}),
+                                                                                            generalFieldMappings: newMappings
+                                                                                        });
+                                                                                    }}
+                                                                                    placeholder="ex: client_firstname"
+                                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                                />
+                                                                                <p className="text-xs text-gray-400 font-mono">
+                                                                                    → {`{{${currentMapping}}}`}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
                                                     );
                                                 })()}
                                             </div>

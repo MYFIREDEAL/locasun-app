@@ -553,10 +553,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
               cosignersConfig: action.cosignersConfig // 🔍 Afficher la config complète
             });
 
-            // 🔥 Extraire les co-signataires si configuré
+            // 🔥 Extraire les co-signataires et données générales si configuré
             let cosigners = [];
+            let formGeneralData = {};
             if (action.cosignersConfig?.formId) {
-              logger.info('📋 Extraction co-signataires depuis formulaire', {
+              logger.info('📋 Extraction données depuis formulaire', {
                 formId: action.cosignersConfig.formId,
                 config: action.cosignersConfig
               });
@@ -585,27 +586,52 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                   countValue: specificFormData[config.countField]
                 });
                 
+                // 🔥 EXTRAIRE LES DONNÉES GÉNÉRALES (client, société, projet, etc.)
+                const generalFieldMappings = config.generalFieldMappings || {};
+                const generalData = {};
+                
+                Object.entries(generalFieldMappings).forEach(([fieldId, varName]) => {
+                  const value = specificFormData[fieldId];
+                  if (value) {
+                    generalData[varName] = value;
+                  }
+                });
+                
+                logger.info('📋 Données générales extraites', { generalData });
+                
                 // Extraire le nombre de co-signataires
                 const countValue = specificFormData[config.countField];
                 const cosignersCount = parseInt(countValue, 10);
 
                 if (!isNaN(cosignersCount) && cosignersCount > 0) {
+                  // 🔥 SYSTÈME DYNAMIQUE : Utiliser fieldMappings au lieu de nameField/emailField/phoneField
+                  const fieldMappings = config.fieldMappings || {};
+                  
                   for (let i = 0; i < cosignersCount; i++) {
-                    const nameKey = `${config.countField}_repeat_${i}_${config.nameField}`;
-                    const emailKey = `${config.countField}_repeat_${i}_${config.emailField}`;
-                    const phoneKey = `${config.countField}_repeat_${i}_${config.phoneField}`;
-
-                    const name = specificFormData[nameKey];
-                    const email = specificFormData[emailKey];
-                    const phone = specificFormData[phoneKey];
-
-                    if (name && email) {
-                      cosigners.push({ name, email, phone });
+                    const cosignerData = {};
+                    
+                    // Pour chaque champ mappé, extraire sa valeur
+                    Object.entries(fieldMappings).forEach(([fieldId, varName]) => {
+                      const dataKey = `${config.countField}_repeat_${i}_${fieldId}`;
+                      const value = specificFormData[dataKey];
+                      
+                      if (value) {
+                        // Stocker avec le nom de variable (ex: cosigner_name, cosigner_email, etc.)
+                        cosignerData[varName] = value;
+                      }
+                    });
+                    
+                    // Ajouter le co-signataire s'il a au moins une donnée
+                    if (Object.keys(cosignerData).length > 0) {
+                      cosigners.push(cosignerData);
                     }
                   }
                 }
 
                 logger.info('✅ Co-signataires extraits', { count: cosigners.length, cosigners });
+                
+                // 🔥 Passer les données générales au générateur
+                formGeneralData = generalData;
               }
             }
 
@@ -623,6 +649,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
               projectType: projectType,
               prospectId: prospectId,
               cosigners: cosigners,
+              formData: formGeneralData, // 🔥 Passer les données générales du formulaire
               organizationId: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
             });
 
@@ -1511,7 +1538,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 }
             });
 
-            const relatedTask = appointments?.find(apt => {
+            let relatedTask = appointments?.find(apt => {
                 const checks = {
                     isTask: apt.type === 'task',
                     contactMatch: apt.contactId === prospect.id,
@@ -1717,7 +1744,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                     }
                 });
 
-            const relatedTask = appointments?.find(apt => {
+            let relatedTask = appointments?.find(apt => {
                 const checks = {
                     isTask: apt.type === 'task',
                     contactMatch: apt.contactId === prospect.id,
