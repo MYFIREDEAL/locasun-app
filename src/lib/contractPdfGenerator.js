@@ -262,8 +262,19 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
     totalKeys: Object.keys(contractData).length
   });
 
+  console.log('🔥🔥🔥 AVANT renderContractTemplate', { 
+    htmlLength: html.length,
+    dataKeys: Object.keys(contractData).length,
+    hasClientFirstname: !!contractData.client_firstname,
+    hasCompanyName: !!contractData.company_name
+  });
+
   // 🔥 UTILISER LE RENDERER CENTRALISÉ AU LIEU DE LA LOGIQUE DUPLIQUÉE
   const renderedHtml = renderContractTemplate(html, contractData);
+  
+  console.log('🔥🔥🔥 APRÈS renderContractTemplate', { 
+    renderedLength: renderedHtml.length 
+  });
 
   logger.debug('HTML après renderContractTemplate', { 
     htmlLength: renderedHtml.length
