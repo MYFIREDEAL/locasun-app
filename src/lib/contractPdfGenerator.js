@@ -242,9 +242,16 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
     Object.entries(cosigner).forEach(([varName, value]) => {
       const cleanVarName = varName.replace(/^cosigner_/, '');
       
-      // Format: cosigner_xxx_1 ET cosigner_1_xxx
+      // 🔥 3 FORMATS pour compatibilité maximale:
+      // 1. cosigner_xxx_1 (utilisé dans templates)
       contractData[`cosigner_${cleanVarName}_${num}`] = value || '';
+      // 2. cosigner_1_xxx (format alternatif)
       contractData[`cosigner_${num}_${cleanVarName}`] = value || '';
+      // 3. cosigner_xxx_1 SANS le préfixe cosigner_ si déjà présent (pour le renderer)
+      // Si la variable est "name", on veut aussi "cosigner_name_1" pour if_cosigner_1
+      if (!varName.startsWith('cosigner_')) {
+        contractData[`cosigner_${varName}_${num}`] = value || '';
+      }
     });
   });
 

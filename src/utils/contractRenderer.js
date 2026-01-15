@@ -42,11 +42,22 @@ function processConditionalBlocks(template, data) {
     'if_cosigner_3',    // Si co-signataire 3 existe
   ];
 
+  console.log('🔍 processConditionalBlocks - Data reçue:', {
+    hasClientFirstname: !!data.client_firstname,
+    hasClientLastname: !!data.client_lastname,
+    hasCompanyName: !!data.company_name,
+    hasCosigner1: !!data.cosigner_name_1,
+    hasCosigner2: !!data.cosigner_name_2,
+    hasCosigner3: !!data.cosigner_name_3,
+    allKeys: Object.keys(data).filter(k => k.includes('cosigner'))
+  });
+
   conditions.forEach(condition => {
     const regex = new RegExp(`\\{\\{#${condition}\\}\\}([\\s\\S]*?)\\{\\{\\/${condition}\\}\\}`, 'g');
     
     result = result.replace(regex, (match, blockContent) => {
       const shouldDisplay = evaluateCondition(condition, data);
+      console.log(`🔍 Condition ${condition}: ${shouldDisplay ? 'AFFICHER' : 'MASQUER'}`);
       return shouldDisplay ? blockContent : '';
     });
   });
