@@ -162,10 +162,10 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       return;
     }
 
-    // 🔥 Récupérer les données du prospect (avec tous les champs possibles pour le nom)
+    // 🔥 Récupérer les données du prospect (incluant form_data)
     const { data: prospectData, error: prospectError } = await supabase
       .from('prospects')
-      .select('name, email, company_name, phone, organization_id')
+      .select('name, email, company_name, phone, organization_id, form_data')
       .eq('id', prospectId)
       .single();
 
@@ -173,6 +173,15 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
       logger.error('Erreur récupération prospect', { error: prospectError?.message });
       throw new Error('Impossible de récupérer les données du prospect');
     }
+
+    // 🔥 EXTRAIRE les données du formulaire soumis (contract-driven)
+    const formData = prospectData.form_data?.[projectType]?.[action.formId] || {};
+
+    logger.debug('Données formulaire récupérées', { 
+      projectType, 
+      formId: action.formId,
+      formDataKeys: Object.keys(formData)
+    });
 
     // 🔥 VALEURS STRICTES pour éviter NULL en DB - VALIDATION EXPLICITE
     const signerName = 
@@ -231,7 +240,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
         templateId: action.templateId,
         projectType,
         prospectId,
-        formData: {}, // 🔥 Contract-driven: formData géré directement dans le template
+        formData,
         organizationId: prospectData.organization_id,
       });
 
