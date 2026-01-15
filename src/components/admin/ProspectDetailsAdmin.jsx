@@ -573,9 +573,24 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 const formData = prospectData.form_data;
                 const config = action.cosignersConfig;
                 
+                // 🔥 DEBUG: Voir la structure complète de form_data
+                console.log('🔥🔥🔥 DEBUG form_data COMPLET:', {
+                  formDataKeys: Object.keys(formData),
+                  formDataComplet: formData,
+                  projectType: projectType,
+                  formId: config.formId,
+                  configComplet: config
+                });
+                
                 // 🔥 Accéder aux données du formulaire: form_data[projectType][formId]
                 const projectFormData = formData[projectType] || {};
                 const specificFormData = projectFormData[config.formId] || {};
+                
+                console.log('🔥🔥🔥 DEBUG APRÈS extraction:', {
+                  projectFormData: projectFormData,
+                  specificFormData: specificFormData,
+                  specificFormDataKeys: Object.keys(specificFormData)
+                });
                 
                 logger.info('🔍 Structure form_data', {
                   hasProjectData: !!projectFormData,
@@ -590,12 +605,50 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 const generalFieldMappings = config.generalFieldMappings || {};
                 const generalData = {};
                 
+                // Support pour le nouveau système (generalFieldMappings)
                 Object.entries(generalFieldMappings).forEach(([fieldId, varName]) => {
                   const value = specificFormData[fieldId];
                   if (value) {
                     generalData[varName] = value;
                   }
                 });
+                
+                // 🔥 FALLBACK: Support pour l'ancien système (nameField, emailField, phoneField)
+                // Chercher TOUS les champs qui matchent le pattern de base
+                if (Object.keys(generalData).length === 0) {
+                  console.log('🔄 Utilisation du fallback ancien système nameField/emailField/phoneField');
+                  
+                  // Détecter le pattern de base des field IDs (ex: "field-1768488880462")
+                  const fieldIdPattern = Object.keys(specificFormData).find(key => 
+                    key.includes('field-') && !key.includes('cosigner-count')
+                  );
+                  
+                  if (fieldIdPattern) {
+                    // Extraire le préfixe (ex: "field-1768488880462")
+                    const basePattern = fieldIdPattern.split('-').slice(0, 2).join('-');
+                    console.log('🔍 Pattern détecté:', basePattern);
+                    
+                    // Chercher les champs avec des index 0,1,2,3 (prénom, nom, email, téléphone)
+                    Object.keys(specificFormData).forEach(fieldId => {
+                      if (fieldId.startsWith(basePattern) && !fieldId.includes('repeat')) {
+                        const value = specificFormData[fieldId];
+                        
+                        // Détecter le type de champ par son index
+                        if (fieldId.includes('-0-')) {
+                          generalData.client_firstname = value;
+                        } else if (fieldId.includes('-1-')) {
+                          generalData.client_lastname = value;
+                        } else if (fieldId.includes('-2-')) {
+                          generalData.client_email = value;
+                        } else if (fieldId.includes('-3-')) {
+                          generalData.client_phone = value; // 🎯 LE TÉLÉPHONE!
+                        }
+                      }
+                    });
+                    
+                    console.log('✅ Données extraites avec fallback:', generalData);
+                  }
+                }
                 
                 logger.info('📋 Données générales extraites', { generalData });
                 
