@@ -792,19 +792,58 @@ const ContractTemplatesPage = () => {
     });
   };
 
+  // 🔥 Nettoyer le HTML : déplacer les balises conditionnelles hors des <p>
+  const cleanConditionalTags = (html) => {
+    if (!html) return html;
+    
+    let cleaned = html;
+    
+    // Liste des balises conditionnelles supportées
+    const conditionalTags = [
+      'if_individual',
+      'if_company',
+      'if_cosigner_1',
+      'if_cosigner_2',
+      'if_cosigner_3'
+    ];
+    
+    conditionalTags.forEach(tag => {
+      // Regex pour détecter <p>{{#tag}}</p> ou <p>{{/tag}}</p>
+      const openingRegex = new RegExp(`<p>\\s*\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi');
+      const closingRegex = new RegExp(`<p>\\s*\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi');
+      
+      // Remplacer par les balises HORS des <p>
+      cleaned = cleaned.replace(openingRegex, `{{#${tag}}}`);
+      cleaned = cleaned.replace(closingRegex, `{{/${tag}}}`);
+      
+      // Aussi gérer le cas où la balise est au milieu d'un <p> avec du texte
+      // Ex: <p>Du texte {{#if_xxx}}</p> → Du texte</p>{{#if_xxx}}
+      const mixedOpeningRegex = new RegExp(`(<p>[^<]*?)\\{\\{#${tag}\\}\\}\\s*<\\/p>`, 'gi');
+      cleaned = cleaned.replace(mixedOpeningRegex, `$1</p>{{#${tag}}}`);
+      
+      const mixedClosingRegex = new RegExp(`(<p>[^<]*?)\\{\\{\\/${tag}\\}\\}\\s*<\\/p>`, 'gi');
+      cleaned = cleaned.replace(mixedClosingRegex, `$1</p>{{/${tag}}}`);
+    });
+    
+    return cleaned;
+  };
+
   const handleSaveContractTemplate = async (templateToSave) => {
     const isNew = !templateToSave.id;
+    
+    // 🔥 Nettoyer le HTML avant sauvegarde
+    const cleanedHtml = cleanConditionalTags(templateToSave.contentHtml);
     
     const result = isNew 
       ? await createTemplate({
           name: templateToSave.name,
           projectType: templateToSave.projectType || 'ACC',
-          contentHtml: templateToSave.contentHtml || '',
+          contentHtml: cleanedHtml || '',
         })
       : await updateTemplate(templateToSave.id, {
           name: templateToSave.name,
           projectType: templateToSave.projectType,
-          contentHtml: templateToSave.contentHtml,
+          contentHtml: cleanedHtml,
         });
 
     if (result.success) {
@@ -1075,9 +1114,15 @@ const ContractTemplatesPage = () => {
                         rows={20}
                         className="font-mono text-sm mt-1"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Utilisez du HTML valide. Les variables dynamiques seront remplacées lors de la génération du contrat.
-                      </p>
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs text-blue-800 font-semibold mb-1">💡 Guide des balises conditionnelles:</p>
+                        <ul className="text-xs text-blue-700 space-y-1 ml-4">
+                          <li>• <code className="bg-blue-100 px-1 rounded">{'{{#if_individual}}'}...{'{{/if_individual}}'}</code> - Affiche si c'est un particulier</li>
+                          <li>• <code className="bg-blue-100 px-1 rounded">{'{{#if_company}}'}...{'{{/if_company}}'}</code> - Affiche si c'est une société</li>
+                          <li>• <code className="bg-blue-100 px-1 rounded">{'{{#if_cosigner_1}}'}...{'{{/if_cosigner_1}}'}</code> - Affiche si co-signataire 1 existe</li>
+                          <li className="mt-2 text-blue-900 font-semibold">⚠️ Important: Ces balises seront automatiquement nettoyées à la sauvegarde</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
 
