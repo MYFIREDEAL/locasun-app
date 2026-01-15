@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { supabase } from './supabase';
 import { logger } from './logger';
+import { renderContractTemplate } from '@/utils/contractRenderer';
 
 /**
  * Génère un PDF à partir d'un template HTML et des données prospect
@@ -169,6 +170,7 @@ export async function generateContractPDF({
  * @param {string} html - Template HTML
  * @param {Object} prospect - Données du prospect (depuis Supabase)
  * @param {Array} cosigners - Tableau des co-signataires [{name, email, phone}]
+ * @param {Object} formData - Données du formulaire mappées
  * @returns {string} - HTML avec données injectées
  */
 function injectProspectData(html, prospect, cosigners = [], formData = {}) {
@@ -200,163 +202,67 @@ function injectProspectData(html, prospect, cosigners = [], formData = {}) {
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
 
-  let result = html;
-
-  // Variables disponibles (mapping avec colonnes Supabase)
-  // Support SIMPLE et DOUBLE accolades + noms FR et EN
-  const variables = {
-    // Format simple accolade (FR)
-    '{nom}': lastName || prospect.name || '',
-    '{prenom}': firstName || '',
-    '{nom_complet}': prospect.name || '',
-    '{email}': prospect.email || '',
-    '{telephone}': prospect.phone || '',
-    '{adresse}': street || prospect.address || '',
-    '{adresse_complete}': prospect.address || '',
-    '{ville}': city || '',
-    '{code_postal}': zipCode || '',
-    '{entreprise}': prospect.company_name || '',
-    '{date_du_jour}': new Date().toLocaleDateString('fr-FR', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }),
-    '{date_signature}': new Date().toLocaleDateString('fr-FR', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
-    }),
+  // 🔥 PRÉPARER TOUTES LES DONNÉES POUR LE RENDERER
+  const contractData = {
+    // CLIENT (depuis prospect)
+    client_firstname: firstName || formData.client_firstname || '',
+    client_lastname: lastName || formData.client_lastname || '',
+    client_email: prospect.email || formData.client_email || '',
+    client_phone: prospect.phone || formData.client_phone || '',
+    client_address: street || prospect.address || formData.client_address || '',
+    client_city: city || formData.client_city || '',
+    client_zip: zipCode || formData.client_zip || '',
     
-    // Format double accolade (EN) - utilisé dans le template
-    '{{client_lastname}}': lastName || prospect.name || '',
-    '{{client_firstname}}': firstName || '',
-    '{{client_email}}': prospect.email || '',
-    '{{client_phone}}': prospect.phone || '',
-    '{{client_address}}': street || prospect.address || '',
-    '{{client_city}}': city || '',
-    '{{client_zip}}': zipCode || '',
-    '{{signature_date}}': new Date().toLocaleDateString('fr-FR', { 
+    // SOCIÉTÉ (depuis formData prioritaire)
+    company_name: formData.company_name || prospect.company_name || '',
+    company_siret: formData.company_siret || '',
+    company_legal_form: formData.company_legal_form || '',
+    company_capital: formData.company_capital || '',
+    company_address: formData.company_address || '',
+    company_city: formData.company_city || '',
+    company_zip: formData.company_zip || '',
+    
+    // DATES
+    signature_date: new Date().toLocaleDateString('fr-FR', { 
       day: '2-digit', 
       month: '2-digit', 
       year: 'numeric' 
     }),
+    contract_date: formData.contract_date || new Date().toLocaleDateString('fr-FR'),
+    
+    // 🔥 AJOUTER TOUTES LES DONNÉES DU FORMULAIRE
+    ...formData,
   };
 
-  // 🔥 AJOUTER LES DONNÉES DU FORMULAIRE MAPPÉES (priorité sur les données prospect)
-  Object.entries(formData).forEach(([varName, value]) => {
-    // Ajouter avec double accolades
-    variables[`{{${varName}}}`] = value || '';
-    logger.debug(`Injection formData: {{${varName}}} = ${value}`);
-  });
-
-  // 🔥 AJOUTER LES VARIABLES DES CO-SIGNATAIRES DYNAMIQUEMENT
+  // 🔥 AJOUTER LES CO-SIGNATAIRES DYNAMIQUEMENT
   cosigners.forEach((cosigner, index) => {
-    const num = index + 1; // Index commence à 1
+    const num = index + 1;
     
-    // Injecter TOUTES les variables du cosignataire
+    // Pour chaque propriété du cosignataire, créer les variables
     Object.entries(cosigner).forEach(([varName, value]) => {
-      // Enlever le préfixe 'cosigner_' si présent pour le traiter
       const cleanVarName = varName.replace(/^cosigner_/, '');
       
-      // Support des 2 formats: {{cosigner_1_xxx}} ET {{cosigner_xxx_1}}
-      variables[`{{cosigner_${num}_${cleanVarName}}}`] = value || '';
-      variables[`{{cosigner_${cleanVarName}_${num}}}`] = value || '';
-      
-      // Si c'est le nom, créer aussi firstname/lastname
-      if (cleanVarName === 'name' || varName === 'cosigner_name') {
-        const nameParts = (value || '').split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        variables[`{{cosigner_${num}_firstname}}`] = firstName;
-        variables[`{{cosigner_firstname_${num}}}`] = firstName;
-        variables[`{{cosigner_${num}_lastname}}`] = lastName;
-        variables[`{{cosigner_lastname_${num}}}`] = lastName;
-      }
-    });
-    
-    // Variables pour les sections conditionnelles et labels
-    variables[`{{cosigner_section_${num}}}`] = ''; // Vide = visible
-    variables[`{{cosigner_label_${num}}}`] = `Co-signataire ${num}`;
-    variables[`{{cosigner_signature_line_${num}}}`] = '________________________';
-  });
-
-  // 🔥 Remplir les co-signataires manquants (sections cachées)
-  // Détecter toutes les variables utilisées pour savoir lesquelles vider
-  const allVarNames = new Set();
-  cosigners.forEach(c => {
-    Object.keys(c).forEach(k => {
-      const cleanName = k.replace(/^cosigner_/, '');
-      allVarNames.add(cleanName);
+      // Format: cosigner_xxx_1 ET cosigner_1_xxx
+      contractData[`cosigner_${cleanVarName}_${num}`] = value || '';
+      contractData[`cosigner_${num}_${cleanVarName}`] = value || '';
     });
   });
-  
-  for (let i = cosigners.length + 1; i <= 3; i++) {
-    allVarNames.forEach(varName => {
-      variables[`{{cosigner_${i}_${varName}}}`] = '';
-      variables[`{{cosigner_${varName}_${i}}}`] = '';
-    });
-    variables[`{{cosigner_section_${i}}}`] = 'display:none'; // Cacher la section
-    variables[`{{cosigner_label_${i}}}`] = '';
-    variables[`{{cosigner_signature_line_${i}}}`] = '';
-  }
 
-  logger.debug('Variables injectées', { 
-    prospectVars: 8,
-    cosignerVars: cosigners.length * 10 + (3 - cosigners.length) * 6, // 10 vars par cosigner + 6 pour sections vides
-    totalVars: Object.keys(variables).length
+  logger.debug('Données contractData préparées', { 
+    hasClient: !!(contractData.client_firstname || contractData.client_lastname),
+    hasCompany: !!contractData.company_name,
+    cosignersCount: cosigners.length,
+    totalKeys: Object.keys(contractData).length
   });
 
-  // 🔥 TRAITER LES BLOCS CONDITIONNELS HANDLEBARS AVANT DE REMPLACER LES VARIABLES
-  // Détecter si c'est une société ou un particulier
-  const isCompany = !!(formData.company_name || prospect.company_name);
-  const isIndividual = !isCompany;
-  
-  // Traiter {{#if_company}} ... {{/if_company}}
-  result = result.replace(/\{\{#if_company\}\}([\s\S]*?)\{\{\/if_company\}\}/gi, (match, content) => {
-    return isCompany ? content : '';
-  });
-  
-  // Traiter {{#if_individual}} ... {{/if_individual}}
-  result = result.replace(/\{\{#if_individual\}\}([\s\S]*?)\{\{\/if_individual\}\}/gi, (match, content) => {
-    return isIndividual ? content : '';
-  });
-  
-  // Traiter {{#if_cosigner_1}} ... {{/if_cosigner_1}}
-  result = result.replace(/\{\{#if_cosigner_1\}\}([\s\S]*?)\{\{\/if_cosigner_1\}\}/gi, (match, content) => {
-    return cosigners.length >= 1 ? content : '';
-  });
-  
-  // Traiter {{#if_cosigner_2}} ... {{/if_cosigner_2}}
-  result = result.replace(/\{\{#if_cosigner_2\}\}([\s\S]*?)\{\{\/if_cosigner_2\}\}/gi, (match, content) => {
-    return cosigners.length >= 2 ? content : '';
-  });
-  
-  // Traiter {{#if_cosigner_3}} ... {{/if_cosigner_3}}
-  result = result.replace(/\{\{#if_cosigner_3\}\}([\s\S]*?)\{\{\/if_cosigner_3\}\}/gi, (match, content) => {
-    return cosigners.length >= 3 ? content : '';
-  });
-  
-  logger.debug('Blocs conditionnels traités', { 
-    isCompany, 
-    isIndividual, 
-    cosignersCount: cosigners.length 
+  // 🔥 UTILISER LE RENDERER CENTRALISÉ AU LIEU DE LA LOGIQUE DUPLIQUÉE
+  const renderedHtml = renderContractTemplate(html, contractData);
+
+  logger.debug('HTML après renderContractTemplate', { 
+    htmlLength: renderedHtml.length
   });
 
-  // Remplacer toutes les variables
-  Object.entries(variables).forEach(([placeholder, value]) => {
-    // Échapper les accolades pour regex
-    const escapedPlaceholder = placeholder.replace(/[{}]/g, '\\$&');
-    const regex = new RegExp(escapedPlaceholder, 'g');
-    result = result.replace(regex, value);
-  });
-
-  logger.debug('HTML après injection', { 
-    variables: Object.fromEntries(Object.entries(variables).map(([k, v]) => [k, v ? v.substring(0, 50) : ''])),
-    resultLength: result.length 
-  });
-
-  return result;
+  return renderedHtml;
 }
 
 /**
