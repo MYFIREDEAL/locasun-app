@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
-import { findVariableByLabel } from '@/constants/contractVariables';
 
 const ActionEditor = ({
   action,
@@ -213,15 +212,10 @@ const ActionEditor = ({
                 height: 0
               }} className="space-y-4 overflow-hidden border-t pt-4">
                                     <div className="space-y-2">
-                                        <Label className="font-semibold text-gray-700">Formulaire pour co-signataires (obligatoire)</Label>
+                                        <Label className="font-semibold text-gray-700">Formulaire source des données</Label>
                                         <Select 
-                                            value={action.cosignersConfig?.formId || ''} 
-                                            onValueChange={value => {
-                                                handleActionChange('cosignersConfig', {
-                                                    ...(action.cosignersConfig || {}),
-                                                    formId: value
-                                                });
-                                            }}
+                                            value={action.formId || ''} 
+                                            onValueChange={value => handleActionChange('formId', value)}
                                         >
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Sélectionner un formulaire" />
@@ -239,247 +233,10 @@ const ActionEditor = ({
                                                 )}
                                             </SelectContent>
                                         </Select>
-                                        {!action.cosignersConfig?.formId && (
-                                            <p className="text-xs text-orange-600">
-                                                ⚠️ Sélectionnez le formulaire qui contient les infos des co-signataires
-                                            </p>
-                                        )}
+                                        <p className="text-xs text-blue-600">
+                                            ℹ️ Les données du formulaire seront injectées directement dans le contrat
+                                        </p>
                                     </div>
-
-                                    {action.cosignersConfig?.formId && (() => {
-                                        const selectedForm = forms?.find(f => f.id === action.cosignersConfig.formId);
-                                        return (
-                                        <motion.div 
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            className="bg-gray-50 p-4 rounded-lg space-y-3 border border-gray-200"
-                                        >
-                                            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                                🔧 Mapping des champs du formulaire
-                                            </h4>
-                                            <p className="text-xs text-gray-600">
-                                                Indiquez les champs du formulaire à utiliser. Utilisez <code className="bg-white px-1 py-0.5 rounded text-xs">{'{i}'}</code> pour l'index du co-signataire.
-                                            </p>
-
-                                            <p className="text-xs text-gray-600 mb-3">
-                                                Mappez les informations des co-signataires avec les champs du formulaire "{selectedForm.name}"
-                                            </p>
-
-                                            {/* Info importante sur le système repeater */}
-                                            <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-3">
-                                                <p className="text-xs font-semibold text-amber-800 mb-1">💡 Comment ça marche :</p>
-                                                <ul className="text-xs text-amber-700 space-y-1 ml-4 list-disc">
-                                                    <li>Sélectionnez le champ <strong>repeater</strong> qui génère les co-signataires</li>
-                                                    <li>Sélectionnez les <strong>champs répétés</strong> (Nom, Email, Téléphone)</li>
-                                                    <li>Le système extraira automatiquement toutes les occurrences</li>
-                                                </ul>
-                                            </div>
-
-                                            {/* Table de mapping avec 2 colonnes */}
-                                            <div className="space-y-3">
-                                                {/* Ligne 1: Nombre de co-signataires */}
-                                                <div className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-gray-700">📊 Champ repeater</p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            Champ qui compte et génère les co-signataires
-                                                        </p>
-                                                    </div>
-                                                    <Select
-                                                        value={action.cosignersConfig?.countField || ''}
-                                                        onValueChange={value => handleActionChange('cosignersConfig', {
-                                                            ...(action.cosignersConfig || {}),
-                                                            countField: value
-                                                        })}
-                                                    >
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Sélectionner le champ repeater" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {selectedForm.fields.filter(f => f.is_repeater).map(field => (
-                                                                <SelectItem key={field.id} value={field.id}>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="font-mono text-xs">{field.label}</span>
-                                                                        <span className="text-xs text-green-600">🔁 repeater</span>
-                                                                    </div>
-                                                                </SelectItem>
-                                                            ))}
-                                                            {selectedForm.fields.filter(f => f.is_repeater).length === 0 && (
-                                                                <div className="px-2 py-1.5 text-xs text-gray-500">
-                                                                    Aucun champ repeater dans ce formulaire
-                                                                </div>
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                {/* Info sur le mapping des valeurs */}
-                                                {action.cosignersConfig?.countField && (() => {
-                                                    const repeaterField = selectedForm.fields.find(f => f.id === action.cosignersConfig.countField);
-                                                    const repeatedFields = repeaterField?.repeats_fields 
-                                                        ? selectedForm.fields.filter(f => repeaterField.repeats_fields.includes(f.id))
-                                                        : [];
-                                                    
-                                                    return (
-                                                        <>
-                                                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                                                                <p className="text-xs font-semibold text-blue-800 mb-2">
-                                                                    ✅ Champs répétés disponibles :
-                                                                </p>
-                                                                {repeatedFields.length > 0 ? (
-                                                                    <div className="space-y-1">
-                                                                        {repeatedFields.map(field => (
-                                                                            <div key={field.id} className="flex items-center gap-2 text-xs text-blue-700">
-                                                                                <code className="bg-white px-1.5 py-0.5 rounded font-mono">{field.id}</code>
-                                                                                <span>→ {field.label}</span>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    <p className="text-xs text-amber-700">
-                                                                        ⚠️ Ce champ repeater n'a pas de champs répétés configurés
-                                                                    </p>
-                                                                )}
-                                                            </div>
-
-                                                            {/* 🔥 MAPPING DYNAMIQUE DE TOUS LES CHAMPS RÉPÉTÉS */}
-                                                            <div className="space-y-2">
-                                                                <p className="text-sm font-semibold text-gray-700 mb-2">
-                                                                    📋 Mappez les champs du formulaire aux variables du contrat :
-                                                                </p>
-                                                                
-                                                                {repeatedFields.map((field, index) => {
-                                                                    // 🔥 Suggestion basée sur CONTRACT_VARIABLES avec préfixe cosigner_
-                                                                    const baseVar = findVariableByLabel(field.label);
-                                                                    const suggestedVarName = baseVar 
-                                                                        ? baseVar.replace(/^client_/, 'cosigner_').replace(/_\d+$/, '') // Remplacer client_ par cosigner_ et enlever _1, _2, _3
-                                                                        : `cosigner_${field.label
-                                                                            .toLowerCase()
-                                                                            .replace(/\s+/g, '_')
-                                                                            .replace(/[éèê]/g, 'e')
-                                                                            .replace(/[àâ]/g, 'a')
-                                                                            .replace(/[^a-z0-9_]/g, '')
-                                                                            .replace(/_+/g, '_')
-                                                                            .replace(/^_|_$/g, '')}`;
-                                                                    
-                                                                    const currentMapping = action.cosignersConfig?.fieldMappings?.[field.id] || suggestedVarName;
-                                                                    
-                                                                    return (
-                                                                        <div key={field.id} className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                                            <div>
-                                                                                <p className="text-sm font-medium text-gray-700">{field.label}</p>
-                                                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                                                    Champ de type: {field.type}
-                                                                                </p>
-                                                                            </div>
-                                                                            <div className="space-y-1">
-                                                                                <input
-                                                                                    type="text"
-                                                                                    value={currentMapping}
-                                                                                    onChange={(e) => {
-                                                                                        const newMappings = {
-                                                                                            ...(action.cosignersConfig?.fieldMappings || {}),
-                                                                                            [field.id]: e.target.value
-                                                                                        };
-                                                                                        handleActionChange('cosignersConfig', {
-                                                                                            ...(action.cosignersConfig || {}),
-                                                                                            fieldMappings: newMappings
-                                                                                        });
-                                                                                    }}
-                                                                                    placeholder="Nom de variable..."
-                                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                                />
-                                                                                <p className="text-xs text-gray-400 font-mono">
-                                                                                    → {`{{${currentMapping}_{i}}}`}
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </>
-                                                    );
-                                                })()}
-
-                                                {/* 🔥 MAPPING DES CHAMPS GÉNÉRAUX (client, société, projet, etc.) */}
-                                                {action.cosignersConfig?.formId && (() => {
-                                                    const selectedForm = forms?.find(f => f.id === action.cosignersConfig.formId);
-                                                    if (!selectedForm) return null;
-                                                    
-                                                    // Champs NON-repeater (tous sauf ceux dans repeats_fields)
-                                                    const repeaterFieldIds = new Set();
-                                                    selectedForm.fields.forEach(field => {
-                                                        if (field.is_repeater && field.repeats_fields) {
-                                                            field.repeats_fields.forEach(id => repeaterFieldIds.add(id));
-                                                        }
-                                                    });
-                                                    
-                                                    const generalFields = selectedForm.fields.filter(f => 
-                                                        !f.is_repeater && !repeaterFieldIds.has(f.id)
-                                                    );
-                                                    
-                                                    if (generalFields.length === 0) return null;
-                                                    
-                                                    return (
-                                                        <div className="mt-6 space-y-2 border-t pt-4">
-                                                            <p className="text-sm font-semibold text-gray-700 mb-2">
-                                                                📋 Mapping des champs généraux (client, société, projet...)
-                                                            </p>
-                                                            <p className="text-xs text-gray-500 mb-3">
-                                                                Mappez les champs du formulaire aux variables du contrat
-                                                            </p>
-                                                            
-                                                            <div className="space-y-2 max-h-96 overflow-y-auto">
-                                                                {generalFields.map(field => {
-                                                                    // 🔥 Suggestion intelligente basée sur CONTRACT_VARIABLES
-                                                                    const suggestedVar = findVariableByLabel(field.label) || field.label
-                                                                        .toLowerCase()
-                                                                        .replace(/\s+/g, '_')
-                                                                        .replace(/[^a-z0-9_]/g, '')
-                                                                        .replace(/_+/g, '_')
-                                                                        .replace(/^_|_$/g, '');
-                                                                    
-                                                                    const currentMapping = action.cosignersConfig?.generalFieldMappings?.[field.id] || suggestedVar;
-                                                                    
-                                                                    return (
-                                                                        <div key={field.id} className="grid grid-cols-2 gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg">
-                                                                            <div>
-                                                                                <p className="text-sm font-medium text-gray-700">{field.label}</p>
-                                                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                                                    Type: {field.type}
-                                                                                </p>
-                                                                            </div>
-                                                                            <div className="space-y-1">
-                                                                                <input
-                                                                                    type="text"
-                                                                                    value={currentMapping}
-                                                                                    onChange={(e) => {
-                                                                                        const newMappings = {
-                                                                                            ...(action.cosignersConfig?.generalFieldMappings || {}),
-                                                                                            [field.id]: e.target.value
-                                                                                        };
-                                                                                        handleActionChange('cosignersConfig', {
-                                                                                            ...(action.cosignersConfig || {}),
-                                                                                            generalFieldMappings: newMappings
-                                                                                        });
-                                                                                    }}
-                                                                                    placeholder="ex: client_firstname"
-                                                                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                                />
-                                                                                <p className="text-xs text-gray-400 font-mono">
-                                                                                    → {`{{${currentMapping}}}`}
-                                                                                </p>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </motion.div>
-                                    );})()}
                                 </motion.div>}
                         </AnimatePresence>
 

@@ -28,7 +28,6 @@ import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
-import { findVariableByLabel } from '@/constants/contractVariables';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
@@ -549,168 +548,27 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
               templateId: action.templateId,
               prospectId,
               projectType,
-              organizationId: activeAdminUser.organization_id, // 🔍 Log pour debug
-              hasCosignersConfig: !!action.cosignersConfig,
-              cosignersConfig: action.cosignersConfig // 🔍 Afficher la config complète
+              organizationId: activeAdminUser.organization_id,
+              formId: action.formId
             });
 
-            // 🔥 Extraire les co-signataires et données générales si configuré
-            let cosigners = [];
-            let formGeneralData = {};
-            if (action.cosignersConfig?.formId) {
-              logger.info('📋 Extraction données depuis formulaire', {
-                formId: action.cosignersConfig.formId,
-                config: action.cosignersConfig
-              });
+            // 🔥 Extraction directe des données du formulaire (contract-driven)
+            const { data: prospectData, error: prospectError } = await supabase
+              .from('prospects')
+              .select('form_data')
+              .eq('id', prospectId)
+              .single();
 
-              // Récupérer les données du prospect
-              const { data: prospectData, error: prospectError } = await supabase
-                .from('prospects')
-                .select('form_data')
-                .eq('id', prospectId)
-                .single();
+            const specificFormData = prospectData?.form_data?.[projectType]?.[action.formId] || {};
 
-              if (!prospectError && prospectData?.form_data) {
-                const formData = prospectData.form_data;
-                const config = action.cosignersConfig;
-                
-                // 🔥 DEBUG: Voir la structure complète de form_data
-                console.log('🔥🔥🔥 DEBUG form_data COMPLET:', {
-                  formDataKeys: Object.keys(formData),
-                  formDataComplet: formData,
-                  projectType: projectType,
-                  formId: config.formId,
-                  configComplet: config
-                });
-                
-                // 🔥 Accéder aux données du formulaire: form_data[projectType][formId]
-                const projectFormData = formData[projectType] || {};
-                const specificFormData = projectFormData[config.formId] || {};
-                
-                console.log('🔥🔥🔥 DEBUG APRÈS extraction:', {
-                  projectFormData: projectFormData,
-                  specificFormData: specificFormData,
-                  specificFormDataKeys: Object.keys(specificFormData)
-                });
-                
-                logger.info('🔍 Structure form_data', {
-                  hasProjectData: !!projectFormData,
-                  hasFormData: !!specificFormData,
-                  formId: config.formId,
-                  projectType: projectType,
-                  countField: config.countField,
-                  countValue: specificFormData[config.countField]
-                });
-                
-                // 🧱 ÉTAPE 1 — Charger la définition du formulaire
-                const { data: formDefinition } = await supabase
-                  .from('forms')
-                  .select('fields')
-                  .eq('form_id', config.formId)
-                  .single();
-                
-                // 🧱 ÉTAPE 2 — Construire le auto-mapping
-                const autoGeneralFieldMappings = {};
-                
-                if (formDefinition?.fields) {
-                  formDefinition.fields.forEach(field => {
-                    if (field.id === config.countField) {
-                      return;
-                    }
-                    const variableName = findVariableByLabel(field.label);
-                    if (variableName) {
-                      autoGeneralFieldMappings[field.id] = variableName;
-                    }
-                  });
-                }
-                
-                // 🧱 ÉTAPE 3 — Priorité des mappings (OBLIGATOIRE)
-                const generalFieldMappings =
-                  Object.keys(config.generalFieldMappings || {}).length > 0
-                    ? config.generalFieldMappings
-                    : autoGeneralFieldMappings;
-                
-                // 🧱 ÉTAPE 4 — Extraction des données
-                const generalData = {};
-                
-                Object.entries(generalFieldMappings).forEach(([fieldId, varName]) => {
-                  const value = specificFormData[fieldId];
-                  if (value) {
-                    generalData[varName] = value;
-                  }
-                });
-                
-                // 🧪 ÉTAPE 5 — LOG DE DEBUG FINAL
-                console.log('🧩 FINAL generalData', generalData);
-                
-                logger.info('📋 Données générales extraites', { generalData });
-                
-                // 1️⃣ Lire le nombre de co-signataires
-                const cosignerCount = parseInt(
-                  specificFormData[config.countField] || '0',
-                  10
-                );
-                
-                // 2️⃣ Construire les données co-signataires
-                const cosignersData = {};
-                
-                for (let i = 0; i < cosignerCount; i++) {
-                  const index = i + 1;
-                  
-                  Object.entries(config.fieldMappings || {}).forEach(([baseFieldId, variableBase]) => {
-                    const repeatKey = `${config.countField}_repeat_${i}_${baseFieldId}`;
-                    const value = specificFormData[repeatKey];
-                    
-                    if (value) {
-                      cosignersData[`${variableBase}_${index}`] = value;
-                    }
-                  });
-                }
-                
-                // 3️⃣ Fusionner dans les données finales
-                formGeneralData = {
-                  ...generalData,
-                  ...cosignersData
-                };
-                
-                logger.info('✅ Données co-signataires extraites', { cosignerCount, cosignersData });
-                
-                // Extraire le nombre de co-signataires (pour backward compatibility)
-                const countValue = specificFormData[config.countField];
-                const cosignersCount = parseInt(countValue, 10);
-
-                if (!isNaN(cosignersCount) && cosignersCount > 0) {
-                  const fieldMappings = config.fieldMappings || {};
-                  
-                  for (let i = 0; i < cosignersCount; i++) {
-                    const cosignerData = {};
-                    
-                    // Pour chaque champ mappé, extraire sa valeur
-                    Object.entries(fieldMappings).forEach(([fieldId, varName]) => {
-                      const dataKey = `${config.countField}_repeat_${i}_${fieldId}`;
-                      const value = specificFormData[dataKey];
-                      
-                      if (value) {
-                        cosignerData[varName] = value;
-                      }
-                    });
-                    
-                    // Ajouter le co-signataire s'il a au moins une donnée
-                    if (Object.keys(cosignerData).length > 0) {
-                      cosigners.push(cosignerData);
-                    }
-                  }
-                }
-
-                logger.info('✅ Co-signataires extraits', { count: cosigners.length, cosigners });
-              }
-            }
+            logger.info('📋 Données formulaire extraites', { 
+              formId: action.formId,
+              dataKeys: Object.keys(specificFormData)
+            });
 
             toast({
               title: "📄 Génération du contrat...",
-              description: cosigners.length > 0 
-                ? `Création du PDF avec ${cosigners.length} co-signataire(s)` 
-                : "Création du PDF en cours",
+              description: "Création du PDF en cours",
               className: "bg-blue-500 text-white",
             });
 
@@ -719,9 +577,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
               templateId: action.templateId,
               projectType: projectType,
               prospectId: prospectId,
-              cosigners: cosigners,
-              formData: formGeneralData, // 🔥 Passer les données générales du formulaire
-              organizationId: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
+              formData: specificFormData, // 🔥 Injection directe sans transformation
+              cosigners: [],
+              organizationId: activeAdminUser?.organization_id,
             });
 
             if (result.success) {
