@@ -392,6 +392,9 @@ const ContractTemplatesPage = () => {
   const [isBlockConfigOpen, setIsBlockConfigOpen] = useState(false);
   const [blockConfigData, setBlockConfigData] = useState(null);
   const [generatedJson, setGeneratedJson] = useState(null);
+  
+  // 🆕 État pour filtrer les templates actifs/inactifs
+  const [showInactiveTemplates, setShowInactiveTemplates] = useState(false);
 
   // 🆕 STEP 5 : Injection automatique du HTML généré depuis l'éditeur PDF
   useEffect(() => {
@@ -818,18 +821,34 @@ const ContractTemplatesPage = () => {
                 >
                   <Plus className="mr-2 h-4 w-4" /> Nouveau template
                 </Button>
+                
+                {/* 🆕 Filtre pour afficher/masquer les templates inactifs */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <label htmlFor="show-inactive" className="text-sm text-gray-700 cursor-pointer">
+                    Afficher désactivés
+                  </label>
+                  <input
+                    id="show-inactive"
+                    type="checkbox"
+                    checked={showInactiveTemplates}
+                    onChange={(e) => setShowInactiveTemplates(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 cursor-pointer"
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
                 {templatesLoading ? (
                   <div className="text-center py-8 text-gray-500">Chargement...</div>
-                ) : contractTemplates.length === 0 ? (
+                ) : contractTemplates.filter(t => showInactiveTemplates || t.isActive).length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                     <p className="text-sm">Aucun template</p>
                   </div>
                 ) : (
-                  contractTemplates.map(template => (
+                  contractTemplates
+                    .filter(t => showInactiveTemplates || t.isActive)
+                    .map(template => (
                     <button
                       key={template.id}
                       onClick={() => setEditingContractTemplate(template)}
