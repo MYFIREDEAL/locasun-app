@@ -185,8 +185,27 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
 
       const { user: publicUserData } = await response.json();
 
+      // 🔥 Transformer en snake_case pour compatibilité avec supabaseUsers
+      const transformedUser = {
+        id: publicUserData.id,
+        user_id: publicUserData.userId,  // camelCase → snake_case
+        name: publicUserData.name,
+        email: publicUserData.email,
+        role: publicUserData.role,
+        manager_id: managerId,
+        phone: userData.phone || null,
+        avatar_url: null,
+        access_rights: userData.accessRights || {
+          modules: ['Pipeline', 'Agenda', 'Contacts'],
+          users: []
+        },
+        organization_id: userData.organizationId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
       // 🔥 Ajouter manuellement à la liste (le real-time devrait le faire, mais on force au cas où)
-      setUsers(prev => [...prev, publicUserData]);
+      setUsers(prev => [...prev, transformedUser]);
 
       // ✅ Succès
       toast({
