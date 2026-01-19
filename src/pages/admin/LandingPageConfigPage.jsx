@@ -190,7 +190,13 @@ const LandingPageConfigPage = () => {
                 </button>
                 {config.show_how_it_works !== false && (
                   <span className="text-green-600 font-medium cursor-pointer hover:text-green-700">
-                    Comment ça marche ?
+                    <InlineEditable
+                      value={config.how_it_works_title}
+                      onSave={(value) => handleFieldSave('how_it_works_title', value)}
+                      placeholder="Comment ça marche ?"
+                      className="text-green-600 font-medium"
+                      inputClassName="text-center"
+                    />
                   </span>
                 )}
               </div>

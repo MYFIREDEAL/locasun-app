@@ -259,7 +259,7 @@ export default function Landing() {
                     onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
                     className="text-green-600 hover:text-green-700 font-medium text-lg transition-colors"
                   >
-                    Comment ça marche ?
+                    {config.how_it_works_title || "Comment ça marche ?"}
                   </button>
                 )}
               </div>
