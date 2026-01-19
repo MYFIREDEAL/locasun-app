@@ -23,77 +23,32 @@ const ActivateAccountPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [validatingToken, setValidatingToken] = useState(true);
-  const [tokenValid, setTokenValid] = useState(false);
+  const [validatingSession, setValidatingSession] = useState(true);
+  const [sessionValid, setSessionValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
-  // Valider le token au chargement
+  // ✅ LOGIQUE CORRECTE : Vérifier uniquement la session existante
   useEffect(() => {
-    const validateToken = async () => {
+    const checkSession = async () => {
       try {
-        // 🔥 CRITIQUE : Consommer le token d'invitation Supabase
-        // inviteUserByEmail() génère un lien avec ?code=... ou #access_token=...
-        logger.info('🔐 Consommation du token d\'invitation...');
-        
-        // Méthode 1 : Vérifier si on a un hash (#access_token) ou un code (?code)
-        const hashParams = new URLSearchParams(window.location.hash.slice(1));
-        const queryParams = new URLSearchParams(window.location.search);
-        
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const code = queryParams.get('code');
+        logger.info('🔐 Vérification de la session Supabase...');
 
-        let session = null;
+        // Supabase a déjà créé la session automatiquement via inviteUserByEmail
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (code) {
-          // PKCE flow : échanger le code contre une session
-          logger.info('📝 Code PKCE détecté, échange en cours...');
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          
-          if (error) {
-            logger.error('❌ Erreur exchangeCodeForSession:', error);
-            throw new Error('Code invalide ou expiré');
-          }
-          
-          session = data.session;
-        } else if (accessToken) {
-          // Hash token : établir la session directement
-          logger.info('🔑 Access token détecté, établissement session...');
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-          
-          if (error) {
-            logger.error('❌ Erreur setSession:', error);
-            throw new Error('Token invalide ou expiré');
-          }
-          
-          session = data.session;
-        } else {
-          // Aucun token trouvé
-          logger.error('❌ Aucun token trouvé dans l\'URL');
-          throw new Error('Lien invalide - aucun token trouvé');
+        if (error || !session) {
+          logger.error('❌ Pas de session active:', error);
+          setSessionValid(false);
+          setValidatingSession(false);
+          return;
         }
-
-        if (!session) {
-          logger.error('❌ Aucune session créée');
-          throw new Error('Impossible de créer une session');
-        }
-
-        // Nettoyer l'URL pour enlever les paramètres
-        window.history.replaceState({}, document.title, window.location.pathname);
 
         const user = session.user;
 
         if (!user || !user.email) {
-          toast({
-            title: "Erreur",
-            description: "Impossible de récupérer les informations utilisateur.",
-            variant: "destructive",
-          });
-          setValidatingToken(false);
-          setTokenValid(false);
+          logger.error('❌ Pas d\'utilisateur dans la session');
+          setSessionValid(false);
+          setValidatingSession(false);
           return;
         }
 
@@ -106,34 +61,25 @@ const ActivateAccountPage = () => {
 
         if (userError || !userData) {
           logger.error('❌ Utilisateur non trouvé dans table users:', userError);
-          toast({
-            title: "Compte introuvable",
-            description: "Aucun compte professionnel n'a été trouvé avec cet email.",
-            variant: "destructive",
-          });
-          setValidatingToken(false);
-          setTokenValid(false);
+          setSessionValid(false);
+          setValidatingSession(false);
           return;
         }
 
-        // Token valide et utilisateur trouvé
+        // ✅ Session valide et utilisateur trouvé
+        logger.info('✅ Session valide pour:', userData.email);
         setUserEmail(userData.email);
-        setTokenValid(true);
-        setValidatingToken(false);
+        setSessionValid(true);
+        setValidatingSession(false);
 
       } catch (error) {
-        logger.error('Erreur validation token:', error);
-        toast({
-          title: "Lien invalide ou expiré",
-          description: error.message || "Ce lien d'activation n'est plus valide.",
-          variant: "destructive",
-        });
-        setValidatingToken(false);
-        setTokenValid(false);
+        logger.error('❌ Erreur vérification session:', error);
+        setSessionValid(false);
+        setValidatingSession(false);
       }
     };
 
-    validateToken();
+    checkSession();
   }, []);
 
   const handleActivateAccount = async (e) => {
@@ -170,24 +116,9 @@ const ActivateAccountPage = () => {
     setLoading(true);
 
     try {
-      // ✅ La session existe déjà (créée par getSessionFromUrl)
-      // Vérifier qu'on a bien une session active
-      const { data: { session }, error: sessionCheckError } = await supabase.auth.getSession();
-      
-      if (sessionCheckError || !session) {
-        logger.error('❌ Pas de session active avant updateUser');
-        toast({
-          title: "Erreur de session",
-          description: "Votre session a expiré. Veuillez demander un nouveau lien.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
+      logger.info('🔐 Mise à jour du mot de passe...');
 
-      logger.info('✅ Session active, mise à jour du mot de passe...');
-
-      // Mettre à jour le mot de passe de l'utilisateur
+      // ✅ Mettre à jour le mot de passe (la session existe déjà)
       const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password
       });
@@ -274,8 +205,8 @@ const ActivateAccountPage = () => {
     }
   };
 
-  // Écran de chargement pendant la validation du token
-  if (validatingToken) {
+  // Écran de chargement pendant la vérification de la session
+  if (validatingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
         <motion.div
@@ -284,15 +215,15 @@ const ActivateAccountPage = () => {
           className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
         >
           <Loader2 className="h-16 w-16 text-blue-500 animate-spin mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Vérification du lien...</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Vérification...</h2>
           <p className="text-gray-600">Veuillez patienter</p>
         </motion.div>
       </div>
     );
   }
 
-  // Écran d'erreur si le token n'est pas valide
-  if (!tokenValid) {
+  // Écran d'erreur si pas de session valide
+  if (!sessionValid) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center px-4">
         <motion.div
@@ -303,9 +234,9 @@ const ActivateAccountPage = () => {
           <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">❌</span>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Lien invalide</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Lien invalide ou expiré</h2>
           <p className="text-gray-600 mb-6">
-            Ce lien d'activation n'est plus valide ou a expiré. Veuillez contacter votre administrateur pour recevoir une nouvelle invitation.
+            Ce lien d'activation n'est plus valide. Veuillez contacter votre administrateur pour recevoir une nouvelle invitation.
           </p>
           <Button
             onClick={() => navigate('/login')}
