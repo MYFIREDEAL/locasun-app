@@ -343,6 +343,214 @@ export const useSupabaseCompanySettings = () => {
     return companySettings?.settings?.global_pipeline_steps || [];
   };
 
+  // =====================================================
+  // 🎯 LANDING PAGE CONFIGURATION
+  // =====================================================
+
+  /**
+   * ✅ METTRE À JOUR LA CONFIG DE LA LANDING PAGE
+   * @param {Object} landingPageConfig - Configuration de la landing page
+   * Structure attendue:
+   * {
+   *   landing_logo_url: string (logo spécifique pour landing, indépendant du logo admin),
+   *   hero_title: string,
+   *   hero_subtitle: string,
+   *   hero_cta_text: string,
+   *   hero_cta_link: string,
+   *   blocks: [
+   *     { id: 1, icon: "📋", title: "...", description: "..." },
+   *     { id: 2, icon: "🔧", title: "...", description: "..." },
+   *     { id: 3, icon: "✅", title: "...", description: "..." }
+   *   ]
+   * }
+   */
+  const updateLandingPageConfig = async (landingPageConfig) => {
+    try {
+      // Marquer comme mise à jour locale
+      isLocalUpdate.current = true;
+
+      // Récupérer les settings actuels et ajouter/modifier landing_page_config
+      const currentSettings = companySettings?.settings || {};
+      const newSettings = {
+        ...currentSettings,
+        landing_page_config: landingPageConfig
+      };
+
+      const { error: updateError } = await supabase
+        .from('company_settings')
+        .update({ 
+          settings: newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', COMPANY_SETTINGS_ID);
+
+      if (updateError) {
+        logger.error('Supabase landing page config update error:', { error: updateError.message });
+        isLocalUpdate.current = false;
+        throw updateError;
+      }
+      
+      // Mise à jour immédiate de l'état local
+      setCompanySettings(prev => ({
+        ...prev,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      }));
+
+      return true;
+    } catch (err) {
+      logger.error('Erreur update landing page config:', { error: err.message });
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la configuration de la landing page.",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  };
+
+  /**
+   * ✅ METTRE À JOUR UN CHAMP SPÉCIFIQUE DE LA LANDING PAGE
+   * Utile pour l'édition inline (un seul champ à la fois)
+   * @param {string} field - Nom du champ (ex: 'hero_title', 'hero_subtitle')
+   * @param {any} value - Nouvelle valeur
+   */
+  const updateLandingPageField = async (field, value) => {
+    try {
+      isLocalUpdate.current = true;
+
+      const currentSettings = companySettings?.settings || {};
+      const currentLandingConfig = currentSettings.landing_page_config || {};
+      
+      const newLandingConfig = {
+        ...currentLandingConfig,
+        [field]: value
+      };
+
+      const newSettings = {
+        ...currentSettings,
+        landing_page_config: newLandingConfig
+      };
+
+      const { error: updateError } = await supabase
+        .from('company_settings')
+        .update({ 
+          settings: newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', COMPANY_SETTINGS_ID);
+
+      if (updateError) {
+        isLocalUpdate.current = false;
+        throw updateError;
+      }
+      
+      setCompanySettings(prev => ({
+        ...prev,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      }));
+
+      return true;
+    } catch (err) {
+      logger.error('Erreur update landing page field:', { error: err.message, field, value });
+      throw err;
+    }
+  };
+
+  /**
+   * ✅ METTRE À JOUR UN BLOC SPÉCIFIQUE DE "COMMENT ÇA MARCHE"
+   * @param {number} blockId - ID du bloc (1, 2 ou 3)
+   * @param {Object} blockData - { icon, title, description }
+   */
+  const updateLandingPageBlock = async (blockId, blockData) => {
+    try {
+      isLocalUpdate.current = true;
+
+      const currentSettings = companySettings?.settings || {};
+      const currentLandingConfig = currentSettings.landing_page_config || {};
+      const currentBlocks = currentLandingConfig.blocks || getDefaultLandingBlocks();
+
+      const newBlocks = currentBlocks.map(block => 
+        block.id === blockId ? { ...block, ...blockData } : block
+      );
+
+      const newLandingConfig = {
+        ...currentLandingConfig,
+        blocks: newBlocks
+      };
+
+      const newSettings = {
+        ...currentSettings,
+        landing_page_config: newLandingConfig
+      };
+
+      const { error: updateError } = await supabase
+        .from('company_settings')
+        .update({ 
+          settings: newSettings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', COMPANY_SETTINGS_ID);
+
+      if (updateError) {
+        isLocalUpdate.current = false;
+        throw updateError;
+      }
+      
+      setCompanySettings(prev => ({
+        ...prev,
+        settings: newSettings,
+        updated_at: new Date().toISOString()
+      }));
+
+      return true;
+    } catch (err) {
+      logger.error('Erreur update landing page block:', { error: err.message, blockId, blockData });
+      throw err;
+    }
+  };
+
+  /**
+   * ✅ RÉCUPÉRER LA CONFIG DE LA LANDING PAGE
+   * Retourne les valeurs par défaut si aucune config n'existe
+   */
+  const getLandingPageConfig = () => {
+    const config = companySettings?.settings?.landing_page_config || {};
+    return {
+      landing_logo_url: config.landing_logo_url || null,
+      hero_title: config.hero_title || 'Bienvenue sur notre plateforme',
+      hero_subtitle: config.hero_subtitle || 'Gérez vos projets énergétiques en toute simplicité',
+      hero_cta_text: config.hero_cta_text || 'Commencer maintenant',
+      hero_cta_link: config.hero_cta_link || '/inscription',
+      blocks: config.blocks || getDefaultLandingBlocks()
+    };
+  };
+
+  /**
+   * 🎯 BLOCS PAR DÉFAUT POUR "COMMENT ÇA MARCHE"
+   */
+  const getDefaultLandingBlocks = () => [
+    {
+      id: 1,
+      icon: '📋',
+      title: 'Créez votre projet',
+      description: 'Inscrivez-vous et décrivez votre projet en quelques clics.'
+    },
+    {
+      id: 2,
+      icon: '🔧',
+      title: 'Nous intervenons',
+      description: 'Notre équipe prend en charge votre dossier de A à Z.'
+    },
+    {
+      id: 3,
+      icon: '✅',
+      title: 'Profitez des résultats',
+      description: 'Suivez l\'avancement en temps réel depuis votre espace client.'
+    }
+  ];
+
   return {
     companySettings,
     loading,
@@ -354,6 +562,11 @@ export const useSupabaseCompanySettings = () => {
     getFormContactConfig,
     updateGlobalPipelineSteps,
     getGlobalPipelineSteps,
+    // 🎯 Landing Page
+    updateLandingPageConfig,
+    updateLandingPageField,
+    updateLandingPageBlock,
+    getLandingPageConfig,
     refetch: fetchCompanySettings,
   };
 };

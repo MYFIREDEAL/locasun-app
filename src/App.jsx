@@ -11,6 +11,7 @@ import Agenda from '@/pages/admin/Agenda';
 import CharlyPage from '@/pages/admin/CharlyPage';
 import ConfigurationIA from '@/pages/admin/ConfigurationIA';
 import WorkflowsCharlyPage from '@/pages/admin/WorkflowsCharlyPage';
+import LandingPageConfigPage from '@/pages/admin/LandingPageConfigPage';
 import ProjectsManagementPage from '@/pages/admin/ProjectsManagementPage';
 import FormsManagementPage from '@/pages/admin/FormsManagementPage';
 import ContractTemplatesPage from '@/pages/admin/ContractTemplatesPage';
@@ -1485,6 +1486,7 @@ function App() {
           <Route path="charly" element={<CharlyPage />} />
           <Route path="configuration-ia" element={<ConfigurationIA />} />
           <Route path="workflows-charly" element={<WorkflowsCharlyPage />} />
+          <Route path="landing-page" element={<LandingPageConfigPage />} />
           <Route path="projects-management" element={<ProjectsManagementPage />} />
           <Route path="forms-management" element={<FormsManagementPage />} />
           <Route path="contract-templates" element={<ContractTemplatesPage />} />

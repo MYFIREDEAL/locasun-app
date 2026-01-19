@@ -24,12 +24,14 @@ export const OrganizationProvider = ({ children }) => {
   const [organizationId, setOrganizationId] = useState(null);
   const [organizationLoading, setOrganizationLoading] = useState(true);
   const [organizationError, setOrganizationError] = useState(null);
+  const [isPlatformOrg, setIsPlatformOrg] = useState(false); // 🔥 Flag pour savoir si c'est l'org plateforme
 
   useEffect(() => {
     const resolveOrganization = async () => {
       try {
         setOrganizationLoading(true);
         setOrganizationError(null);
+        setIsPlatformOrg(false); // Reset à chaque résolution
 
         // 1️⃣ Si user connecté : utiliser user.organization_id
         const { data: { user } } = await supabase.auth.getUser();
@@ -100,13 +102,16 @@ export const OrganizationProvider = ({ children }) => {
           if (platformId) {
             logger.info('[OrganizationContext] Fallback vers organisation plateforme:', platformId);
             setOrganizationId(platformId);
+            setIsPlatformOrg(true); // 🔥 C'est l'org plateforme
           } else {
             logger.warn('[OrganizationContext] Platform organization query returned no id, leaving organizationId null');
             setOrganizationId(null);
+            setIsPlatformOrg(true); // 🔥 Pas d'org = plateforme par défaut
           }
         } else {
           logger.warn('[OrganizationContext] Impossible de récupérer l\'organisation plateforme, leaving organizationId null', platformError);
           setOrganizationId(null);
+          setIsPlatformOrg(true); // 🔥 Pas d'org = plateforme par défaut
         }
 
         setOrganizationLoading(false);
@@ -115,6 +120,7 @@ export const OrganizationProvider = ({ children }) => {
         // ⚠️ NE JAMAIS BLOQUER L'APP - fallback vers null
         logger.warn('[OrganizationContext] Fallback vers organizationId = null (mode dégradé)');
         setOrganizationId(null);
+        setIsPlatformOrg(true); // 🔥 En cas d'erreur = plateforme par défaut
         setOrganizationError(null); // Pas d'erreur bloquante
         setOrganizationLoading(false);
       }
@@ -158,6 +164,7 @@ export const OrganizationProvider = ({ children }) => {
         organizationId,
         organizationLoading,
         organizationError,
+        isPlatformOrg, // 🔥 Exposé pour savoir si c'est l'org plateforme
         brandName,
         logoUrl,
         primaryColor,

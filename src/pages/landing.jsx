@@ -2,6 +2,8 @@ import React from "react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
+import { useOrganization } from "@/contexts/OrganizationContext"
+import { useLandingPageConfig } from "@/hooks/useLandingPageConfig"
 import {
   Sparkles,
   Zap,
@@ -33,6 +35,23 @@ import { useToast } from "@/components/ui/use-toast"
 export default function Landing() {
   const { toast } = useToast()
   const navigate = useNavigate()
+  
+  // Contexte organisation - isPlatformOrg vient directement du contexte
+  const { 
+    organizationId, 
+    isPlatformOrg, 
+    brandName, 
+    logoUrl: orgLogoUrl,
+    organizationLoading 
+  } = useOrganization() || {}
+  const { landingConfig, loading: configLoading } = useLandingPageConfig(organizationId)
+  
+  // Détermine si on est sur la plateforme EVATIME ou une organisation tierce
+  const isPlatform = isPlatformOrg || !organizationId
+  
+  // Valeurs dynamiques pour l'en-tête (toujours utilisées)
+  const displayName = isPlatform ? "EVATIME" : (brandName || "EVATIME")
+  const displayLogo = isPlatform ? "/evatime-logo.png" : (orgLogoUrl || "/evatime-logo.png")
 
   const automations = [
     "Génération automatique de devis personnalisés",
@@ -198,6 +217,122 @@ export default function Landing() {
     })
   }
 
+  // Contenu pour les organisations tierces (non-EVATIME)
+  const renderOrganizationContent = () => {
+    const config = landingConfig || {}
+    const heroTitle = config.heroTitle || `Bienvenue chez ${displayName}`
+    const heroSubtitle = config.heroSubtitle || "Suivez l'avancement de votre projet en temps réel"
+    const ctaText = config.ctaText || "Accéder à mon espace"
+    const steps = config.steps || [
+      { title: "Étude", description: "Analyse de votre projet" },
+      { title: "Installation", description: "Réalisation des travaux" },
+      { title: "Suivi", description: "Accompagnement continu" },
+    ]
+
+    return (
+      <>
+        {/* Hero Organisation */}
+        <section className="pt-32 pb-20 px-6">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
+            >
+              <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-blue-900 to-cyan-900 bg-clip-text text-transparent leading-tight">
+                {heroTitle}
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto">
+                {heroSubtitle}
+              </p>
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => navigate('/client-access')}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-10 py-6 text-lg"
+                >
+                  {ctaText}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Étapes du projet */}
+        <section className="py-20 px-6 bg-gradient-to-br from-blue-50 to-cyan-50">
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
+              Votre parcours avec nous
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="bg-white rounded-2xl p-8 shadow-lg"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4">
+                    {index + 1}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
+                  <p className="text-gray-600">{step.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Organisation */}
+        <section className="py-20 px-6 bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-700">
+          <div className="container mx-auto max-w-4xl text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                Prêt à commencer ?
+              </h2>
+              <p className="text-xl text-blue-100 mb-8">
+                Connectez-vous à votre espace client pour suivre votre projet
+              </p>
+              <Button
+                onClick={() => navigate('/client-access')}
+                className="bg-white text-blue-600 hover:bg-gray-100 rounded-full px-10 py-6 text-lg shadow-xl font-semibold"
+              >
+                Accéder à mon espace
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+      </>
+    )
+  }
+
+  // Loading state - attendre que l'organisation soit résolue
+  if (organizationLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Loading state pour les organisations tierces (chargement de la config)
+  if (!isPlatform && configLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
     <>
       <Helmet>
@@ -216,14 +351,14 @@ export default function Landing() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 flex items-center justify-center">
                   <img
-                    src={logoUrl}
-                    alt="EVATIME Logo"
+                    src={displayLogo}
+                    alt={`${displayName} Logo`}
                     className="w-full h-full object-contain"
                   />
                 </div>
                 <div>
                   <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                    EVATIME
+                    {displayName}
                   </span>
                 </div>
               </div>
@@ -245,6 +380,11 @@ export default function Landing() {
           </div>
         </header>
 
+        {/* Contenu conditionnel */}
+        {!isPlatform && renderOrganizationContent()}
+        
+        {isPlatform && (
+        <>
         {/* Hero */}
         <section className="pt-32 pb-20 px-6">
           <div className="container mx-auto max-w-6xl">
@@ -648,6 +788,8 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
+        </>
+        )}
 
         {/* Footer */}
         <footer className="bg-gray-900 text-white py-12 px-6">

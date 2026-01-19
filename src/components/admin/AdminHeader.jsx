@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
     import { NavLink, Link, useNavigate, useSearchParams } from 'react-router-dom';
     import { motion, AnimatePresence } from 'framer-motion';
-    import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2 } from 'lucide-react';
+    import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2, Globe } from 'lucide-react';
     import { Button } from '@/components/ui/button';
     import {
       DropdownMenu,
@@ -24,8 +24,9 @@ const navItems = [
   { name: 'Pipeline', path: '/admin/pipeline', icon: LayoutGrid },
   { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
   { name: 'Contacts', path: '/admin/contacts', icon: Users },
-  { name: 'Charly AI', path: '/admin/charly', icon: Bot }, // Updated label
+  { name: 'Charly AI', path: '/admin/charly', icon: Bot },
   { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings },
+  { name: 'Landing Page', path: '/admin/landing-page', icon: Globe },
 ];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;
