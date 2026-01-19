@@ -247,13 +247,21 @@ export default function Landing() {
               <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto">
                 {heroSubtitle}
               </p>
-              <div className="flex justify-center">
+              <div className="flex justify-center items-center gap-4">
                 <Button
                   onClick={() => navigate('/client-access')}
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full px-10 py-6 text-lg font-semibold"
                 >
                   {ctaText}
                 </Button>
+                {showHowItWorks && (
+                  <button
+                    onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-green-600 hover:text-green-700 font-medium text-lg transition-colors"
+                  >
+                    Comment ça marche ?
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>
@@ -261,7 +269,7 @@ export default function Landing() {
 
         {/* Étapes du projet - Affichage conditionnel */}
         {showHowItWorks && (
-        <section className="py-20 px-6 bg-gradient-to-br from-blue-50 to-cyan-50">
+        <section id="how-it-works" className="py-20 px-6 bg-gradient-to-br from-blue-50 to-cyan-50">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
               {config.how_it_works_title || "Comment ça marche ?"}

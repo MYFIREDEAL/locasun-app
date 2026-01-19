@@ -143,7 +143,7 @@ const LandingPageConfigPage = () => {
             </div>
             <div className="flex gap-2">
               <span className="px-4 py-2 rounded-full bg-green-500 text-white text-sm font-medium">Espace Pro</span>
-              <span className="px-4 py-2 rounded-full bg-green-600 text-white text-sm font-medium">Espace Client</span>
+              <span className="px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">Espace Client</span>
             </div>
           </div>
 
@@ -178,7 +178,7 @@ const LandingPageConfigPage = () => {
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col items-center gap-4 pt-4">
+              <div className="flex items-center justify-center gap-4 pt-4">
                 <button className="px-8 py-4 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold text-lg transition-colors">
                   <InlineEditable
                     value={config.hero_cta_text}
@@ -188,10 +188,15 @@ const LandingPageConfigPage = () => {
                     inputClassName="text-center"
                   />
                 </button>
-                <span className="text-xs text-gray-400">
-                  Ce bouton redirige toujours vers la création de compte
-                </span>
+                {config.show_how_it_works !== false && (
+                  <span className="text-green-600 font-medium cursor-pointer hover:text-green-700">
+                    Comment ça marche ?
+                  </span>
+                )}
               </div>
+              <p className="text-xs text-gray-400 text-center mt-2">
+                Le bouton redirige toujours vers la création de compte
+              </p>
             </div>
           </div>
 
