@@ -85,10 +85,10 @@ const ProLoginPage = () => {
       // ✅ Activer l'écran de redirection (évite l'écran blanc)
       setIsRedirecting(true);
       
-      // ⏱️ Délai pour afficher l'écran de transition (UX professionnelle)
+      // ⏱️ Délai optimal UX B2B (standard Notion/Slack: 1200ms)
       setTimeout(() => {
         window.location.href = '/admin';
-      }, 800);
+      }, 1200);
     } catch (error) {
       logger.error('Pro login error:', error);
       toast({
