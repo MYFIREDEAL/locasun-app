@@ -85,8 +85,10 @@ const ProLoginPage = () => {
       // ✅ Activer l'écran de redirection (évite l'écran blanc)
       setIsRedirecting(true);
       
-      // 🔥 Hard reload pour éviter les problèmes de state React
-      window.location.href = '/admin';
+      // ⏱️ Délai pour afficher l'écran de transition (UX professionnelle)
+      setTimeout(() => {
+        window.location.href = '/admin';
+      }, 800);
     } catch (error) {
       logger.error('Pro login error:', error);
       toast({

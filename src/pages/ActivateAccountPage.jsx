@@ -193,8 +193,10 @@ const ActivateAccountPage = () => {
       // ✅ Activer l'écran de redirection
       setIsRedirecting(true);
 
-      // Redirection vers l'espace admin (hard reload pour éviter les problèmes de state)
-      window.location.href = '/admin/pipeline';
+      // ⏱️ Délai pour afficher l'écran de transition (UX professionnelle)
+      setTimeout(() => {
+        window.location.href = '/admin/pipeline';
+      }, 800);
 
     } catch (error) {
       logger.error('Erreur activation compte:', error);
