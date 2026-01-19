@@ -16,7 +16,6 @@ const ProLoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleProLogin = async (e) => {
     e.preventDefault();
@@ -82,12 +81,9 @@ const ProLoginPage = () => {
       
       setActiveAdminUser(transformedUserData);
       
-      // ✅ Activer l'écran de redirection (évite l'écran blanc)
-      setIsRedirecting(true);
-      
-      // ⏱️ Délai optimal UX B2B (standard Notion/Slack: 1200ms)
+      // ✅ Navigation React Router (pas de reload, pas d'écran blanc)
       setTimeout(() => {
-        window.location.href = '/admin';
+        navigate('/admin/pipeline');
       }, 1200);
     } catch (error) {
       logger.error('Pro login error:', error);
@@ -103,26 +99,6 @@ const ProLoginPage = () => {
   const handleForgotPassword = () => {
     navigate('/reset-password');
   };
-
-  // ✅ ÉCRAN DE REDIRECTION (évite l'écran blanc post-login)
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
-        >
-          <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Loader2 className="h-8 w-8 text-green-600 animate-spin" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Connexion réussie !</h2>
-          <p className="text-gray-600 mb-2">Chargement de votre espace EVATIME...</p>
-          <p className="text-sm text-gray-500">Vous allez être redirigé automatiquement.</p>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex flex-col items-center justify-center px-4">
