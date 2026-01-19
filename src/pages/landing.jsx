@@ -220,10 +220,11 @@ export default function Landing() {
   // Contenu pour les organisations tierces (non-EVATIME)
   const renderOrganizationContent = () => {
     const config = landingConfig || {}
-    const heroTitle = config.heroTitle || `Bienvenue chez ${displayName}`
-    const heroSubtitle = config.heroSubtitle || "Suivez l'avancement de votre projet en temps réel"
-    const ctaText = config.ctaText || "Accéder à mon espace"
-    const steps = config.steps || [
+    const heroTitle = config.hero_title || `Bienvenue chez ${displayName}`
+    const heroSubtitle = config.hero_subtitle || "Suivez l'avancement de votre projet en temps réel"
+    const ctaText = config.hero_cta_text || "Je démarre mon projet"
+    const showHowItWorks = config.show_how_it_works !== false // Par défaut true
+    const steps = config.blocks || [
       { title: "Étude", description: "Analyse de votre projet" },
       { title: "Installation", description: "Réalisation des travaux" },
       { title: "Suivi", description: "Accompagnement continu" },
@@ -249,21 +250,21 @@ export default function Landing() {
               <div className="flex justify-center">
                 <Button
                   onClick={() => navigate('/client-access')}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-10 py-6 text-lg"
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full px-10 py-6 text-lg font-semibold"
                 >
                   {ctaText}
-                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* Étapes du projet */}
+        {/* Étapes du projet - Affichage conditionnel */}
+        {showHowItWorks && (
         <section className="py-20 px-6 bg-gradient-to-br from-blue-50 to-cyan-50">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
-              Votre parcours avec nous
+              {config.how_it_works_title || "Comment ça marche ?"}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {steps.map((step, index) => (
@@ -275,8 +276,8 @@ export default function Landing() {
                   viewport={{ once: true }}
                   className="bg-white rounded-2xl p-8 shadow-lg"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4">
-                    {index + 1}
+                  <div className="w-16 h-16 flex items-center justify-center text-4xl mb-4">
+                    {step.icon || (index + 1)}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
                   <p className="text-gray-600">{step.description}</p>
@@ -285,6 +286,7 @@ export default function Landing() {
             </div>
           </div>
         </section>
+        )}
 
         {/* CTA Organisation */}
         <section className="py-20 px-6 bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-700">
@@ -295,18 +297,14 @@ export default function Landing() {
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-8">
                 Prêt à commencer ?
               </h2>
-              <p className="text-xl text-blue-100 mb-8">
-                Connectez-vous à votre espace client pour suivre votre projet
-              </p>
               <Button
                 onClick={() => navigate('/client-access')}
                 className="bg-white text-blue-600 hover:bg-gray-100 rounded-full px-10 py-6 text-lg shadow-xl font-semibold"
               >
-                Accéder à mon espace
-                <ArrowRight className="ml-2 h-5 w-5" />
+                {ctaText}
               </Button>
             </motion.div>
           </div>

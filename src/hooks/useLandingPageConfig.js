@@ -35,8 +35,8 @@ export const useLandingPageConfig = (organizationId) => {
     hero_title: 'Gagnez 35% sur votre électricité, garantis entre 5 et 10 ans ⚡',
     hero_subtitle: 'grâce à une centrale solaire à côté de chez vous 🚀',
     hero_cta_text: 'Je démarre mon projet',
-    hero_cta_link: '/inscription',
-    hero_secondary_cta_text: 'Comment ça marche ?',
+    hero_cta_link: '/client-access', // Toujours création de compte
+    show_how_it_works: true, // Toggle pour afficher/masquer la section "Comment ça marche"
     how_it_works_title: 'Comment ça marche ?',
     how_it_works_subtitle: 'Un système simple et transparent qui permet de consommer l\'électricité produite par une centrale solaire locale, avec des économies garanties.',
     blocks: getDefaultBlocks()

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, RotateCcw, ExternalLink, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { InlineEditable, InlineEditableIcon } from '@/components/ui/inline-editable';
 import { useLandingPageConfig } from '@/hooks/useLandingPageConfig';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -177,43 +178,39 @@ const LandingPageConfigPage = () => {
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <div className="flex flex-col items-center">
-                  <button className="px-8 py-4 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold text-lg transition-colors">
-                    <InlineEditable
-                      value={config.hero_cta_text}
-                      onSave={(value) => handleFieldSave('hero_cta_text', value)}
-                      placeholder="Texte du bouton..."
-                      className="text-white font-semibold"
-                      inputClassName="text-center"
-                    />
-                  </button>
-                  <span className="text-xs text-gray-400 mt-2">
-                    → 
-                    <InlineEditable
-                      value={config.hero_cta_link}
-                      onSave={(value) => handleFieldSave('hero_cta_link', value)}
-                      placeholder="/inscription"
-                      className="text-xs text-gray-400"
-                      inputClassName="text-xs"
-                    />
-                  </span>
-                </div>
-                
-                <button className="px-6 py-3 text-green-600 hover:text-green-700 font-medium transition-colors">
+              <div className="flex flex-col items-center gap-4 pt-4">
+                <button className="px-8 py-4 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold text-lg transition-colors">
                   <InlineEditable
-                    value={config.hero_secondary_cta_text}
-                    onSave={(value) => handleFieldSave('hero_secondary_cta_text', value)}
-                    placeholder="Lien secondaire..."
-                    className="text-green-600 font-medium"
+                    value={config.hero_cta_text}
+                    onSave={(value) => handleFieldSave('hero_cta_text', value)}
+                    placeholder="Texte du bouton..."
+                    className="text-white font-semibold"
                     inputClassName="text-center"
                   />
                 </button>
+                <span className="text-xs text-gray-400">
+                  Ce bouton redirige toujours vers la création de compte
+                </span>
               </div>
             </div>
           </div>
 
-          {/* How it Works Section */}
+          {/* Toggle "Comment ça marche" */}
+          <div className="px-8 py-4 bg-gray-50 border-t border-b border-gray-200">
+            <div className="flex items-center justify-between max-w-4xl mx-auto">
+              <div>
+                <h3 className="font-semibold text-gray-900">Section "Comment ça marche"</h3>
+                <p className="text-sm text-gray-500">Afficher les 3 blocs explicatifs sur la landing page</p>
+              </div>
+              <Switch
+                checked={config.show_how_it_works !== false}
+                onCheckedChange={(checked) => handleFieldSave('show_how_it_works', checked)}
+              />
+            </div>
+          </div>
+
+          {/* How it Works Section - Conditionnel */}
+          {config.show_how_it_works !== false && (
           <div className="px-8 py-16 bg-white">
             <div className="max-w-4xl mx-auto text-center space-y-12">
               {/* Section Title - EDITABLE */}
@@ -290,6 +287,7 @@ const LandingPageConfigPage = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Footer Preview */}
           <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 text-center text-sm text-gray-500">
