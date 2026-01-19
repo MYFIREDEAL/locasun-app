@@ -32,42 +32,59 @@ const ActivateAccountPage = () => {
     const validateToken = async () => {
       try {
         // 🔥 CRITIQUE : Consommer le token d'invitation Supabase
-        // inviteUserByEmail() génère un lien avec ?code=... (PKCE flow)
-        // On DOIT appeler getSessionFromUrl() pour consommer ce token
+        // inviteUserByEmail() génère un lien avec ?code=... ou #access_token=...
         logger.info('🔐 Consommation du token d\'invitation...');
         
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSessionFromUrl({
-          storeSession: true, // ✅ Stocker la session
-        });
+        // Méthode 1 : Vérifier si on a un hash (#access_token) ou un code (?code)
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const queryParams = new URLSearchParams(window.location.search);
+        
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const code = queryParams.get('code');
 
-        if (sessionError) {
-          logger.error('❌ Erreur getSessionFromUrl:', sessionError);
-          toast({
-            title: "Lien invalide ou expiré",
-            description: "Ce lien d'activation n'est plus valide. Veuillez demander une nouvelle invitation.",
-            variant: "destructive",
+        let session = null;
+
+        if (code) {
+          // PKCE flow : échanger le code contre une session
+          logger.info('📝 Code PKCE détecté, échange en cours...');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (error) {
+            logger.error('❌ Erreur exchangeCodeForSession:', error);
+            throw new Error('Code invalide ou expiré');
+          }
+          
+          session = data.session;
+        } else if (accessToken) {
+          // Hash token : établir la session directement
+          logger.info('🔑 Access token détecté, établissement session...');
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
           });
-          setValidatingToken(false);
-          setTokenValid(false);
-          return;
+          
+          if (error) {
+            logger.error('❌ Erreur setSession:', error);
+            throw new Error('Token invalide ou expiré');
+          }
+          
+          session = data.session;
+        } else {
+          // Aucun token trouvé
+          logger.error('❌ Aucun token trouvé dans l\'URL');
+          throw new Error('Lien invalide - aucun token trouvé');
         }
 
-        if (!sessionData?.session) {
-          logger.error('❌ Aucune session retournée');
-          toast({
-            title: "Lien invalide",
-            description: "Impossible de créer une session. Le lien a peut-être expiré.",
-            variant: "destructive",
-          });
-          setValidatingToken(false);
-          setTokenValid(false);
-          return;
+        if (!session) {
+          logger.error('❌ Aucune session créée');
+          throw new Error('Impossible de créer une session');
         }
 
         // Nettoyer l'URL pour enlever les paramètres
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        const user = sessionData.session.user;
+        const user = session.user;
 
         if (!user || !user.email) {
           toast({
@@ -107,8 +124,8 @@ const ActivateAccountPage = () => {
       } catch (error) {
         logger.error('Erreur validation token:', error);
         toast({
-          title: "Erreur",
-          description: "Une erreur est survenue lors de la validation du lien.",
+          title: "Lien invalide ou expiré",
+          description: error.message || "Ce lien d'activation n'est plus valide.",
           variant: "destructive",
         });
         setValidatingToken(false);
