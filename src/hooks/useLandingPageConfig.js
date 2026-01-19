@@ -143,7 +143,7 @@ export const useLandingPageConfig = (organizationId) => {
       hero_subtitle: config.hero_subtitle || defaults.hero_subtitle,
       hero_cta_text: config.hero_cta_text || defaults.hero_cta_text,
       hero_cta_link: config.hero_cta_link || defaults.hero_cta_link,
-      hero_secondary_cta_text: config.hero_secondary_cta_text || defaults.hero_secondary_cta_text,
+      show_how_it_works: config.show_how_it_works !== undefined ? config.show_how_it_works : defaults.show_how_it_works,
       how_it_works_title: config.how_it_works_title || defaults.how_it_works_title,
       how_it_works_subtitle: config.how_it_works_subtitle || defaults.how_it_works_subtitle,
       blocks: config.blocks || defaults.blocks
@@ -311,17 +311,21 @@ export const useLandingPageConfig = (organizationId) => {
   };
 
   /**
-   * Réinitialiser la landing page aux valeurs par défaut
+   * Réinitialiser aux valeurs par défaut
    */
   const resetToDefaults = async () => {
     return saveLandingConfig(getDefaultConfig());
   };
 
+  // Config calculée pour accès direct
+  const landingConfig = getLandingConfig();
+
   return {
     settings,
     loading,
     error,
-    getLandingConfig,
+    landingConfig, // Accès direct à la config (pour Landing.jsx)
+    getLandingConfig, // Fonction pour obtenir la config
     updateLandingField,
     updateLandingBlock,
     saveLandingConfig,
