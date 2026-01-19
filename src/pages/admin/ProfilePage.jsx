@@ -1997,7 +1997,6 @@ const ProfilePage = () => {
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
-    password: '',
     role: 'commercial',
     manager: ''
   });
@@ -2755,10 +2754,10 @@ const ProfilePage = () => {
   const handleInviteUser = async () => {
     try {
       // Validation des champs
-      if (!newUser.name || !newUser.email || !newUser.password) {
+      if (!newUser.name || !newUser.email) {
         toast({
           title: "Champs manquants",
-          description: "Veuillez remplir tous les champs obligatoires.",
+          description: "Veuillez remplir le nom et l'email.",
           variant: "destructive"
         });
         return;
@@ -2773,7 +2772,6 @@ const ProfilePage = () => {
       await addUser({
         name: newUser.name,
         email: newUser.email,
-        password: newUser.password,
         role: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),
         manager: newUser.manager === 'none' ? '' : newUser.manager,
         phone: newUser.phone || '',
@@ -2789,7 +2787,6 @@ const ProfilePage = () => {
       setNewUser({
         name: '',
         email: '',
-        password: '',
         role: 'commercial',
         manager: ''
       });
@@ -3435,7 +3432,7 @@ const ProfilePage = () => {
                       <DialogHeader>
                         <DialogTitle>Inviter un nouvel utilisateur</DialogTitle>
                         <DialogDescription>
-                          Remplissez les informations ci-dessous pour ajouter un nouveau membre à votre équipe.
+                          L'utilisateur recevra un email pour créer son mot de passe et activer son compte.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="grid gap-4 py-4 px-6">
@@ -3446,10 +3443,6 @@ const ProfilePage = () => {
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="invite-email" className="text-right col-span-1">Email</Label>
                           <Input id="invite-email" type="email" className="col-span-3" value={newUser.email} onChange={e => handleNewUserChange('email', e.target.value)} />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="invite-password" className="text-right col-span-1">Mot de passe</Label>
-                          <Input id="invite-password" type="password" className="col-span-3" value={newUser.password} onChange={e => handleNewUserChange('password', e.target.value)} />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="invite-role" className="text-right col-span-1">Rôle</Label>
@@ -3482,7 +3475,7 @@ const ProfilePage = () => {
                           disabled={!isOrganizationReady}
                           className="bg-blue-600 hover:bg-blue-700"
                         >
-                          Inviter
+                          Envoyer une invitation
                         </Button>
                       </DialogFooter>
                     </DialogContent>

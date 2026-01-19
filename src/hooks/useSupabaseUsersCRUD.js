@@ -114,6 +114,24 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
    * @param {string} userData.phone - Téléphone (optionnel)
    * @param {Object} userData.accessRights - Droits d'accès (optionnel)
    */
+  /**
+   * ✅ AJOUTER UN UTILISATEUR (INVITATION)
+   * 
+   * ⚠️ NOUVEAU FLOW EVATIME :
+   * - Pas de mot de passe défini par l'admin
+   * - Appel Edge Function invite-user (admin.inviteUserByEmail)
+   * - User reçoit email avec lien vers /activate-account
+   * - User crée son propre mot de passe
+   * 
+   * @param {Object} userData - Données du nouvel utilisateur
+   * @param {string} userData.name - Nom complet
+   * @param {string} userData.email - Email (doit être unique)
+   * @param {string} userData.role - Rôle ('Global Admin', 'Manager', 'Commercial')
+   * @param {string} userData.organizationId - UUID de l'organisation (REQUIS)
+   * @param {string} userData.manager - Nom du manager (optionnel)
+   * @param {string} userData.phone - Téléphone (optionnel)
+   * @param {Object} userData.accessRights - Droits d'accès (optionnel)
+   */
   const addUser = async (userData) => {
     try {
       // 🔒 GUARD BLOQUANT : organization_id requis
@@ -121,30 +139,9 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
         throw new Error("OrganizationId manquant — insert users bloqué");
       }
 
-      // 1️⃣ Créer l'utilisateur dans auth.users (Supabase Auth)
-      // 🔥 NOUVEAU : Redirection vers /activate-account pour définir le mot de passe
-      const appUrl = window.location.origin;
-      const redirectUrl = `${appUrl}/activate-account`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password, // Mot de passe temporaire (sera changé par l'utilisateur)
-        options: {
-          data: {
-            name: userData.name,
-            role: userData.role,
-          },
-          emailRedirectTo: redirectUrl, // ✅ Redirection vers page d'activation
-        }
-      });
-
-      if (authError) throw new Error(`Auth error: ${authError.message}`);
-      if (!authData?.user) throw new Error('Échec de création du compte utilisateur');
-
-      // 2️⃣ Trouver l'UUID du manager si spécifié
+      // 1️⃣ Trouver l'UUID du manager si spécifié
       let managerId = null;
       if (userData.manager && userData.manager !== 'none' && userData.manager !== '') {
-        // 🔥 FIX : manager_id doit être un UUID (user_id), pas un integer (id)
         const { data: managerData } = await supabase
           .from('users')
           .select('user_id')
@@ -156,48 +153,54 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
         }
       }
 
-      // 3️⃣ Créer l'entrée dans public.users
-      const dbUser = {
-        user_id: authData.user.id, // Lien vers auth.users
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        manager_id: managerId,
-        phone: userData.phone || null,
-        access_rights: userData.accessRights || {
-          modules: ['Pipeline', 'Agenda', 'Contacts'],
-          users: []
+      // 2️⃣ Appeler l'Edge Function invite-user
+      // ✅ Cette fonction utilise admin.inviteUserByEmail (SERVICE_ROLE_KEY)
+      // ✅ Aucun mot de passe défini - l'utilisateur le créera
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/invite-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
         },
-        organization_id: userData.organizationId, // ✅ Depuis userData
-      };
+        body: JSON.stringify({
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          managerId: managerId,
+          organizationId: userData.organizationId,
+          accessRights: userData.accessRights || {
+            modules: ['Pipeline', 'Agenda', 'Contacts'],
+            users: []
+          },
+          phone: userData.phone || null,
+        }),
+      });
 
-      const { data: publicUserData, error: publicUserError } = await supabase
-        .from('users')
-        .insert([dbUser])
-        .select()
-        .single();
-
-      if (publicUserError) {
-        logger.error('❌ Error creating public user:', publicUserError);
-        throw new Error(`Public user error: ${publicUserError.message}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de l\'invitation');
       }
+
+      const { user: publicUserData } = await response.json();
 
       // 🔥 Ajouter manuellement à la liste (le real-time devrait le faire, mais on force au cas où)
       setUsers(prev => [...prev, publicUserData]);
 
-      // ✅ Le real-time va automatiquement ajouter l'utilisateur à la liste
+      // ✅ Succès
       toast({
-        title: "Succès !",
-        description: `${userData.name} a été ajouté avec succès.`,
+        title: "Invitation envoyée !",
+        description: `${userData.name} recevra un email pour créer son mot de passe.`,
         className: "bg-green-500 text-white",
       });
 
       return publicUserData;
     } catch (err) {
-      logger.error('❌ Erreur ajout utilisateur:', err);
+      logger.error('❌ Erreur invitation utilisateur:', err);
       toast({
         title: "Erreur",
-        description: err.message || "Impossible d'ajouter l'utilisateur.",
+        description: err.message || "Impossible d'inviter l'utilisateur.",
         variant: "destructive",
       });
       throw err;
