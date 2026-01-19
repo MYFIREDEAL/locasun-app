@@ -31,49 +31,20 @@ const ActivateAccountPage = () => {
   useEffect(() => {
     const validateToken = async () => {
       try {
-        // 1) Parser le fragment : Supabase envoie le token dans le hash (#access_token=...)
-        const hash = window.location.hash;
+        // 🔥 CRITIQUE : Consommer le token d'invitation Supabase
+        // inviteUserByEmail() génère un lien avec ?code=... (PKCE flow)
+        // On DOIT appeler getSessionFromUrl() pour consommer ce token
+        logger.info('🔐 Consommation du token d\'invitation...');
         
-        if (!hash || hash.length === 0) {
-          logger.warn('⚠️ Aucun fragment trouvé dans l\'URL');
-          toast({
-            title: "Lien invalide",
-            description: "Ce lien d'activation n'est pas valide.",
-            variant: "destructive",
-          });
-          setValidatingToken(false);
-          setTokenValid(false);
-          return;
-        }
-
-        const cleaned = hash.startsWith('#') ? hash.slice(1) : hash;
-        const hashParams = new URLSearchParams(cleaned);
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-
-        if (!accessToken) {
-          logger.error('❌ Pas d\'access_token dans le fragment');
-          toast({
-            title: "Lien invalide",
-            description: "Ce lien d'activation a expiré ou n'est pas valide.",
-            variant: "destructive",
-          });
-          setValidatingToken(false);
-          setTokenValid(false);
-          return;
-        }
-
-        // 2) Établir la session avec le token
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSessionFromUrl({
+          storeSession: true, // ✅ Stocker la session
         });
 
         if (sessionError) {
-          logger.error('❌ Erreur setSession:', sessionError);
+          logger.error('❌ Erreur getSessionFromUrl:', sessionError);
           toast({
-            title: "Lien expiré",
-            description: "Ce lien d'activation a expiré. Veuillez demander une nouvelle invitation.",
+            title: "Lien invalide ou expiré",
+            description: "Ce lien d'activation n'est plus valide. Veuillez demander une nouvelle invitation.",
             variant: "destructive",
           });
           setValidatingToken(false);
@@ -81,10 +52,22 @@ const ActivateAccountPage = () => {
           return;
         }
 
-        // 3) Nettoyer l'URL pour enlever le fragment
-        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        if (!sessionData?.session) {
+          logger.error('❌ Aucune session retournée');
+          toast({
+            title: "Lien invalide",
+            description: "Impossible de créer une session. Le lien a peut-être expiré.",
+            variant: "destructive",
+          });
+          setValidatingToken(false);
+          setTokenValid(false);
+          return;
+        }
 
-        const user = sessionData.user;
+        // Nettoyer l'URL pour enlever les paramètres
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        const user = sessionData.session.user;
 
         if (!user || !user.email) {
           toast({
@@ -170,6 +153,23 @@ const ActivateAccountPage = () => {
     setLoading(true);
 
     try {
+      // ✅ La session existe déjà (créée par getSessionFromUrl)
+      // Vérifier qu'on a bien une session active
+      const { data: { session }, error: sessionCheckError } = await supabase.auth.getSession();
+      
+      if (sessionCheckError || !session) {
+        logger.error('❌ Pas de session active avant updateUser');
+        toast({
+          title: "Erreur de session",
+          description: "Votre session a expiré. Veuillez demander un nouveau lien.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      logger.info('✅ Session active, mise à jour du mot de passe...');
+
       // Mettre à jour le mot de passe de l'utilisateur
       const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password
