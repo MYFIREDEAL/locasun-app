@@ -23,6 +23,7 @@ const ActivateAccountPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [validatingSession, setValidatingSession] = useState(true);
   const [sessionValid, setSessionValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -189,10 +190,11 @@ const ActivateAccountPage = () => {
 
       setActiveAdminUser(transformedUserData);
 
-      // Redirection vers l'espace admin
-      setTimeout(() => {
-        window.location.href = '/admin/pipeline';
-      }, 1000);
+      // ✅ Activer l'écran de redirection
+      setIsRedirecting(true);
+
+      // Redirection vers l'espace admin (hard reload pour éviter les problèmes de state)
+      window.location.href = '/admin/pipeline';
 
     } catch (error) {
       logger.error('Erreur activation compte:', error);
@@ -244,6 +246,26 @@ const ActivateAccountPage = () => {
           >
             Retour à la connexion
           </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ✅ ÉCRAN DE REDIRECTION (évite l'écran blanc)
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
+        >
+          <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Loader2 className="h-8 w-8 text-green-600 animate-spin" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Activation réussie !</h2>
+          <p className="text-gray-600 mb-2">Votre compte a été activé avec succès.</p>
+          <p className="text-sm text-gray-500">Redirection vers votre espace professionnel...</p>
         </motion.div>
       </div>
     );
