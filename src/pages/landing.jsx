@@ -250,14 +250,14 @@ export default function Landing() {
               <div className="flex justify-center items-center gap-4">
                 <Button
                   onClick={() => navigate('/client-access')}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full px-10 py-6 text-lg font-semibold"
+                  className="bg-[#22c55e] hover:bg-[#16a34a] hover:scale-105 text-white rounded-full px-10 py-6 text-lg font-semibold transition-transform duration-200"
                 >
                   {ctaText}
                 </Button>
                 {showHowItWorks && (
                   <button
                     onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="text-green-600 hover:text-green-700 font-medium text-lg transition-colors"
+                    className="text-[#22c55e] hover:text-[#16a34a] font-medium text-lg transition-colors"
                   >
                     {config.how_it_works_title || "Comment ça marche ?"}
                   </button>
@@ -282,7 +282,7 @@ export default function Landing() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className="bg-white rounded-2xl p-8 shadow-lg"
+                  className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow"
                 >
                   <div className="w-16 h-16 flex items-center justify-center text-4xl mb-4">
                     {step.icon || (index + 1)}
@@ -371,13 +371,13 @@ export default function Landing() {
               <div className="flex items-center gap-3">
                 <Button
                   onClick={() => navigate('/login')}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-full px-6"
+                  className="bg-[#22c55e] hover:bg-[#16a34a] hover:scale-105 text-white rounded-full px-6 font-medium transition-transform duration-200"
                 >
                   Espace Pro
                 </Button>
                 <Button
                   onClick={() => navigate('/client-access')}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-full px-6"
+                  className="bg-[#0ea5e9] hover:bg-[#0284c7] hover:scale-105 text-white rounded-full px-6 font-medium transition-transform duration-200"
                 >
                   Espace Client
                 </Button>

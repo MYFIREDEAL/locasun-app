@@ -182,10 +182,14 @@ export const InlineEditableIcon = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value || '📋');
-  const inputRef = useRef(null);
+  const popoverRef = useRef(null);
 
-  // Common emojis for blocks
-  const commonEmojis = ['📋', '🔧', '✅', '📞', '💡', '🎯', '🚀', '⭐', '📊', '💰', '🏠', '☀️', '🔋', '⚡'];
+  // Common emojis for blocks - inclut ceux de locasun.io
+  const commonEmojis = [
+    '☀️', '🤝', '�', '⚡', '�', '�', '�', '🌱',
+    '�', '🔧', '✅', '📞', '🎯', '⭐', '📊', '💰',
+    '👥', '�', '📈', '💼', '🛠️', '�', '🎉', '✨'
+  ];
 
   useEffect(() => {
     if (!isEditing) {
@@ -193,9 +197,23 @@ export const InlineEditableIcon = ({
     }
   }, [value, isEditing]);
 
+  // Fermer le picker en cliquant en dehors
+  useEffect(() => {
+    if (isEditing) {
+      const handleClickOutside = (e) => {
+        if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+          setIsEditing(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditing]);
+
   const handleSelect = async (emoji) => {
     try {
       await onSave(emoji);
+      setEditValue(emoji);
       setIsEditing(false);
     } catch (error) {
       console.error('InlineEditableIcon save error:', error);
@@ -204,26 +222,25 @@ export const InlineEditableIcon = ({
 
   if (isEditing) {
     return (
-      <div className="relative">
-        <div className="absolute top-full left-0 mt-2 p-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 grid grid-cols-7 gap-1">
+      <div className="relative inline-block" ref={popoverRef}>
+        <button
+          type="button"
+          className="text-4xl"
+        >
+          {editValue}
+        </button>
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-3 bg-white rounded-xl shadow-xl border border-gray-200 z-50 grid grid-cols-8 gap-2 min-w-[280px]">
           {commonEmojis.map((emoji) => (
             <button
               key={emoji}
               type="button"
               onClick={() => handleSelect(emoji)}
-              className="w-8 h-8 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-xl hover:bg-blue-50 hover:scale-125 rounded-lg transition-all duration-150"
             >
               {emoji}
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setIsEditing(false)}
-          className="text-4xl hover:scale-110 transition-transform"
-        >
-          {editValue}
-        </button>
       </div>
     );
   }

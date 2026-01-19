@@ -142,8 +142,8 @@ const LandingPageConfigPage = () => {
               <span className="font-semibold text-gray-700">{brandName || 'Votre entreprise'}</span>
             </div>
             <div className="flex gap-2">
-              <span className="px-4 py-2 rounded-full bg-green-500 text-white text-sm font-medium">Espace Pro</span>
-              <span className="px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-medium">Espace Client</span>
+              <span className="px-4 py-2 rounded-full bg-[#22c55e] text-white text-sm font-medium">Espace Pro</span>
+              <span className="px-4 py-2 rounded-full bg-[#0ea5e9] text-white text-sm font-medium">Espace Client</span>
             </div>
           </div>
 
@@ -179,7 +179,7 @@ const LandingPageConfigPage = () => {
 
               {/* CTA Buttons */}
               <div className="flex items-center justify-center gap-4 pt-4">
-                <button className="px-8 py-4 bg-green-500 hover:bg-green-600 text-white rounded-full font-semibold text-lg transition-colors">
+                <button className="px-8 py-4 bg-[#22c55e] hover:bg-[#16a34a] text-white rounded-full font-semibold text-lg transition-colors">
                   <InlineEditable
                     value={config.hero_cta_text}
                     onSave={(value) => handleFieldSave('hero_cta_text', value)}
@@ -189,12 +189,12 @@ const LandingPageConfigPage = () => {
                   />
                 </button>
                 {config.show_how_it_works !== false && (
-                  <span className="text-green-600 font-medium cursor-pointer hover:text-green-700">
+                  <span className="text-[#22c55e] font-medium cursor-pointer hover:text-[#16a34a]">
                     <InlineEditable
                       value={config.how_it_works_title}
                       onSave={(value) => handleFieldSave('how_it_works_title', value)}
                       placeholder="Comment ça marche ?"
-                      className="text-green-600 font-medium"
+                      className="text-[#22c55e] font-medium"
                       inputClassName="text-center"
                     />
                   </span>
