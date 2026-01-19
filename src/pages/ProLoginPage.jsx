@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,7 @@ const ProLoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleProLogin = async (e) => {
     e.preventDefault();
@@ -59,7 +61,7 @@ const ProLoginPage = () => {
       // Connexion PRO réussie
       toast({
         title: "Connexion réussie !",
-        description: "Redirection vers l'espace pro...",
+        description: "Chargement de votre espace...",
         className: "bg-green-500 text-white",
       });
       
@@ -80,10 +82,11 @@ const ProLoginPage = () => {
       
       setActiveAdminUser(transformedUserData);
       
-      // 🔥 Hard reload pour éviter React Error #310 (hooks mismatch)
-      setTimeout(() => {
-        window.location.href = '/admin';
-      }, 500);
+      // ✅ Activer l'écran de redirection (évite l'écran blanc)
+      setIsRedirecting(true);
+      
+      // 🔥 Hard reload pour éviter les problèmes de state React
+      window.location.href = '/admin';
     } catch (error) {
       logger.error('Pro login error:', error);
       toast({
@@ -98,6 +101,26 @@ const ProLoginPage = () => {
   const handleForgotPassword = () => {
     navigate('/reset-password');
   };
+
+  // ✅ ÉCRAN DE REDIRECTION (évite l'écran blanc post-login)
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center"
+        >
+          <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Loader2 className="h-8 w-8 text-green-600 animate-spin" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Connexion réussie !</h2>
+          <p className="text-gray-600 mb-2">Chargement de votre espace EVATIME...</p>
+          <p className="text-sm text-gray-500">Vous allez être redirigé automatiquement.</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex flex-col items-center justify-center px-4">
