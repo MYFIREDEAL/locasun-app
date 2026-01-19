@@ -122,15 +122,19 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
       }
 
       // 1️⃣ Créer l'utilisateur dans auth.users (Supabase Auth)
-      // Note: signUp() envoie un email de confirmation par défaut
+      // 🔥 NOUVEAU : Redirection vers /activate-account pour définir le mot de passe
+      const appUrl = window.location.origin;
+      const redirectUrl = `${appUrl}/activate-account`;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
-        password: userData.password,
+        password: userData.password, // Mot de passe temporaire (sera changé par l'utilisateur)
         options: {
           data: {
             name: userData.name,
             role: userData.role,
-          }
+          },
+          emailRedirectTo: redirectUrl, // ✅ Redirection vers page d'activation
         }
       });
 

@@ -22,6 +22,7 @@ import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
 import ActivationPage from '@/pages/client/ActivationPage';
+import ActivateAccountPage from '@/pages/ActivateAccountPage';
 import OrganizationsListPage from '@/pages/platform/OrganizationsListPage';
 import OrganizationDetailPage from '@/pages/platform/OrganizationDetailPage';
 import PlatformLoginPage from '@/pages/platform/PlatformLoginPage';
@@ -1451,6 +1452,7 @@ function App() {
         <Route path="/landing" element={<Landing />} />
         <Route path="/solaire" element={<HomePage />} />
         <Route path="/login" element={<ProLoginPage />} />
+        <Route path="/activate-account" element={<ActivateAccountPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/client-access" element={<ClientAccessPage />} />
         <Route path="/inscription" element={<RegistrationPage />} />
