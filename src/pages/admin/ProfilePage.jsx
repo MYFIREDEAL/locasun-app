@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
-import { Trash2, Copy, Phone, Plus, GripVertical, Building, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut } from 'lucide-react';
+import { Trash2, Copy, Phone, Plus, GripVertical, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,7 @@ import { useSupabaseUsersCRUD } from '@/hooks/useSupabaseUsersCRUD';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
@@ -1918,6 +1919,9 @@ const ProfilePage = () => {
     deleteUser: deleteUserSupabase
   } = useSupabaseUsersCRUD(activeAdminUser);
 
+  // 🏢 Hook pour récupérer l'organization courante (multi-tenant)
+  const { organizationId } = useOrganization();
+
   // Transformer le array Supabase en objet compatible avec le code existant
   // { user_id: { id, user_id, name, email, ... } }
   const usersByAuthId = useMemo(() => {
@@ -1951,7 +1955,6 @@ const ProfilePage = () => {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isChangeRoleOpen, setIsChangeRoleOpen] = useState(false);
   const [isAccessRightsOpen, setIsAccessRightsOpen] = useState(false);
-  const [isCreateCompanyOpen, setIsCreateCompanyOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editUserData, setEditUserData] = useState({
     name: '',
@@ -1967,15 +1970,9 @@ const ProfilePage = () => {
   });
   const [isCreateProjectOpen, setCreateProjectOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-  const [newCompany, setNewCompany] = useState({
-    name: '',
-    logo: null,
-    address: '',
-    city: '',
-    zip: '',
-    country: ''
-  });
-  const [companies, setCompanies] = useState([]);
+  // 🏢 State pour édition du nom d'entreprise (organizations.name)
+  const [organizationName, setOrganizationName] = useState('');
+  const [isUpdatingOrgName, setIsUpdatingOrgName] = useState(false);
   const [editingForm, setEditingForm] = useState(null);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
@@ -2031,6 +2028,30 @@ const ProfilePage = () => {
         });
     }
   }, [activeAdminUser]);
+
+  // 🏢 Charger le nom de l'organisation au montage
+  useEffect(() => {
+    const loadOrganizationName = async () => {
+      if (!organizationId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', organizationId)
+          .single();
+        
+        if (error) throw error;
+        if (data?.name) {
+          setOrganizationName(data.name);
+        }
+      } catch (err) {
+        logger.error('Erreur chargement nom organisation', { error: err.message });
+      }
+    };
+    
+    loadOrganizationName();
+  }, [organizationId]);
 
   // 🔥 Synchroniser editingForm avec les changements real-time
   useEffect(() => {
@@ -2520,40 +2541,43 @@ const ProfilePage = () => {
       });
     }
   };
-  const handleCreateCompany = () => {
-    if (!newCompany.name) {
+
+  // 🏢 Handler pour mettre à jour le nom de l'organisation
+  const handleUpdateOrganizationName = async () => {
+    if (!organizationName.trim()) {
       toast({
         title: "Nom manquant",
-        description: "Veuillez nommer votre entreprise.",
+        description: "Veuillez entrer un nom pour votre entreprise.",
         variant: "destructive"
       });
       return;
     }
-    const company = {
-      id: `company-${Date.now()}`,
-      ...newCompany
-    };
-    setCompanies([...companies, company]);
-    toast({
-      title: "Entreprise créée !",
-      description: `L'entreprise "${company.name}" a été créée. Un espace de travail vierge est prêt.`,
-      className: "bg-green-500 text-white"
-    });
-    setIsCreateCompanyOpen(false);
-    setNewCompany({
-      name: '',
-      logo: null,
-      address: '',
-      city: '',
-      zip: '',
-      country: ''
-    });
-  };
-  const handleNewCompanyChange = (field, value) => {
-    setNewCompany(prev => ({
-      ...prev,
-      [field]: value
-    }));
+
+    try {
+      setIsUpdatingOrgName(true);
+      
+      const { error } = await supabase
+        .from('organizations')
+        .update({ name: organizationName.trim() })
+        .eq('id', organizationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Nom mis à jour !",
+        description: "Le nom de votre entreprise a été modifié.",
+        className: "bg-green-500 text-white"
+      });
+    } catch (error) {
+      logger.error('Erreur mise à jour nom organisation', { error: error.message });
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour le nom.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingOrgName(false);
+    }
   };
   
   const handleLogoUpload = async (e) => {
@@ -2929,9 +2953,11 @@ const ProfilePage = () => {
               Logo Entreprise
             </button>
           )}
-          <button type="button" onClick={() => scrollToSection('gestion-entreprises')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-            Gestion des Entreprises
-          </button>
+          {isGlobalAdmin && (
+            <button type="button" onClick={() => scrollToSection('info-entreprise')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+              Informations de l'entreprise
+            </button>
+          )}
           <button type="button" onClick={() => scrollToSection('gestion-formulaire-contact')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Gestion du Formulaire Contact
           </button>
@@ -3173,64 +3199,32 @@ const ProfilePage = () => {
                 </div>
               </motion.div>}
               
-              {isGlobalAdmin && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="gestion-entreprises">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                <h2 className="text-xl font-semibold text-gray-800">Gestion des Entreprises</h2>
-                <Dialog open={isCreateCompanyOpen} onOpenChange={setIsCreateCompanyOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto">
-                      <Plus className="mr-2 h-4 w-4" /> Créer une entreprise
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle>Créer une nouvelle entreprise</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="company-name" className="text-right">Nom</Label>
-                        <Input id="company-name" className="col-span-3" value={newCompany.name} onChange={e => handleNewCompanyChange('name', e.target.value)} />
-                      </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="company-logo" className="text-right">Logo</Label>
-                        <div className="col-span-3">
-                          <Button asChild variant="outline">
-                            <label htmlFor="logo-upload" className="cursor-pointer flex items-center gap-2">
-                              <Upload className="h-4 w-4" />
-                              <span>{newCompany.logo ? newCompany.logo.name : 'Choisir un fichier'}</span>
-                              <input id="logo-upload" type="file" className="hidden" onChange={e => handleNewCompanyChange('logo', e.target.files[0])} />
-                            </label>
-                          </Button>
-                        </div>
-                      </div>
-                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="company-address" className="text-right">Adresse</Label>
-                        <Input id="company-address" className="col-span-3" value={newCompany.address} onChange={e => handleNewCompanyChange('address', e.target.value)} />
-                      </div>
-                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="company-zip" className="text-right">Code Postal</Label>
-                        <Input id="company-zip" className="col-span-3" value={newCompany.zip} onChange={e => handleNewCompanyChange('zip', e.target.value)} />
-                      </div>
-                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="company-city" className="text-right">Ville</Label>
-                        <Input id="company-city" className="col-span-3" value={newCompany.city} onChange={e => handleNewCompanyChange('city', e.target.value)} />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={handleCreateCompany} className="bg-purple-600 hover:bg-purple-700">Créer l'entreprise</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+              {/* 🏢 Bloc Informations de l'entreprise - Édition du nom uniquement */}
+              {isGlobalAdmin && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="info-entreprise">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">🏢 Informations de l'entreprise</h2>
+                <p className="text-sm text-gray-500 mt-1">Modifiez le nom de votre entreprise</p>
               </div>
-              <div className="space-y-3">
-                {companies.map(c => <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                        <Building className="h-6 w-6 text-gray-500" />
-                        <span className="font-medium">{c.name}</span>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => handleFeatureClick('Gestion utilisateurs entreprise')}>Gérer les utilisateurs</Button>
-                  </div>)}
-                {companies.length === 0 && <p className="text-center text-gray-500 py-4">Aucune entreprise créée pour le moment.</p>}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="org-name">Nom de l'entreprise</Label>
+                  <div className="flex gap-3 mt-1">
+                    <Input 
+                      id="org-name" 
+                      value={organizationName} 
+                      onChange={(e) => setOrganizationName(e.target.value)}
+                      placeholder="Nom de votre entreprise"
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleUpdateOrganizationName}
+                      disabled={isUpdatingOrgName}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isUpdatingOrgName ? 'Enregistrement...' : 'Enregistrer'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </motion.div>}
 
