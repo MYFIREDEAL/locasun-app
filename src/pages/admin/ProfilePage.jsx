@@ -2013,6 +2013,8 @@ const ProfilePage = () => {
   };
 
   const isGlobalAdmin = activeAdminUser?.role === 'Global Admin';
+  const isPlatformAdmin = activeAdminUser?.role === 'platform_admin';
+  const isAdminProfile = isGlobalAdmin || isPlatformAdmin;
   const isAdmin = activeAdminUser?.role === 'Admin';
   
   // 🔒 UI GATE : vérifier que organization_id est chargé avant d'autoriser l'invitation
@@ -2948,12 +2950,12 @@ const ProfilePage = () => {
           <button type="button" onClick={() => scrollToSection('info-perso')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             Info perso
           </button>
-          {isGlobalAdmin && (
+          {isAdminProfile && (
             <button type="button" onClick={() => scrollToSection('logo-entreprise')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
               Logo Entreprise
             </button>
           )}
-          {isGlobalAdmin && (
+          {isAdminProfile && (
             <button type="button" onClick={() => scrollToSection('info-entreprise')} className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
               Informations de l'entreprise
             </button>
@@ -3136,8 +3138,8 @@ const ProfilePage = () => {
             </div>
           </motion.div>
           
-          {(isAdmin || isGlobalAdmin) && <>
-              {isGlobalAdmin && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="logo-entreprise">
+          {(isAdmin || isAdminProfile) && <>
+              {isAdminProfile && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="logo-entreprise">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-800">🏢 Logo Entreprise</h2>
@@ -3200,7 +3202,7 @@ const ProfilePage = () => {
               </motion.div>}
               
               {/* 🏢 Bloc Informations de l'entreprise - Édition du nom uniquement */}
-              {isGlobalAdmin && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="info-entreprise">
+              {isAdminProfile && <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="info-entreprise">
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">🏢 Informations de l'entreprise</h2>
                 <p className="text-sm text-gray-500 mt-1">Modifiez le nom de votre entreprise</p>
