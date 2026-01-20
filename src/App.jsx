@@ -355,6 +355,7 @@ function App() {
   }, [allProjectSteps, allStepsLoading, authLoading]);
 
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
+  // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
   const {
     projectTemplates,
     loading: templatesLoading,
@@ -362,13 +363,14 @@ function App() {
     updateTemplate,
     deleteTemplate,
     getPublicTemplates
-  } = useSupabaseProjectTemplates(adminReady && !authLoading);
+  } = useSupabaseProjectTemplates(organizationId);
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
+  // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
   const {
     forms: supabaseForms,
     loading: formsLoading
-  } = useSupabaseForms(adminReady && !authLoading);
+  } = useSupabaseForms(organizationId);
 
   // Synchroniser forms dans le state pour compatibilité avec le code existant (chat)
   useEffect(() => {

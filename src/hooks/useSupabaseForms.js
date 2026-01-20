@@ -5,8 +5,11 @@ import { logger } from '@/lib/logger';
 /**
  * Hook pour gérer les formulaires dynamiques via Supabase
  * Table: forms
+ * 🔥 MULTI-TENANT: Filtre par organization_id
+ * 
+ * @param {string|null} organizationId - UUID de l'organisation
  */
-export function useSupabaseForms() {
+export function useSupabaseForms(organizationId = null) {
   const [forms, setForms] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,14 +31,22 @@ export function useSupabaseForms() {
     return formsObject;
   };
 
-  // Charger les formulaires
+  // Charger les formulaires (filtré par org)
   useEffect(() => {
+    if (!organizationId) {
+      setForms({});
+      setLoading(false);
+      return;
+    }
+
     const fetchForms = async () => {
       try {
         setLoading(true);
+        // 🔥 MULTI-TENANT: Filtrer par organization_id OU null (global)
         const { data, error } = await supabase
           .from('forms')
           .select('*')
+          .or(`organization_id.eq.${organizationId},organization_id.is.null`)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -53,15 +64,16 @@ export function useSupabaseForms() {
 
     fetchForms();
 
-    // Real-time subscription
+    // Real-time subscription (filtré par org)
     const channel = supabase
-      .channel(`forms-changes-${Math.random().toString(36).slice(2)}`)
+      .channel(`forms-changes-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'forms',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -106,17 +118,23 @@ export function useSupabaseForms() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [organizationId]);
 
   // Ajouter/mettre à jour un formulaire
   const saveForm = async (formId, formData) => {
+    if (!organizationId) {
+      return { success: false, error: 'organization_id requis' };
+    }
+
     try {
+      // 🔥 MULTI-TENANT: Inclure organization_id
       const dbPayload = {
         form_id: formId,
         name: formData.name,
         fields: formData.fields || [],
         project_ids: formData.projectIds || [],
-        audience: formData.audience || 'client', // 🔥 AJOUT: Audience du formulaire
+        audience: formData.audience || 'client',
+        organization_id: organizationId
       };
 
       const { data, error } = await supabase
