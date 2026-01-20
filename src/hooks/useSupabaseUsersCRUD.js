@@ -26,10 +26,8 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
     try {
       setLoading(true);
       
-      const { data, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .order('name', { ascending: true });
+      // 🔥 Utiliser la fonction RPC sécurisée (filtre par organization_id)
+      const { data, error: fetchError } = await supabase.rpc('get_users_safe');
 
       if (fetchError) throw fetchError;
 
