@@ -4,11 +4,13 @@ import React, { useEffect } from 'react';
     import Chatbot from '@/components/Chatbot'; 
     import useWindowSize from '@/hooks/useWindowSize';
     import { useAppContext } from '@/App';
+    import { useOrganization } from '@/contexts/OrganizationContext';
     import { supabase } from '@/lib/supabase';
 
     const AdminLayout = () => {
       const { width } = useWindowSize();
       const { activeAdminUser, setActiveAdminUser, adminReady } = useAppContext();
+      const { organizationId, organizationLoading } = useOrganization();
       const isMobile = width < 768;
       const isDesktop = width >= 1024;
       const location = useLocation();
@@ -21,8 +23,8 @@ import React, { useEffect } from 'react';
       const isConfigurationIAPage = location.pathname.startsWith('/admin/configuration-ia');
       const isWorkflowsCharlyPage = location.pathname.startsWith('/admin/workflows-charly');
 
-      // 🔥 BLOQUER LE RENDU TANT QUE adminReady N'EST PAS TRUE
-      if (!adminReady) {
+      // 🔥 BLOQUER LE RENDU TANT QUE adminReady ET organizationId NE SONT PAS PRÊTS
+      if (!adminReady || organizationLoading || !organizationId) {
         return (
           <div className="flex items-center justify-center h-screen bg-gray-50">
             <div className="text-center">

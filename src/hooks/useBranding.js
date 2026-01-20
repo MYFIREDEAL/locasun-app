@@ -18,7 +18,11 @@ export const useBranding = (organizationId) => {
   useEffect(() => {
     if (!organizationId) {
       logger.info('[useBranding] Pas d\'organizationId, utilisation des paramètres par défaut');
-      setBrandingLoading(false);
+      // 🔥 DEBUG: Ne pas reset les valeurs si on avait déjà un branding
+      // Cela évite le flash quand organizationId devient temporairement null
+      if (!brandName && !logoUrl) {
+        setBrandingLoading(false);
+      }
       return;
     }
 

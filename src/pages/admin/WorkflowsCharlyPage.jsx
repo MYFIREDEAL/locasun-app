@@ -8,6 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { Trash2, Plus, Bot, ChevronDown, ChevronRight } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
@@ -416,12 +417,13 @@ const ActionEditor = ({
 
 const WorkflowsCharlyPage = () => {
   const { projectsData } = useAppContext();
+  const { organizationId } = useOrganization();
   
-  // 🔥 Hook Supabase pour les formulaires
+  // 🔥 Hook Supabase pour les formulaires (filtré par org)
   const {
     forms: supabaseFormsObject,
     loading: formsLoading
-  } = useSupabaseForms();
+  } = useSupabaseForms(organizationId);
   
   // 🔥 Convertir l'objet en tableau pour le dropdown
   const supabaseForms = useMemo(() => {
