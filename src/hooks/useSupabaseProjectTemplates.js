@@ -10,22 +10,27 @@ import { logger } from '@/lib/logger';
  * - Création/modification/suppression (Admin uniquement)
  * - Gestion de la visibilité (is_public)
  * - Sync real-time entre admins
+ * - 🔥 MULTI-TENANT: Filtre par organization_id
  * 
  * Table Supabase : project_templates
  * Remplace : localStorage 'evatime_projects_data'
+ * 
+ * @param {string|null} organizationId - UUID de l'organization (optionnel)
+ *   - Si fourni: retourne templates globaux (NULL) + templates de l'org
+ *   - Si null/undefined: retourne uniquement les templates globaux (NULL)
  */
-export function useSupabaseProjectTemplates() {
+export function useSupabaseProjectTemplates(organizationId = null) {
   const [projectTemplates, setProjectTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isLocalUpdate = useRef(false);
 
   /**
-   * ✅ CHARGER LES TEMPLATES AU MONTAGE
+   * ✅ CHARGER LES TEMPLATES AU MONTAGE ET QUAND organizationId CHANGE
    */
   useEffect(() => {
     fetchProjectTemplates();
-  }, []);
+  }, [organizationId]);
 
   /**
    * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME
@@ -83,17 +88,30 @@ export function useSupabaseProjectTemplates() {
   }, []);
 
   /**
-   * 📥 RÉCUPÉRER TOUS LES TEMPLATES
+   * 📥 RÉCUPÉRER LES TEMPLATES (filtrés par organization)
+   * - Si organizationId fourni: templates globaux (NULL) + templates de l'org
+   * - Sinon: uniquement templates globaux (NULL)
    */
   const fetchProjectTemplates = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('project_templates')
         .select('*')
         .order('type', { ascending: true });
+
+      // 🔥 MULTI-TENANT: Filtrer par organization_id
+      if (organizationId) {
+        // Templates globaux (NULL) OU templates de cette org
+        query = query.or(`organization_id.is.null,organization_id.eq.${organizationId}`);
+      } else {
+        // Pas d'org = uniquement templates globaux
+        query = query.is('organization_id', null);
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 

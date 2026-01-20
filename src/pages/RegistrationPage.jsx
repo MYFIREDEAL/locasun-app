@@ -10,13 +10,18 @@ import { useAppContext } from '@/App';
 import { User, Mail, Phone, Building2 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useOrganization } from '@/contexts/OrganizationContext'; // 🔥 AJOUT
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates'; // 🔥 MULTI-TENANT
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
   const { slugUser } = useParams();
-  const { projectsData, currentUser, activeAdminUser, setActiveAdminUser } = useAppContext();
-  const { organizationId } = useOrganization(); // 🔥 AJOUT
+  const { currentUser, activeAdminUser, setActiveAdminUser } = useAppContext(); // 🔥 Retiré projectsData
+  const { organizationId } = useOrganization();
+  
+  // 🔥 MULTI-TENANT: Charger les templates filtrés par organization
+  const { projectTemplates, loading: templatesLoading } = useSupabaseProjectTemplates(organizationId);
+  
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [errors, setErrors] = useState({});
@@ -36,16 +41,17 @@ const RegistrationPage = () => {
     }
   }, [activeAdminUser, setActiveAdminUser]);
 
+  // 🔥 MULTI-TENANT: Utiliser projectTemplates du hook (filtré par org)
   const projectOptions = useMemo(() => {
-    if (!projectsData || Object.keys(projectsData).length === 0) return [];
-    return Object.values(projectsData)
-        .filter(p => p.isPublic)
+    if (!projectTemplates || projectTemplates.length === 0) return [];
+    return projectTemplates
+        .filter(p => p.isPublic || p.is_public)
         .map(p => ({
             id: p.type,
-            label: p.clientTitle,
+            label: p.clientTitle || p.client_title,
             icon: p.icon
         }));
-  }, [projectsData]);
+  }, [projectTemplates]);
 
   // ✅ Toast si l'utilisateur est déjà connecté
   useEffect(() => {
@@ -181,7 +187,9 @@ const RegistrationPage = () => {
 
       // 🔥 ÉTAPE 4: Initialiser les étapes de chaque projet avec étape 1 en "in_progress"
       for (const projectType of finalProjects) {
-        const defaultSteps = projectsData[projectType]?.steps;
+        // 🔥 MULTI-TENANT: Utiliser projectTemplates (array) au lieu de projectsData (object)
+        const template = projectTemplates.find(t => t.type === projectType);
+        const defaultSteps = template?.steps;
         if (defaultSteps && defaultSteps.length > 0) {
           const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
           initialSteps[0].status = 'in_progress'; // Première étape en cours
