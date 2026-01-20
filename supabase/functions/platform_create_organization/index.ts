@@ -78,7 +78,6 @@ serve(async (req) => {
     }
 
     let organizationId: string | null = null
-    let authUserId: string | null = null
 
     try {
       // 1️⃣ Créer l'organization
@@ -129,40 +128,33 @@ serve(async (req) => {
         throw new Error('Erreur lors de la création du domaine')
       }
 
-      // 4️⃣ Créer l'utilisateur admin SANS mot de passe (via invite)
-      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        adminEmail,
-        {
-          redirectTo: 'https://evatime.fr/login',
-        }
-      )
-
-      if (inviteError || !inviteData?.user) {
-        console.error('[Platform] Error inviting user:', inviteError)
-        throw new Error('Erreur lors de l\'invitation de l\'utilisateur')
-      }
-
-      authUserId = inviteData.user.id
-      console.log(`[Platform] User invited: ${authUserId}`)
-
-      // 5️⃣ Créer le profil dans public.users
-      const { error: userError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          user_id: authUserId,
+      // 4️⃣ Appeler l'Edge Function invite-user (pattern unique)
+      // ✅ invite-user gère : auth.admin.inviteUserByEmail + public.users + redirectTo dynamique
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      
+      const inviteResponse = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
           email: adminEmail,
-          first_name: companyName.split(' ')[0],
-          last_name: companyName.split(' ').slice(1).join(' ') || 'Admin',
+          name: companyName,
           role: 'Global Admin',
-          organization_id: organizationId,
-        })
+          organizationId: organizationId,
+        }),
+      })
 
-      if (userError) {
-        console.error('[Platform] Error creating public user:', userError)
-        throw new Error('Erreur lors de la création du profil utilisateur')
+      if (!inviteResponse.ok) {
+        const errorData = await inviteResponse.json()
+        console.error('[Platform] Error from invite-user:', errorData)
+        throw new Error(errorData.error || 'Erreur lors de l\'invitation de l\'utilisateur')
       }
 
-      console.log(`[Platform] User profile created for ${adminEmail}`)
+      const inviteResult = await inviteResponse.json()
+      console.log(`[Platform] User invited via invite-user:`, inviteResult)
 
       // ✅ SUCCESS
       return new Response(
@@ -180,12 +172,7 @@ serve(async (req) => {
     } catch (error) {
       console.error('[Platform] Transaction failed, rolling back...', error)
 
-      // 🔥 ROLLBACK
-      if (authUserId) {
-        console.log(`[Rollback] Deleting auth user ${authUserId}`)
-        await supabaseAdmin.auth.admin.deleteUser(authUserId)
-      }
-
+      // 🔥 ROLLBACK (invite-user gère son propre rollback pour auth/users)
       if (organizationId) {
         console.log(`[Rollback] Deleting organization data for ${organizationId}`)
 
