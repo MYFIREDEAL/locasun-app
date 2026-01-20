@@ -228,6 +228,8 @@ function App() {
   // 🔥 forms maintenant synchronisé depuis Supabase (useSupabaseForms) - Pas de localStorage
   const [forms, setForms] = useState({});
   const [prompts, setPrompts] = useState({});
+  // 🔥 PHASE 2: Double lecture form_contact_config (organization_settings prioritaire, fallback company_settings)
+  const [orgFormContactConfig, setOrgFormContactConfig] = useState(null);
   // formContactConfig est maintenant géré par useSupabaseCompanySettings (plus besoin de useState)
   // ❌ SUPPRIMÉ: const [projectInfos, setProjectInfos] = useState({}) - Utiliser supabaseProjectInfos du hook
   // ✅ globalPipelineSteps maintenant géré par useSupabaseGlobalPipeline (plus de localStorage)
@@ -288,6 +290,38 @@ function App() {
     updateFormContactConfig,
     getFormContactConfig 
   } = useSupabaseCompanySettings();
+
+  // 🔥 PHASE 2: Charger form_contact_config depuis organization_settings (double lecture)
+  useEffect(() => {
+    if (!organizationId) {
+      setOrgFormContactConfig(null);
+      return;
+    }
+
+    const loadOrgFormContactConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('organization_settings')
+          .select('form_contact_config')
+          .eq('organization_id', organizationId)
+          .single();
+
+        if (error) {
+          // Table ou colonne peut ne pas exister, fallback silencieux
+          logger.debug('[App] organization_settings.form_contact_config non trouvé, fallback vers company_settings');
+          setOrgFormContactConfig(null);
+          return;
+        }
+
+        setOrgFormContactConfig(data?.form_contact_config || null);
+      } catch (err) {
+        logger.debug('[App] Erreur chargement org form_contact_config, fallback vers company_settings');
+        setOrgFormContactConfig(null);
+      }
+    };
+
+    loadOrgFormContactConfig();
+  }, [organizationId]);
 
   // 🔥 Charger les colonnes du pipeline global depuis Supabase avec real-time
   const { 
@@ -396,10 +430,14 @@ function App() {
   const companyLogo = companySettings?.logo_url || '';
   const setCompanyLogo = updateLogo;
   
-  // 🔥 Formulaire contact depuis Supabase (au lieu de localStorage)
-  const formContactConfig = getFormContactConfig().length > 0 
-    ? getFormContactConfig() 
-    : defaultFormContactConfig;
+  // 🔥 PHASE 2: Double lecture form_contact_config
+  // Priorité : organization_settings.form_contact_config > company_settings.settings.form_contact_config > default
+  const formContactConfig = 
+    (orgFormContactConfig && orgFormContactConfig.length > 0)
+      ? orgFormContactConfig
+      : (getFormContactConfig().length > 0 
+          ? getFormContactConfig() 
+          : defaultFormContactConfig);
 
   // � 1 — Simplifier onAuthStateChange : juste stocker la session
   // ---------------------------------------------
