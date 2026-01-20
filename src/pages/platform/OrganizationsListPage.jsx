@@ -18,6 +18,8 @@ const OrganizationsListPage = () => {
   const [formData, setFormData] = useState({
     companyName: '',
     adminEmail: '',
+    adminName: '',
+    adminPhone: '',
   });
 
   useEffect(() => {
@@ -53,10 +55,10 @@ const OrganizationsListPage = () => {
   const handleCreateOrganization = async (e) => {
     e.preventDefault();
 
-    if (!formData.companyName || !formData.adminEmail) {
+    if (!formData.companyName || !formData.adminEmail || !formData.adminName) {
       toast({
         title: 'Erreur',
-        description: 'Tous les champs sont requis',
+        description: 'Le nom de l\'organisation, l\'email et le nom de l\'administrateur sont requis',
         variant: 'destructive',
       });
       return;
@@ -75,6 +77,8 @@ const OrganizationsListPage = () => {
           body: JSON.stringify({
             companyName: formData.companyName,
             adminEmail: formData.adminEmail,
+            adminName: formData.adminName,
+            adminPhone: formData.adminPhone || null,
           }),
         }
       );
@@ -101,7 +105,7 @@ const OrganizationsListPage = () => {
 
       // Fermer la modal et réinitialiser
       setShowCreateModal(false);
-      setFormData({ companyName: '', adminEmail: '' });
+      setFormData({ companyName: '', adminEmail: '', adminName: '', adminPhone: '' });
 
     } catch (error) {
       console.error('[Platform] Error creating organization:', error);
@@ -288,6 +292,30 @@ const OrganizationsListPage = () => {
                 onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
                 disabled={creating}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="adminName">Nom de l'administrateur *</Label>
+              <Input
+                id="adminName"
+                placeholder="Jean Dupont"
+                value={formData.adminName}
+                onChange={(e) => setFormData({ ...formData, adminName: e.target.value })}
+                disabled={creating}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="adminPhone">Téléphone (optionnel)</Label>
+              <Input
+                id="adminPhone"
+                type="tel"
+                placeholder="06 12 34 56 78"
+                value={formData.adminPhone}
+                onChange={(e) => setFormData({ ...formData, adminPhone: e.target.value })}
+                disabled={creating}
               />
             </div>
 
