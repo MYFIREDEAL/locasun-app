@@ -249,7 +249,7 @@ export default function Landing() {
               </p>
               <div className="flex justify-center items-center gap-4">
                 <Button
-                  onClick={() => navigate('/client-access')}
+                  onClick={() => navigate('/inscription')}
                   className="bg-[#22c55e] hover:bg-[#16a34a] hover:scale-105 text-white rounded-full px-10 py-6 text-lg font-semibold transition-transform duration-200"
                 >
                   {ctaText}
@@ -309,7 +309,7 @@ export default function Landing() {
                 Prêt à commencer ?
               </h2>
               <Button
-                onClick={() => navigate('/client-access')}
+                onClick={() => navigate('/inscription')}
                 className="bg-white text-blue-600 hover:bg-gray-100 rounded-full px-10 py-6 text-lg shadow-xl font-semibold"
               >
                 {ctaText}
