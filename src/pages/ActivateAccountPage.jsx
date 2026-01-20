@@ -27,60 +27,115 @@ const ActivateAccountPage = () => {
   const [sessionValid, setSessionValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
-  // ✅ LOGIQUE CORRECTE : Vérifier uniquement la session existante
+  // ✅ LOGIQUE CORRIGÉE : Attendre que Supabase parse le hash #access_token
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        logger.info('🔐 Vérification de la session Supabase...');
+    const hash = window.location.hash;
+    const isInviteFlow = hash.includes('access_token') || hash.includes('type=invite');
+    
+    logger.info('🔐 ActivateAccountPage - Vérification du flow invitation', { 
+      hash: hash.substring(0, 50) + '...', 
+      isInviteFlow 
+    });
 
-        // Supabase a déjà créé la session automatiquement via inviteUserByEmail
-        const { data: { session }, error } = await supabase.auth.getSession();
+    // Si on a un hash avec access_token, attendre l'événement auth
+    if (isInviteFlow) {
+      logger.info('⏳ Hash détecté, attente de onAuthStateChange...');
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          logger.info('🔔 Auth event reçu:', { event, hasSession: !!session });
+          
+          if (event === 'SIGNED_IN' && session) {
+            // ✅ Session créée via le hash - maintenant on peut vérifier
+            await validateSession(session);
+          } else if (event === 'TOKEN_REFRESHED' && session) {
+            await validateSession(session);
+          }
+        }
+      );
 
-        if (error || !session) {
-          logger.error('❌ Pas de session active:', error);
+      // Timeout de sécurité : si aucun événement après 5s, vérifier manuellement
+      const timeoutId = setTimeout(async () => {
+        logger.warn('⚠️ Timeout - vérification manuelle de la session');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await validateSession(session);
+        } else {
+          logger.error('❌ Pas de session après timeout');
           setSessionValid(false);
           setValidatingSession(false);
-          return;
         }
+      }, 5000);
 
-        const user = session.user;
+      return () => {
+        subscription.unsubscribe();
+        clearTimeout(timeoutId);
+      };
+    } else {
+      // Pas de hash, vérifier la session existante directement
+      checkExistingSession();
+    }
+  }, []);
 
-        if (!user || !user.email) {
-          logger.error('❌ Pas d\'utilisateur dans la session');
-          setSessionValid(false);
-          setValidatingSession(false);
-          return;
-        }
+  // Fonction pour valider une session existante
+  const validateSession = async (session) => {
+    try {
+      const user = session.user;
 
-        // Vérifier que l'utilisateur existe dans la table users
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('email, name')
-          .eq('user_id', user.id)
-          .single();
-
-        if (userError || !userData) {
-          logger.error('❌ Utilisateur non trouvé dans table users:', userError);
-          setSessionValid(false);
-          setValidatingSession(false);
-          return;
-        }
-
-        // ✅ Session valide et utilisateur trouvé
-        logger.info('✅ Session valide pour:', userData.email);
-        setUserEmail(userData.email);
-        setSessionValid(true);
-        setValidatingSession(false);
-
-      } catch (error) {
-        logger.error('❌ Erreur vérification session:', error);
+      if (!user || !user.email) {
+        logger.error('❌ Pas d\'utilisateur dans la session');
         setSessionValid(false);
         setValidatingSession(false);
+        return;
       }
-    };
 
-    checkSession();
-  }, []);
+      // Vérifier que l'utilisateur existe dans la table users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email, name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (userError || !userData) {
+        logger.error('❌ Utilisateur non trouvé dans table users:', userError);
+        setSessionValid(false);
+        setValidatingSession(false);
+        return;
+      }
+
+      // ✅ Session valide et utilisateur trouvé
+      logger.info('✅ Session valide pour:', userData.email);
+      setUserEmail(userData.email);
+      setSessionValid(true);
+      setValidatingSession(false);
+    } catch (error) {
+      logger.error('❌ Erreur validation session:', error);
+      setSessionValid(false);
+      setValidatingSession(false);
+    }
+  };
+
+  // Fonction pour vérifier une session déjà existante (sans hash)
+  const checkExistingSession = async () => {
+    try {
+      logger.info('🔐 Vérification de la session existante...');
+
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error || !session) {
+        logger.error('❌ Pas de session active:', error);
+        setSessionValid(false);
+        setValidatingSession(false);
+        return;
+      }
+
+      await validateSession(session);
+    } catch (error) {
+      logger.error('❌ Erreur vérification session:', error);
+      setSessionValid(false);
+      setValidatingSession(false);
+    }
+  };
 
   const handleActivateAccount = async (e) => {
     e.preventDefault();
