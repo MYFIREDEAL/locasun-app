@@ -25,7 +25,31 @@ export const OrganizationProvider = ({ children }) => {
   const [organizationLoading, setOrganizationLoading] = useState(true);
   const [organizationError, setOrganizationError] = useState(null);
   const [isPlatformOrg, setIsPlatformOrg] = useState(false); // 🔥 Flag pour savoir si c'est l'org plateforme
+  const [authUserId, setAuthUserId] = useState(null); // 🔥 Tracker pour re-résoudre au changement d'auth
 
+  // 🔥 Écouter les changements d'auth pour re-résoudre l'organisation
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const newUserId = session?.user?.id || null;
+        logger.info('[OrganizationContext] Auth state changed:', { event, userId: newUserId });
+        
+        // 🔥 Seulement re-résoudre si l'utilisateur a changé
+        if (newUserId !== authUserId) {
+          setAuthUserId(newUserId);
+        }
+      }
+    );
+
+    // Initialiser avec la session actuelle
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 🔥 Re-résoudre l'organisation quand authUserId change
   useEffect(() => {
     const resolveOrganization = async () => {
       try {
@@ -34,15 +58,14 @@ export const OrganizationProvider = ({ children }) => {
         setIsPlatformOrg(false); // Reset à chaque résolution
 
         // 1️⃣ Si user connecté : utiliser user.organization_id
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        if (authUserId) {
           logger.info('[OrganizationContext] User authentifié, récupération de son organization_id');
           
           // Vérifier si c'est un admin (table users) ou un client (table prospects)
           const { data: adminUser } = await supabase
             .from('users')
             .select('organization_id')
-            .eq('user_id', user.id)
+            .eq('user_id', authUserId)
             .single();
 
           if (adminUser?.organization_id) {
@@ -55,7 +78,7 @@ export const OrganizationProvider = ({ children }) => {
           const { data: prospectUser } = await supabase
             .from('prospects')
             .select('organization_id')
-            .eq('user_id', user.id)
+            .eq('user_id', authUserId)
             .single();
 
           if (prospectUser?.organization_id) {
@@ -127,7 +150,7 @@ export const OrganizationProvider = ({ children }) => {
     };
 
     resolveOrganization();
-  }, []);
+  }, [authUserId]); // 🔥 Re-résoudre quand l'utilisateur change
 
   // 🔥 Charger le branding une fois que l'organization est résolue
   const {
