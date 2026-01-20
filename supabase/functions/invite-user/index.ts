@@ -53,11 +53,27 @@ serve(async (req) => {
       )
     }
 
-    // URL de redirection pour l'activation
-    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:5173'
-    const redirectUrl = `${frontendUrl}/activate-account`
+    // 🔍 Récupérer le slug de l'organisation pour construire l'URL dynamique
+    const { data: orgData, error: orgError } = await supabaseAdmin
+      .from('organizations')
+      .select('slug')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgError || !orgData?.slug) {
+      console.error('❌ Organisation non trouvée:', orgError)
+      return new Response(
+        JSON.stringify({ error: 'Organisation non trouvée pour cet organizationId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ✅ URL de redirection DYNAMIQUE basée sur le slug de l'organisation
+    // Format: https://{slug}.evatime.fr/activate-account
+    const baseDomain = Deno.env.get('BASE_DOMAIN') || 'evatime.fr'
+    const redirectUrl = `https://${orgData.slug}.${baseDomain}/activate-account`
     
-    console.log('📧 Redirection configurée:', redirectUrl)
+    console.log('📧 Redirection configurée:', redirectUrl, '(org:', orgData.slug, ')')
 
     // 1️⃣ Inviter l'utilisateur via Supabase Auth Admin API
     // ✅ Aucun mot de passe défini - l'utilisateur le créera lui-même
