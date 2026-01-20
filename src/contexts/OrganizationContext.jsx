@@ -29,25 +29,32 @@ export const OrganizationProvider = ({ children }) => {
 
   // 🔥 Écouter les changements d'auth pour re-résoudre l'organisation
   useEffect(() => {
+    // Initialiser avec la session actuelle AVANT de s'abonner
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const initialUserId = session?.user?.id || null;
+      logger.info('[OrganizationContext] Initial session:', { userId: initialUserId });
+      setAuthUserId(initialUserId);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         const newUserId = session?.user?.id || null;
         logger.info('[OrganizationContext] Auth state changed:', { event, userId: newUserId });
         
-        // 🔥 Seulement re-résoudre si l'utilisateur a changé
-        if (newUserId !== authUserId) {
-          setAuthUserId(newUserId);
-        }
+        // 🔥 FIX: Toujours mettre à jour authUserId - React gère la déduplication
+        // L'ancienne logique avait une closure stale car authUserId n'était pas dans les deps
+        setAuthUserId((prevUserId) => {
+          if (newUserId !== prevUserId) {
+            logger.info('[OrganizationContext] User changed, re-resolving organization:', { from: prevUserId, to: newUserId });
+            return newUserId;
+          }
+          return prevUserId;
+        });
       }
     );
 
-    // Initialiser avec la session actuelle
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthUserId(session?.user?.id || null);
-    });
-
     return () => subscription.unsubscribe();
-  }, []);
+  }, []); // ✅ Pas besoin de deps car on utilise setAuthUserId avec callback
 
   // 🔥 Re-résoudre l'organisation quand authUserId change
   useEffect(() => {
@@ -180,6 +187,11 @@ export const OrganizationProvider = ({ children }) => {
       logger.info('[OrganizationContext] Secondary color set to:', secondaryColor);
     }
   }, [primaryColor, secondaryColor]);
+
+  // 🔥 DEBUG LOG - Preuve que l'organizationId est recalculé à chaque changement de session
+  useEffect(() => {
+    console.log('[ORG CONTEXT] activeOrganizationId =', organizationId, '| authUserId =', authUserId);
+  }, [organizationId, authUserId]);
 
   return (
     <OrganizationContext.Provider
