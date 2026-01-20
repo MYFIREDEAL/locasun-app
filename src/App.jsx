@@ -283,13 +283,14 @@ function App() {
   } = useSupabaseClientFormPanels(prospectIdForForms); // 🔥 Admin voit tout !
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
+  // 🔥 SYNC: Passe organizationId pour synchroniser le logo vers organization_settings (Landing Page)
   const { 
     companySettings, 
     updateLogo, 
     removeLogo,
     updateFormContactConfig,
     getFormContactConfig 
-  } = useSupabaseCompanySettings();
+  } = useSupabaseCompanySettings(organizationId);
 
   // 🔥 PHASE 2: Charger form_contact_config depuis organization_settings (double lecture)
   useEffect(() => {

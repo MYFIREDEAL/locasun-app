@@ -12,8 +12,13 @@ import { toast } from '@/components/ui/use-toast';
  * - logo_url: TEXT (URL ou base64 du logo)
  * - company_name: TEXT
  * - settings: JSONB (config formulaire contact, etc.)
+ * 
+ * 🔥 SYNC: Le logo est aussi synchronisé vers organization_settings.logo_url
+ *          pour que la Landing Page affiche le bon logo
+ * 
+ * @param {string|null} organizationId - UUID de l'organization pour synchroniser le logo
  */
-export const useSupabaseCompanySettings = () => {
+export const useSupabaseCompanySettings = (organizationId = null) => {
   const [companySettings, setCompanySettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -91,6 +96,7 @@ export const useSupabaseCompanySettings = () => {
   /**
    * ✅ METTRE À JOUR LE LOGO
    * @param {string} logoData - URL ou base64 du logo
+   * 🔥 SYNC: Met aussi à jour organization_settings.logo_url pour la Landing Page
    */
   const updateLogo = async (logoData) => {
     try {
@@ -109,6 +115,24 @@ export const useSupabaseCompanySettings = () => {
         logger.error('Supabase update error details:', { error: updateError.message });
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
+      }
+
+      // 🔥 SYNC vers organization_settings pour la Landing Page
+      if (organizationId) {
+        const { error: orgError } = await supabase
+          .from('organization_settings')
+          .update({ 
+            logo_url: logoData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('organization_id', organizationId);
+
+        if (orgError) {
+          logger.warn('Sync logo vers organization_settings échoué:', { error: orgError.message });
+          // Ne pas bloquer, c'est une sync secondaire
+        } else {
+          logger.info('Logo synchronisé vers organization_settings');
+        }
       }
       
       // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
@@ -139,6 +163,7 @@ export const useSupabaseCompanySettings = () => {
 
   /**
    * ✅ SUPPRIMER LE LOGO
+   * 🔥 SYNC: Supprime aussi dans organization_settings.logo_url pour la Landing Page
    */
   const removeLogo = async () => {
     try {
@@ -157,6 +182,24 @@ export const useSupabaseCompanySettings = () => {
         logger.error('Supabase remove error details:', { error: updateError.message });
         isLocalUpdate.current = false; // Reset en cas d'erreur
         throw updateError;
+      }
+
+      // 🔥 SYNC vers organization_settings pour la Landing Page
+      if (organizationId) {
+        const { error: orgError } = await supabase
+          .from('organization_settings')
+          .update({ 
+            logo_url: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('organization_id', organizationId);
+
+        if (orgError) {
+          logger.warn('Sync suppression logo vers organization_settings échoué:', { error: orgError.message });
+          // Ne pas bloquer, c'est une sync secondaire
+        } else {
+          logger.info('Suppression logo synchronisée vers organization_settings');
+        }
       }
       
       // Mise à jour immédiate de l'état local (ne pas attendre le real-time)
