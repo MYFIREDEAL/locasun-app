@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook Supabase pour gérer les colonnes du pipeline global (Kanban)
@@ -9,35 +10,43 @@ import { supabase } from '../lib/supabase';
  * - Création/modification/suppression de colonnes (Global Admin uniquement)
  * - Réorganisation des colonnes (drag & drop)
  * - Sync real-time entre tous les admins connectés
+ * - 🔥 MULTI-TENANT: Filtré par organization_id
  * 
  * Table Supabase : global_pipeline_steps
- * Structure : { id, step_id, label, color, position, created_at, updated_at }
+ * Structure : { id, step_id, label, color, position, organization_id, created_at, updated_at }
+ * 
+ * @param {string|null} organizationId - UUID de l'organisation (requis pour multi-tenant)
  */
-export function useSupabaseGlobalPipeline() {
+export function useSupabaseGlobalPipeline(organizationId = null) {
   const [globalPipelineSteps, setGlobalPipelineSteps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isLocalUpdate = useRef(false);
 
   /**
-   * ✅ CHARGER LES COLONNES DU PIPELINE AU MONTAGE
+   * ✅ CHARGER LES COLONNES DU PIPELINE AU MONTAGE (filtré par org)
    */
   useEffect(() => {
-    fetchGlobalPipelineSteps();
-  }, []);
+    if (organizationId) {
+      fetchGlobalPipelineSteps();
+    }
+  }, [organizationId]);
 
   /**
-   * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME
+   * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME (filtré par org)
    */
   useEffect(() => {
+    if (!organizationId) return;
+
     const channel = supabase
-      .channel('global-pipeline-changes')
+      .channel(`global-pipeline-changes-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'global_pipeline_steps'
+          table: 'global_pipeline_steps',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => {
           // Ignorer si c'est une mise à jour locale
@@ -70,19 +79,27 @@ export function useSupabaseGlobalPipeline() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [organizationId]);
 
   /**
-   * 📥 RÉCUPÉRER TOUTES LES COLONNES DU PIPELINE
+   * 📥 RÉCUPÉRER TOUTES LES COLONNES DU PIPELINE (filtré par org)
    */
   const fetchGlobalPipelineSteps = async () => {
+    if (!organizationId) {
+      setGlobalPipelineSteps([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
+      // 🔥 MULTI-TENANT: Filtrer par organization_id OU null (global)
       const { data, error: fetchError } = await supabase
         .from('global_pipeline_steps')
         .select('*')
+        .or(`organization_id.eq.${organizationId},organization_id.is.null`)
         .order('position', { ascending: true });
 
       if (fetchError) throw fetchError;
@@ -103,6 +120,10 @@ export function useSupabaseGlobalPipeline() {
    * @returns {Promise<object>} - La colonne créée
    */
   const addStep = async (label, color = 'bg-gray-100') => {
+    if (!organizationId) {
+      throw new Error('organization_id requis pour créer une colonne pipeline');
+    }
+
     try {
       isLocalUpdate.current = true;
 
@@ -115,6 +136,7 @@ export function useSupabaseGlobalPipeline() {
       // Générer un step_id unique
       const step_id = `global-pipeline-step-${Date.now()}`;
 
+      // 🔥 MULTI-TENANT: Inclure organization_id
       const { data, error: insertError } = await supabase
         .from('global_pipeline_steps')
         .insert([
@@ -122,7 +144,8 @@ export function useSupabaseGlobalPipeline() {
             step_id,
             label,
             color,
-            position: newPosition
+            position: newPosition,
+            organization_id: organizationId
           }
         ])
         .select()

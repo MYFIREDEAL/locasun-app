@@ -325,6 +325,7 @@ function App() {
   }, [organizationId]);
 
   // 🔥 Charger les colonnes du pipeline global depuis Supabase avec real-time
+  // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
   const { 
     globalPipelineSteps,
     loading: pipelineLoading,
@@ -332,7 +333,7 @@ function App() {
     updateStep: updatePipelineStep,
     deleteStep: deletePipelineStep,
     reorderSteps: reorderPipelineSteps
-  } = useSupabaseGlobalPipeline(adminReady && !authLoading);
+  } = useSupabaseGlobalPipeline(organizationId);
 
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
   const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
