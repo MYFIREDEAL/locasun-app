@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from '@/lib/logger';
 
-export function useSupabaseProjectFiles({ projectType, prospectId, enabled = true }) {
+export function useSupabaseProjectFiles({ projectType, prospectId, organizationId = null, enabled = true }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -106,13 +106,14 @@ export function useSupabaseProjectFiles({ projectType, prospectId, enabled = tru
 
         if (uploadError) throw uploadError;
 
-        // 2. Insert dans la table avec field_label
+        // 2. Insert dans la table avec field_label et organization_id
         const { data, error } = await supabase
           .from("project_files")
           .insert([
             {
               project_type: projectType,
               prospect_id: prospectId || null,
+              organization_id: organizationId || null, // 🔥 MULTI-TENANT: Isolation par org
               file_name: file.name,
               file_type: file.type,
               file_size: file.size,

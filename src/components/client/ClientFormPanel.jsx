@@ -33,9 +33,11 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   });
 
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
+  // 🔥 MULTI-TENANT: Utilise organization_id du currentUser (prospect)
   const { uploadFile, uploading, deleteFile } = useSupabaseProjectFiles({ 
     projectType, 
-    prospectId: currentUser?.id, 
+    prospectId: currentUser?.id,
+    organizationId: currentUser?.organization_id, // 🔥 MULTI-TENANT
     enabled: true 
   });
 

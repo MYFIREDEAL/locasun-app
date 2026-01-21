@@ -60,9 +60,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
+  // 🔥 MULTI-TENANT: Utilise organization_id du currentUser (prospect)
   const { uploadFile, uploading } = useSupabaseProjectFiles({ 
     projectType, 
-    prospectId, 
+    prospectId,
+    organizationId: currentUser?.organization_id, // 🔥 MULTI-TENANT
     enabled: true 
   });
   const [newMessage, setNewMessage] = useState('');

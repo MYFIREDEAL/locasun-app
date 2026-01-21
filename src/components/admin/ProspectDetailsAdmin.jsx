@@ -177,9 +177,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
+  // 🔥 MULTI-TENANT: Utilise organization_id de l'admin
   const { uploadFile, uploading } = useSupabaseProjectFiles({ 
     projectType, 
-    prospectId, 
+    prospectId,
+    organizationId: activeAdminUser?.organization_id, // 🔥 MULTI-TENANT
     enabled: true 
   });
   // 🔥 Hook pour ajouter des événements dans l'historique du projet

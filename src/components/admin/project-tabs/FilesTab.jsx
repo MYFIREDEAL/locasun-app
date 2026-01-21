@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from '@/components/ui/use-toast';
 
 const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activeAdminUserProp }) => {
   const { activeAdminUser: activeAdminUserContext } = useAppContext();
+  const { organizationId } = useOrganization(); // 🔥 MULTI-TENANT
   // ✅ Prioriser le prop sur le context
   const activeAdminUser = activeAdminUserProp || activeAdminUserContext;
   const [selectedFile, setSelectedFile] = useState(null);
@@ -24,6 +26,7 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
   } = useSupabaseProjectFiles({
     projectType,
     prospectId,
+    organizationId, // 🔥 MULTI-TENANT: Passer organizationId
     enabled: !!projectType,
   });
 
