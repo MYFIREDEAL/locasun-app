@@ -431,8 +431,9 @@ function App() {
     return result;
   }, [projectTemplates]);
   
-  // Exposer le logo pour le contexte (compatibilité avec le code existant)
-  const companyLogo = companySettings?.logo_url || '';
+  // 🔥 MULTI-TENANT: Exposer le logo pour le contexte
+  // Priorité : organization_settings.logo_url (via logoUrl du contexte) > company_settings.logo_url (fallback)
+  const companyLogo = logoUrl || companySettings?.logo_url || '';
   const setCompanyLogo = updateLogo;
   
   // 🔥 PHASE 2: Double lecture form_contact_config
