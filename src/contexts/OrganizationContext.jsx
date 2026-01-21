@@ -100,13 +100,29 @@ export const OrganizationProvider = ({ children }) => {
             return;
           }
 
-          // 2b. Pour les CLIENTS : prioriser l'org du hostname si disponible
+          // 2b. Pour les CLIENTS : vérifier d'abord si déjà lié à un prospect dans cette org
           if (hostnameOrgId) {
+            // D'abord, vérifier si le user est déjà lié à un prospect dans l'org du hostname
+            const { data: existingProspect } = await supabase
+              .from('prospects')
+              .select('id, organization_id')
+              .eq('user_id', authUserId)
+              .eq('organization_id', hostnameOrgId)
+              .maybeSingle();
+
+            if (existingProspect) {
+              // Déjà lié à cette org, pas besoin de RPC
+              logger.info('[OrganizationContext] Client déjà lié à l\'org du hostname:', hostnameOrgId);
+              setOrganizationId(hostnameOrgId);
+              setOrganizationLoading(false);
+              return;
+            }
+
+            // Sinon, essayer de lier via RPC (bypass RLS pour prospects avec user_id = null)
             const { data: { session } } = await supabase.auth.getSession();
             const userEmail = session?.user?.email;
             
             if (userEmail) {
-              // 🔥 Utiliser RPC pour bypass RLS et lier le user_id au prospect de cette org
               const { data: linkedProspectId, error: linkError } = await supabase.rpc(
                 'link_user_to_prospect_in_org',
                 {
@@ -127,12 +143,13 @@ export const OrganizationProvider = ({ children }) => {
             }
           }
 
-          // 2c. Sinon, utiliser le prospect déjà lié par user_id
+          // 2c. Sinon, utiliser le prospect déjà lié par user_id (n'importe quelle org)
           const { data: prospectUser } = await supabase
             .from('prospects')
             .select('organization_id')
             .eq('user_id', authUserId)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (prospectUser?.organization_id) {
             logger.info('[OrganizationContext] Organization résolue depuis prospect (user_id):', prospectUser.organization_id);
