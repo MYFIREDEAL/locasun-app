@@ -440,7 +440,7 @@ const WorkflowsCharlyPage = () => {
   const {
     templates: contractTemplates,
     loading: templatesLoading
-  } = useSupabaseContractTemplates();
+  } = useSupabaseContractTemplates(organizationId);  // 🔥 Passer organizationId !
 
   const prompts = useMemo(() => {
     return supabasePrompts;
