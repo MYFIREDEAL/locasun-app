@@ -173,11 +173,14 @@ const RegistrationPage = () => {
       }
 
       // 🔥 ÉTAPE 3: Envoyer le Magic Link
+      // 🔥 Utiliser le hostname actuel pour rediriger vers la bonne org
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: formData.email.trim(),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: 'https://evatime.fr/dashboard',
+          emailRedirectTo: redirectUrl,
         }
       });
 

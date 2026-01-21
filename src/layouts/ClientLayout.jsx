@@ -27,11 +27,14 @@ const ClientLayout = () => {
       
       if (!session) {
         // Envoyer un magic link automatiquement
+        // 🔥 Utiliser le hostname actuel pour rediriger vers la bonne org
+        const redirectUrl = `${window.location.origin}/dashboard`;
+        
         const { error } = await supabase.auth.signInWithOtp({
           email: currentUser.email,
           options: {
             shouldCreateUser: true,
-            emailRedirectTo: 'https://evatime.fr/dashboard'
+            emailRedirectTo: redirectUrl
           }
         });
         
