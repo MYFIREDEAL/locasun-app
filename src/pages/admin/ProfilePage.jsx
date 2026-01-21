@@ -2567,13 +2567,14 @@ const ProfilePage = () => {
       if (error) throw error;
 
       // 2. 🔥 SYNC vers organization_settings.display_name (pour landing page)
+      // Utiliser UPSERT car la ligne peut ne pas exister
       const { error: syncError } = await supabase
         .from('organization_settings')
-        .update({ 
+        .upsert({ 
+          organization_id: organizationId,
           display_name: organizationName.trim(),
           updated_at: new Date().toISOString()
-        })
-        .eq('organization_id', organizationId);
+        }, { onConflict: 'organization_id' });
 
       if (syncError) {
         logger.warn('Sync display_name vers organization_settings échoué:', { error: syncError.message });
