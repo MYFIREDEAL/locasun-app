@@ -93,8 +93,16 @@ export const UsersProvider = ({ children }) => {
 export const useUsers = () => {
   const context = useContext(UsersContext);
   
+  // 🔥 FIX: Retourner des valeurs par défaut si le contexte n'est pas disponible
+  // Évite le crash React #310 pendant le rendu initial
   if (!context) {
-    throw new Error('useUsers must be used within a UsersProvider');
+    return {
+      users: [],
+      loading: true,
+      error: null,
+      refetch: () => {},
+      lastFetch: null,
+    };
   }
   
   return context;
