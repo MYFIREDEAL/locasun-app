@@ -827,8 +827,9 @@ function App() {
   };
 
   const handleSetFormContactConfig = async (updater) => {
-    // Récupérer la config actuelle depuis Supabase
-    const prevConfig = getFormContactConfig();
+    // 🔥 MULTI-TENANT: Utiliser formContactConfig (qui lit depuis organization_settings en priorité)
+    // au lieu de getFormContactConfig() qui lit depuis company_settings (singleton partagé)
+    const prevConfig = formContactConfig || [];
     const nextConfig = typeof updater === 'function' ? updater(prevConfig) : updater;
     
     if (!Array.isArray(nextConfig)) {
@@ -841,9 +842,11 @@ function App() {
       return;
     }
     
-    // Mettre à jour dans Supabase (avec real-time automatique)
+    // Mettre à jour dans Supabase (organization_settings avec real-time automatique)
     try {
       await updateFormContactConfig(nextConfig);
+      // 🔥 Mettre à jour immédiatement l'état local pour éviter d'attendre le real-time
+      setOrgFormContactConfig(nextConfig);
     } catch (error) {
       logger.error('Erreur update config formulaire contact', { error: error.message });
     }
@@ -917,28 +920,39 @@ function App() {
   };
 
   // 🔥 Migration : Charger formContactConfig depuis localStorage et migrer vers Supabase
+  // 🔥 MULTI-TENANT: Migre maintenant vers organization_settings (isolé par org)
   useEffect(() => {
     const migrateFormContactConfig = async () => {
+      // Exiger organizationId pour la migration multi-tenant
+      if (!organizationId) return;
+      
       const storedConfig = localStorage.getItem('evatime_form_contact_config');
       
-      if (storedConfig && companySettings) {
+      if (storedConfig) {
         const parsedConfig = JSON.parse(storedConfig);
-        const currentConfig = companySettings?.settings?.form_contact_config;
         
-        // Si Supabase est vide mais localStorage a des données, migrer
-        if (!currentConfig || currentConfig.length === 0) {
+        // 🔥 MULTI-TENANT: Vérifier organization_settings ET company_settings
+        // orgFormContactConfig est déjà chargé depuis organization_settings
+        const hasOrgConfig = orgFormContactConfig && orgFormContactConfig.length > 0;
+        const hasCompanyConfig = companySettings?.settings?.form_contact_config?.length > 0;
+        
+        // Si organization_settings est vide, migrer depuis localStorage
+        if (!hasOrgConfig) {
           await updateFormContactConfig(parsedConfig);
+          // Mettre à jour l'état local immédiatement
+          setOrgFormContactConfig(parsedConfig);
           // Nettoyer le localStorage après migration
           localStorage.removeItem('evatime_form_contact_config');
+          logger.info('FormContactConfig migré de localStorage vers organization_settings', { organizationId });
         } else {
-          // Supabase a déjà des données, supprimer localStorage
+          // organization_settings a déjà des données, supprimer localStorage
           localStorage.removeItem('evatime_form_contact_config');
         }
       }
     };
     
     migrateFormContactConfig();
-  }, [companySettings]); // Exécuter uniquement quand companySettings est chargé
+  }, [organizationId, orgFormContactConfig]); // Exécuter quand organizationId et orgFormContactConfig sont chargés
 
   // ✅ globalPipelineSteps maintenant géré par Supabase (plus de localStorage)
   // Plus besoin de sauvegarder dans localStorage à chaque changement

@@ -274,39 +274,45 @@ export const useSupabaseCompanySettings = (organizationId = null) => {
   /**
    * ✅ METTRE À JOUR LA CONFIG DU FORMULAIRE CONTACT
    * @param {Array} formContactConfig - Array de champs du formulaire
+   * 
+   * 🔥 MULTI-TENANT: Sauvegarde maintenant dans organization_settings (isolé par org)
+   *                  au lieu de company_settings (singleton partagé)
    */
   const updateFormContactConfig = async (formContactConfig) => {
+    // 🔥 MULTI-TENANT: Exiger organizationId pour l'isolation
+    if (!organizationId) {
+      logger.error('updateFormContactConfig: organizationId requis pour isolation multi-tenant');
+      toast({
+        title: "Erreur",
+        description: "Organisation non définie. Impossible de sauvegarder.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       // Marquer comme mise à jour locale
       isLocalUpdate.current = true;
 
-      // Récupérer les settings actuels et ajouter/modifier form_contact_config
-      const currentSettings = companySettings?.settings || {};
-      const newSettings = {
-        ...currentSettings,
-        form_contact_config: formContactConfig
-      };
-
+      // 🔥 MULTI-TENANT: UPSERT dans organization_settings (isolé par org)
+      // UPSERT garantit que la ligne est créée si elle n'existe pas
       const { error: updateError } = await supabase
-        .from('company_settings')
-        .update({ 
-          settings: newSettings,
+        .from('organization_settings')
+        .upsert({ 
+          organization_id: organizationId,
+          form_contact_config: formContactConfig,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', COMPANY_SETTINGS_ID);
+        }, {
+          onConflict: 'organization_id'
+        });
 
       if (updateError) {
-        logger.error('Supabase form contact update error:', { error: updateError.message });
+        logger.error('Supabase form contact upsert error (organization_settings):', { error: updateError.message });
         isLocalUpdate.current = false;
         throw updateError;
       }
       
-      // Mise à jour immédiate de l'état local
-      setCompanySettings(prev => ({
-        ...prev,
-        settings: newSettings,
-        updated_at: new Date().toISOString()
-      }));
+      logger.info('Form contact config sauvegardé dans organization_settings', { organizationId });
 
       // Pas besoin de toast pour les changements de config
       return true;
