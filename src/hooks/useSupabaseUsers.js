@@ -21,7 +21,7 @@ export const useSupabaseUsers = () => {
         
         // 🔥 FIX: Si pas de session, ne pas appeler la RPC
         if (!session) {
-          console.warn('useSupabaseUsers: No active Supabase session');
+          logger.debug('useSupabaseUsers: No active Supabase session');
           setUsers([]);
           setLoading(false);
           return;
