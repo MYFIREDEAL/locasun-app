@@ -1875,13 +1875,16 @@ const ProfilePage = () => {
     removeLogo
   } = useAppContext();
 
+  // 🏢 Hook pour récupérer l'organization courante (multi-tenant) - DOIT ÊTRE AVANT LES HOOKS SUPABASE
+  const { organizationId } = useOrganization();
+
   // 🔥 Hook Supabase pour la gestion des formulaires (remplace Context)
   const {
     forms: supabaseForms,
     loading: formsLoading,
     saveForm: saveFormToSupabase,
     deleteForm: deleteFormFromSupabase
-  } = useSupabaseForms();
+  } = useSupabaseForms(organizationId);  // 🔥 Passer organizationId !
 
   // 🔥 Forcer React à re-render quand supabaseForms change en créant un nouveau memo
   const forms = useMemo(() => {
@@ -1894,7 +1897,7 @@ const ProfilePage = () => {
     loading: promptsLoading,
     savePrompt: savePromptToSupabase,
     deletePrompt: deletePromptFromSupabase
-  } = useSupabasePrompts();
+  } = useSupabasePrompts(organizationId);  // 🔥 Passer organizationId !
 
   // 🔥 Forcer React à re-render quand supabasePrompts change
   const prompts = useMemo(() => {
@@ -1908,7 +1911,7 @@ const ProfilePage = () => {
     createTemplate,
     updateTemplate,
     deactivateTemplate
-  } = useSupabaseContractTemplates();
+  } = useSupabaseContractTemplates(organizationId);  // 🔥 Passer organizationId !
 
   // 🔥 Utiliser le hook Supabase pour la gestion des utilisateurs
   const {
@@ -1918,9 +1921,6 @@ const ProfilePage = () => {
     updateUser,
     deleteUser: deleteUserSupabase
   } = useSupabaseUsersCRUD(activeAdminUser);
-
-  // 🏢 Hook pour récupérer l'organization courante (multi-tenant)
-  const { organizationId } = useOrganization();
 
   // Transformer le array Supabase en objet compatible avec le code existant
   // { user_id: { id, user_id, name, email, ... } }

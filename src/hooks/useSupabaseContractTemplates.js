@@ -5,8 +5,9 @@ import { logger } from '@/lib/logger';
 /**
  * Hook pour gérer les templates de contrats via Supabase
  * Table: contract_templates
+ * @param {string} organizationId - L'ID de l'organisation (requis pour l'isolation multi-tenant)
  */
-export function useSupabaseContractTemplates() {
+export function useSupabaseContractTemplates(organizationId = null) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,12 +28,20 @@ export function useSupabaseContractTemplates() {
 
   // Charger les templates
   useEffect(() => {
+    // Ne rien charger si pas d'organization_id
+    if (!organizationId) {
+      setTemplates([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchTemplates = async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from('contract_templates')
           .select('*')
+          .eq('organization_id', organizationId)  // 🔥 Filtrer par org !
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -97,17 +106,23 @@ export function useSupabaseContractTemplates() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [organizationId]);  // 🔥 Re-fetch si org change
 
   // Créer un template
   const createTemplate = async (templateData) => {
     try {
+      // 🔥 Vérifier que l'organization_id est présent
+      if (!organizationId) {
+        throw new Error('organization_id requis pour créer un template');
+      }
+
       const dbPayload = {
         name: templateData.name,
         project_type: templateData.projectType || 'ACC',
         content_html: templateData.contentHtml || '',
         version: 1,
         is_active: true,
+        organization_id: organizationId,  // 🔥 Inclure l'org !
       };
 
       const { data, error } = await supabase

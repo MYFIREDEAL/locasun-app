@@ -380,10 +380,11 @@ function App() {
   }, [supabaseForms, formsLoading, authLoading]);
 
   // 🔥 Charger les prompts depuis Supabase avec real-time (pour Charly AI)
+  // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
   const {
     prompts: supabasePrompts,
     loading: promptsLoading
-  } = useSupabasePrompts(adminReady && !authLoading);
+  } = useSupabasePrompts(organizationId);
 
   // Synchroniser prompts dans le state pour compatibilité avec le code existant
   useEffect(() => {

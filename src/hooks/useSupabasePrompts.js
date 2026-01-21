@@ -5,8 +5,9 @@ import { logger } from '@/lib/logger';
 /**
  * Hook pour gérer les prompts Charly AI via Supabase
  * Table: prompts
+ * @param {string} organizationId - L'ID de l'organisation (requis pour l'isolation multi-tenant)
  */
-export function useSupabasePrompts() {
+export function useSupabasePrompts(organizationId = null) {
   const [prompts, setPrompts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,12 +31,20 @@ export function useSupabasePrompts() {
 
   // Charger les prompts
   useEffect(() => {
+    // Ne rien charger si pas d'organization_id
+    if (!organizationId) {
+      setPrompts({});
+      setLoading(false);
+      return;
+    }
+
     const fetchPrompts = async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from('prompts')
           .select('*')
+          .eq('organization_id', organizationId)  // 🔥 Filtrer par org !
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -113,17 +122,23 @@ export function useSupabasePrompts() {
       logger.debug('Unsubscribing from prompts real-time');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [organizationId]);  // 🔥 Re-fetch si org change
 
   // Ajouter/mettre à jour un prompt
   const savePrompt = async (promptId, promptData) => {
     try {
+      // 🔥 Vérifier que l'organization_id est présent
+      if (!organizationId) {
+        throw new Error('organization_id requis pour enregistrer un prompt');
+      }
+
       const dbPayload = {
         prompt_id: promptId,
         name: promptData.name,
         tone: promptData.tone,
         project_id: promptData.projectId,
         steps_config: promptData.stepsConfig || {},
+        organization_id: organizationId,  // 🔥 Inclure l'org !
       };
 
       const { data, error } = await supabase

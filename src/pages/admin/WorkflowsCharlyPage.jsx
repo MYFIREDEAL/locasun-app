@@ -435,7 +435,7 @@ const WorkflowsCharlyPage = () => {
     loading: promptsLoading,
     savePrompt: savePromptToSupabase,
     deletePrompt: deletePromptFromSupabase
-  } = useSupabasePrompts();
+  } = useSupabasePrompts(organizationId);  // 🔥 Passer organizationId !
 
   const {
     templates: contractTemplates,

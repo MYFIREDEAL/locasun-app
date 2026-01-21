@@ -19,10 +19,11 @@ EVATIME est une plateforme SaaS multi-tenant où chaque organisation (Rosca Fina
 - ✅ `useSupabaseProjectTemplates` - Filtre + INSERT avec org
 - ✅ `useSupabaseGlobalPipeline` - Filtre + INSERT avec org
 - ✅ `useSupabaseForms` - Filtre + INSERT avec org
+- ✅ `useSupabaseContractTemplates` - Filtre + INSERT avec org
+- ✅ `useSupabasePrompts` - Filtre + INSERT avec org
 
 ### Hooks à modifier :
-- ⏳ `useSupabaseContractTemplates` - Templates de contrats
-- ⏳ `useSupabasePrompts` - Workflows Charly AI
+- (Aucun - tous les hooks sont maintenant isolés ! 🎉)
 
 ---
 
@@ -232,4 +233,4 @@ if (!adminReady || organizationLoading || !organizationId) {
 
 ---
 
-*Dernière mise à jour : 21 janvier 2026 - 01h30*
+*Dernière mise à jour : 21 janvier 2026 - 10h20*
