@@ -69,6 +69,7 @@ const FinalPipeline = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { organizationId } = useOrganization();
   
+  // 🔥 TOUS LES HOOKS DOIVENT ÊTRE AVANT LES EARLY RETURNS (Rules of Hooks)
   // États locaux
   const [selectedProspectId, setSelectedProspectId] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -79,7 +80,18 @@ const FinalPipeline = () => {
   const [isTagMenuOpen, setTagMenuOpen] = useState(false);
   const tagMenuRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const lastProcessedUrl = useRef(null); // 🔥 Pour éviter de retraiter la même URL
+  const lastProcessedUrl = useRef(null);
+  const [isEditingProspect, setIsEditingProspect] = useState(false);
+
+  // 🔥 HOOKS DÉPLACÉS ICI (avant les early returns)
+  const { users: supabaseUsers, loading: usersLoading } = useUsers();
+  const { authUserId } = useSupabaseUser();
+  
+  // 🔥 Hook pour ajouter des prospects - appelé avant les early returns
+  // activeAdminUser peut être undefined si contextData est null, le hook gère ce cas
+  const {
+    addProspect: addSupabaseProspectDirect,
+  } = useSupabaseProspects(contextData?.activeAdminUser);
 
   // ❌ SUPPRIMÉ : Canal real-time spécifique (duplication inutile)
   // Ancien code causait le bug : selectedProspect était un state local qui ne se synchronisait jamais
@@ -125,58 +137,25 @@ const FinalPipeline = () => {
       supabase.removeChannel(channel);
     };
   }, [selectedProspectId]); */
-  const [isEditingProspect, setIsEditingProspect] = useState(false);
+  // 🔥 isEditingProspect déplacé en haut avec les autres états
   
-  if (!contextData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du pipeline...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // 🔥 Extraire les données du contexte (avec valeurs par défaut si null)
   const { 
-    prospects: supabaseProspects, // 🔥 Utiliser prospects du contexte (déjà synchronisé avec Supabase)
-    prospectsLoading, // 🔥 État de chargement pour skeleton screens
-    allProjectSteps = {}, // 🔥 Tous les project steps préchargés dans App.jsx
-    allStepsLoading, // 🔥 État de chargement des project steps
-    updateProspect: updateSupabaseProspect,
+    prospects: supabaseProspects = [],
+    prospectsLoading = true,
+    allProjectSteps = {},
+    allStepsLoading = true,
+    updateProspect: updateSupabaseProspect = async () => {},
     projectsData = {}, 
-    activeAdminUser,
+    activeAdminUser = null,
     users = {},
     globalPipelineSteps = [],
-    pipelineLoading, // 🔥 État de chargement des colonnes du pipeline
-    getProjectSteps,
-  } = contextData;
+    pipelineLoading = true,
+    getProjectSteps = () => [],
+  } = contextData || {};
 
-  // 🔥 Attendre que les colonnes du pipeline soient chargées avant d'afficher
-  if (pipelineLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement des colonnes du pipeline...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // � UTILISER LE HOOK DIRECT COMME DANS CONTACTS (pas le contexte)
-  const {
-    addProspect: addSupabaseProspectDirect,
-  } = useSupabaseProspects(activeAdminUser);
-
-  // �🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis UsersContext (cache global)
-  const { users: supabaseUsers, loading: usersLoading } = useUsers();
-  
-  // 🔥 Get auth UUID for current user (for "mine" filter)
-  const { authUserId } = useSupabaseUser();
-
+  // 🔥 TOUS LES HOOKS useMemo DOIVENT ÊTRE ICI (avant tout return conditionnel)
   // Transformer le array Supabase en objet { user_id: userObject }
-  // 🔥 Indexé par user.user_id (auth UUID) car prospects.owner_id référence users.user_id
   const usersFromSupabase = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
       acc[user.user_id] = {
@@ -199,12 +178,13 @@ const FinalPipeline = () => {
   const updateProspect = updateSupabaseProspect;
 
   // 🔥 FIX SIMPLE: Calcul direct sans useMemo pour éviter problèmes de référence
-  // React re-render quand supabaseProspects change (grâce au spread operator dans le hook)
   const selectedProspect = supabaseProspects?.find(p => p.id === selectedProspectId) || null;
 
   // 🔥 Construire les colonnes à partir des globalPipelineSteps depuis Supabase
-  // Plus besoin de fallback car on attend pipelineLoading avant d'afficher
   const stageDefinitions = useMemo(() => {
+    if (!globalPipelineSteps || globalPipelineSteps.length === 0) {
+      return DEFAULT_PIPELINE_STAGE_DEFINITIONS;
+    }
     return globalPipelineSteps.map((step, index) => {
       const normalizedLabel = normalizePipelineLabel(step.label);
       const assignedColor =
