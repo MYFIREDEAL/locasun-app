@@ -356,7 +356,6 @@ function App() {
 
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
-  console.log('[App.jsx] organizationId for templates:', organizationId);
   const {
     projectTemplates,
     loading: templatesLoading,
@@ -365,8 +364,6 @@ function App() {
     deleteTemplate,
     getPublicTemplates
   } = useSupabaseProjectTemplates(organizationId);
-  
-  console.log('[App.jsx] projectTemplates loaded:', projectTemplates?.length, projectTemplates?.map(t => t.type));
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org

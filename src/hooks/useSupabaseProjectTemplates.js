@@ -29,7 +29,7 @@ export function useSupabaseProjectTemplates(organizationId = null) {
    * ✅ CHARGER LES TEMPLATES AU MONTAGE ET QUAND organizationId CHANGE
    */
   useEffect(() => {
-    fetchProjectTemplates();
+    fetchProjectTemplates(organizationId);
   }, [organizationId]);
 
   /**
@@ -91,8 +91,9 @@ export function useSupabaseProjectTemplates(organizationId = null) {
    * 📥 RÉCUPÉRER LES TEMPLATES (filtrés par organization)
    * - Si organizationId fourni: templates globaux (NULL) + templates de l'org
    * - Sinon: uniquement templates globaux (NULL)
+   * @param {string|null} orgId - L'organization_id à utiliser pour le filtre
    */
-  const fetchProjectTemplates = async () => {
+  const fetchProjectTemplates = async (orgId) => {
     try {
       setLoading(true);
       setError(null);
@@ -103,9 +104,9 @@ export function useSupabaseProjectTemplates(organizationId = null) {
         .order('type', { ascending: true });
 
       // 🔥 MULTI-TENANT: Filtrer par organization_id
-      if (organizationId) {
+      if (orgId) {
         // Templates globaux (NULL) OU templates de cette org
-        query = query.or(`organization_id.is.null,organization_id.eq.${organizationId}`);
+        query = query.or(`organization_id.is.null,organization_id.eq.${orgId}`);
       } else {
         // Pas d'org = uniquement templates globaux
         query = query.is('organization_id', null);
