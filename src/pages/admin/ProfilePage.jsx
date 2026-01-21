@@ -2447,8 +2447,8 @@ const ProfilePage = () => {
       return;
     }
     
-    // ✅ Générer le VRAI lien d'affiliation pointant vers /inscription/{slug}
-    const link = `https://evatime.fr/inscription/${fullUser.affiliate_slug}`;
+    // 🔥 Multi-tenant: utiliser le hostname actuel au lieu de evatime.fr hardcodé
+    const link = `${window.location.origin}/inscription/${fullUser.affiliate_slug}`;
 
     navigator.clipboard.writeText(link).then(() => {
       toast({
