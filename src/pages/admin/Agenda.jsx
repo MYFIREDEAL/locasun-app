@@ -22,8 +22,8 @@ import { cn } from '@/lib/utils';
 import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
+import { useUsers } from '@/contexts/UsersContext';
 import { logger } from '@/lib/logger';
 
 const GoogleLogo = () => (
@@ -1466,8 +1466,8 @@ const Agenda = () => {
   // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
   const { supabaseUserId, authUserId, loading: userIdLoading } = useSupabaseUser();
   
-  // 🔥 Charger TOUS les utilisateurs Supabase pour le dropdown
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  // 🔥 Charger TOUS les utilisateurs Supabase (via cache global UsersContext)
+  const { users: supabaseUsers, loading: usersLoading } = useUsers();
   
   // 🚀 MIGRATION SUPABASE : Charger les données depuis Supabase
   const {
