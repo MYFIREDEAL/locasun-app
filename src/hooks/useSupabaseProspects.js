@@ -316,11 +316,16 @@ export const useSupabaseProspects = (activeAdminUser) => {
       try {
         logger.debug('Sending Magic Link', { email: data.email });
         
+        // 🔥 Utiliser le hostname actuel (celui de l'admin qui crée le prospect)
+        const currentHost = window.location.origin; // ex: https://rosca.evatime.fr
+        const redirectUrl = `${currentHost}/dashboard`;
+        logger.debug('Magic Link redirect URL', { redirectUrl });
+        
         // Envoyer le Magic Link (crée automatiquement le user auth si inexistant)
         const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
           email: data.email,
           options: {
-            emailRedirectTo: 'https://evatime.fr/dashboard',
+            emailRedirectTo: redirectUrl,
             shouldCreateUser: true, // ✅ Créer le user auth automatiquement
           }
         });

@@ -572,6 +572,7 @@ function App() {
         .maybeSingle();
 
       // Étape 2 : Si pas trouvé par user_id, chercher par email et associer
+      // ⚠️ Prendre le prospect le plus récent si plusieurs ont le même email (multi-org)
       if (!prospect) {
         const email = session?.user?.email;
         if (email) {
@@ -579,6 +580,8 @@ function App() {
             .from("prospects")
             .select("*")
             .eq("email", email)
+            .order('created_at', { ascending: false }) // 🔥 Le plus récent d'abord
+            .limit(1)
             .maybeSingle();
 
           if (byEmail) {

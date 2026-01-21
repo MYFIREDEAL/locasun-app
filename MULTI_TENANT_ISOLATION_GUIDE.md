@@ -279,3 +279,39 @@ if (!adminReady || organizationLoading || !organizationId) {
 ---
 
 *Dernière mise à jour : 21 janvier 2026 - 16h00*
+
+---
+
+## 🆕 Fix du 21 janvier 2026 (soir) - Magic Link Client + Organization
+
+### Problème
+Quand un admin crée un prospect et qu'un Magic Link est envoyé au client :
+1. Le prospect est créé avec `organization_id` ✅
+2. Le Magic Link crée un nouveau `auth.user` ✅
+3. **MAIS** le `user_id` n'est pas encore lié au prospect quand `OrganizationContext` cherche l'org
+4. Résultat : Le client est connecté à EVATIME au lieu de son organisation
+
+### Solution
+`OrganizationContext.jsx` cherche maintenant le prospect par **email** si la recherche par `user_id` échoue :
+
+```javascript
+// Si pas trouvé par user_id, chercher par email (Magic Link pas encore lié)
+const { data: { session } } = await supabase.auth.getSession();
+const userEmail = session?.user?.email;
+
+if (userEmail) {
+  const { data: prospectByEmail } = await supabase
+    .from('prospects')
+    .select('organization_id')
+    .eq('email', userEmail)
+    .maybeSingle();
+
+  if (prospectByEmail?.organization_id) {
+    setOrganizationId(prospectByEmail.organization_id);
+    return;
+  }
+}
+```
+
+### Fichiers modifiés
+- `src/contexts/OrganizationContext.jsx` - Ajout recherche par email

@@ -64,11 +64,29 @@ export const OrganizationProvider = ({ children }) => {
         setOrganizationError(null);
         setIsPlatformOrg(false); // Reset à chaque résolution
 
-        // 1️⃣ Si user connecté : utiliser user.organization_id
+        const hostname = window.location.hostname;
+        logger.info('[OrganizationContext] Hostname actuel:', hostname);
+
+        // 🔥 ÉTAPE 1: Résoudre l'org depuis le hostname (prioritaire pour multi-org)
+        let hostnameOrgId = null;
+        const { data: rpcData, error: rpcError } = await supabase.rpc('resolve_organization_from_host', {
+          host: hostname
+        });
+
+        if (!rpcError && rpcData) {
+          hostnameOrgId = rpcData?.id || (Array.isArray(rpcData) && rpcData[0]?.id) || rpcData;
+          if (hostnameOrgId && typeof hostnameOrgId === 'string') {
+            logger.info('[OrganizationContext] Organization résolue depuis hostname:', hostnameOrgId);
+          } else {
+            hostnameOrgId = null;
+          }
+        }
+
+        // 🔥 ÉTAPE 2: Si user connecté
         if (authUserId) {
-          logger.info('[OrganizationContext] User authentifié, récupération de son organization_id');
+          logger.info('[OrganizationContext] User authentifié, vérification organization_id');
           
-          // Vérifier si c'est un admin (table users) ou un client (table prospects)
+          // 2a. Vérifier si c'est un admin (table users)
           const { data: adminUser } = await supabase
             .from('users')
             .select('organization_id')
@@ -82,6 +100,37 @@ export const OrganizationProvider = ({ children }) => {
             return;
           }
 
+          // 2b. Pour les CLIENTS : prioriser l'org du hostname si disponible
+          if (hostnameOrgId) {
+            // Vérifier que le client a un prospect dans CETTE org
+            const { data: { session } } = await supabase.auth.getSession();
+            const userEmail = session?.user?.email;
+            
+            if (userEmail) {
+              const { data: prospectInHostOrg } = await supabase
+                .from('prospects')
+                .select('id, organization_id')
+                .eq('email', userEmail)
+                .eq('organization_id', hostnameOrgId)
+                .maybeSingle();
+
+              if (prospectInHostOrg) {
+                logger.info('[OrganizationContext] Client a un prospect dans l\'org du hostname:', hostnameOrgId);
+                
+                // 🔥 Mettre à jour le user_id vers ce prospect (switch d'org)
+                await supabase
+                  .from('prospects')
+                  .update({ user_id: authUserId })
+                  .eq('id', prospectInHostOrg.id);
+                
+                setOrganizationId(hostnameOrgId);
+                setOrganizationLoading(false);
+                return;
+              }
+            }
+          }
+
+          // 2c. Sinon, utiliser le prospect déjà lié par user_id
           const { data: prospectUser } = await supabase
             .from('prospects')
             .select('organization_id')
@@ -89,34 +138,43 @@ export const OrganizationProvider = ({ children }) => {
             .single();
 
           if (prospectUser?.organization_id) {
-            logger.info('[OrganizationContext] Organization résolue depuis prospect:', prospectUser.organization_id);
+            logger.info('[OrganizationContext] Organization résolue depuis prospect (user_id):', prospectUser.organization_id);
             setOrganizationId(prospectUser.organization_id);
             setOrganizationLoading(false);
             return;
           }
-        }
 
-        // 2️⃣ Sinon, essayer domaine custom
-        const hostname = window.location.hostname;
-        logger.info('[OrganizationContext] Tentative de résolution depuis hostname:', hostname);
+          // 2d. Fallback: chercher par email (Magic Link pas encore lié)
+          const { data: { session } } = await supabase.auth.getSession();
+          const userEmail = session?.user?.email;
+          
+          if (userEmail) {
+            const { data: prospectByEmail } = await supabase
+              .from('prospects')
+              .select('organization_id')
+              .eq('email', userEmail)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-        // Vérifier si la fonction RPC existe avant de l'appeler
-        const { data: rpcData, error: rpcError } = await supabase.rpc('resolve_organization_from_host', {
-          host: hostname
-        });
-
-        if (!rpcError && rpcData) {
-          // rpcData peut être une string (uuid) ou un objet { id }
-          const resolvedId = rpcData?.id || (Array.isArray(rpcData) && rpcData[0]?.id) || rpcData;
-          if (resolvedId) {
-            logger.info('[OrganizationContext] Organization résolue depuis domaine custom:', resolvedId);
-            setOrganizationId(resolvedId);
-            setOrganizationLoading(false);
-            return;
+            if (prospectByEmail?.organization_id) {
+              logger.info('[OrganizationContext] Organization résolue depuis prospect par EMAIL:', prospectByEmail.organization_id);
+              setOrganizationId(prospectByEmail.organization_id);
+              setOrganizationLoading(false);
+              return;
+            }
           }
         }
 
-        // 3️⃣ Fallback : utiliser l'organisation plateforme EVATIME
+        // 🔥 ÉTAPE 3: Pas de user connecté, utiliser hostname si trouvé
+        if (hostnameOrgId) {
+          logger.info('[OrganizationContext] Pas de user, utilisation hostname org:', hostnameOrgId);
+          setOrganizationId(hostnameOrgId);
+          setOrganizationLoading(false);
+          return;
+        }
+
+        // 🔥 ÉTAPE 4: Fallback : utiliser l'organisation plateforme EVATIME
         logger.warn('[OrganizationContext] Aucune organisation trouvée, fallback vers organisation plateforme');
         
         // Chercher l'organisation plateforme (is_platform = true) ou prendre la première
