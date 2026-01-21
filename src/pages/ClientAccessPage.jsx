@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { Mail, User, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -14,6 +15,7 @@ const ClientAccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { projectsData, authLoading, currentUser } = useAppContext();
+  const { organizationId, organizationName } = useOrganization();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
@@ -75,24 +77,35 @@ const ClientAccessPage = () => {
       return;
     }
 
+    // Validation organization
+    if (!organizationId) {
+      toast({
+        title: "Organisation non identifiée",
+        description: "Impossible de déterminer l'organisation. Veuillez réessayer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // 1) Vérifier si un prospect existe avec cet email
-      const { data: existingProspect, error: checkError } = await supabase
-        .from('prospects')
-        .select('*')
-        .eq('email', email.trim())
-        .maybeSingle();
+      // 1) Vérifier si un prospect existe avec cet email DANS CETTE ORGANISATION
+      // 🔥 Multi-tenant : utiliser la RPC avec organization_id
+      const { data: prospectExists, error: checkError } = await supabase
+        .rpc('check_prospect_exists_in_org', { 
+          p_email: email.trim(),
+          p_organization_id: organizationId
+        });
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         throw checkError;
       }
 
-      if (!existingProspect) {
+      if (!prospectExists) {
         toast({
           title: "Compte introuvable",
-          description: "Aucun compte client trouvé avec cet email. Veuillez vous inscrire d'abord.",
+          description: `Aucun compte client trouvé avec cet email chez ${organizationName || 'cette organisation'}. Veuillez vous inscrire d'abord.`,
           variant: "destructive",
         });
         setLoading(false);

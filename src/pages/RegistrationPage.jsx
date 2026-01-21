@@ -126,9 +126,13 @@ const RegistrationPage = () => {
       setLoading(true);
       const finalProjects = [...new Set(selectedProjects)];
 
-      // 🔥 ÉTAPE 1: Vérifier si prospect existe déjà (RPC pour éviter 403)
+      // 🔥 ÉTAPE 1: Vérifier si prospect existe déjà DANS CETTE ORGANISATION (RPC pour éviter 403)
+      // Multi-tenant : même email peut s'inscrire dans plusieurs organisations
       const { data: prospectExists, error: checkError } = await supabase
-        .rpc('check_prospect_exists', { p_email: formData.email.trim() });
+        .rpc('check_prospect_exists_in_org', { 
+          p_email: formData.email.trim(),
+          p_organization_id: organizationId
+        });
 
       if (checkError) {
         console.error('Error checking prospect:', checkError);
@@ -144,7 +148,7 @@ const RegistrationPage = () => {
       if (prospectExists) {
         toast({
           title: "Compte existant",
-          description: "Un compte existe déjà avec cet email. Connectez-vous plutôt.",
+          description: "Un compte existe déjà avec cet email dans cette organisation. Connectez-vous plutôt.",
           variant: "destructive",
         });
         setLoading(false);
