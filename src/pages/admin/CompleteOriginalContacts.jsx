@@ -10,7 +10,7 @@ import { useAppContext } from '@/App';
 import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useUsers } from '@/contexts/UsersContext';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
@@ -31,11 +31,11 @@ const defaultTagColors = {
   'ProducteurPro': 'bg-purple-100 text-purple-800',
 };
 
-const allTags = ['ACC', 'Autonomie', 'Centrale', 'Investissement', 'ProducteurPro'];
+// 🔥 SUPPRIMÉ: allTags hardcodé - Maintenant dérivé de projectsData (multi-tenant)
 
 const FallbackProspectDetails = ({ prospect, onBack, onUpdate }) => {
-  // ✅ Migré vers Supabase
-  const { users: supabaseUsers = [] } = useSupabaseUsers();
+  // ✅ Migré vers UsersContext (cache global)
+  const { users: supabaseUsers = [] } = useUsers();
   const { projectsData = {} } = useAppContext();
   const users = useMemo(() => {
     return supabaseUsers.reduce((acc, user) => {
@@ -226,8 +226,8 @@ const CompleteOriginalContacts = () => {
   const { activeAdminUser, projectsData = {}, globalPipelineSteps = [] } = context || {};
   // ❌ SUPPRIMÉ: users du context - Utiliser uniquement supabaseUsers
   
-  // ✅ Utiliser les vrais utilisateurs Supabase
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  // ✅ Utiliser UsersContext (cache global) au lieu de useSupabaseUsers
+  const { users: supabaseUsers, loading: usersLoading } = useUsers();
   
   // Transformer en objet pour compatibilité avec le code existant
   const users = useMemo(() => {
@@ -315,14 +315,17 @@ const CompleteOriginalContacts = () => {
     }
   }, [activeAdminUser, selectedUserId, allowedUsers]);
 
+  // 🔥 FIX MULTI-TENANT: Utiliser projectsData (filtré par org) au lieu de allTags hardcodé
   const tagOptions = useMemo(() => {
     const prospectTags = new Set();
     supabaseProspects.forEach(prospect => {
       (prospect.tags || []).forEach(tag => prospectTags.add(tag));
     });
     const derivedTags = Array.from(prospectTags);
-    return derivedTags.length > 0 ? derivedTags : allTags;
-  }, [supabaseProspects]);
+    // Fallback: utiliser les types de projets de l'organisation (pas hardcodé)
+    const orgProjectTypes = Object.keys(projectsData);
+    return derivedTags.length > 0 ? derivedTags : orgProjectTypes;
+  }, [supabaseProspects, projectsData]);
 
   const filteredProspects = useMemo(() => {
     // 🔥 FIX: NE PAS RE-FILTRER - Le RPC get_prospects_safe() filtre déjà correctement
