@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -169,8 +169,8 @@ const FinalPipeline = () => {
     addProspect: addSupabaseProspectDirect,
   } = useSupabaseProspects(activeAdminUser);
 
-  // �🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis Supabase
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  // �🚀 MIGRATION SUPABASE : Charger les utilisateurs depuis UsersContext (cache global)
+  const { users: supabaseUsers, loading: usersLoading } = useUsers();
   
   // 🔥 Get auth UUID for current user (for "mine" filter)
   const { authUserId } = useSupabaseUser();

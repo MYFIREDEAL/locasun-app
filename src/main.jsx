@@ -4,12 +4,15 @@ import App from "./App.jsx";
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
+import { UsersProvider } from "./contexts/UsersContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <OrganizationProvider>
-        <App />
+        <UsersProvider>
+          <App />
+        </UsersProvider>
       </OrganizationProvider>
     </BrowserRouter>
   </React.StrictMode>
