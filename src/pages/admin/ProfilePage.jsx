@@ -3043,7 +3043,8 @@ const ProfilePage = () => {
             {(() => {
               const currentUserFull = supabaseUsers.find(u => u.user_id === activeAdminUser?.id || u.email === userInfo.email);
               const affiliateSlug = currentUserFull?.affiliate_slug;
-              const affiliateLink = affiliateSlug ? `https://evatime.fr/inscription/${affiliateSlug}` : null;
+              // 🔥 Multi-tenant: utiliser le hostname actuel au lieu de evatime.fr hardcodé
+              const affiliateLink = affiliateSlug ? `${window.location.origin}/inscription/${affiliateSlug}` : null;
 
               if (!affiliateLink) return null;
 
