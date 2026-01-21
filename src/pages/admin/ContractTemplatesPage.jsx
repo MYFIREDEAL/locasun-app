@@ -28,6 +28,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown, Sparkles, FormInput } from 'lucide-react';
 import { useAppContext } from '@/App';
 import { CONTRACT_VARIABLES } from '@/constants/contractVariables';
@@ -474,6 +475,7 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
 const ContractTemplatesPage = () => {
   const navigate = useNavigate();
   const { projectsData } = useAppContext(); // 🔥 Charger les projets depuis le contexte
+  const { organizationId } = useOrganization();  // 🔥 Multi-tenant
   
   const {
     templates: contractTemplates,
@@ -481,7 +483,7 @@ const ContractTemplatesPage = () => {
     createTemplate,
     updateTemplate,
     deactivateTemplate
-  } = useSupabaseContractTemplates();
+  } = useSupabaseContractTemplates(organizationId);  // 🔥 Passer organizationId !
 
   // 🔥 Créer la liste des projets dynamiquement depuis projectsData
   const projectOptions = [
