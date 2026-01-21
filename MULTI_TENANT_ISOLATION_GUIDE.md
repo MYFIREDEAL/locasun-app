@@ -21,9 +21,54 @@ EVATIME est une plateforme SaaS multi-tenant où chaque organisation (Rosca Fina
 - ✅ `useSupabaseForms` - Filtre + INSERT avec org
 - ✅ `useSupabaseContractTemplates` - Filtre + INSERT avec org
 - ✅ `useSupabasePrompts` - Filtre + INSERT avec org
+- ✅ `useSupabaseProjectFiles` - Filtre + INSERT avec org
+- ✅ `useSupabaseCompanySettings` - `formContactConfig` isolé par org
 
 ### Hooks à modifier :
 - (Aucun - tous les hooks sont maintenant isolés ! 🎉)
+
+---
+
+## 🆕 Fixes du 21 janvier 2026 (après-midi)
+
+### 1. `formContactConfig` - Isolation multi-tenant
+**Problème** : Les champs de formulaire de contact étaient partagés entre toutes les organisations (singleton `company_settings`).
+
+**Solution** : 
+- Stockage dans `organization_settings.form_contact_config` (JSON) par organisation
+- `useSupabaseCompanySettings.updateFormContactConfig()` utilise `upsert` vers `organization_settings`
+- Fallback vers `company_settings` pour rétro-compatibilité
+
+### 2. `project_files` - Isolation multi-tenant
+**Problème** : INSERT bloqué par RLS + pas de colonne `organization_id`.
+
+**Solution** :
+- Ajout colonne `organization_id` à `project_files`
+- RLS policies strictes (SELECT/INSERT/UPDATE/DELETE)
+- `useSupabaseProjectFiles` accepte `organizationId` et l'inclut dans INSERT
+- Pages modifiées : `FilesTab`, `ClientFormPanel`, `ProjectDetails`, `ProspectDetailsAdmin`
+
+### 3. Logo/Branding - Lecture depuis `organization_settings`
+**Problème** : Le logo dans `ProfilePage` montrait le logo d'une autre org.
+
+**Solution** :
+- `App.jsx` : `companyLogo` lit d'abord depuis `logoUrl` (OrganizationContext) puis fallback `company_settings`
+- `landing.jsx` : Affiche logo OU nom (pas les deux)
+- `useBranding` : Charge depuis `organization_settings.logo_url`
+
+### 4. Nom d'entreprise - Sync vers landing page
+**Problème** : Le nom modifié dans "Informations de l'entreprise" n'apparaissait pas sur la landing page.
+
+**Solution** :
+- `ProfilePage.handleUpdateOrganizationName()` sync vers `organization_settings.display_name` via `upsert`
+- `useBranding` charge `display_name` depuis `organization_settings`
+- Landing page utilise `brandName` du contexte
+
+### 5. RLS Policies créées
+```sql
+-- organization_settings (SELECT, UPDATE, INSERT)
+-- project_files (SELECT, INSERT, UPDATE, DELETE avec organization_id)
+```
 
 ---
 
@@ -233,4 +278,4 @@ if (!adminReady || organizationLoading || !organizationId) {
 
 ---
 
-*Dernière mise à jour : 21 janvier 2026 - 10h20*
+*Dernière mise à jour : 21 janvier 2026 - 16h00*
