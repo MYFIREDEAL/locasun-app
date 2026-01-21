@@ -102,30 +102,27 @@ export const OrganizationProvider = ({ children }) => {
 
           // 2b. Pour les CLIENTS : prioriser l'org du hostname si disponible
           if (hostnameOrgId) {
-            // Vérifier que le client a un prospect dans CETTE org
             const { data: { session } } = await supabase.auth.getSession();
             const userEmail = session?.user?.email;
             
             if (userEmail) {
-              const { data: prospectInHostOrg } = await supabase
-                .from('prospects')
-                .select('id, organization_id')
-                .eq('email', userEmail)
-                .eq('organization_id', hostnameOrgId)
-                .maybeSingle();
+              // 🔥 Utiliser RPC pour bypass RLS et lier le user_id au prospect de cette org
+              const { data: linkedProspectId, error: linkError } = await supabase.rpc(
+                'link_user_to_prospect_in_org',
+                {
+                  p_user_id: authUserId,
+                  p_email: userEmail,
+                  p_organization_id: hostnameOrgId
+                }
+              );
 
-              if (prospectInHostOrg) {
-                logger.info('[OrganizationContext] Client a un prospect dans l\'org du hostname:', hostnameOrgId);
-                
-                // 🔥 Mettre à jour le user_id vers ce prospect (switch d'org)
-                await supabase
-                  .from('prospects')
-                  .update({ user_id: authUserId })
-                  .eq('id', prospectInHostOrg.id);
-                
+              if (!linkError && linkedProspectId) {
+                logger.info('[OrganizationContext] Client lié au prospect dans l\'org du hostname:', hostnameOrgId);
                 setOrganizationId(hostnameOrgId);
                 setOrganizationLoading(false);
                 return;
+              } else if (linkError) {
+                logger.warn('[OrganizationContext] Erreur liaison prospect:', linkError.message);
               }
             }
           }
