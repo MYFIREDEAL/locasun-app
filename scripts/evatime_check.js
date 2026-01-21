@@ -101,17 +101,18 @@ async function run() {
   }
   console.log("🟢 Client SELECT OK");
 
-  const updateClient = await sbClient
-    .from("prospects")
-    .update({ phone: "0707070707" })
-    .eq('user_id', (await sbClient.auth.getUser()).data.user.id);
+  // 🔥 Utiliser la RPC update_own_prospect_profile comme le fait l'application
+  // (pas d'UPDATE direct car les clients n'ont pas de policy UPDATE sur prospects)
+  const updateClient = await sbClient.rpc('update_own_prospect_profile', {
+    _data: { phone: "0707070707" }
+  });
 
-  if (updateClient.error || (updateClient.data && updateClient.data.length === 0)) {
-    console.error("❌ Client : UPDATE own fail");
+  if (updateClient.error) {
+    console.error("❌ Client : UPDATE own fail -", updateClient.error.message);
     process.exit(1);
   }
 
-  console.log("🟢 Client UPDATE OK");
+  console.log("🟢 Client UPDATE OK (via RPC)");
 
   // 3️⃣ TESTS ADMIN
   console.log("— Tests Admin —");
@@ -146,21 +147,22 @@ async function run() {
     .single();
 
   if (targetProspect.error) {
-    console.error("❌ Admin : impossible de récupérer le prospect du client test");
+    console.error("❌ Admin : impossible de récupérer le prospect du client test -", targetProspect.error.message);
     process.exit(1);
   }
 
-  const adminUpdate = await sbAdmin
-    .from("prospects")
-    .update({ status: "checked" })
-    .eq("id", targetProspect.data.id);
+  // 🔥 Utiliser la RPC update_prospect_safe comme le fait l'application admin
+  const adminUpdate = await sbAdmin.rpc('update_prospect_safe', {
+    _prospect_id: targetProspect.data.id,
+    _data: { status: "checked" }
+  });
 
-  if (adminUpdate.error || (adminUpdate.data && adminUpdate.data.length === 0)) {
-    console.error("❌ Admin : UPDATE fail");
+  if (adminUpdate.error) {
+    console.error("❌ Admin : UPDATE fail -", adminUpdate.error.message);
     process.exit(1);
   }
 
-  console.log("🟢 Admin UPDATE OK");
+  console.log("🟢 Admin UPDATE OK (via RPC)");
 
   // 4️⃣ TEST ISOLATION MULTI-TENANT (organization_id)
   console.log("— Test Isolation Multi-Tenant —");
