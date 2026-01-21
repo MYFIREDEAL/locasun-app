@@ -86,12 +86,12 @@ export const OrganizationProvider = ({ children }) => {
         if (authUserId) {
           logger.info('[OrganizationContext] User authentifié, vérification organization_id');
           
-          // 2a. Vérifier si c'est un admin (table users)
+          // 2a. Vérifier si c'est un admin (table users) - maybeSingle pour éviter 406
           const { data: adminUser } = await supabase
             .from('users')
             .select('organization_id')
             .eq('user_id', authUserId)
-            .single();
+            .maybeSingle();
 
           if (adminUser?.organization_id) {
             logger.info('[OrganizationContext] Organization résolue depuis user admin:', adminUser.organization_id);
