@@ -114,6 +114,13 @@ export function useSupabaseProjectTemplates(organizationId = null) {
 
       const { data, error: fetchError } = await query;
 
+      console.log('[useSupabaseProjectTemplates] Query result:', { 
+        orgId, 
+        dataCount: data?.length, 
+        data: data?.map(t => ({ type: t.type, org: t.organization_id })),
+        error: fetchError 
+      });
+
       if (fetchError) throw fetchError;
 
       // ✅ TRANSFORMER snake_case → camelCase pour compatibilité avec l'app
