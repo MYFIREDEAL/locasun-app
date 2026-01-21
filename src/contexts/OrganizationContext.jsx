@@ -260,9 +260,11 @@ export const OrganizationProvider = ({ children }) => {
     }
   }, [primaryColor, secondaryColor]);
 
-  // 🔥 DEBUG LOG - Preuve que l'organizationId est recalculé à chaque changement de session
+  // 🔥 DEBUG LOG - Désactivé en production
   useEffect(() => {
-    console.log('[ORG CONTEXT] activeOrganizationId =', organizationId, '| authUserId =', authUserId);
+    if (import.meta.env.DEV) {
+      console.log('[ORG CONTEXT] activeOrganizationId =', organizationId, '| authUserId =', authUserId);
+    }
   }, [organizationId, authUserId]);
 
   return (
