@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DialogFooter } from '@/components/ui/dialog';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { Trash2, Plus, FileText } from 'lucide-react';
 import MultiSelectSearch from '@/components/ui/MultiSelectSearch';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
@@ -453,12 +454,14 @@ const FormEditor = ({
 const FormsManagementPage = () => {
   const location = useLocation();
   const { projectsData } = useAppContext();
+  const { organizationId } = useOrganization();  // 🔥 Multi-tenant
+  
   const {
     forms: supabaseForms,
     loading: formsLoading,
     saveForm: saveFormToSupabase,
     deleteForm: deleteFormFromSupabase
-  } = useSupabaseForms();
+  } = useSupabaseForms(organizationId);  // 🔥 Passer organizationId !
 
   // 🔥 Forcer React à re-render quand supabaseForms change
   const forms = useMemo(() => {
