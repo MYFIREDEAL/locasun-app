@@ -2558,12 +2558,29 @@ const ProfilePage = () => {
     try {
       setIsUpdatingOrgName(true);
       
+      // 1. Mettre à jour dans organizations
       const { error } = await supabase
         .from('organizations')
         .update({ name: organizationName.trim() })
         .eq('id', organizationId);
 
       if (error) throw error;
+
+      // 2. 🔥 SYNC vers organization_settings.display_name (pour landing page)
+      const { error: syncError } = await supabase
+        .from('organization_settings')
+        .update({ 
+          display_name: organizationName.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('organization_id', organizationId);
+
+      if (syncError) {
+        logger.warn('Sync display_name vers organization_settings échoué:', { error: syncError.message });
+        // Ne pas bloquer, c'est une sync secondaire
+      } else {
+        logger.info('Nom synchronisé vers organization_settings.display_name');
+      }
 
       toast({
         title: "✅ Nom mis à jour !",
