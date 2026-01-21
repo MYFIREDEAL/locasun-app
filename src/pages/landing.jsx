@@ -355,18 +355,22 @@ export default function Landing() {
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 flex items-center justify-center">
-                  <img
-                    src={displayLogo}
-                    alt={`${displayName} Logo`}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                    {displayName}
-                  </span>
-                </div>
+                {/* 🔥 Si logo existe → afficher le logo, sinon afficher le nom */}
+                {orgLogoUrl ? (
+                  <div className="h-12 flex items-center justify-center">
+                    <img
+                      src={orgLogoUrl}
+                      alt={`${displayName} Logo`}
+                      className="h-full object-contain max-w-[200px]"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                      {displayName}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <Button
