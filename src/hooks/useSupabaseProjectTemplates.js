@@ -136,14 +136,25 @@ export function useSupabaseProjectTemplates(organizationId = null) {
 
   /**
    * ➕ CRÉER UN NOUVEAU TEMPLATE
+   * 🔥 MULTI-TENANT: Force l'inclusion de organization_id
    */
   const addTemplate = async (templateData) => {
+    if (!organizationId) {
+      throw new Error('organization_id requis pour créer un template');
+    }
+
     try {
       isLocalUpdate.current = true;
 
+      // 🔥 MULTI-TENANT: Inclure organization_id automatiquement
+      const dataWithOrg = {
+        ...templateData,
+        organization_id: organizationId
+      };
+
       const { data, error: insertError } = await supabase
         .from('project_templates')
-        .insert([templateData])
+        .insert([dataWithOrg])
         .select()
         .single();
 
