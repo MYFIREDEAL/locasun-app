@@ -16,7 +16,7 @@ import React, { useState } from 'react';
     import { toast } from '@/components/ui/use-toast';
     import useWindowSize from '@/hooks/useWindowSize';
     import { useAppContext } from '@/App';
-    import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+    import { useUsers } from '@/contexts/UsersContext';
     import { formatDistanceToNow } from 'date-fns';
     import { fr } from 'date-fns/locale';
 
@@ -32,7 +32,7 @@ const navItems = [
       const isMobile = width < 768;
       const [isMenuOpen, setIsMenuOpen] = useState(false);
       const { notifications, markNotificationAsRead, activeAdminUser, switchActiveAdminUser, brandName, logoUrl } = useAppContext();
-      const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+      const { users: supabaseUsers, loading: usersLoading } = useUsers();
       const navigate = useNavigate();
       const [searchParams, setSearchParams] = useSearchParams();
 

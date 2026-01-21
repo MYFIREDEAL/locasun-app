@@ -45,7 +45,7 @@ import { slugify } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { formContactConfig as defaultFormContactConfig } from '@/config/formContactConfig';
 import { supabase } from '@/lib/supabase';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects'; // 🔥 AJOUT PRO
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
@@ -243,8 +243,8 @@ function App() {
   // 🔥 FIX: TOUJOURS appeler les hooks (React règle des hooks)
   // mais on désactive la logique interne via les paramètres
   
-  // 🔥 Charger les utilisateurs Supabase pour synchroniser activeAdminUser
-  const { users: supabaseUsers } = useSupabaseUsers(adminReady && !authLoading);
+  // 🔥 Charger les utilisateurs Supabase (via cache global UsersContext)
+  const { users: supabaseUsers } = useUsers();
   
   // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
   const { 

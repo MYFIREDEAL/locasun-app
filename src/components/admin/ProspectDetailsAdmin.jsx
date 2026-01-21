@@ -19,7 +19,7 @@ import { AddActivityModal } from '@/pages/admin/Agenda';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
@@ -173,7 +173,7 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
 
 const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminUser }) => {
   const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed, registerClientForm } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
+  const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
@@ -2388,7 +2388,7 @@ const ProspectDetailsAdmin = ({
 }) => {
   const { getProjectSteps, completeStepAndProceed, updateProjectSteps, markNotificationAsRead, projectsData, formContactConfig, currentUser, userProjects, setUserProjects, getProjectInfo, updateProjectInfo, activeAdminUser, prompts, notifications } = useAppContext();
   const { supabaseUserId } = useSupabaseUser(); // 🔥 Récupérer l'UUID Supabase réel
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger TOUS les utilisateurs Supabase
+  const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
   
   const [searchParams, setSearchParams] = useSearchParams();
@@ -3354,7 +3354,7 @@ const ProspectActivities = ({ prospectId, projectType }) => {
     updateCall,
     updateTask
   } = useSupabaseAgenda(activeAdminUser);
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers();
+  const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   const { supabaseUserId } = useSupabaseUser();
   
   const [selectedActivity, setSelectedActivity] = useState(null);

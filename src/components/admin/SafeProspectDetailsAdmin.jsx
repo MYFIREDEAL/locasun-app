@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useUsers } from '@/contexts/UsersContext';
 
 // Couleurs par défaut (fallback)
 const defaultTagColors = {
@@ -132,7 +132,7 @@ const EditModal = ({ open, onOpenChange, prospect, users, onSave }) => {
 
 const SafeProspectDetailsAdmin = ({ prospect, onBack, onUpdate }) => {
   const { projectsData = {} } = useAppContext();
-  const { users: supabaseUsers, loading: usersLoading } = useSupabaseUsers(); // 🔥 Charger les utilisateurs Supabase
+  const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // 🔥 Transformer array Supabase en object pour compatibilité

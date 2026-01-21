@@ -70,13 +70,15 @@ DELETE FROM project_steps_status WHERE prospect_id = '...' AND project_type = 'c
 ## ⏳ Reste à Faire (Optionnel)
 
 ### Migration useUsers (réduction appels API)
-Ces fichiers utilisent encore `useSupabaseUsers()` directement :
+~~Ces fichiers utilisent encore `useSupabaseUsers()` directement :~~
 - ~~`src/pages/admin/Agenda.jsx`~~ ✅ Migré
-- `src/components/admin/ActivityTab.jsx`
-- `src/components/admin/AdminHeader.jsx`
-- `src/components/admin/SafeProspectDetailsAdmin.jsx`
-- `src/components/admin/ProspectDetailsAdmin.jsx`
-- `src/App.jsx`
+- ~~`src/components/admin/project-tabs/ActivityTab.jsx`~~ ✅ Migré
+- ~~`src/components/admin/AdminHeader.jsx`~~ ✅ Migré
+- ~~`src/components/admin/SafeProspectDetailsAdmin.jsx`~~ ✅ Migré
+- ~~`src/components/admin/ProspectDetailsAdmin.jsx`~~ ✅ Migré
+- ~~`src/App.jsx`~~ ✅ Migré
+
+**✅ MIGRATION COMPLÈTE !** Tous les fichiers utilisent maintenant `useUsers()` (cache global).
 
 ### Race Condition (edge case)
 L'erreur #310 peut encore apparaître si on clique très rapidement (10+ fois) sur refresh.

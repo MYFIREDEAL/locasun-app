@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
-import { useSupabaseUsers } from '@/hooks/useSupabaseUsers';
+import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useAppContext } from '@/App';
 import { AddActivityModal } from '@/pages/admin/Agenda';
@@ -26,7 +26,7 @@ const ActivityTab = ({ prospectId, projectType, activeAdminUser }) => {
   // 🔥 Charger les données nécessaires pour EventDetailsPopup et AddActivityModal
   const { appointments, updateAppointment, deleteAppointment, addAppointment, addCall, addTask, updateCall, updateTask } = useSupabaseAgenda(activeAdminUser);
   const { prospects } = useSupabaseProspects(activeAdminUser);
-  const { users: supabaseUsers } = useSupabaseUsers();
+  const { users: supabaseUsers } = useUsers();
   const { supabaseUserId } = useSupabaseUser();
 
   // 🔥 Utiliser le hook Supabase pour récupérer la vraie timeline
