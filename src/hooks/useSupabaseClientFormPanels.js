@@ -40,6 +40,13 @@ export function useSupabaseClientFormPanels(prospectId = null) {
 
   // Charger les formulaires
   useEffect(() => {
+    // 🔥 FIX BOOT: Ne pas exécuter si disabled
+    if (prospectId === '__DISABLED__') {
+      setFormPanels([]);
+      setLoading(false);
+      return;
+    }
+    
     const fetchFormPanels = async () => {
       try {
         setLoading(true);

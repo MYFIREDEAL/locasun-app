@@ -276,17 +276,13 @@ function App() {
     });
   }
   
-  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
-  const clientFormPanels = []; // 🧪 TEMPORAIRE
-  const registerClientForm = () => {}; // 🧪 TEMPORAIRE
-  const updateClientFormPanel = () => {}; // 🧪 TEMPORAIRE
-  const clearClientFormsFor = () => {}; // 🧪 TEMPORAIRE
-  // const {
-  //   formPanels: clientFormPanels,
-  //   createFormPanel: registerClientForm,
-  //   updateFormPanel: updateClientFormPanel,
-  //   deleteFormPanelsByProspect: clearClientFormsFor
-  // } = useSupabaseClientFormPanels(prospectIdForForms);
+  // 🔥 FIX BOOT: Gater avec organizationReady pour éviter appel avant org chargée
+  const {
+    formPanels: clientFormPanels,
+    createFormPanel: registerClientForm,
+    updateFormPanel: updateClientFormPanel,
+    deleteFormPanelsByProspect: clearClientFormsFor
+  } = useSupabaseClientFormPanels(organizationReady ? prospectIdForForms : '__DISABLED__');
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   // 🔥 SYNC: Passe organizationId pour synchroniser le logo vers organization_settings (Landing Page)

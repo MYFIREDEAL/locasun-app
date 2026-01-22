@@ -82,6 +82,7 @@
 |------|--------------|--------------|----------|
 | 22/01/2026 | useSupabaseCompanySettings | Ajout `enabled` param + guard `organizationReady` | ✅ OK |
 | 22/01/2026 | useSupabaseGlobalPipeline | Guard `organizationReady ? organizationId : null` | ✅ OK |
+| 22/01/2026 | useSupabaseClientFormPanels | Guard `__DISABLED__` + `organizationReady` | ⏳ À TESTER |
 
 ---
 
