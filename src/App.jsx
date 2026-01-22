@@ -248,12 +248,11 @@ function App() {
   const { users: supabaseUsers } = useUsers();
   
   // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
-  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
   const { 
     prospects: supabaseProspects, 
     updateProspect: updateProspectSupabase,
     loading: prospectsLoading 
-  } = useSupabaseProspects(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
+  } = useSupabaseProspects(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
   
   // Synchroniser prospects dans le state pour compatibilité avec le code existant
   useEffect(() => {
@@ -286,14 +285,14 @@ function App() {
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   // 🔥 SYNC: Passe organizationId pour synchroniser le logo vers organization_settings (Landing Page)
-  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
+  // 🔥 FIX BOOT: Gater avec organizationReady pour éviter appel avant org chargée
   const { 
     companySettings, 
     updateLogo, 
     removeLogo,
     updateFormContactConfig,
     getFormContactConfig 
-  } = useSupabaseCompanySettings(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
+  } = useSupabaseCompanySettings({ organizationId, enabled: organizationReady });
 
   // 🔥 PHASE 2: Charger form_contact_config depuis organization_settings (double lecture)
   useEffect(() => {

@@ -16,9 +16,15 @@ import { toast } from '@/components/ui/use-toast';
  * 🔥 SYNC: Le logo est aussi synchronisé vers organization_settings.logo_url
  *          pour que la Landing Page affiche le bon logo
  * 
- * @param {string|null} organizationId - UUID de l'organization pour synchroniser le logo
+ * @param {Object} options - Options du hook
+ * @param {string|null} options.organizationId - UUID de l'organization pour synchroniser le logo
+ * @param {boolean} options.enabled - Si false, le hook ne fait rien (default: true)
  */
-export const useSupabaseCompanySettings = (organizationId = null) => {
+export const useSupabaseCompanySettings = (options = {}) => {
+  // 🔥 FIX BOOT: Support ancien format (string) + nouveau format (object)
+  const organizationId = typeof options === 'string' ? options : (options?.organizationId || null);
+  const enabled = typeof options === 'string' ? true : (options?.enabled !== false);
+  
   const [companySettings, setCompanySettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,6 +37,12 @@ export const useSupabaseCompanySettings = (organizationId = null) => {
 
   // Charger les paramètres au montage
   const fetchCompanySettings = async () => {
+    // 🔥 FIX BOOT: Ne pas exécuter si disabled
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       
@@ -53,11 +65,19 @@ export const useSupabaseCompanySettings = (organizationId = null) => {
   };
 
   useEffect(() => {
+    // 🔥 FIX BOOT: Ne pas exécuter si disabled
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     fetchCompanySettings();
-  }, []);
+  }, [enabled]);
 
   // 🔥 REAL-TIME : Écouter les changements en temps réel
   useEffect(() => {
+    // 🔥 FIX BOOT: Ne pas s'abonner si disabled
+    if (!enabled) return;
+    
     const channel = supabase
       .channel('company-settings-changes')
       .on(
@@ -91,7 +111,7 @@ export const useSupabaseCompanySettings = (organizationId = null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [enabled]);
 
   /**
    * ✅ METTRE À JOUR LE LOGO
