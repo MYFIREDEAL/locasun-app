@@ -248,11 +248,12 @@ function App() {
   const { users: supabaseUsers } = useUsers();
   
   // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
+  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
   const { 
     prospects: supabaseProspects, 
     updateProspect: updateProspectSupabase,
     loading: prospectsLoading 
-  } = useSupabaseProspects(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
+  } = useSupabaseProspects(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
   
   // Synchroniser prospects dans le state pour compatibilité avec le code existant
   useEffect(() => {

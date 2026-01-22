@@ -1,0 +1,119 @@
+# BOOT AUDIT — SOURCE DE VÉRITÉ
+
+## Contexte
+
+**Date de début :** 22 janvier 2026  
+**Objectif :** Stabiliser le boot multi-tenant pour éviter les hooks Supabase exécutés avant que les dépendances (auth, organizationId) soient prêtes.
+
+## Boot réel observé (FACTUEL)
+
+### Ordre d'exécution constaté :
+
+**main.jsx** (lignes 1-74)
+- Rendu : `<Root />` dans `ReactDOM.createRoot`
+- Branchement conditionnel :
+  - Si route publique (`/` ou `/landing`) → `PublicOrganizationProvider` + `Landing` (lazy)
+  - Sinon → Boot complet CRM
+
+**Providers montés (boot complet, dans l'ordre) :**
+1. `ErrorBoundary`
+2. `BrowserRouter`
+3. `OrganizationProvider`
+4. `UsersProvider`
+5. → `App`
+
+**App.jsx** (1571 lignes)
+- Récupère `useOrganization()` (ligne ~200) pour `organizationId`, `organizationReady`
+- Récupère `useUsers()` pour `supabaseUsers`
+- **Hooks Supabase appelés directement dans le corps du composant**
+
+**Layout chargé :**
+- `AdminLayout` ou `ClientLayout` selon route
+
+**Router / Page initiale :**
+- `Routes` avec multiples `Route` (admin, client, platform, public)
+
+---
+
+### ❌ Premier hook Supabase exécuté (potentiellement fautif) :
+
+| Élément | Valeur |
+|---------|--------|
+| **hook** | `useSupabaseProspects` |
+| **fichier** | `src/App.jsx` |
+| **ligne approx** | ~240 |
+| **dépendances requises** | `activeAdminUser` (auth), implicitement `organizationId` |
+| **guard actuel** | `authLoading ? null : activeAdminUser` |
+
+**Autres hooks appelés au même niveau (sans BootGate) :**
+- `useSupabaseClientFormPanels` (~253)
+- `useSupabaseCompanySettings` (~263)
+- `useSupabaseGlobalPipeline` (~280)
+- `useSupabaseAllProjectSteps` (~286)
+
+⚠️ **Observation :** `organizationReady` est récupéré mais **pas utilisé comme guard** pour bloquer ces hooks.
+
+---
+
+⚠️ Aucune correction effectuée à ce stade.
+
+## Flags globaux
+
+| Flag | Fichier | État actuel |
+|------|---------|-------------|
+| authReady | `App.jsx` (authLoading inversé) | ⚠️ Existe (`authLoading`) mais inversé |
+| organizationReady | `OrganizationContext` | ✅ Existe, exposé via `useOrganization()` |
+| settingsReady | — | ❌ N'existe pas |
+| appReady | — | ❌ N'existe pas (à créer) |
+
+## Hooks à risque
+
+| Hook | Fichier | Dépendances | Avant appReady ? | Action |
+|------|---------|-------------|------------------|--------|
+| useSupabaseProspects | App.jsx ~240 | activeAdminUser | OUI | guard enabled |
+| useSupabaseClientFormPanels | App.jsx ~253 | prospectIdForForms | OUI | guard enabled |
+| useSupabaseCompanySettings | App.jsx ~263 | organizationId | OUI | guard enabled |
+| useSupabaseGlobalPipeline | App.jsx ~280 | organizationId | OUI | guard enabled |
+| useSupabaseAllProjectSteps | App.jsx ~286 | (aucun) | OUI | guard enabled |
+
+## Fix log
+
+| Date | Hook/Fichier | Fix appliqué | Résultat |
+|------|--------------|--------------|----------|
+| | | | |
+
+---
+
+## Test d'isolation — Hook fautif
+
+**Hook testé :**
+- `useSupabaseProspects`
+- fichier : `App.jsx`
+- ligne approx : ~251
+
+**Action :**
+- Paramètre forcé à `null` (exécution bloquée)
+- Code : `useSupabaseProspects(null)`
+
+**Résultat :**
+- Page blanche :
+  - ⬜ disparue
+  - ⬜ toujours présente
+
+**Conclusion :**
+- ⬜ hook confirmé comme cause
+- ⬜ hook innocent (chercher suivant)
+
+⚠️ Aucun fix définitif appliqué à ce stade.
+
+## État du chantier
+
+- [x] BOOT_PLAN.md créé
+- [x] BOOT_AUDIT.md créé
+- [x] Cartographie boot réel
+- [ ] Flags globaux implémentés
+- [ ] BootGate créé
+- [ ] Inventaire hooks terminé
+- [ ] Fixes appliqués
+- [ ] Validation technique OK
+- [ ] Boot gelé
