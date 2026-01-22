@@ -2302,21 +2302,14 @@ const ProfilePage = () => {
   
   const handleAdminLogout = async () => {
     try {
+      // Nettoyer le state local AVANT signOut pour éviter les re-renders avec session null
+      setActiveAdminUser(null);
+      localStorage.removeItem('activeAdminUser');
+      
       // Déconnexion Supabase
       await supabase.auth.signOut();
       
-      // Nettoyer le state
-      setActiveAdminUser(null);
-      
-      // Nettoyer seulement les données de session, pas tout le localStorage
-      localStorage.removeItem('activeAdminUser');
-      
-      toast({
-        title: "Déconnexion réussie",
-        description: "À bientôt !",
-      });
-      
-      // Rediriger vers la page de login
+      // Rediriger immédiatement vers la landing (rechargement complet)
       window.location.href = '/';
     } catch (error) {
       logger.error('Erreur déconnexion', { error: error.message });

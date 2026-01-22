@@ -124,23 +124,18 @@ import React, { useState, useEffect } from 'react';
       // 🔥 PHASE 3: handleLogout simplifié - localStorage supprimé, Supabase uniquement
       const handleLogout = async () => {
         try {
+          // Nettoyer le contexte local AVANT signOut pour éviter flash d'erreur
+          setCurrentUser(null);
+          
           // Deconnexion de Supabase Auth
           await supabase.auth.signOut();
           
-          // Nettoyer le contexte local (React state uniquement)
-          setCurrentUser(null);
-          
-          toast({
-            title: "Deconnexion reussie",
-            description: "A bientot !",
-          });
-          
-          navigate('/');
+          // Rediriger immédiatement (rechargement complet)
+          window.location.href = '/';
         } catch (error) {
           logger.error('Erreur deconnexion:', error);
-          // Deconnecter quand meme localement
-          setCurrentUser(null);
-          navigate('/');
+          // Deconnecter quand meme et rediriger
+          window.location.href = '/';
         }
       };
 
