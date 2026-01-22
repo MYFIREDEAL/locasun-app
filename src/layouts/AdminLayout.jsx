@@ -106,37 +106,37 @@ import React, { useEffect } from 'react';
               <Outlet />
             </main>
             {isConfigurationIAPage && isDesktop && (
-              <aside className="w-[220px] flex-shrink-0 p-4 pr-6 hidden lg:block">
-                <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-500 mb-3">Modules</h3>
-                  <div className="space-y-2">
+              <aside className="w-[260px] flex-shrink-0 p-5 pr-8 hidden lg:block">
+                <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-500 mb-4">Modules</h3>
+                  <div className="space-y-3">
                     <a
                       href="/admin/workflows-charly"
-                      className="flex items-center gap-2 w-full rounded-lg bg-green-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                      className="flex items-center gap-2 w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700"
                     >
                       🧩 Workflows
                     </a>
                     <a
                       href="/admin/projects-management"
-                      className="flex items-center gap-2 w-full rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                      className="flex items-center gap-2 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                     >
                       📁 Projets
                     </a>
                     <a
                       href="/admin/forms-management"
-                      className="flex items-center gap-2 w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
+                      className="flex items-center gap-2 w-full rounded-lg bg-teal-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700"
                     >
                       📝 Formulaires
                     </a>
                     <a
                       href="/admin/contract-templates"
-                      className="flex items-center gap-2 w-full rounded-lg bg-purple-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                      className="flex items-center gap-2 w-full rounded-lg bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700"
                     >
                       📄 Contrats
                     </a>
                     <a
                       href="/admin/project-display"
-                      className="flex items-center gap-2 w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+                      className="flex items-center gap-2 w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
                     >
                       🧱 Catalogue Client
                     </a>
