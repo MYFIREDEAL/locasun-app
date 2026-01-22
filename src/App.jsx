@@ -339,7 +339,10 @@ function App() {
   } = useSupabaseGlobalPipeline(organizationReady ? organizationId : null);
 
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
-  const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
+  // 🧪 TEST ISOLATION BOOT_AUDIT: Retourner données vides pour test
+  const allProjectSteps = {}; // 🧪 TEMPORAIRE: données vides pour test isolation
+  const allStepsLoading = false; // 🧪 TEMPORAIRE
+  // const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
 
   // 🔥 Synchroniser allProjectSteps (Supabase) avec projectStepsStatus (state local)
   useEffect(() => {
@@ -371,11 +374,10 @@ function App() {
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
-  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
   const {
     forms: supabaseForms,
     loading: formsLoading
-  } = useSupabaseForms(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
+  } = useSupabaseForms(organizationId);
 
   // Synchroniser forms dans le state pour compatibilité avec le code existant (chat)
   useEffect(() => {
