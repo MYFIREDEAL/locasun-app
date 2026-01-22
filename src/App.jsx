@@ -420,11 +420,15 @@ function App() {
     markAsRead: markClientNotificationAsRead
   } = useSupabaseClientNotifications(authLoading ? null : currentUser?.id, adminReady && !authLoading);
 
-  const {
-    projectInfos: supabaseProjectInfos,
-    getProjectInfo: getSupabaseProjectInfo,
-    updateProjectInfo: updateSupabaseProjectInfo
-  } = useSupabaseProjectInfos();
+  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
+  const supabaseProjectInfos = {}; // 🧪 TEMPORAIRE
+  const getSupabaseProjectInfo = () => null; // 🧪 TEMPORAIRE
+  const updateSupabaseProjectInfo = () => {}; // 🧪 TEMPORAIRE
+  // const {
+  //   projectInfos: supabaseProjectInfos,
+  //   getProjectInfo: getSupabaseProjectInfo,
+  //   updateProjectInfo: updateSupabaseProjectInfo
+  // } = useSupabaseProjectInfos();
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }
