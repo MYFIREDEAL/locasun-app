@@ -1,8 +1,7 @@
-import React from "react"
+import React, { useContext } from "react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { useOrganization } from "@/contexts/OrganizationContext"
 import { useLandingPageConfig } from "@/hooks/useLandingPageConfig"
 import {
   Sparkles,
@@ -32,18 +31,43 @@ import {
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 
+// 🔥 Import du contexte pour utilisation SAFE (peut être null sans provider)
+import OrganizationContext from "@/contexts/OrganizationContext"
+
+/**
+ * 🔥 HOOK SAFE pour OrganizationContext
+ * Permet à Landing de fonctionner SANS le provider (isolation publique)
+ * Retourne des valeurs par défaut si le contexte n'est pas disponible
+ */
+const useOrganizationSafe = () => {
+  const context = useContext(OrganizationContext);
+  
+  // Si le provider n'est pas monté, retourner des valeurs par défaut
+  if (!context) {
+    return {
+      organizationId: null,
+      isPlatformOrg: true,
+      brandName: null,
+      logoUrl: null,
+      organizationLoading: false,
+    };
+  }
+  
+  return context;
+};
+
 export default function Landing() {
   const { toast } = useToast()
   const navigate = useNavigate()
   
-  // Contexte organisation - isPlatformOrg vient directement du contexte
+  // 🔥 Contexte organisation SAFE - fonctionne avec ou sans provider
   const { 
     organizationId, 
     isPlatformOrg, 
     brandName, 
     logoUrl: orgLogoUrl,
     organizationLoading 
-  } = useOrganization() || {}
+  } = useOrganizationSafe()
   const { landingConfig, loading: configLoading } = useLandingPageConfig(organizationId)
   
   // Détermine si on est sur la plateforme EVATIME ou une organisation tierce

@@ -341,3 +341,6 @@ export const OrganizationProvider = ({ children }) => {
     </OrganizationContext.Provider>
   );
 };
+
+// 🔥 Export default du contexte pour utilisation avec useContext() direct (isolation landing)
+export default OrganizationContext;

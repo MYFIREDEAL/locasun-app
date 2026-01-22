@@ -7,8 +7,47 @@ import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { UsersProvider } from "./contexts/UsersContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+/**
+ * 🔥 ISOLATION LANDING PUBLIQUE
+ * 
+ * Les routes publiques (`/` et `/landing`) sont rendues SANS les providers lourds
+ * pour éviter le boot applicatif CRM (auth, Supabase, realtime, etc.)
+ * 
+ * Cela garantit un rendu quasi instantané de la landing page.
+ */
+const isPublicLandingRoute = () => {
+  const path = window.location.pathname;
+  return path === "/" || path === "/landing";
+};
+
+/**
+ * Composant racine conditionnel :
+ * - Routes publiques → Landing légère (lazy loaded, sans providers)
+ * - Autres routes → App complète avec providers
+ */
+const Root = () => {
+  // 🔥 Détection AVANT le montage des providers
+  if (isPublicLandingRoute()) {
+    // Import dynamique pour éviter de charger le bundle Landing si non nécessaire
+    const Landing = React.lazy(() => import("./pages/landing.jsx"));
+    
+    return (
+      <React.Suspense fallback={
+        <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          </div>
+        </div>
+      }>
+        <BrowserRouter>
+          <Landing />
+        </BrowserRouter>
+      </React.Suspense>
+    );
+  }
+
+  // 🔥 Boot applicatif complet pour toutes les autres routes
+  return (
     <ErrorBoundary>
       <BrowserRouter>
         <OrganizationProvider>
@@ -18,5 +57,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </OrganizationProvider>
       </BrowserRouter>
     </ErrorBoundary>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <Root />
   </React.StrictMode>
 );
