@@ -20,7 +20,7 @@ const RegistrationPage = () => {
   const { organizationId } = useOrganization();
   
   // 🔥 MULTI-TENANT: Charger les templates filtrés par organization
-  const { projectTemplates, loading: templatesLoading } = useSupabaseProjectTemplates(organizationId);
+  const { projectTemplates, loading: templatesLoading } = useSupabaseProjectTemplates({ organizationId });
   
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [formData, setFormData] = useState({ name: '', email: '' });
