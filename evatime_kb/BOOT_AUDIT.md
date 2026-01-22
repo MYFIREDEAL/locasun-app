@@ -98,13 +98,41 @@
 **Résultat :**
 - Page blanche :
   - ⬜ disparue
-  - ⬜ toujours présente
+  - ✅ toujours présente
 
 **Conclusion :**
 - ⬜ hook confirmé comme cause
-- ⬜ hook innocent (chercher suivant)
+- ✅ hook innocent (chercher suivant)
 
 ⚠️ Aucun fix définitif appliqué à ce stade.
+
+---
+
+## Hooks à risque — scan suivant
+
+**Scan complet App.jsx (ordre d'appel) :**
+
+| # | Hook | Ligne | Dépend orgId | Guard orgReady |
+|---|------|-------|--------------|----------------|
+| 1 | useUsers() | ~248 | NON | — |
+| 2 | useSupabaseProspects | ~252 | NON | ❌ (innocent) |
+| 3 | useSupabaseClientFormPanels | ~284 | NON | ❌ |
+| 4 | **useSupabaseCompanySettings** | ~289 | **OUI** | **❌** |
+| 5 | useSupabaseGlobalPipeline | ~330 | OUI | ❌ |
+| 6 | useSupabaseAllProjectSteps | ~341 | NON | ❌ |
+| 7 | useSupabaseProjectTemplates | ~362 | OUI | ✅ |
+| 8 | useSupabaseForms | ~372 | OUI | ❌ |
+| 9 | useSupabasePrompts | ~386 | OUI | ✅ |
+
+**Hook candidat :**
+- nom : `useSupabaseCompanySettings`
+- fichier : `App.jsx`
+- ligne approx : ~289
+- dépend de organizationId : OUI
+- guard organizationReady : NON
+
+**Action prévue :**
+- test d'isolation
 
 ## État du chantier
 

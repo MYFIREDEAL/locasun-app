@@ -286,13 +286,14 @@ function App() {
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   // 🔥 SYNC: Passe organizationId pour synchroniser le logo vers organization_settings (Landing Page)
+  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
   const { 
     companySettings, 
     updateLogo, 
     removeLogo,
     updateFormContactConfig,
     getFormContactConfig 
-  } = useSupabaseCompanySettings(organizationId);
+  } = useSupabaseCompanySettings(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
 
   // 🔥 PHASE 2: Charger form_contact_config depuis organization_settings (double lecture)
   useEffect(() => {
