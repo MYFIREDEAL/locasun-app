@@ -416,7 +416,7 @@ const ActionEditor = ({
 };
 
 const WorkflowsCharlyPage = () => {
-  const { projectsData } = useAppContext();
+  const { projectsData = {} } = useAppContext();
   const { organizationId } = useOrganization();
   
   // 🔥 Hook Supabase pour les formulaires (filtré par org)
@@ -469,14 +469,14 @@ const WorkflowsCharlyPage = () => {
     }
   }, [editingPrompt]);
 
-  const projectOptions = useMemo(() => Object.values(projectsData).map(p => ({
+  const projectOptions = useMemo(() => Object.values(projectsData || {}).map(p => ({
     value: p.type,
     label: p.title
   })), [projectsData]);
 
   const projectSteps = useMemo(() => {
     if (!promptData.projectId) return [];
-    return projectsData[promptData.projectId]?.steps || [];
+    return projectsData?.[promptData.projectId]?.steps || [];
   }, [promptData.projectId, projectsData]);
 
   const handleProjectChange = projectId => {

@@ -1460,7 +1460,7 @@ const AddActivityModal = ({
 }
 
 const Agenda = () => {
-  const { activeAdminUser, projectsData } = useAppContext();
+  const { activeAdminUser, projectsData = {} } = useAppContext();
   const navigate = useNavigate();
   
   // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié

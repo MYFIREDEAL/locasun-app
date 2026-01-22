@@ -474,7 +474,7 @@ const generateFormFieldsFromVariables = (variables, htmlContent) => {
 
 const ContractTemplatesPage = () => {
   const navigate = useNavigate();
-  const { projectsData } = useAppContext(); // 🔥 Charger les projets depuis le contexte
+  const { projectsData = {} } = useAppContext(); // 🔥 Charger les projets depuis le contexte
   const { organizationId } = useOrganization();  // 🔥 Multi-tenant
   
   const {

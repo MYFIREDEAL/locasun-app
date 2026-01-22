@@ -453,7 +453,7 @@ const FormEditor = ({
 
 const FormsManagementPage = () => {
   const location = useLocation();
-  const { projectsData } = useAppContext();
+  const { projectsData = {} } = useAppContext();
   const { organizationId } = useOrganization();  // 🔥 Multi-tenant
   
   const {

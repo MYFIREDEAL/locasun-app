@@ -29,7 +29,7 @@ const itemVariants = {
 };
 
 const ProjectDisplayManagementPage = () => {
-  const { projectsData, setProjectsData } = useAppContext();
+  const { projectsData = {}, setProjectsData } = useAppContext();
 
   const [selectedProjectForDisplay, setSelectedProjectForDisplay] = useState('');
   const [projectDisplayData, setProjectDisplayData] = useState({
