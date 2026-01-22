@@ -328,7 +328,7 @@ function App() {
 
   // 🔥 Charger les colonnes du pipeline global depuis Supabase avec real-time
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
-  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
+  // 🔥 FIX BOOT: Gater avec organizationReady pour éviter appel avant org chargée
   const { 
     globalPipelineSteps,
     loading: pipelineLoading,
@@ -336,7 +336,7 @@ function App() {
     updateStep: updatePipelineStep,
     deleteStep: deletePipelineStep,
     reorderSteps: reorderPipelineSteps
-  } = useSupabaseGlobalPipeline(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
+  } = useSupabaseGlobalPipeline(organizationReady ? organizationId : null);
 
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
   const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
