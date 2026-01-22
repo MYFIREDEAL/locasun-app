@@ -2301,24 +2301,11 @@ const ProfilePage = () => {
   };
   
   const handleAdminLogout = async () => {
-    try {
-      // Nettoyer le state local AVANT signOut pour éviter les re-renders avec session null
-      setActiveAdminUser(null);
-      localStorage.removeItem('activeAdminUser');
-      
-      // Déconnexion Supabase
-      await supabase.auth.signOut();
-      
-      // Rediriger immédiatement vers la landing (rechargement complet)
-      window.location.href = '/';
-    } catch (error) {
-      logger.error('Erreur déconnexion', { error: error.message });
-      toast({
-        title: "Erreur",
-        description: "Impossible de se déconnecter.",
-        variant: "destructive",
-      });
-    }
+    // 🔥 REDIRIGER IMMÉDIATEMENT pour éviter tout flash d'erreur
+    // Le signOut se fera sur la landing page via le cleanup du contexte
+    localStorage.removeItem('activeAdminUser');
+    supabase.auth.signOut(); // Fire and forget - pas de await
+    window.location.href = '/';
   };
   
   const scrollToSection = (sectionId) => {

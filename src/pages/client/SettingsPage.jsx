@@ -121,22 +121,10 @@ import React, { useState, useEffect } from 'react';
 
       // ❌ SUPPRIMÉ: handleChangePassword (Client utilise Magic Link uniquement)
 
-      // 🔥 PHASE 3: handleLogout simplifié - localStorage supprimé, Supabase uniquement
-      const handleLogout = async () => {
-        try {
-          // Nettoyer le contexte local AVANT signOut pour éviter flash d'erreur
-          setCurrentUser(null);
-          
-          // Deconnexion de Supabase Auth
-          await supabase.auth.signOut();
-          
-          // Rediriger immédiatement (rechargement complet)
-          window.location.href = '/';
-        } catch (error) {
-          logger.error('Erreur deconnexion:', error);
-          // Deconnecter quand meme et rediriger
-          window.location.href = '/';
-        }
+      // 🔥 REDIRECTION IMMÉDIATE pour éviter tout flash d'erreur
+      const handleLogout = () => {
+        supabase.auth.signOut(); // Fire and forget
+        window.location.href = '/';
       };
 
       const pageTitle = isProfilePage ? "Mon Profil" : "Paramètres";
