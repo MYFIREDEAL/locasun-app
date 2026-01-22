@@ -32,6 +32,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown, Sparkles, FormInput } from 'lucide-react';
 import { useAppContext } from '@/App';
 import { CONTRACT_VARIABLES } from '@/constants/contractVariables';
+import ModulesNavBar from '@/components/admin/ModulesNavBar';
 
 // 🆕 Step 3 : Types de blocs (liste FERMÉE)
 const BLOCK_TYPES = [
@@ -965,7 +966,9 @@ const ContractTemplatesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col min-h-screen">
+      <ModulesNavBar activeModule="contrats" />
+      <div className="flex-1 bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4 sm:p-6 lg:p-8">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -1606,6 +1609,7 @@ const ContractTemplatesPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

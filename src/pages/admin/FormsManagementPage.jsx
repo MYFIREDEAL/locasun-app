@@ -13,6 +13,7 @@ import { Trash2, Plus, FileText } from 'lucide-react';
 import MultiSelectSearch from '@/components/ui/MultiSelectSearch';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { logger } from '@/lib/logger';
+import ModulesNavBar from '@/components/admin/ModulesNavBar';
 
 const FormEditor = ({
   form,
@@ -540,7 +541,9 @@ const FormsManagementPage = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] gap-6 p-6">
+    <div className="flex flex-col h-[calc(100vh-80px)]">
+      <ModulesNavBar activeModule="formulaires" />
+      <div className="flex flex-1 gap-6 p-6">
       {/* Colonne gauche - Liste des formulaires */}
       <div className="w-[25%] flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-card h-full flex flex-col">
@@ -647,6 +650,7 @@ const FormsManagementPage = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { Trash2, Plus, FolderKanban, GripVertical, ChevronDown } from 'lucide-re
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { slugify } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import ModulesNavBar from '@/components/admin/ModulesNavBar';
 
 // 🎨 Emojis utilisés dans l'application LOCASUN
 const EMOJI_COLLECTION = [
@@ -632,7 +633,9 @@ const ProjectsManagementPage = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] gap-6 p-6">
+    <div className="flex flex-col h-[calc(100vh-80px)]">
+      <ModulesNavBar activeModule="projets" />
+      <div className="flex flex-1 gap-6 p-6">
       {/* Colonne gauche - Liste des projets */}
       <div className="w-[25%] flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-card h-full flex flex-col">
@@ -732,6 +735,7 @@ const ProjectsManagementPage = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Dialog de création de projet */}

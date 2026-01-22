@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import ModulesNavBar from '@/components/admin/ModulesNavBar';
 
 const ActionEditor = ({
   action,
@@ -630,7 +631,9 @@ const WorkflowsCharlyPage = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] gap-6 p-6">
+    <div className="p-6">
+      <ModulesNavBar />
+      <div className="flex h-[calc(100vh-160px)] gap-6">
       {/* Colonne gauche - Liste des prompts */}
       <div className="w-[25%] flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-card h-full flex flex-col">
@@ -824,6 +827,7 @@ const WorkflowsCharlyPage = () => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
