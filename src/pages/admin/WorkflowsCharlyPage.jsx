@@ -631,9 +631,9 @@ const WorkflowsCharlyPage = () => {
   };
 
   return (
-    <div className="p-6">
-      <ModulesNavBar />
-      <div className="flex h-[calc(100vh-160px)] gap-6">
+    <div className="flex flex-col h-[calc(100vh-80px)]">
+      <ModulesNavBar activeModule="workflows" />
+      <div className="flex flex-1 gap-6 p-6">
       {/* Colonne gauche - Liste des prompts */}
       <div className="w-[25%] flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-card h-full flex flex-col">
