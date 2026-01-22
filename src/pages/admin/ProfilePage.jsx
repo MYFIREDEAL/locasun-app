@@ -1897,7 +1897,7 @@ const ProfilePage = () => {
     loading: promptsLoading,
     savePrompt: savePromptToSupabase,
     deletePrompt: deletePromptFromSupabase
-  } = useSupabasePrompts(organizationId);  // 🔥 Passer organizationId !
+  } = useSupabasePrompts({ organizationId });  // 🔥 Passer un objet { organizationId }
 
   // 🔥 Forcer React à re-render quand supabasePrompts change
   const prompts = useMemo(() => {
