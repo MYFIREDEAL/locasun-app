@@ -120,7 +120,7 @@ import React, { useEffect } from 'react';
                     href="/admin/workflows-charly"
                     className="block w-full rounded-lg bg-green-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-green-700"
                   >
-                    🟢 Créer / gérer les workflows
+                    🟢 Gérer les workflows
                   </a>
 
                   <p className="mt-4 text-xs text-gray-400">
@@ -141,7 +141,7 @@ import React, { useEffect } from 'react';
                     href="/admin/projects-management"
                     className="block w-full rounded-lg bg-blue-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
                   >
-                    🟢 Créer / gérer les projets
+                    🟢 Gérer les projets
                   </a>
 
                   <p className="mt-4 text-xs text-gray-400">
@@ -162,7 +162,7 @@ import React, { useEffect } from 'react';
                     href="/admin/forms-management"
                     className="block w-full rounded-lg bg-teal-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-teal-700"
                   >
-                    🟢 Créer / gérer les formulaires
+                    🟢 Gérer les formulaires
                   </a>
 
                   <p className="mt-4 text-xs text-gray-400">
@@ -183,7 +183,7 @@ import React, { useEffect } from 'react';
                     href="/admin/contract-templates"
                     className="block w-full rounded-lg bg-purple-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-purple-700"
                   >
-                    📄 Créer / gérer les templates
+                    📄 Gérer les contrats
                   </a>
 
                   <p className="mt-4 text-xs text-gray-400">
@@ -204,7 +204,7 @@ import React, { useEffect } from 'react';
                     href="/admin/project-display"
                     className="block w-full rounded-lg bg-indigo-600 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-indigo-700"
                   >
-                    🧱 Gérer l'affichage
+                    🧱 Catalogue Client
                   </a>
 
                   <p className="mt-4 text-xs text-gray-400">
