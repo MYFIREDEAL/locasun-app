@@ -22,6 +22,13 @@ import React, { useEffect } from 'react';
       const isContactsPage = location.pathname.startsWith('/admin/contacts');
       const isConfigurationIAPage = location.pathname.startsWith('/admin/configuration-ia');
       const isWorkflowsCharlyPage = location.pathname.startsWith('/admin/workflows-charly');
+      const isLandingPageConfig = location.pathname.startsWith('/admin/landing-page');
+
+      // 🔥 Routes réservées aux Global Admin / Admin / platform_admin
+      const isAdminOnlyRoute = isConfigurationIAPage || isLandingPageConfig;
+      const isAdminRole = activeAdminUser?.role === 'Global Admin' || 
+                         activeAdminUser?.role === 'Admin' || 
+                         activeAdminUser?.role === 'platform_admin';
 
       // 🔥 BLOQUER LE RENDU TANT QUE adminReady ET organizationId NE SONT PAS PRÊTS
       if (!adminReady || organizationLoading || !organizationId) {
@@ -30,6 +37,27 @@ import React, { useEffect } from 'react';
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600 font-medium">Chargement de l'espace admin...</p>
+            </div>
+          </div>
+        );
+      }
+
+      // 🔒 PROTECTION : Rediriger les non-admins qui accèdent aux routes admin-only
+      if (isAdminOnlyRoute && !isAdminRole) {
+        return (
+          <div className="flex items-center justify-center h-screen bg-gray-50">
+            <div className="text-center max-w-md">
+              <div className="text-6xl mb-4">🔒</div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès restreint</h1>
+              <p className="text-gray-600 mb-6">
+                Cette page est réservée aux administrateurs (Global Admin, Admin).
+              </p>
+              <button
+                onClick={() => navigate('/admin/pipeline')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Retour au Pipeline
+              </button>
             </div>
           </div>
         );

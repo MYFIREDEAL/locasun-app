@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
     import { NavLink, Link, useNavigate, useSearchParams } from 'react-router-dom';
     import { motion, AnimatePresence } from 'framer-motion';
     import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2, Globe } from 'lucide-react';
@@ -20,13 +20,14 @@ import React, { useState } from 'react';
     import { formatDistanceToNow } from 'date-fns';
     import { fr } from 'date-fns/locale';
 
-const navItems = [
-  { name: 'Pipeline', path: '/admin/pipeline', icon: LayoutGrid },
-  { name: 'Agenda', path: '/admin/agenda', icon: Calendar },
-  { name: 'Contacts', path: '/admin/contacts', icon: Users },
-  { name: 'Charly AI', path: '/admin/charly', icon: Bot },
-  { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings },
-  { name: 'Landing Page', path: '/admin/landing-page', icon: Globe },
+// 🔥 Items de navigation - certains réservés aux admins (Global Admin, Admin, platform_admin)
+const allNavItems = [
+  { name: 'Pipeline', path: '/admin/pipeline', icon: LayoutGrid, adminOnly: false },
+  { name: 'Agenda', path: '/admin/agenda', icon: Calendar, adminOnly: false },
+  { name: 'Contacts', path: '/admin/contacts', icon: Users, adminOnly: false },
+  { name: 'Charly AI', path: '/admin/charly', icon: Bot, adminOnly: false },
+  { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings, adminOnly: true },
+  { name: 'Landing Page', path: '/admin/landing-page', icon: Globe, adminOnly: true },
 ];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;
@@ -35,6 +36,15 @@ const navItems = [
       const { users: supabaseUsers, loading: usersLoading } = useUsers();
       const navigate = useNavigate();
       const [searchParams, setSearchParams] = useSearchParams();
+
+      // 🔥 Filtrer les items de navigation selon le rôle
+      const navItems = useMemo(() => {
+        const isAdminRole = activeAdminUser?.role === 'Global Admin' || 
+                           activeAdminUser?.role === 'Admin' || 
+                           activeAdminUser?.role === 'platform_admin';
+        
+        return allNavItems.filter(item => !item.adminOnly || isAdminRole);
+      }, [activeAdminUser?.role]);
 
       const unreadNotifications = notifications.filter(n => !n.read);
 
