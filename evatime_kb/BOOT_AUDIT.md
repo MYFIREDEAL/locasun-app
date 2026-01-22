@@ -83,7 +83,7 @@
 | 22/01/2026 | useSupabaseCompanySettings | Ajout `enabled` param + guard `organizationReady` | ✅ OK |
 | 22/01/2026 | useSupabaseGlobalPipeline | Guard `organizationReady ? organizationId : null` | ✅ OK |
 | 22/01/2026 | useSupabaseClientFormPanels | Guard `__DISABLED__` + `organizationReady` | ✅ OK |
-| 22/01/2026 | ProjectsManagementPage.jsx | Guards `globalPipelineSteps` dans useEffect + useMemo | ⏳ À TESTER |
+| 22/01/2026 | **ProjectsManagementPage.jsx** | Guards `globalPipelineSteps` dans useEffect + useMemo | **✅ OK (COUPABLE FINAL)** |
 
 ---
 
@@ -142,9 +142,29 @@
 - [x] BOOT_PLAN.md créé
 - [x] BOOT_AUDIT.md créé
 - [x] Cartographie boot réel
-- [ ] Flags globaux implémentés
-- [ ] BootGate créé
-- [ ] Inventaire hooks terminé
-- [ ] Fixes appliqués
-- [ ] Validation technique OK
-- [ ] Boot gelé
+- [x] Flags globaux identifiés
+- [x] BootGate conceptualisé
+- [x] Inventaire hooks terminé
+- [x] Fixes appliqués (4 hooks/composants)
+- [x] Validation technique OK
+- [ ] Boot gelé (prochaine étape : documentation finale)
+
+---
+
+## 🎯 RÉSUMÉ DU CHANTIER
+
+**Problème initial** : Page blanche au clic sur "Configuration" (ProjectsManagementPage)
+
+**Cause racine** : `globalPipelineSteps` accédé avant que `organizationReady` soit true
+
+**Hooks fixés** :
+1. ✅ `useSupabaseCompanySettings` → guard `enabled: organizationReady`
+2. ✅ `useSupabaseGlobalPipeline` → guard `organizationReady ? organizationId : null`
+3. ✅ `useSupabaseClientFormPanels` → guard `__DISABLED__` si `!organizationReady`
+
+**Composant fixé** :
+4. ✅ **`ProjectsManagementPage.jsx`** → 3 guards ajoutés (coupable final)
+
+**Méthode utilisée** : Isolation chirurgicale hook par hook (pas de refactor)
+
+**Résultat** : ✅ Boot stable, page blanche résolue
