@@ -2,7 +2,6 @@ import React, { useContext } from "react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { useLandingPageConfig } from "@/hooks/useLandingPageConfig"
 import {
   Sparkles,
   Zap,
@@ -31,44 +30,70 @@ import {
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 
-// 🔥 Import du contexte pour utilisation SAFE (peut être null sans provider)
+// 🔥 Import des contextes - PublicOrganizationContext (léger) ou OrganizationContext (CRM)
+import PublicOrganizationContext, { usePublicOrganization } from "@/contexts/PublicOrganizationContext"
 import OrganizationContext from "@/contexts/OrganizationContext"
 
 /**
- * 🔥 HOOK SAFE pour OrganizationContext
- * Permet à Landing de fonctionner SANS le provider (isolation publique)
- * Retourne des valeurs par défaut si le contexte n'est pas disponible
+ * 🔥 HOOK UNIFIÉ pour récupérer l'org
+ * Essaie d'abord PublicOrganizationContext (landing isolée)
+ * Puis OrganizationContext (si monté via App.jsx)
+ * Retourne des valeurs par défaut sinon
  */
-const useOrganizationSafe = () => {
-  const context = useContext(OrganizationContext);
-  
-  // Si le provider n'est pas monté, retourner des valeurs par défaut
-  if (!context) {
+const useOrganizationUnified = () => {
+  // 1. Essayer PublicOrganizationContext (routes publiques isolées)
+  const publicContext = useContext(PublicOrganizationContext);
+  if (publicContext) {
     return {
-      organizationId: null,
-      isPlatformOrg: true,
-      brandName: null,
-      logoUrl: null,
-      organizationLoading: false,
+      organizationId: publicContext.organizationId,
+      isPlatformOrg: publicContext.isPlatform,
+      brandName: publicContext.brandName,
+      logoUrl: publicContext.logoUrl,
+      organizationLoading: publicContext.loading,
+      landingConfig: publicContext.landingConfig,
     };
   }
   
-  return context;
+  // 2. Essayer OrganizationContext (CRM, si monté)
+  const crmContext = useContext(OrganizationContext);
+  if (crmContext) {
+    return {
+      organizationId: crmContext.organizationId,
+      isPlatformOrg: crmContext.isPlatformOrg,
+      brandName: crmContext.brandName,
+      logoUrl: crmContext.logoUrl,
+      organizationLoading: crmContext.organizationLoading,
+      landingConfig: null, // Sera chargé via useLandingPageConfig
+    };
+  }
+  
+  // 3. Aucun contexte disponible - valeurs par défaut
+  return {
+    organizationId: null,
+    isPlatformOrg: true,
+    brandName: 'EVATIME',
+    logoUrl: '/evatime-logo.png',
+    organizationLoading: false,
+    landingConfig: null,
+  };
 };
 
 export default function Landing() {
   const { toast } = useToast()
   const navigate = useNavigate()
   
-  // 🔥 Contexte organisation SAFE - fonctionne avec ou sans provider
+  // 🔥 Contexte organisation UNIFIÉ - fonctionne avec PublicOrg OU CRM
   const { 
     organizationId, 
     isPlatformOrg, 
     brandName, 
     logoUrl: orgLogoUrl,
-    organizationLoading 
-  } = useOrganizationSafe()
-  const { landingConfig, loading: configLoading } = useLandingPageConfig(organizationId)
+    organizationLoading,
+    landingConfig: contextLandingConfig
+  } = useOrganizationUnified()
+  
+  // 🔥 landingConfig peut venir du contexte public (préchargé) ou être null
+  const landingConfig = contextLandingConfig
   
   // Détermine si on est sur la plateforme EVATIME ou une organisation tierce
   const isPlatform = isPlatformOrg || !organizationId

@@ -5,15 +5,20 @@ import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { UsersProvider } from "./contexts/UsersContext";
+import { PublicOrganizationProvider } from "./contexts/PublicOrganizationContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 /**
  * 🔥 ISOLATION LANDING PUBLIQUE
  * 
- * Les routes publiques (`/` et `/landing`) sont rendues SANS les providers lourds
- * pour éviter le boot applicatif CRM (auth, Supabase, realtime, etc.)
+ * Les routes publiques (`/` et `/landing`) sont rendues avec un provider LÉGER
+ * (PublicOrganizationProvider) qui résout l'org et le branding SANS :
+ * - auth (getSession, onAuthStateChange)
+ * - chargement users/prospects
+ * - real-time subscriptions
+ * - boot CRM complet
  * 
- * Cela garantit un rendu quasi instantané de la landing page.
+ * Cela garantit un rendu quasi instantané de la landing personnalisée.
  */
 const isPublicLandingRoute = () => {
   const path = window.location.pathname;
@@ -22,8 +27,8 @@ const isPublicLandingRoute = () => {
 
 /**
  * Composant racine conditionnel :
- * - Routes publiques → Landing légère (lazy loaded, sans providers)
- * - Autres routes → App complète avec providers
+ * - Routes publiques → Landing avec PublicOrganizationProvider (léger)
+ * - Autres routes → App complète avec providers CRM
  */
 const Root = () => {
   // 🔥 Détection AVANT le montage des providers
@@ -40,7 +45,9 @@ const Root = () => {
         </div>
       }>
         <BrowserRouter>
-          <Landing />
+          <PublicOrganizationProvider>
+            <Landing />
+          </PublicOrganizationProvider>
         </BrowserRouter>
       </React.Suspense>
     );
