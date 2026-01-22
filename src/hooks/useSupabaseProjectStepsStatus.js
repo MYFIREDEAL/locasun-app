@@ -14,8 +14,12 @@ import { useOrganization } from '@/contexts/OrganizationContext';
  * Table Supabase : project_steps_status
  * Clé unique : (prospect_id, project_type)
  * Remplace : localStorage 'evatime_project_steps_status'
+ * 
+ * @param {string} prospectId - ID du prospect
+ * @param {Object} options - Options du hook
+ * @param {boolean} options.enabled - Si false, le hook ne fait rien (default: true)
  */
-export function useSupabaseProjectStepsStatus(prospectId) {
+export function useSupabaseProjectStepsStatus(prospectId, { enabled = true } = {}) {
   const [projectStepsStatus, setProjectStepsStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,18 +28,23 @@ export function useSupabaseProjectStepsStatus(prospectId) {
 
   /**
    * ✅ CHARGER LES STEPS AU MONTAGE
+   * 🔥 FIX BOUCLE #310: Ne rien faire si !enabled
    */
   useEffect(() => {
+    // 🔥 Guard: Ne rien faire si pas enabled
+    if (!enabled) return;
     if (prospectId) {
       fetchProjectStepsStatus();
     }
-  }, [prospectId]);
+  }, [prospectId, enabled]);
 
   /**
    * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME
+   * 🔥 FIX BOUCLE #310: Ne rien faire si !enabled
    */
   useEffect(() => {
-    if (!prospectId) return;
+    // 🔥 Guard: Ne rien faire si pas enabled ou pas de prospectId
+    if (!enabled || !prospectId) return;
 
     const channel = supabase
       .channel(`project-steps-${prospectId}`)
@@ -71,7 +80,7 @@ export function useSupabaseProjectStepsStatus(prospectId) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [prospectId]);
+  }, [prospectId, enabled]);
 
   /**
    * 📥 RÉCUPÉRER TOUS LES STEPS D'UN PROSPECT

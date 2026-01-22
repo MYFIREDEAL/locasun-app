@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { useBranding } from '@/hooks/useBranding';
@@ -26,6 +26,10 @@ export const OrganizationProvider = ({ children }) => {
   const [organizationError, setOrganizationError] = useState(null);
   const [isPlatformOrg, setIsPlatformOrg] = useState(false); // 🔥 Flag pour savoir si c'est l'org plateforme
   const [authUserId, setAuthUserId] = useState(null); // 🔥 Tracker pour re-résoudre au changement d'auth
+  
+  // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+  const organizationReadyRef = useRef(false);
+  const [organizationReady, setOrganizationReady] = useState(false);
 
   // 🔥 Écouter les changements d'auth pour re-résoudre l'organisation
   useEffect(() => {
@@ -96,6 +100,11 @@ export const OrganizationProvider = ({ children }) => {
           if (adminUser?.organization_id) {
             logger.info('[OrganizationContext] Organization résolue depuis user admin:', adminUser.organization_id);
             setOrganizationId(adminUser.organization_id);
+            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+            if (!organizationReadyRef.current) {
+              organizationReadyRef.current = true;
+              setOrganizationReady(true);
+            }
             setOrganizationLoading(false);
             return;
           }
@@ -114,6 +123,11 @@ export const OrganizationProvider = ({ children }) => {
               // Déjà lié à cette org, pas besoin de RPC
               logger.info('[OrganizationContext] Client déjà lié à l\'org du hostname:', hostnameOrgId);
               setOrganizationId(hostnameOrgId);
+              // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+              if (!organizationReadyRef.current) {
+                organizationReadyRef.current = true;
+                setOrganizationReady(true);
+              }
               setOrganizationLoading(false);
               return;
             }
@@ -135,6 +149,11 @@ export const OrganizationProvider = ({ children }) => {
               if (!linkError && linkedProspectId) {
                 logger.info('[OrganizationContext] Client lié au prospect dans l\'org du hostname:', hostnameOrgId);
                 setOrganizationId(hostnameOrgId);
+                // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+                if (!organizationReadyRef.current) {
+                  organizationReadyRef.current = true;
+                  setOrganizationReady(true);
+                }
                 setOrganizationLoading(false);
                 return;
               } else if (linkError) {
@@ -154,6 +173,11 @@ export const OrganizationProvider = ({ children }) => {
           if (prospectUser?.organization_id) {
             logger.info('[OrganizationContext] Organization résolue depuis prospect (user_id):', prospectUser.organization_id);
             setOrganizationId(prospectUser.organization_id);
+            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+            if (!organizationReadyRef.current) {
+              organizationReadyRef.current = true;
+              setOrganizationReady(true);
+            }
             setOrganizationLoading(false);
             return;
           }
@@ -174,6 +198,11 @@ export const OrganizationProvider = ({ children }) => {
             if (prospectByEmail?.organization_id) {
               logger.info('[OrganizationContext] Organization résolue depuis prospect par EMAIL:', prospectByEmail.organization_id);
               setOrganizationId(prospectByEmail.organization_id);
+              // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+              if (!organizationReadyRef.current) {
+                organizationReadyRef.current = true;
+                setOrganizationReady(true);
+              }
               setOrganizationLoading(false);
               return;
             }
@@ -184,6 +213,11 @@ export const OrganizationProvider = ({ children }) => {
         if (hostnameOrgId) {
           logger.info('[OrganizationContext] Pas de user, utilisation hostname org:', hostnameOrgId);
           setOrganizationId(hostnameOrgId);
+          // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+          if (!organizationReadyRef.current) {
+            organizationReadyRef.current = true;
+            setOrganizationReady(true);
+          }
           setOrganizationLoading(false);
           return;
         }
@@ -205,15 +239,30 @@ export const OrganizationProvider = ({ children }) => {
             logger.info('[OrganizationContext] Fallback vers organisation plateforme:', platformId);
             setOrganizationId(platformId);
             setIsPlatformOrg(true); // 🔥 C'est l'org plateforme
+            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+            if (!organizationReadyRef.current) {
+              organizationReadyRef.current = true;
+              setOrganizationReady(true);
+            }
           } else {
             logger.warn('[OrganizationContext] Platform organization query returned no id, leaving organizationId null');
             setOrganizationId(null);
             setIsPlatformOrg(true); // 🔥 Pas d'org = plateforme par défaut
+            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+            if (!organizationReadyRef.current) {
+              organizationReadyRef.current = true;
+              setOrganizationReady(true);
+            }
           }
         } else {
           logger.warn('[OrganizationContext] Impossible de récupérer l\'organisation plateforme, leaving organizationId null', platformError);
           setOrganizationId(null);
           setIsPlatformOrg(true); // 🔥 Pas d'org = plateforme par défaut
+          // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+          if (!organizationReadyRef.current) {
+            organizationReadyRef.current = true;
+            setOrganizationReady(true);
+          }
         }
 
         setOrganizationLoading(false);
@@ -224,6 +273,11 @@ export const OrganizationProvider = ({ children }) => {
         setOrganizationId(null);
         setIsPlatformOrg(true); // 🔥 En cas d'erreur = plateforme par défaut
         setOrganizationError(null); // Pas d'erreur bloquante
+        // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+        if (!organizationReadyRef.current) {
+          organizationReadyRef.current = true;
+          setOrganizationReady(true);
+        }
         setOrganizationLoading(false);
       }
     };
@@ -273,6 +327,7 @@ export const OrganizationProvider = ({ children }) => {
         organizationId,
         organizationLoading,
         organizationError,
+        organizationReady, // 🔥 FIX BOUCLE #310: Flag pour gater les hooks Supabase
         isPlatformOrg, // 🔥 Exposé pour savoir si c'est l'org plateforme
         brandName,
         logoUrl,

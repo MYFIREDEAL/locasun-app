@@ -5,9 +5,11 @@ import { logger } from '@/lib/logger';
 /**
  * Hook pour gérer les prompts Charly AI via Supabase
  * Table: prompts
- * @param {string} organizationId - L'ID de l'organisation (requis pour l'isolation multi-tenant)
+ * @param {Object} options - Options du hook
+ * @param {string} options.organizationId - L'ID de l'organisation (requis pour l'isolation multi-tenant)
+ * @param {boolean} options.enabled - Si false, le hook ne fait rien (default: true)
  */
-export function useSupabasePrompts(organizationId = null) {
+export function useSupabasePrompts({ organizationId = null, enabled = true } = {}) {
   const [prompts, setPrompts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,9 +32,10 @@ export function useSupabasePrompts(organizationId = null) {
   };
 
   // Charger les prompts
+  // 🔥 FIX BOUCLE #310: Ne rien faire si !enabled || !organizationId
   useEffect(() => {
-    // Ne rien charger si pas d'organization_id
-    if (!organizationId) {
+    // 🔥 Guard: Ne rien faire si pas enabled ou pas d'org
+    if (!enabled || !organizationId) {
       setPrompts({});
       setLoading(false);
       return;
@@ -128,7 +131,7 @@ export function useSupabasePrompts(organizationId = null) {
       logger.debug('Unsubscribing from prompts real-time');
       supabase.removeChannel(channel);
     };
-  }, [organizationId]);  // 🔥 Re-fetch si org change
+  }, [organizationId, enabled]);  // 🔥 Re-fetch si org ou enabled change
 
   // Ajouter/mettre à jour un prompt
   const savePrompt = async (promptId, promptData) => {

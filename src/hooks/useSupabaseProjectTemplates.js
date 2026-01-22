@@ -15,28 +15,41 @@ import { logger } from '@/lib/logger';
  * Table Supabase : project_templates
  * Remplace : localStorage 'evatime_projects_data'
  * 
- * @param {string|null} organizationId - UUID de l'organization (optionnel)
- *   - Si fourni: retourne templates globaux (NULL) + templates de l'org
- *   - Si null/undefined: retourne uniquement les templates globaux (NULL)
+ * @param {Object} options - Options du hook
+ * @param {string|null} options.organizationId - UUID de l'organization
+ * @param {boolean} options.enabled - Si false, le hook ne fait rien (default: true)
  */
-export function useSupabaseProjectTemplates(organizationId = null) {
+export function useSupabaseProjectTemplates({ organizationId = null, enabled = true } = {}) {
   const [projectTemplates, setProjectTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isLocalUpdate = useRef(false);
+  const lastFetchedOrgId = useRef(null);
 
   /**
    * ✅ CHARGER LES TEMPLATES AU MONTAGE ET QUAND organizationId CHANGE
+   * 🔥 FIX BOUCLE #310: Ne rien faire si !enabled || !organizationId
    */
   useEffect(() => {
+    // 🔥 Guard: Ne rien faire si pas enabled ou pas d'org
+    if (!enabled || !organizationId) {
+      return;
+    }
+    // Éviter les appels redondants avec le même org
+    if (lastFetchedOrgId.current === organizationId) {
+      return;
+    }
+    lastFetchedOrgId.current = organizationId;
     fetchProjectTemplates(organizationId);
-  }, [organizationId]);
+  }, [organizationId, enabled]);
 
   /**
    * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME - Filtré par organization_id !
+   * 🔥 FIX BOUCLE #310: Ne rien faire si !enabled || !organizationId
    */
   useEffect(() => {
-    if (!organizationId) return;
+    // 🔥 Guard: Ne rien faire si pas enabled ou pas d'org
+    if (!enabled || !organizationId) return;
 
     const channel = supabase
       .channel(`project-templates-changes-${organizationId}`)

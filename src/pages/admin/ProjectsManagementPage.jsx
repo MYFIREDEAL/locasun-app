@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { Trash2, Plus, FolderKanban, GripVertical, ChevronDown } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { slugify } from '@/lib/utils';
@@ -81,6 +82,8 @@ const ProjectEditor = ({
   onCancel,
   globalPipelineSteps = []
 }) => {
+  const { organizationReady } = useOrganization();
+  
   const createInitialProject = () => {
     const baseProject = project ? JSON.parse(JSON.stringify(project)) : {
       type: '',
@@ -125,6 +128,9 @@ const ProjectEditor = ({
   }, [project]);
 
   useEffect(() => {
+    // Guard: ne pas exécuter tant que l'organisation n'est pas prête
+    if (!organizationReady || globalPipelineSteps.length === 0) return;
+    
     setEditedProject(prev => {
       const availableIds = new Set(globalPipelineSteps.map(step => step.id));
       const fallbackId = globalPipelineSteps[0]?.id ?? null;

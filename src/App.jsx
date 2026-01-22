@@ -202,6 +202,7 @@ function App() {
     organizationId, 
     organizationLoading, 
     organizationError,
+    organizationReady, // 🔥 FIX BOUCLE #310: Flag pour gater les hooks Supabase
     brandName,
     logoUrl,
     primaryColor,
@@ -356,6 +357,7 @@ function App() {
 
   // 🔥 Charger les modèles de projets depuis Supabase avec real-time
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
+  // 🔥 FIX BOUCLE #310: Gater avec organizationReady
   const {
     projectTemplates,
     loading: templatesLoading,
@@ -363,7 +365,7 @@ function App() {
     updateTemplate,
     deleteTemplate,
     getPublicTemplates
-  } = useSupabaseProjectTemplates(organizationId);
+  } = useSupabaseProjectTemplates({ organizationId, enabled: organizationReady });
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
@@ -381,10 +383,11 @@ function App() {
 
   // 🔥 Charger les prompts depuis Supabase avec real-time (pour Charly AI)
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
+  // 🔥 FIX BOUCLE #310: Gater avec organizationReady
   const {
     prompts: supabasePrompts,
     loading: promptsLoading
-  } = useSupabasePrompts(organizationId);
+  } = useSupabasePrompts({ organizationId, enabled: organizationReady });
 
   // Synchroniser prompts dans le state pour compatibilité avec le code existant
   useEffect(() => {
