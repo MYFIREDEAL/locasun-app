@@ -371,10 +371,11 @@ function App() {
 
   // 🔥 Charger les formulaires depuis Supabase avec real-time (pour le chat)
   // 🔥 MULTI-TENANT: Passe organizationId pour filtrer par org
+  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
   const {
     forms: supabaseForms,
     loading: formsLoading
-  } = useSupabaseForms(organizationId);
+  } = useSupabaseForms(null); // 🧪 TEMPORAIRE: forcé à null pour test isolation
 
   // Synchroniser forms dans le state pour compatibilité avec le code existant (chat)
   useEffect(() => {

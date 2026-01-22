@@ -81,7 +81,7 @@
 | Date | Hook/Fichier | Fix appliqué | Résultat |
 |------|--------------|--------------|----------|
 | 22/01/2026 | useSupabaseCompanySettings | Ajout `enabled` param + guard `organizationReady` | ✅ OK |
-| 22/01/2026 | useSupabaseGlobalPipeline | Guard `organizationReady ? organizationId : null` | ⏳ À TESTER |
+| 22/01/2026 | useSupabaseGlobalPipeline | Guard `organizationReady ? organizationId : null` | ✅ OK |
 
 ---
 
