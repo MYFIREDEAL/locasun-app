@@ -276,12 +276,17 @@ function App() {
     });
   }
   
-  const {
-    formPanels: clientFormPanels,
-    createFormPanel: registerClientForm,
-    updateFormPanel: updateClientFormPanel,
-    deleteFormPanelsByProspect: clearClientFormsFor
-  } = useSupabaseClientFormPanels(prospectIdForForms); // 🔥 Admin voit tout !
+  // 🧪 TEST ISOLATION BOOT_AUDIT: Bloquer temporairement pour prouver la cause page blanche
+  const clientFormPanels = []; // 🧪 TEMPORAIRE
+  const registerClientForm = () => {}; // 🧪 TEMPORAIRE
+  const updateClientFormPanel = () => {}; // 🧪 TEMPORAIRE
+  const clearClientFormsFor = () => {}; // 🧪 TEMPORAIRE
+  // const {
+  //   formPanels: clientFormPanels,
+  //   createFormPanel: registerClientForm,
+  //   updateFormPanel: updateClientFormPanel,
+  //   deleteFormPanelsByProspect: clearClientFormsFor
+  // } = useSupabaseClientFormPanels(prospectIdForForms);
   
   // 🔥 Charger les company settings (logo, formulaire contact, etc.) depuis Supabase avec real-time
   // 🔥 SYNC: Passe organizationId pour synchroniser le logo vers organization_settings (Landing Page)
@@ -339,10 +344,7 @@ function App() {
   } = useSupabaseGlobalPipeline(organizationReady ? organizationId : null);
 
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
-  // 🧪 TEST ISOLATION BOOT_AUDIT: Retourner données vides pour test
-  const allProjectSteps = {}; // 🧪 TEMPORAIRE: données vides pour test isolation
-  const allStepsLoading = false; // 🧪 TEMPORAIRE
-  // const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
+  const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
 
   // 🔥 Synchroniser allProjectSteps (Supabase) avec projectStepsStatus (state local)
   useEffect(() => {
