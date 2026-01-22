@@ -127,16 +127,19 @@ const ProjectEditor = ({
 
   useEffect(() => {
     // 🔥 FIX BOOT: Guard contre globalPipelineSteps undefined avant de créer le projet initial
-    if (!globalPipelineSteps || !Array.isArray(globalPipelineSteps)) return;
+    if (!organizationReady || !globalPipelineSteps || !Array.isArray(globalPipelineSteps)) return;
     
     setEditedProject(createInitialProject());
     setNewStepName('');
     setNewStepIcon('➡️');
-  }, [project, globalPipelineSteps]); // 🔥 Ajouter globalPipelineSteps aux dépendances
+  }, [project, globalPipelineSteps, organizationReady]); // 🔥 FIX RACE: Ajouter organizationReady
 
   useEffect(() => {
     // Guard: ne pas exécuter tant que l'organisation n'est pas prête
     if (!organizationReady || !globalPipelineSteps || globalPipelineSteps.length === 0) return;
+    
+    // 🔥 FIX RACE: Ne pas modifier si editedProject n'est pas initialisé
+    if (!editedProject?.steps) return;
     
     setEditedProject(prev => {
       const availableIds = new Set(globalPipelineSteps.map(step => step.id));
@@ -162,7 +165,7 @@ const ProjectEditor = ({
         steps: updatedSteps
       };
     });
-  }, [globalPipelineSteps]);
+  }, [globalPipelineSteps, organizationReady, editedProject?.steps?.length]); // 🔥 FIX RACE: Ajouter deps
   
   const handleStepChange = useCallback((index, field, value) => {
     setEditedProject(prev => {
