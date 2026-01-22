@@ -95,7 +95,8 @@ const ProjectEditor = ({
       isPublic: true
     };
 
-    const fallbackId = globalPipelineSteps[0]?.id ?? null;
+    // 🔥 FIX BOOT: Guard contre globalPipelineSteps undefined
+    const fallbackId = (globalPipelineSteps && globalPipelineSteps[0])?.id ?? null;
 
     baseProject.steps = Array.isArray(baseProject.steps)
       ? baseProject.steps.map(step => ({
@@ -113,23 +114,29 @@ const ProjectEditor = ({
   const [newStepIcon, setNewStepIcon] = useState('➡️');
 
   // Mémoriser les options du Select pour éviter les re-renders inutiles
-  const globalStepOptions = useMemo(() => 
-    globalPipelineSteps.map(globalStep => (
+  const globalStepOptions = useMemo(() => {
+    // 🔥 FIX BOOT: Guard contre globalPipelineSteps undefined
+    if (!globalPipelineSteps || !Array.isArray(globalPipelineSteps)) return [];
+    
+    return globalPipelineSteps.map(globalStep => (
       <SelectItem key={globalStep.id} value={globalStep.id}>
         {globalStep.label}
       </SelectItem>
-    ))
-  , [globalPipelineSteps]);
+    ));
+  }, [globalPipelineSteps]);
 
   useEffect(() => {
+    // 🔥 FIX BOOT: Guard contre globalPipelineSteps undefined avant de créer le projet initial
+    if (!globalPipelineSteps || !Array.isArray(globalPipelineSteps)) return;
+    
     setEditedProject(createInitialProject());
     setNewStepName('');
     setNewStepIcon('➡️');
-  }, [project]);
+  }, [project, globalPipelineSteps]); // 🔥 Ajouter globalPipelineSteps aux dépendances
 
   useEffect(() => {
     // Guard: ne pas exécuter tant que l'organisation n'est pas prête
-    if (!organizationReady || globalPipelineSteps.length === 0) return;
+    if (!organizationReady || !globalPipelineSteps || globalPipelineSteps.length === 0) return;
     
     setEditedProject(prev => {
       const availableIds = new Set(globalPipelineSteps.map(step => step.id));
