@@ -33,22 +33,30 @@ export function useSupabaseProjectTemplates(organizationId = null) {
   }, [organizationId]);
 
   /**
-   * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME
+   * ✅ ÉCOUTER LES CHANGEMENTS REAL-TIME - Filtré par organization_id !
    */
   useEffect(() => {
+    if (!organizationId) return;
+
     const channel = supabase
-      .channel('project-templates-changes')
+      .channel(`project-templates-changes-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'project_templates'
+          table: 'project_templates',
+          filter: `organization_id=eq.${organizationId}`  // 🔥 Filtrer par org !
         },
         (payload) => {
           if (isLocalUpdate.current) {
             isLocalUpdate.current = false;
             return;
+          }
+
+          // 🔥 Double vérification de l'org (sécurité)
+          if (payload.new?.organization_id && payload.new.organization_id !== organizationId) {
+            return; // Ignorer les events d'autres orgs
           }
 
           // ✅ Transformer snake_case → camelCase
@@ -85,7 +93,7 @@ export function useSupabaseProjectTemplates(organizationId = null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [organizationId]);  // 🔥 Re-subscribe si org change
 
   /**
    * 📥 RÉCUPÉRER LES TEMPLATES (filtrés par organization)

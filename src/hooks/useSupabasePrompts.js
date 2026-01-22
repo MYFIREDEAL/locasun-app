@@ -63,19 +63,25 @@ export function useSupabasePrompts(organizationId = null) {
 
     fetchPrompts();
 
-    // Real-time subscription
+    // Real-time subscription - 🔥 Filtré par organization_id !
     logger.debug('Setting up real-time subscription for prompts');
     const channel = supabase
-      .channel(`prompts-changes-${Math.random().toString(36).slice(2)}`)
+      .channel(`prompts-changes-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'prompts',
+          filter: `organization_id=eq.${organizationId}`,  // 🔥 Filtrer par org !
         },
         (payload) => {
           logger.debug('Real-time prompts event', { eventType: payload.eventType });
+
+          // 🔥 Double vérification de l'org (sécurité)
+          if (payload.new?.organization_id && payload.new.organization_id !== organizationId) {
+            return; // Ignorer les events d'autres orgs
+          }
 
           if (payload.eventType === 'INSERT') {
             const newPrompt = payload.new;
