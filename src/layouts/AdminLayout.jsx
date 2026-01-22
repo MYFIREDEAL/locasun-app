@@ -108,39 +108,16 @@ import React, { useEffect } from 'react';
             {isConfigurationIAPage && isDesktop && (
               <aside className="w-[300px] flex-shrink-0 p-6 pr-10 hidden lg:block">
                 <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                  <h3 className="text-base font-semibold text-gray-600 mb-5">Modules</h3>
-                  <div className="space-y-4">
-                    <a
-                      href="/admin/workflows-charly"
-                      className="flex items-center gap-3 w-full rounded-lg bg-green-600 px-5 py-4 text-base font-medium text-white transition-colors hover:bg-green-700"
-                    >
-                      🧩 Workflows
-                    </a>
-                    <a
-                      href="/admin/projects-management"
-                      className="flex items-center gap-3 w-full rounded-lg bg-blue-600 px-5 py-4 text-base font-medium text-white transition-colors hover:bg-blue-700"
-                    >
-                      📁 Projets
-                    </a>
-                    <a
-                      href="/admin/forms-management"
-                      className="flex items-center gap-3 w-full rounded-lg bg-teal-600 px-5 py-4 text-base font-medium text-white transition-colors hover:bg-teal-700"
-                    >
-                      📝 Formulaires
-                    </a>
-                    <a
-                      href="/admin/contract-templates"
-                      className="flex items-center gap-3 w-full rounded-lg bg-purple-600 px-5 py-4 text-base font-medium text-white transition-colors hover:bg-purple-700"
-                    >
-                      📄 Contrats
-                    </a>
-                    <a
-                      href="/admin/project-display"
-                      className="flex items-center gap-3 w-full rounded-lg bg-indigo-600 px-5 py-4 text-base font-medium text-white transition-colors hover:bg-indigo-700"
-                    >
-                      🧱 Catalogue Client
-                    </a>
-                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">🛠️ Configurer Charly</h3>
+                  <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                    Personnalisez les projets, workflows, formulaires et contrats pour automatiser le suivi de vos clients.
+                  </p>
+                  <a
+                    href="/admin/projects-management"
+                    className="flex items-center justify-center gap-2 w-full rounded-lg bg-blue-600 px-5 py-3 text-base font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    ⚡ Configurer
+                  </a>
                 </div>
               </aside>
             )}
