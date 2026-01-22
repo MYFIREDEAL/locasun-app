@@ -1,7 +1,6 @@
 import React, { useContext } from "react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
-import { useNavigate } from "react-router-dom"
 import {
   Sparkles,
   Zap,
@@ -80,7 +79,6 @@ const useOrganizationUnified = () => {
 
 export default function Landing() {
   const { toast } = useToast()
-  const navigate = useNavigate()
   
   // 🔥 Contexte organisation UNIFIÉ - fonctionne avec PublicOrg OU CRM
   const { 
@@ -298,7 +296,7 @@ export default function Landing() {
               </p>
               <div className="flex justify-center items-center gap-4">
                 <Button
-                  onClick={() => navigate('/inscription')}
+                  onClick={() => window.location.href = '/inscription'}
                   className="bg-[#22c55e] hover:bg-[#16a34a] hover:scale-105 text-white rounded-full px-10 py-6 text-lg font-semibold transition-transform duration-200"
                 >
                   {ctaText}
@@ -358,7 +356,7 @@ export default function Landing() {
                 Prêt à commencer ?
               </h2>
               <Button
-                onClick={() => navigate('/inscription')}
+                onClick={() => window.location.href = '/inscription'}
                 className="bg-white text-blue-600 hover:bg-gray-100 rounded-full px-10 py-6 text-lg shadow-xl font-semibold"
               >
                 {ctaText}
@@ -423,13 +421,13 @@ export default function Landing() {
               </div>
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={() => navigate('/login')}
+                  onClick={() => window.location.href = '/login'}
                   className="bg-[#22c55e] hover:bg-[#16a34a] hover:scale-105 text-white rounded-full px-6 font-medium transition-transform duration-200"
                 >
                   Espace Pro
                 </Button>
                 <Button
-                  onClick={() => navigate('/client-access')}
+                  onClick={() => window.location.href = '/client-access'}
                   className="bg-[#0ea5e9] hover:bg-[#0284c7] hover:scale-105 text-white rounded-full px-6 font-medium transition-transform duration-200"
                 >
                   Espace Client
