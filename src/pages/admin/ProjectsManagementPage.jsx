@@ -426,12 +426,12 @@ const CreateProjectDialog = ({
   onSave,
   globalPipelineSteps = []
 }) => {
-  const { projectsData } = useAppContext();
+  const { projectsData = {} } = useAppContext();
   const [step, setStep] = useState(1);
   const [project, setProject] = useState(null);
 
   const handleSelectTemplate = templateKey => {
-    const template = projectsData[templateKey];
+    const template = projectsData?.[templateKey];
     if (!template) {
       toast({
         title: "Modèle introuvable",
@@ -536,7 +536,7 @@ const CreateProjectDialog = ({
 
 const ProjectsManagementPage = () => {
   const {
-    projectsData,
+    projectsData = {},
     setProjectsData,
     deleteProjectTemplate,
     globalPipelineSteps = []
@@ -547,7 +547,7 @@ const ProjectsManagementPage = () => {
 
   const handleSaveProject = async projectToSave => {
     const newProjectsData = {
-      ...projectsData,
+      ...(projectsData || {}),
       [projectToSave.type]: projectToSave
     };
     
@@ -569,7 +569,7 @@ const ProjectsManagementPage = () => {
   };
 
   const handleToggleProjectVisibility = (projectType, isPublic) => {
-    const projectToUpdate = projectsData[projectType];
+    const projectToUpdate = projectsData?.[projectType];
     if (projectToUpdate) {
       const updatedProject = {
         ...projectToUpdate,
@@ -585,7 +585,7 @@ const ProjectsManagementPage = () => {
 
   const handleDeleteProjectClick = (projectType) => {
     // 🔒 Protection UX : Empêcher la suppression des projets "En ligne"
-    const template = projectsData[projectType];
+    const template = projectsData?.[projectType];
     
     if (template?.isPublic) {
       toast({
@@ -603,7 +603,7 @@ const ProjectsManagementPage = () => {
   const handleDeleteProject = async projectType => {
     try {
       // 🔥 Trouver le template par type pour obtenir son ID Supabase (UUID)
-      const template = projectsData[projectType];
+      const template = projectsData?.[projectType];
       
       if (!template || !template.id) {
         throw new Error('Template introuvable ou ID manquant');
@@ -646,7 +646,7 @@ const ProjectsManagementPage = () => {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-3">
-            {Object.values(projectsData).length > 0 ? Object.values(projectsData).map(p => (
+            {Object.values(projectsData || {}).length > 0 ? Object.values(projectsData || {}).map(p => (
               <div 
                 key={p.type} 
                 className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
