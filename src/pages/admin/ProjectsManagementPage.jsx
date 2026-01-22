@@ -109,7 +109,8 @@ const ProjectEditor = ({
     return baseProject;
   };
 
-  const [editedProject, setEditedProject] = useState(createInitialProject);
+  // 🔥 FIX REFRESH: Ne pas appeler createInitialProject au montage (data async non dispo)
+  const [editedProject, setEditedProject] = useState(null);
   const [newStepName, setNewStepName] = useState('');
   const [newStepIcon, setNewStepIcon] = useState('➡️');
 
@@ -258,6 +259,15 @@ const ProjectEditor = ({
     }
     onSave(finalProject);
   };
+
+  // 🔥 FIX REFRESH: Loader tant que editedProject n'est pas initialisé
+  if (!editedProject) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
