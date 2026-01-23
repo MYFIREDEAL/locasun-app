@@ -218,7 +218,7 @@ const PartnerLoginPage = () => {
       // 2. Vérifier que l'utilisateur est bien un partenaire
       const { data: partnerData, error: partnerError } = await supabase
         .from('partners')
-        .select('id, company_name, is_active')
+        .select('id, company_name, active')
         .eq('user_id', authData.user.id)
         .single();
 
@@ -226,6 +226,7 @@ const PartnerLoginPage = () => {
         logger.warn('Tentative de connexion partenaire par un non-partenaire', {
           userId: authData.user.id,
           email,
+          error: partnerError?.message,
         });
         
         // Logout immédiat
@@ -241,7 +242,7 @@ const PartnerLoginPage = () => {
       }
 
       // 3. Vérifier que le partenaire est actif
-      if (!partnerData.is_active) {
+      if (!partnerData.active) {
         await supabase.auth.signOut();
         
         toast({
