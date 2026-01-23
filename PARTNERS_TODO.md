@@ -9,12 +9,12 @@
 - [x] Page admin — fiche partenaire
 - [x] Intégration workflow → mission
 - [x] Routes /partner (login)
+- [x] Invitation partenaire (admin)
 
 ## 🟡 En cours
 - [ ] Vue mobile — liste missions
 
 ## ⏳ À faire
-- [ ] Vue mobile — liste missions
 - [ ] Vue mobile — détail mission
 - [ ] Notifications partenaires
 - [ ] Intégration IA → mission (source = ai)

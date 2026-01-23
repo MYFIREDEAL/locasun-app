@@ -1,11 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import ModulesNavBar from '@/components/admin/ModulesNavBar';
 import useSupabasePartners from '@/hooks/useSupabasePartners';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import { 
   Users, 
   Search, 
@@ -14,7 +27,8 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  UserPlus
 } from 'lucide-react';
 
 /**
@@ -31,8 +45,18 @@ import {
 const PartnersListPage = () => {
   const navigate = useNavigate();
   const { activeAdminUser } = useAppContext();
+  const { organizationId } = useOrganization();
   const { partners, loading, error, refetch } = useSupabasePartners();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // État pour la modal d'invitation
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    name: '',
+    phone: '',
+  });
 
   // Vérification des droits d'accès
   const hasAccess = useMemo(() => {
@@ -60,6 +84,101 @@ const PartnersListPage = () => {
     inactive: partners.filter(p => !p.active).length,
     totalMissions: partners.reduce((acc, p) => acc + p.missionsCount, 0),
   }), [partners]);
+
+  // Fonction pour envoyer l'invitation
+  const handleInvitePartner = async () => {
+    // Validation
+    if (!inviteForm.email.trim() || !inviteForm.name.trim()) {
+      toast({
+        title: "Champs requis",
+        description: "L'email et le nom sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation email basique
+    if (!inviteForm.email.includes('@')) {
+      toast({
+        title: "Email invalide",
+        description: "Veuillez entrer une adresse email valide.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInviteLoading(true);
+
+    try {
+      // Appel à l'Edge Function invite-partner
+      const { data, error: fnError } = await supabase.functions.invoke('invite-partner', {
+        body: {
+          email: inviteForm.email.trim(),
+          name: inviteForm.name.trim(),
+          phone: inviteForm.phone.trim() || null,
+          organizationId: organizationId,
+        },
+      });
+
+      if (fnError) {
+        throw fnError;
+      }
+
+      if (data?.error) {
+        // Erreur métier retournée par la fonction
+        toast({
+          title: "Erreur",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Succès
+      logger.info('Invitation partenaire envoyée', { 
+        email: inviteForm.email,
+        partnerId: data?.partnerId 
+      });
+
+      toast({
+        title: "✅ Invitation envoyée",
+        description: `${inviteForm.name} recevra un email avec ses identifiants.`,
+        className: "bg-green-500 text-white",
+      });
+
+      // Reset form et fermer modal
+      setInviteForm({ email: '', name: '', phone: '' });
+      setInviteModalOpen(false);
+
+      // Rafraîchir la liste
+      refetch();
+
+    } catch (error) {
+      logger.error('Erreur invitation partenaire', { error: error.message });
+      
+      // Messages d'erreur spécifiques
+      let errorMessage = "Une erreur est survenue lors de l'invitation.";
+      if (error.message?.includes('already registered')) {
+        errorMessage = "Cet email est déjà utilisé.";
+      } else if (error.message?.includes('rate limit')) {
+        errorMessage = "Trop de tentatives, réessayez plus tard.";
+      }
+
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  // Reset form quand on ferme la modal
+  const handleCloseInviteModal = () => {
+    setInviteModalOpen(false);
+    setInviteForm({ email: '', name: '', phone: '' });
+  };
 
   // Si pas d'accès
   if (!hasAccess) {
@@ -99,15 +218,25 @@ const PartnersListPage = () => {
                 Gérez les partenaires terrain de votre organisation
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refetch}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refetch}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => setInviteModalOpen(true)}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Inviter un partenaire
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -246,6 +375,92 @@ const PartnersListPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal d'invitation partenaire */}
+      <Dialog open={inviteModalOpen} onOpenChange={handleCloseInviteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-orange-600" />
+              Inviter un partenaire
+            </DialogTitle>
+            <DialogDescription>
+              Le partenaire recevra un email avec ses identifiants de connexion.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">
+                Email <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="partenaire@entreprise.com"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
+                disabled={inviteLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="invite-name">
+                Nom de l'entreprise <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="invite-name"
+                type="text"
+                placeholder="Ex: Électricité Martin"
+                value={inviteForm.name}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, name: e.target.value }))}
+                disabled={inviteLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="invite-phone">
+                Téléphone <span className="text-gray-400">(optionnel)</span>
+              </Label>
+              <Input
+                id="invite-phone"
+                type="tel"
+                placeholder="06 12 34 56 78"
+                value={inviteForm.phone}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, phone: e.target.value }))}
+                disabled={inviteLoading}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleCloseInviteModal}
+              disabled={inviteLoading}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleInvitePartner}
+              disabled={inviteLoading}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {inviteLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Envoi...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Envoyer l'invitation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
