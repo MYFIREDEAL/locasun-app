@@ -55,7 +55,7 @@ const PartnersListPage = () => {
   const [inviteForm, setInviteForm] = useState({
     companyName: '',
     email: '',
-    contactName: '',
+    contactLastName: '',
     contactFirstName: '',
     phone: '',
   });
@@ -120,6 +120,7 @@ const PartnersListPage = () => {
           contactLastName: inviteForm.contactLastName?.trim() || null,
           contactFirstName: inviteForm.contactFirstName?.trim() || null,
           phone: inviteForm.phone?.trim() || null,
+          organizationId,
         },
       });
 
@@ -150,7 +151,7 @@ const PartnersListPage = () => {
       });
 
       // Reset form et fermer modal
-      setInviteForm({ companyName: '', email: '', contactName: '', contactFirstName: '', phone: '' });
+      setInviteForm({ companyName: '', email: '', contactLastName: '', contactFirstName: '', phone: '' });
       setInviteModalOpen(false);
 
       // Rafraîchir la liste
@@ -180,7 +181,7 @@ const PartnersListPage = () => {
   // Reset form quand on ferme la modal
   const handleCloseInviteModal = () => {
     setInviteModalOpen(false);
-    setInviteForm({ companyName: '', email: '', contactName: '', contactFirstName: '', phone: '' });
+    setInviteForm({ companyName: '', email: '', contactLastName: '', contactFirstName: '', phone: '' });
   };
 
   // Si pas d'accès
@@ -434,8 +435,8 @@ const PartnersListPage = () => {
                 id="invite-contact-name"
                 type="text"
                 placeholder="Dupont"
-                value={inviteForm.contactName}
-                onChange={(e) => setInviteForm(prev => ({ ...prev, contactName: e.target.value }))}
+                value={inviteForm.contactLastName}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, contactLastName: e.target.value }))}
                 disabled={inviteLoading}
                 className="w-full rounded-lg"
               />
