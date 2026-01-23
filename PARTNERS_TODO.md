@@ -8,9 +8,10 @@
 - [x] Page admin — liste partenaires
 - [x] Page admin — fiche partenaire
 - [x] Intégration workflow → mission
+- [x] Routes /partner (login)
 
 ## 🟡 En cours
-- [ ] Routes /partner (login)
+- [ ] Vue mobile — liste missions
 
 ## ⏳ À faire
 - [ ] Vue mobile — liste missions

@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import AdminLayout from '@/layouts/AdminLayout';
 import ClientLayout from '@/layouts/ClientLayout';
 import PlatformLayout from '@/layouts/PlatformLayout';
+import PartnerLayout from '@/layouts/PartnerLayout';
 import FinalPipeline from '@/pages/admin/FinalPipeline';
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
 import Agenda from '@/pages/admin/Agenda';
@@ -19,6 +20,8 @@ import ContractTemplateEditorPage from '@/pages/admin/ContractTemplateEditorPage
 import ProjectDisplayManagementPage from '@/pages/admin/ProjectDisplayManagementPage';
 import PartnersListPage from '@/pages/admin/PartnersListPage';
 import PartnerDetailPage from '@/pages/admin/PartnerDetailPage';
+import PartnerLoginPage from '@/pages/partner/PartnerLoginPage';
+import PartnerHomePage from '@/pages/partner/PartnerHomePage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
@@ -1532,6 +1535,11 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/signature/:signatureProcedureId" element={<SignaturePage />} />
         <Route path="/sign/cosigner" element={<CosignerSignaturePage />} />
+        {/* 🤝 PARTNER ROUTES */}
+        <Route path="/partner/login" element={<PartnerLoginPage />} />
+        <Route path="/partner" element={<PartnerLayout />}>
+          <Route index element={<PartnerHomePage />} />
+        </Route>
         {/* Route wildcard pour les liens d'affiliation HomePage (doit être APRÈS les routes spécifiques) */}
         <Route path="/:slugUser" element={<HomePage />} />
         <Route path="/client/activation" element={<ActivationPage />} />
