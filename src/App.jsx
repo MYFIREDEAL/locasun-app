@@ -17,6 +17,8 @@ import FormsManagementPage from '@/pages/admin/FormsManagementPage';
 import ContractTemplatesPage from '@/pages/admin/ContractTemplatesPage';
 import ContractTemplateEditorPage from '@/pages/admin/ContractTemplateEditorPage';
 import ProjectDisplayManagementPage from '@/pages/admin/ProjectDisplayManagementPage';
+import PartnersListPage from '@/pages/admin/PartnersListPage';
+import PartnerDetailPage from '@/pages/admin/PartnerDetailPage';
 import ProfilePage from '@/pages/admin/ProfilePage';
 import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
@@ -1559,6 +1561,8 @@ function App() {
           <Route path="contract-templates" element={<ContractTemplatesPage />} />
           <Route path="contract-templates/editor" element={<ContractTemplateEditorPage />} />
           <Route path="project-display" element={<ProjectDisplayManagementPage />} />
+          <Route path="partners" element={<PartnersListPage />} />
+          <Route path="partners/:partnerId" element={<PartnerDetailPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>

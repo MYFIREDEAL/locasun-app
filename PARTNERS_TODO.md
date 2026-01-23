@@ -5,13 +5,13 @@
 - [x] Modèle mission (table)
 - [x] RLS multi-tenant partenaires
 - [x] Auth partenaire (email / mot de passe)
+- [x] Page admin — liste partenaires
+- [x] Page admin — fiche partenaire
 
 ## 🟡 En cours
-- [ ] Page admin — liste partenaires
-- [ ] Page admin — fiche partenaire
+- [ ] Routes /partner (login)
 
 ## ⏳ À faire
-- [ ] Routes /partner (login)
 - [ ] Vue mobile — liste missions
 - [ ] Vue mobile — détail mission
 - [ ] Notifications partenaires
