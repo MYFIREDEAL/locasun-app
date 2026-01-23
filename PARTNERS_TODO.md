@@ -12,10 +12,10 @@
 - [x] Invitation partenaire (admin)
 
 ## 🟡 En cours
-- [ ] Vue mobile — liste missions
+- [x] Vue partenaire — liste missions
 
 ## ⏳ À faire
-- [ ] Vue mobile — détail mission
+- [x] Vue partenaire — détail mission
 - [ ] Notifications partenaires
 - [ ] Intégration IA → mission (source = ai)
 
