@@ -123,12 +123,15 @@ const ActionEditor = ({
                                 type="button"
                                 onClick={() => {
                                     console.log('🤝 Clic sur Associée au partenaire', { action, partners });
-                                    handleActionChange('type', 'partner_task');
-                                    handleActionChange('hasClientAction', null);
-                                    // Nettoyer les champs client/commercial
-                                    handleActionChange('formId', null);
-                                    handleActionChange('templateId', null);
-                                    handleActionChange('documentType', null);
+                                    // ✅ Un seul appel avec toutes les modifications
+                                    onChange({
+                                        ...action,
+                                        type: 'partner_task',
+                                        hasClientAction: null,
+                                        formId: null,
+                                        templateId: null,
+                                        documentType: null,
+                                    });
                                 }}
                                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                                     action.type === 'partner_task'
