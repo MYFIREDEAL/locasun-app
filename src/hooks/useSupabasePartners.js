@@ -51,12 +51,17 @@ export const useSupabasePartners = () => {
         id: p.id,
         userId: p.user_id,
         organizationId: p.organization_id,
-        name: p.name,
+        companyName: p.company_name,
+        contactFirstName: p.contact_first_name,
+        contactLastName: p.contact_last_name,
+        contactEmail: p.email,
+        name: p.company_name, // Alias pour compatibilité
         email: p.email,
         phone: p.phone,
         avatarUrl: p.avatar_url,
         specialty: p.specialty,
         active: p.active,
+        isActive: p.active, // Alias pour compatibilité workflow
         createdAt: p.created_at,
         updatedAt: p.updated_at,
         missionsCount: missionsByPartner[p.id] || 0,
