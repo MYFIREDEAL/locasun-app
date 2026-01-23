@@ -3,7 +3,7 @@
 ## ✅ Fait
 - [x] Modèle partenaire (table)
 - [x] Modèle mission (table)
-- [ ] RLS multi-tenant partenaires
+- [x] RLS multi-tenant partenaires
 - [ ] Auth partenaire (email / mot de passe)
 
 ## 🟡 En cours
