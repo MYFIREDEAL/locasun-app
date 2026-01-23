@@ -37,7 +37,7 @@ const PartnerMissionsPage = () => {
         // Récupérer le partenaire lié à cet user
         const { data: partnerData, error: partnerError } = await supabase
           .from('partners')
-          .select('id, name, email, phone, active')
+          .select('id, company_name, email, phone, active')
           .eq('user_id', user.id)
           .single();
 

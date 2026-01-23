@@ -1540,7 +1540,7 @@ function App() {
         {/* 🤝 PARTNER ROUTES */}
         <Route path="/partner/login" element={<PartnerLoginPage />} />
         <Route path="/partner" element={<PartnerLayout />}>
-          <Route index element={<PartnerHomePage />} />
+          <Route index element={<PartnerMissionsPage />} />
           <Route path="missions" element={<PartnerMissionsPage />} />
           <Route path="missions/:missionId" element={<PartnerMissionDetailPage />} />
         </Route>
