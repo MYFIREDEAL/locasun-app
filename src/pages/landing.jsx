@@ -364,6 +364,40 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
+
+        {/* Footer Organisation */}
+        <footer className="bg-gray-900 text-white py-12 px-6">
+          <div className="container mx-auto max-w-6xl">
+            <div className="flex flex-col items-center gap-6">
+              {/* Logo et nom */}
+              <div className="flex items-center gap-4">
+                {displayLogo && (
+                  <div className="w-10 h-10 flex items-center justify-center">
+                    <img
+                      src={displayLogo}
+                      alt={`${displayName} Logo`}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <span className="text-xl font-bold">{displayName}</span>
+              </div>
+              
+              {/* Bouton Espace Partenaire */}
+              <Button
+                onClick={() => window.location.href = '/partner/login'}
+                className="bg-[#f97316] hover:bg-[#ea580c] hover:scale-105 text-white rounded-full px-8 py-3 font-semibold transition-transform duration-200 shadow-lg"
+              >
+                Espace Partenaire
+              </Button>
+              
+              {/* Copyright */}
+              <p className="text-gray-400 text-sm">
+                © {new Date().getFullYear()} {displayName}. Tous droits réservés.
+              </p>
+            </div>
+          </div>
+        </footer>
       </>
     )
   }
@@ -851,7 +885,8 @@ export default function Landing() {
         {/* Footer */}
         <footer className="bg-gray-900 text-white py-12 px-6">
           <div className="container mx-auto max-w-6xl">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-col items-center gap-6">
+              {/* Logo et nom */}
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 flex items-center justify-center">
                   <img
@@ -862,17 +897,19 @@ export default function Landing() {
                 </div>
                 <span className="text-xl font-bold">EVATIME</span>
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-gray-400 text-sm">
-                  © {new Date().getFullYear()} EVATIME. Tous droits réservés.
-                </p>
-                <a
-                  href="/partner/login"
-                  className="text-gray-500 text-xs hover:text-gray-300 transition-colors"
-                >
-                  Espace partenaire
-                </a>
-              </div>
+              
+              {/* Bouton Espace Partenaire */}
+              <Button
+                onClick={() => window.location.href = '/partner/login'}
+                className="bg-[#f97316] hover:bg-[#ea580c] hover:scale-105 text-white rounded-full px-8 py-3 font-semibold transition-transform duration-200 shadow-lg"
+              >
+                Espace Partenaire
+              </Button>
+              
+              {/* Copyright */}
+              <p className="text-gray-400 text-sm">
+                © {new Date().getFullYear()} EVATIME. Tous droits réservés.
+              </p>
             </div>
           </div>
         </footer>
