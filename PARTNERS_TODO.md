@@ -1,8 +1,8 @@
 # 🛠️ PARTNERS_TODO — EVATIME
 
 ## ✅ Fait
-- [ ] Modèle partenaire (table)
-- [ ] Modèle mission (table)
+- [x] Modèle partenaire (table)
+- [x] Modèle mission (table)
 - [ ] RLS multi-tenant partenaires
 - [ ] Auth partenaire (email / mot de passe)
 
