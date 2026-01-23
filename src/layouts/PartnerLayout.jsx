@@ -35,7 +35,7 @@ const PartnerLayout = () => {
         // 2. Vérifier que c'est un partenaire
         const { data: partnerData, error: partnerError } = await supabase
           .from('partners')
-          .select('id, is_active')
+          .select('id, active')
           .eq('user_id', user.id)
           .single();
 
@@ -51,7 +51,7 @@ const PartnerLayout = () => {
         }
 
         // 3. Vérifier que le partenaire est actif
-        if (!partnerData.is_active) {
+        if (!partnerData.active) {
           logger.warn('PartnerLayout: Partenaire inactif', {
             partnerId: partnerData.id,
           });
