@@ -117,10 +117,9 @@ const PartnersListPage = () => {
         body: {
           companyName: inviteForm.companyName.trim(),
           email: inviteForm.email.trim(),
-          contactName: inviteForm.contactName.trim() || null,
+          contactLastName: inviteForm.contactLastName.trim() || null,
           contactFirstName: inviteForm.contactFirstName.trim() || null,
           phone: inviteForm.phone.trim() || null,
-          organizationId: organizationId,
         },
       });
 
