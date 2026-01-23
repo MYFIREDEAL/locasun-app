@@ -53,8 +53,10 @@ const PartnersListPage = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteForm, setInviteForm] = useState({
+    companyName: '',
     email: '',
-    name: '',
+    contactName: '',
+    contactFirstName: '',
     phone: '',
   });
 
@@ -88,10 +90,10 @@ const PartnersListPage = () => {
   // Fonction pour envoyer l'invitation
   const handleInvitePartner = async () => {
     // Validation
-    if (!inviteForm.email.trim() || !inviteForm.name.trim()) {
+    if (!inviteForm.companyName.trim() || !inviteForm.email.trim()) {
       toast({
         title: "Champs requis",
-        description: "L'email et le nom sont obligatoires.",
+        description: "Le nom de l'entreprise et l'email sont obligatoires.",
         variant: "destructive",
       });
       return;
@@ -113,8 +115,10 @@ const PartnersListPage = () => {
       // Appel à l'Edge Function invite-partner
       const { data, error: fnError } = await supabase.functions.invoke('invite-partner', {
         body: {
+          companyName: inviteForm.companyName.trim(),
           email: inviteForm.email.trim(),
-          name: inviteForm.name.trim(),
+          contactName: inviteForm.contactName.trim() || null,
+          contactFirstName: inviteForm.contactFirstName.trim() || null,
           phone: inviteForm.phone.trim() || null,
           organizationId: organizationId,
         },
@@ -142,12 +146,12 @@ const PartnersListPage = () => {
 
       toast({
         title: "✅ Invitation envoyée",
-        description: `${inviteForm.name} recevra un email avec ses identifiants.`,
+        description: `${inviteForm.companyName} recevra un email avec ses identifiants.`,
         className: "bg-green-500 text-white",
       });
 
       // Reset form et fermer modal
-      setInviteForm({ email: '', name: '', phone: '' });
+      setInviteForm({ companyName: '', email: '', contactName: '', contactFirstName: '', phone: '' });
       setInviteModalOpen(false);
 
       // Rafraîchir la liste
@@ -177,7 +181,7 @@ const PartnersListPage = () => {
   // Reset form quand on ferme la modal
   const handleCloseInviteModal = () => {
     setInviteModalOpen(false);
-    setInviteForm({ email: '', name: '', phone: '' });
+    setInviteForm({ companyName: '', email: '', contactName: '', contactFirstName: '', phone: '' });
   };
 
   // Si pas d'accès
@@ -389,7 +393,24 @@ const PartnersListPage = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="px-6 py-5 space-y-5">
+            {/* Nom de l'entreprise */}
+            <div className="space-y-2">
+              <Label htmlFor="invite-company">
+                Nom de l'entreprise <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="invite-company"
+                type="text"
+                placeholder="Ex: Solaire Sud Ouest"
+                value={inviteForm.companyName}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, companyName: e.target.value }))}
+                disabled={inviteLoading}
+                className="w-full rounded-lg"
+              />
+            </div>
+
+            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="invite-email">
                 Email <span className="text-red-500">*</span>
@@ -401,23 +422,43 @@ const PartnersListPage = () => {
                 value={inviteForm.email}
                 onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
                 disabled={inviteLoading}
+                className="w-full rounded-lg"
               />
             </div>
 
+            {/* Nom du contact */}
             <div className="space-y-2">
-              <Label htmlFor="invite-name">
-                Nom de l'entreprise <span className="text-red-500">*</span>
+              <Label htmlFor="invite-contact-name">
+                Nom du contact <span className="text-gray-400">(optionnel)</span>
               </Label>
               <Input
-                id="invite-name"
+                id="invite-contact-name"
                 type="text"
-                placeholder="Ex: Électricité Martin"
-                value={inviteForm.name}
-                onChange={(e) => setInviteForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Dupont"
+                value={inviteForm.contactName}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, contactName: e.target.value }))}
                 disabled={inviteLoading}
+                className="w-full rounded-lg"
               />
             </div>
 
+            {/* Prénom du contact */}
+            <div className="space-y-2">
+              <Label htmlFor="invite-contact-firstname">
+                Prénom du contact <span className="text-gray-400">(optionnel)</span>
+              </Label>
+              <Input
+                id="invite-contact-firstname"
+                type="text"
+                placeholder="Jean"
+                value={inviteForm.contactFirstName}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, contactFirstName: e.target.value }))}
+                disabled={inviteLoading}
+                className="w-full rounded-lg"
+              />
+            </div>
+
+            {/* Téléphone */}
             <div className="space-y-2">
               <Label htmlFor="invite-phone">
                 Téléphone <span className="text-gray-400">(optionnel)</span>
@@ -429,11 +470,12 @@ const PartnersListPage = () => {
                 value={inviteForm.phone}
                 onChange={(e) => setInviteForm(prev => ({ ...prev, phone: e.target.value }))}
                 disabled={inviteLoading}
+                className="w-full rounded-lg"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="flex gap-2 mt-6">
             <Button 
               variant="outline" 
               onClick={handleCloseInviteModal}
@@ -454,7 +496,7 @@ const PartnersListPage = () => {
               ) : (
                 <>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Envoyer l'invitation
+                  Inviter le partenaire
                 </>
               )}
             </Button>
