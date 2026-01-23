@@ -181,6 +181,25 @@ Le **pipeline** est une **vue calculée** de l'avancement réel des projets.
 
 ---
 
+## 📱 Interface Partenaire — Aperçu visuel
+
+### Liste des missions
+![Liste des missions](docs/screenshots/partners/missions-list.png)
+
+### Détail mission
+![Détail mission](docs/screenshots/partners/mission-detail.png)
+
+### Annuaire
+![Annuaire](docs/screenshots/partners/contacts.png)
+
+### Chat Charly
+![Chat Charly](docs/screenshots/partners/charly.png)
+
+### Profil (à venir)
+![Profil](docs/screenshots/partners/profile.png)
+
+---
+
 ## 🧠 À retenir (essentiel)
 
 * **Pipeline = vue**
