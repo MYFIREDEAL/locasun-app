@@ -862,9 +862,17 @@ export default function Landing() {
                 </div>
                 <span className="text-xl font-bold">EVATIME</span>
               </div>
-              <p className="text-gray-400 text-sm">
-                © {new Date().getFullYear()} EVATIME. Tous droits réservés.
-              </p>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-gray-400 text-sm">
+                  © {new Date().getFullYear()} EVATIME. Tous droits réservés.
+                </p>
+                <a
+                  href="/partner/login"
+                  className="text-gray-500 text-xs hover:text-gray-300 transition-colors"
+                >
+                  Espace partenaire
+                </a>
+              </div>
             </div>
           </div>
         </footer>
