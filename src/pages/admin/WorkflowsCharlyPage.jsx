@@ -122,6 +122,7 @@ const ActionEditor = ({
                             <button
                                 type="button"
                                 onClick={() => {
+                                    console.log('🤝 Clic sur Associée au partenaire', { action, partners });
                                     handleActionChange('type', 'partner_task');
                                     handleActionChange('hasClientAction', null);
                                     // Nettoyer les champs client/commercial
