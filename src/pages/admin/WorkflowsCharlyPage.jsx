@@ -77,7 +77,13 @@ const ActionEditor = ({
                                 type="button"
                                 onClick={() => {
                                     handleActionChange('hasClientAction', true);
-                                    handleActionChange('type', action.type === 'partner_task' ? 'none' : action.type);
+                                    // Si on vient de partner_task, reset le type à 'none'
+                                    if (action.type === 'partner_task') {
+                                        handleActionChange('type', 'none');
+                                        handleActionChange('partnerId', null);
+                                        handleActionChange('partnerInstructions', null);
+                                        handleActionChange('isBlocking', null);
+                                    }
                                 }}
                                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                                     action.hasClientAction === true && action.type !== 'partner_task'
@@ -94,7 +100,13 @@ const ActionEditor = ({
                                 type="button"
                                 onClick={() => {
                                     handleActionChange('hasClientAction', false);
-                                    handleActionChange('type', action.type === 'partner_task' ? 'none' : action.type);
+                                    // Si on vient de partner_task, reset le type à 'none'
+                                    if (action.type === 'partner_task') {
+                                        handleActionChange('type', 'none');
+                                        handleActionChange('partnerId', null);
+                                        handleActionChange('partnerInstructions', null);
+                                        handleActionChange('isBlocking', null);
+                                    }
                                 }}
                                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                                     action.hasClientAction === false && action.type !== 'partner_task'
@@ -112,6 +124,10 @@ const ActionEditor = ({
                                 onClick={() => {
                                     handleActionChange('type', 'partner_task');
                                     handleActionChange('hasClientAction', null);
+                                    // Nettoyer les champs client/commercial
+                                    handleActionChange('formId', null);
+                                    handleActionChange('templateId', null);
+                                    handleActionChange('documentType', null);
                                 }}
                                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                                     action.type === 'partner_task'
