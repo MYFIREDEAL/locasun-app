@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, Briefcase } from 'lucide-react';
+import { Loader2, Briefcase, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,15 +13,178 @@ import { logger } from '@/lib/logger';
  * Page de connexion pour les partenaires
  * Route: /partner/login
  * 
- * - Auth via supabase.auth.signInWithPassword
- * - Vérifie que l'utilisateur existe dans `partners`
- * - Aucune inscription possible
+ * MODES:
+ * 1. Login classique (pas de hash #access_token)
+ * 2. Création de mot de passe (hash #access_token ou #type=invite/recovery)
+ *    → Pattern identique à ActivateAccountPage (user pro)
+ *    → Écoute onAuthStateChange pour l'événement SIGNED_IN
+ *    → Puis appelle updateUser({ password })
  */
 const PartnerLoginPage = () => {
   const navigate = useNavigate();
+
+  // États login classique
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // États création mot de passe (mode invite)
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [settingPassword, setSettingPassword] = useState(false);
+
+  // États validation session invite
+  const [isInviteFlow, setIsInviteFlow] = useState(false);
+  const [validatingSession, setValidatingSession] = useState(true);
+  const [sessionValid, setSessionValid] = useState(false);
+  const [partnerEmail, setPartnerEmail] = useState('');
+
+  // ✅ LOGIQUE IDENTIQUE À ActivateAccountPage : Attendre que Supabase parse le hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    const hasInviteToken = hash.includes('access_token') || hash.includes('type=invite') || hash.includes('type=recovery');
+
+    logger.info('🔐 PartnerLoginPage - Vérification du flow invitation', {
+      hash: hash.substring(0, 50) + '...',
+      hasInviteToken
+    });
+
+    if (hasInviteToken) {
+      setIsInviteFlow(true);
+      logger.info('⏳ Hash détecté, attente de onAuthStateChange...');
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          logger.info('🔔 Auth event reçu:', { event, hasSession: !!session });
+
+          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+            await validatePartnerSession(session);
+          }
+        }
+      );
+
+      // Timeout de sécurité : si aucun événement après 5s, vérifier manuellement
+      const timeoutId = setTimeout(async () => {
+        logger.warn('⚠️ Timeout - vérification manuelle de la session');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await validatePartnerSession(session);
+        } else {
+          logger.error('❌ Pas de session après timeout');
+          setSessionValid(false);
+          setValidatingSession(false);
+        }
+      }, 5000);
+
+      return () => {
+        subscription.unsubscribe();
+        clearTimeout(timeoutId);
+      };
+    } else {
+      // Pas de hash → mode login classique
+      setIsInviteFlow(false);
+      setValidatingSession(false);
+    }
+  }, []);
+
+  // Fonction pour valider la session partenaire
+  const validatePartnerSession = async (session) => {
+    try {
+      const user = session.user;
+
+      if (!user || !user.email) {
+        logger.error('❌ Pas d\'utilisateur dans la session');
+        setSessionValid(false);
+        setValidatingSession(false);
+        return;
+      }
+
+      // Vérifier que l'utilisateur existe dans la table partners
+      const { data: partnerData, error: partnerError } = await supabase
+        .from('partners')
+        .select('email, company_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (partnerError || !partnerData) {
+        logger.error('❌ Partenaire non trouvé dans table partners:', partnerError);
+        setSessionValid(false);
+        setValidatingSession(false);
+        return;
+      }
+
+      // ✅ Session valide et partenaire trouvé
+      logger.info('✅ Session valide pour partenaire:', partnerData.email);
+      setPartnerEmail(partnerData.email);
+      setSessionValid(true);
+      setValidatingSession(false);
+    } catch (error) {
+      logger.error('❌ Erreur validation session partenaire:', error);
+      setSessionValid(false);
+      setValidatingSession(false);
+    }
+  };
+
+  // Handler création mot de passe
+  const handleSetPassword = async (e) => {
+    e.preventDefault();
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Mot de passe trop court",
+        description: "Le mot de passe doit contenir au moins 6 caractères.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSettingPassword(true);
+
+    try {
+      // Appel updateUser pour définir le mot de passe
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        logger.error('Erreur updateUser password', { error: error.message });
+        toast({
+          title: "Erreur",
+          description: error.message || "Impossible de définir le mot de passe.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      logger.info('Mot de passe partenaire défini avec succès');
+
+      toast({
+        title: "✅ Mot de passe créé !",
+        description: "Bienvenue sur EVATIME.",
+        className: "bg-green-500 text-white",
+      });
+
+      // Redirect vers l'espace partenaire
+      navigate('/partner/missions');
+
+    } catch (error) {
+      logger.error('Erreur inattendue création mot de passe', { error: error.message });
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue s'est produite.",
+        variant: "destructive",
+      });
+    } finally {
+      setSettingPassword(false);
+    }
+  };
 
   const handlePartnerLogin = async (e) => {
     e.preventDefault();
@@ -118,65 +281,163 @@ const PartnerLoginPage = () => {
         className="w-full max-w-md"
       >
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Briefcase className="w-8 h-8 text-orange-600" />
+          {/* Mode invite : en cours de validation */}
+          {isInviteFlow && validatingSession && (
+            <div className="text-center py-12">
+              <Loader2 className="w-12 h-12 text-orange-600 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Validation de votre invitation...</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Espace Partenaire</h1>
-            <p className="text-gray-500 mt-2">Connectez-vous à votre compte</p>
-          </div>
+          )}
 
-          {/* Formulaire */}
-          <form onSubmit={handlePartnerLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="partenaire@entreprise.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                className="h-12"
-              />
+          {/* Mode invite : session invalide */}
+          {isInviteFlow && !validatingSession && !sessionValid && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <KeyRound className="w-8 h-8 text-red-600" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 mb-2">Lien expiré</h1>
+              <p className="text-gray-500 mb-6">
+                Ce lien d'invitation n'est plus valide ou a déjà été utilisé.
+              </p>
+              <Button
+                onClick={() => navigate('/partner/login')}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                Retour à la connexion
+              </Button>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="h-12"
-              />
-            </div>
+          {/* Mode invite : session valide → formulaire création mot de passe */}
+          {isInviteFlow && !validatingSession && sessionValid && (
+            <>
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <KeyRound className="w-8 h-8 text-orange-600" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Créer votre mot de passe</h1>
+                <p className="text-gray-500 mt-2">
+                  Définissez un mot de passe pour accéder à votre espace
+                </p>
+                {partnerEmail && (
+                  <p className="text-sm text-orange-600 mt-1">{partnerEmail}</p>
+                )}
+              </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-medium"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Connexion...
-                </>
-              ) : (
-                'Se connecter'
-              )}
-            </Button>
-          </form>
+              <form onSubmit={handleSetPassword} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    disabled={settingPassword}
+                    className="h-12"
+                    minLength={6}
+                  />
+                </div>
 
-          {/* Footer */}
-          <p className="text-center text-sm text-gray-400 mt-8">
-            Accès réservé aux partenaires agréés
-          </p>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={settingPassword}
+                    className="h-12"
+                    minLength={6}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={settingPassword}
+                  className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                >
+                  {settingPassword ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Création...
+                    </>
+                  ) : (
+                    'Créer mon mot de passe'
+                  )}
+                </Button>
+              </form>
+
+              <p className="text-center text-sm text-gray-400 mt-8">
+                Accès réservé aux partenaires agréés
+              </p>
+            </>
+          )}
+
+          {/* Mode login classique */}
+          {!isInviteFlow && (
+            <>
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Briefcase className="w-8 h-8 text-orange-600" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Espace Partenaire</h1>
+                <p className="text-gray-500 mt-2">Connectez-vous à votre compte</p>
+              </div>
+
+              <form onSubmit={handlePartnerLogin} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="partenaire@entreprise.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="h-12"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Connexion...
+                    </>
+                  ) : (
+                    'Se connecter'
+                  )}
+                </Button>
+              </form>
+
+              <p className="text-center text-sm text-gray-400 mt-8">
+                Accès réservé aux partenaires agréés
+              </p>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
