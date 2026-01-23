@@ -109,14 +109,34 @@ serve(async (req) => {
     // 2️⃣ PARSER ET VALIDER LES DONNÉES
     // ========================================
     
-    const { email, name, phone, specialty } = await req.json()
-    
-    console.log('📩 Données reçues:', { email, name, specialty })
+    const body = await req.json()
 
-    if (!email || !name) {
-      console.error('❌ Champs manquants')
+    const companyName = typeof body.companyName === 'string'
+      ? body.companyName.trim()
+      : ''
+
+    const email = typeof body.email === 'string'
+      ? body.email.trim().toLowerCase()
+      : ''
+
+    const contactFirstName = typeof body.contactFirstName === 'string'
+      ? body.contactFirstName.trim()
+      : null
+
+    const contactLastName = typeof body.contactLastName === 'string'
+      ? body.contactLastName.trim()
+      : null
+
+    const phone = typeof body.phone === 'string'
+      ? body.phone.trim()
+      : null
+    
+    console.log('📩 invite-partner payload sanitized:', { companyName, email, contactFirstName, contactLastName, phone })
+
+    if (!companyName || !email) {
+      console.error('❌ Champs requis manquants')
       return new Response(
-        JSON.stringify({ error: 'Champs manquants: email et name requis' }),
+        JSON.stringify({ error: 'Champs requis manquants' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -165,8 +185,10 @@ serve(async (req) => {
       email,
       {
         data: {
-          name,
-          user_type: 'partner', // Identifie ce compte comme partenaire
+          company_name: companyName,
+          contact_first_name: contactFirstName,
+          contact_last_name: contactLastName,
+          user_type: 'partner',
         },
         redirectTo: redirectUrl,
       }
@@ -198,10 +220,11 @@ serve(async (req) => {
     const partnerRecord = {
       user_id: userId,
       organization_id: organizationId,
-      name,
+      company_name: companyName,
+      contact_first_name: contactFirstName,
+      contact_last_name: contactLastName,
       email,
-      phone: phone || null,
-      specialty: specialty || null,
+      phone,
       active: true,
     }
 
@@ -237,9 +260,8 @@ serve(async (req) => {
         partner: {
           id: partnerData.id,
           userId: partnerData.user_id,
-          name: partnerData.name,
+          companyName: partnerData.company_name,
           email: partnerData.email,
-          specialty: partnerData.specialty,
           organizationId: partnerData.organization_id,
         }
       }),
@@ -254,7 +276,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Erreur serveur', 
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Erreur inconnue'
       }),
       { 
         status: 500, 
