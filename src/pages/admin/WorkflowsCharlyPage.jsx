@@ -150,34 +150,39 @@ const ActionEditor = ({
                 {action.type === 'partner_task' ? (
                     // 🔶 UI pour les actions partenaire
                     <div className="space-y-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                        <div className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-700">Partenaire assigné</Label>
-                            <Select 
-                                value={action.partnerId || ''} 
-                                onValueChange={value => handleActionChange('partnerId', value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionner un partenaire" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {partners
-                                        .filter(p => p.isActive)
-                                        .map(partner => (
-                                            <SelectItem key={partner.id} value={partner.id}>
-                                                {partner.companyName} ({partner.contactEmail})
-                                            </SelectItem>
-                                        ))}
-                                    {(!partners || partners.filter(p => p.isActive).length === 0) && (
-                                        <div className="px-2 py-1.5 text-sm text-gray-500">
-                                            Aucun partenaire actif
-                                        </div>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            {!action.partnerId && (
-                                <p className="text-xs text-red-500">⚠️ Partenaire obligatoire pour sauvegarder</p>
-                            )}
-                        </div>
+                        {(!partners || partners.filter(p => p.isActive).length === 0) ? (
+                            // Aucun partenaire disponible
+                            <div className="text-center py-4">
+                                <div className="text-3xl mb-2">🤝</div>
+                                <p className="text-sm font-medium text-gray-700">Aucun partenaire disponible</p>
+                                <p className="text-xs text-gray-500 mt-1">Invitez-en un depuis l'onglet Partenaires.</p>
+                            </div>
+                        ) : (
+                            // Partenaires disponibles - afficher le select
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">Partenaire assigné</Label>
+                                <Select 
+                                    value={action.partnerId || ''} 
+                                    onValueChange={value => handleActionChange('partnerId', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sélectionner un partenaire" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {partners
+                                            .filter(p => p.isActive)
+                                            .map(partner => (
+                                                <SelectItem key={partner.id} value={partner.id}>
+                                                    {partner.companyName} ({partner.contactEmail})
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
+                                {!action.partnerId && (
+                                    <p className="text-xs text-red-500">⚠️ Partenaire obligatoire pour sauvegarder</p>
+                                )}
+                            </div>
+                        )}
                         
                         <div className="space-y-2">
                             <Label className="text-sm font-medium text-gray-700">Instructions pour le partenaire</Label>
