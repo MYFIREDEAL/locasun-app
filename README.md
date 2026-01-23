@@ -4,6 +4,9 @@ Toute personne (humaine ou IA) qui modifie ce repository
 DOIT lire :
 
 👉 PROJECT_GUIDE.md
+👉 SOFTWARE_OVERVIEW.md
+👉 CHANGELOG.md 
+
 
 Rappels :
 - Le pipeline est calculé, jamais édité manuellement
