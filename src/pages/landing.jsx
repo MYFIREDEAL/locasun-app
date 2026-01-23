@@ -369,10 +369,10 @@ export default function Landing() {
         <footer className="bg-gray-900 text-white py-12 px-6">
           <div className="container mx-auto max-w-6xl">
             <div className="flex flex-col items-center gap-6">
-              {/* Logo et nom */}
-              <div className="flex items-center gap-4">
+              {/* Logo et nom centré */}
+              <div className="flex flex-col items-center gap-3">
                 {displayLogo && (
-                  <div className="w-10 h-10 flex items-center justify-center">
+                  <div className="w-12 h-12 flex items-center justify-center">
                     <img
                       src={displayLogo}
                       alt={`${displayName} Logo`}
@@ -381,6 +381,9 @@ export default function Landing() {
                   </div>
                 )}
                 <span className="text-xl font-bold">{displayName}</span>
+                <p className="text-gray-400 text-sm">
+                  © {new Date().getFullYear()} {displayName}. Tous droits réservés.
+                </p>
               </div>
               
               {/* Bouton Espace Partenaire */}
@@ -390,11 +393,6 @@ export default function Landing() {
               >
                 Espace Partenaire
               </Button>
-              
-              {/* Copyright */}
-              <p className="text-gray-400 text-sm">
-                © {new Date().getFullYear()} {displayName}. Tous droits réservés.
-              </p>
             </div>
           </div>
         </footer>
