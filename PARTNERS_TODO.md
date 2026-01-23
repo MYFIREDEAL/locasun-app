@@ -4,7 +4,7 @@
 - [x] Modèle partenaire (table)
 - [x] Modèle mission (table)
 - [x] RLS multi-tenant partenaires
-- [ ] Auth partenaire (email / mot de passe)
+- [x] Auth partenaire (email / mot de passe)
 
 ## 🟡 En cours
 - [ ] Page admin — liste partenaires
