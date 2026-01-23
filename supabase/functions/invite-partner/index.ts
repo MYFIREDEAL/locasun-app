@@ -98,17 +98,14 @@ serve(async (req) => {
     if (!['Global Admin', 'Manager'].includes(callerData.role)) {
       console.error('❌ Appelant n\'est pas admin:', callerData.role)
       return new Response(
-        JSON.stringify({ error: 'Non autorisé: Seuls Global Admin et Manager peuvent inviter des partenaires' }),
+        JSON.stringify({ error: 'Non autorisé: Seul un Global Admin peut inviter un partenaire' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     console.log('✅ Appelant vérifié:', callerData.role, 'org:', callerData.organization_id)
 
-    // ========================================
-    // 2️⃣ PARSER ET VALIDER LES DONNÉES
-    // ========================================
-    
+    // 📥 Payload modal (sécurisé selon prompt)
     const body = await req.json()
 
     const companyName = typeof body.companyName === 'string'
@@ -134,28 +131,21 @@ serve(async (req) => {
     console.log('📩 invite-partner payload sanitized:', { companyName, email, contactFirstName, contactLastName, phone })
 
     if (!companyName || !email) {
-      console.error('❌ Champs requis manquants')
       return new Response(
         JSON.stringify({ error: 'Champs requis manquants' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Organization_id = celle de l'appelant (multi-tenant strict)
     const organizationId = callerData.organization_id
-
     if (!organizationId) {
-      console.error('❌ Appelant sans organization_id')
       return new Response(
-        JSON.stringify({ error: 'Erreur: Votre compte n\'est pas associé à une organisation' }),
+        JSON.stringify({ error: 'Compte non associé à une organisation' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // ========================================
-    // 3️⃣ RÉCUPÉRER LE SLUG POUR LA REDIRECTION
-    // ========================================
-    
+    // 🔗 Récupération slug organisation (MULTI-TENANT)
     const { data: orgData, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('slug')
@@ -163,125 +153,91 @@ serve(async (req) => {
       .single()
 
     if (orgError || !orgData?.slug) {
-      console.error('❌ Organisation non trouvée:', orgError)
       return new Response(
         JSON.stringify({ error: 'Organisation non trouvée' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // URL de redirection pour l'activation partenaire
-    // Le partenaire sera redirigé vers /partner/activate
+    // ✅ REDIRECT FINAL CORRECT (multi-tenant)
     const baseDomain = Deno.env.get('BASE_DOMAIN') || 'evatime.fr'
-    const redirectUrl = `https://${orgData.slug}.${baseDomain}/partner/activate`
-    
-    console.log('📧 Redirection configurée:', redirectUrl)
+    const redirectUrl = `https://${orgData.slug}.${baseDomain}/partner/login`
 
-    // ========================================
-    // 4️⃣ CRÉER LE COMPTE AUTH
-    // ========================================
-    
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      email,
-      {
+    // � Invitation Supabase Auth (try/catch dédié)
+    let authData
+    try {
+      const res = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: redirectUrl,
         data: {
+          user_type: 'partner',
           company_name: companyName,
           contact_first_name: contactFirstName,
           contact_last_name: contactLastName,
-          user_type: 'partner',
         },
-        redirectTo: redirectUrl,
-      }
-    )
-
-    if (authError) {
-      console.error('❌ Erreur invitation auth:', authError)
+      })
+      authData = res.data
+    } catch (inviteError) {
+      console.error('Supabase invite error:', inviteError)
       return new Response(
-        JSON.stringify({ error: `Erreur Auth: ${authError.message}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Erreur invitation Supabase' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    if (!authData || !authData.user) {
-      console.error('❌ Pas de user retourné par Auth')
+    if (!authData?.user) {
       return new Response(
-        JSON.stringify({ error: 'Erreur: compte non créé' }),
+        JSON.stringify({ error: 'Invitation échouée (auth)' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const userId = authData.user.id
-    console.log('✅ Compte auth créé:', userId)
 
-    // ========================================
-    // 5️⃣ CRÉER L'ENTRÉE public.partners
-    // ========================================
-    
-    const partnerRecord = {
-      user_id: userId,
-      organization_id: organizationId,
-      company_name: companyName,
-      contact_first_name: contactFirstName,
-      contact_last_name: contactLastName,
-      email,
-      phone,
-      active: true,
-    }
-
+    // 🧱 Création partenaire
     const { data: partnerData, error: partnerError } = await supabaseAdmin
       .from('partners')
-      .insert([partnerRecord])
+      .insert([{
+        user_id: userId,
+        organization_id: organizationId,
+        company_name: companyName,
+        contact_first_name: contactFirstName,
+        contact_last_name: contactLastName,
+        email,
+        phone,
+        active: true,
+      }])
       .select()
       .single()
 
     if (partnerError) {
-      console.error('❌ Erreur création public.partners:', partnerError)
-      
-      // ⚠️ ROLLBACK: supprimer le compte auth créé
       await supabaseAdmin.auth.admin.deleteUser(userId)
-      console.log('🔄 Rollback: compte auth supprimé')
-      
       return new Response(
         JSON.stringify({ error: `Erreur DB: ${partnerError.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('✅ Partner créé:', partnerData.id)
-
-    // ========================================
-    // 6️⃣ SUCCÈS
-    // ========================================
-    
+    // ✅ Succès
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Invitation partenaire envoyée avec succès',
+        message: 'Invitation partenaire envoyée',
         partner: {
           id: partnerData.id,
           userId: partnerData.user_id,
           companyName: partnerData.company_name,
           email: partnerData.email,
-          organizationId: partnerData.organization_id,
-        }
+        },
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('❌ Erreur globale:', error)
+    console.error('invite-partner fatal error:', error)
+
     return new Response(
-      JSON.stringify({ 
-        error: 'Erreur serveur', 
-        details: error instanceof Error ? error.message : 'Erreur inconnue'
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: 'Erreur serveur', details: error?.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

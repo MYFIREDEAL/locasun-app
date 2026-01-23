@@ -116,7 +116,7 @@ const PartnersListPage = () => {
       const { data, error: fnError } = await supabase.functions.invoke('invite-partner', {
         body: {
           companyName: inviteForm.companyName.trim(),
-          email: inviteForm.email.trim(),
+          email: inviteForm.email.trim().toLowerCase(),
           contactLastName: inviteForm.contactLastName?.trim() || null,
           contactFirstName: inviteForm.contactFirstName?.trim() || null,
           phone: inviteForm.phone?.trim() || null,
