@@ -39,91 +39,99 @@ const PartnerLoginPage = () => {
   const [sessionValid, setSessionValid] = useState(false);
   const [partnerEmail, setPartnerEmail] = useState('');
 
-  // ✅ LOGIQUE IDENTIQUE À ActivateAccountPage : Attendre que Supabase parse le hash
+  // ✅ LOGIQUE CORRIGÉE : Le hash est souvent déjà consommé par App.jsx
+  // On vérifie si une session existe ET si c'est un partenaire
+  // Si oui et que le hash contenait un token OU si l'user n'a pas encore de mot de passe → mode création
   useEffect(() => {
     const hash = window.location.hash;
     const hasInviteToken = hash.includes('access_token') || hash.includes('type=invite') || hash.includes('type=recovery');
 
     logger.info('🔐 PartnerLoginPage - Vérification du flow invitation', {
-      hash: hash.substring(0, 50) + '...',
+      hash: hash ? hash.substring(0, 50) + '...' : '(vide)',
       hasInviteToken
     });
 
-    if (hasInviteToken) {
-      setIsInviteFlow(true);
-      logger.info('⏳ Hash détecté, attente de onAuthStateChange...');
+    // Fonction pour vérifier la session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        logger.info('✅ Session active trouvée', { 
+          userId: session.user.id,
+          email: session.user.email,
+          // Supabase met recovery=true quand c'est un flow invite/recovery
+          isRecovery: session.user?.recovery
+        });
+        
+        // Vérifier si c'est un partenaire
+        const { data: partnerData, error: partnerError } = await supabase
+          .from('partners')
+          .select('email, company_name')
+          .eq('user_id', session.user.id)
+          .single();
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          logger.info('🔔 Auth event reçu:', { event, hasSession: !!session });
+        if (partnerData && !partnerError) {
+          // C'est un partenaire avec une session active
+          // Si le hash contenait un token OU si c'est un recovery → mode création mot de passe
+          // Sinon, ils ont probablement déjà un mot de passe et veulent juste accéder
+          
+          // Vérifier si c'est une invitation récente (user créé < 1h)
+          const createdAt = new Date(session.user.created_at);
+          const now = new Date();
+          const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60);
+          const isRecentInvite = hoursSinceCreation < 24; // Moins de 24h
+          
+          logger.info('� Partenaire trouvé', { 
+            email: partnerData.email,
+            isRecentInvite,
+            hoursSinceCreation: hoursSinceCreation.toFixed(1)
+          });
 
-          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-            await validatePartnerSession(session);
+          if (hasInviteToken || isRecentInvite) {
+            // Mode création de mot de passe
+            setIsInviteFlow(true);
+            setPartnerEmail(partnerData.email);
+            setSessionValid(true);
+            setValidatingSession(false);
+            return;
           }
         }
-      );
+      }
 
-      // Timeout de sécurité : si aucun événement après 5s, vérifier manuellement
-      const timeoutId = setTimeout(async () => {
-        logger.warn('⚠️ Timeout - vérification manuelle de la session');
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await validatePartnerSession(session);
-        } else {
-          logger.error('❌ Pas de session après timeout');
-          setSessionValid(false);
-          setValidatingSession(false);
+      // Pas de session valide ou pas de partenaire → mode login classique
+      if (hasInviteToken) {
+        // On avait un hash mais pas de session → lien expiré
+        logger.warn('⚠️ Hash présent mais pas de session valide');
+        setIsInviteFlow(true);
+        setSessionValid(false);
+        setValidatingSession(false);
+      } else {
+        // Mode login classique
+        setIsInviteFlow(false);
+        setValidatingSession(false);
+      }
+    };
+
+    // Attendre un petit délai pour que App.jsx ait le temps de parser le hash
+    const timeoutId = setTimeout(checkSession, 500);
+
+    // Écouter aussi les changements d'auth au cas où
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        logger.info('🔔 Auth event reçu:', { event, hasSession: !!session });
+
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
+          // Re-vérifier la session
+          checkSession();
         }
-      }, 5000);
+      }
+    );
 
-      return () => {
-        subscription.unsubscribe();
-        clearTimeout(timeoutId);
-      };
-    } else {
-      // Pas de hash → mode login classique
-      setIsInviteFlow(false);
-      setValidatingSession(false);
-    }
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
-
-  // Fonction pour valider la session partenaire
-  const validatePartnerSession = async (session) => {
-    try {
-      const user = session.user;
-
-      if (!user || !user.email) {
-        logger.error('❌ Pas d\'utilisateur dans la session');
-        setSessionValid(false);
-        setValidatingSession(false);
-        return;
-      }
-
-      // Vérifier que l'utilisateur existe dans la table partners
-      const { data: partnerData, error: partnerError } = await supabase
-        .from('partners')
-        .select('email, company_name')
-        .eq('user_id', user.id)
-        .single();
-
-      if (partnerError || !partnerData) {
-        logger.error('❌ Partenaire non trouvé dans table partners:', partnerError);
-        setSessionValid(false);
-        setValidatingSession(false);
-        return;
-      }
-
-      // ✅ Session valide et partenaire trouvé
-      logger.info('✅ Session valide pour partenaire:', partnerData.email);
-      setPartnerEmail(partnerData.email);
-      setSessionValid(true);
-      setValidatingSession(false);
-    } catch (error) {
-      logger.error('❌ Erreur validation session partenaire:', error);
-      setSessionValid(false);
-      setValidatingSession(false);
-    }
-  };
 
   // Handler création mot de passe
   const handleSetPassword = async (e) => {
