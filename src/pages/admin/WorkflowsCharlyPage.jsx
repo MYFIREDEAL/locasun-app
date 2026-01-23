@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import useSupabasePartners from '@/hooks/useSupabasePartners';
 import ModulesNavBar from '@/components/admin/ModulesNavBar';
 
 const ActionEditor = ({
@@ -21,7 +22,8 @@ const ActionEditor = ({
   onChange,
   onDelete,
   forms,
-  contractTemplates
+  contractTemplates,
+  partners = []
 }) => {
   const handleActionChange = (field, value) => {
     onChange({
@@ -73,9 +75,12 @@ const ActionEditor = ({
                         <div className="flex gap-2">
                             <button
                                 type="button"
-                                onClick={() => handleActionChange('hasClientAction', true)}
+                                onClick={() => {
+                                    handleActionChange('hasClientAction', true);
+                                    handleActionChange('type', action.type === 'partner_task' ? 'none' : action.type);
+                                }}
                                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
-                                    action.hasClientAction !== false
+                                    action.hasClientAction === true && action.type !== 'partner_task'
                                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                                 }`}
@@ -87,9 +92,12 @@ const ActionEditor = ({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => handleActionChange('hasClientAction', false)}
+                                onClick={() => {
+                                    handleActionChange('hasClientAction', false);
+                                    handleActionChange('type', action.type === 'partner_task' ? 'none' : action.type);
+                                }}
                                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
-                                    action.hasClientAction === false
+                                    action.hasClientAction === false && action.type !== 'partner_task'
                                         ? 'border-purple-500 bg-purple-50 text-purple-700'
                                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                                 }`}
@@ -99,6 +107,23 @@ const ActionEditor = ({
                                     <span className="font-medium text-sm">Associée au commercial</span>
                                 </div>
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleActionChange('type', 'partner_task');
+                                    handleActionChange('hasClientAction', null);
+                                }}
+                                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                                    action.type === 'partner_task'
+                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-lg">🤝</span>
+                                    <span className="font-medium text-sm">Associée au partenaire</span>
+                                </div>
+                            </button>
                         </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={onDelete} className="ml-2">
@@ -106,7 +131,70 @@ const ActionEditor = ({
                     </Button>
                 </div>
                 
-                {action.hasClientAction !== false ? (
+                {action.type === 'partner_task' ? (
+                    // 🔶 UI pour les actions partenaire
+                    <div className="space-y-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700">Partenaire assigné</Label>
+                            <Select 
+                                value={action.partnerId || ''} 
+                                onValueChange={value => handleActionChange('partnerId', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner un partenaire" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {partners
+                                        .filter(p => p.isActive)
+                                        .map(partner => (
+                                            <SelectItem key={partner.id} value={partner.id}>
+                                                {partner.companyName} ({partner.contactEmail})
+                                            </SelectItem>
+                                        ))}
+                                    {(!partners || partners.filter(p => p.isActive).length === 0) && (
+                                        <div className="px-2 py-1.5 text-sm text-gray-500">
+                                            Aucun partenaire actif
+                                        </div>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            {!action.partnerId && (
+                                <p className="text-xs text-red-500">⚠️ Partenaire obligatoire pour sauvegarder</p>
+                            )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700">Instructions pour le partenaire</Label>
+                            <Textarea
+                                value={action.partnerInstructions || ''}
+                                onChange={(e) => handleActionChange('partnerInstructions', e.target.value)}
+                                placeholder="Ex: Effectuer la visite technique et remplir le rapport..."
+                                className="min-h-[100px]"
+                            />
+                            <p className="text-xs text-gray-500">
+                                Ces instructions seront visibles par le partenaire dans sa vue mobile
+                            </p>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 pt-2 border-t">
+                            <Checkbox 
+                                id={`blocking-${action.id}`}
+                                checked={action.isBlocking !== false}
+                                onCheckedChange={checked => handleActionChange('isBlocking', checked)}
+                            />
+                            <div className="space-y-1">
+                                <Label htmlFor={`blocking-${action.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                                    Action bloquante
+                                </Label>
+                                <p className="text-xs text-gray-500">
+                                    {action.isBlocking !== false 
+                                        ? '🔒 Le projet ne peut pas avancer tant que le partenaire n\'a pas terminé'
+                                        : '🔓 Le projet peut continuer même si la mission n\'est pas terminée'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : action.hasClientAction !== false ? (
                     <>
                         <div className="space-y-2">
                             <Label>Message à dire</Label>
@@ -442,6 +530,12 @@ const WorkflowsCharlyPage = () => {
     templates: contractTemplates,
     loading: templatesLoading
   } = useSupabaseContractTemplates(organizationId);  // 🔥 Passer organizationId !
+
+  // 🔥 Hook Supabase pour les partenaires
+  const {
+    partners,
+    loading: partnersLoading
+  } = useSupabasePartners(organizationId);
 
   const prompts = useMemo(() => {
     return supabasePrompts;
@@ -791,6 +885,7 @@ const WorkflowsCharlyPage = () => {
                                   onDelete={() => deleteAction(index, actionIndex)} 
                                   forms={supabaseForms || []}
                                   contractTemplates={contractTemplates || []}
+                                  partners={partners || []}
                                 />
                               ))}
                               <Button 

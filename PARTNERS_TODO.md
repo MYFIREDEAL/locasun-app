@@ -7,6 +7,7 @@
 - [x] Auth partenaire (email / mot de passe)
 - [x] Page admin — liste partenaires
 - [x] Page admin — fiche partenaire
+- [x] Intégration workflow → mission
 
 ## 🟡 En cours
 - [ ] Routes /partner (login)
@@ -15,7 +16,6 @@
 - [ ] Vue mobile — liste missions
 - [ ] Vue mobile — détail mission
 - [ ] Notifications partenaires
-- [ ] Intégration workflow → mission
 - [ ] Intégration IA → mission (source = ai)
 
 ## 🔒 Règles à valider avant fin

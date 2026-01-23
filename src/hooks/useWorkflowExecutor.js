@@ -135,6 +135,10 @@ async function executeAction({ action, prospectId, projectType }) {
         logger.debug('Action open_payment gérée côté client');
         break;
 
+      case 'partner_task':
+        await executePartnerTaskAction({ action, prospectId, projectType });
+        break;
+
       default:
         logger.warn('Type d\'action inconnu', { actionType: action.type });
     }
@@ -356,6 +360,95 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
     toast({
       title: "❌ Erreur",
       description: `Impossible de préparer la signature: ${error.message}`,
+      variant: "destructive",
+    });
+  }
+}
+
+/**
+ * Exécute l'action "Associée au partenaire"
+ * Crée automatiquement une mission pour le partenaire assigné
+ */
+async function executePartnerTaskAction({ action, prospectId, projectType }) {
+  try {
+    if (!action.partnerId) {
+      logger.warn('Action partner_task sans partnerId', { prospectId, projectType });
+      toast({
+        title: "⚠️ Configuration manquante",
+        description: "Aucun partenaire configuré pour cette action",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 1. Récupérer les données du prospect (nom, organization_id)
+    const { data: prospectData, error: prospectError } = await supabase
+      .from('prospects')
+      .select('name, organization_id')
+      .eq('id', prospectId)
+      .single();
+
+    if (prospectError || !prospectData) {
+      logger.error('Erreur récupération prospect pour mission partenaire', { 
+        error: prospectError?.message 
+      });
+      throw new Error('Impossible de récupérer les données du prospect');
+    }
+
+    // 2. Vérifier si une mission existe déjà pour ce prospect/partenaire/projet
+    const { data: existingMission } = await supabase
+      .from('missions')
+      .select('id')
+      .eq('prospect_id', prospectId)
+      .eq('partner_id', action.partnerId)
+      .eq('project_type', projectType)
+      .maybeSingle();
+
+    if (existingMission) {
+      logger.debug('Mission partenaire déjà existante, pas de duplication', {
+        missionId: existingMission.id
+      });
+      return;
+    }
+
+    // 3. Créer la mission
+    const { data: mission, error: missionError } = await supabase
+      .from('missions')
+      .insert({
+        organization_id: prospectData.organization_id,
+        partner_id: action.partnerId,
+        prospect_id: prospectId,
+        project_type: projectType,
+        title: `Mission pour ${prospectData.name || 'Client'}`,
+        description: action.partnerInstructions || null,
+        status: 'pending',
+        is_blocking: action.isBlocking !== false,
+      })
+      .select()
+      .single();
+
+    if (missionError) {
+      logger.error('Erreur création mission partenaire', { error: missionError.message });
+      throw missionError;
+    }
+
+    logger.debug('Mission partenaire créée', { 
+      missionId: mission.id,
+      partnerId: action.partnerId,
+      isBlocking: action.isBlocking !== false
+    });
+
+    toast({
+      title: "✅ Mission partenaire créée",
+      description: `Une nouvelle mission a été assignée au partenaire`,
+      className: "bg-orange-500 text-white",
+    });
+
+  } catch (error) {
+    logger.error('Erreur création mission partenaire', { error: error.message });
+    toast({
+      title: "❌ Erreur",
+      description: `Impossible de créer la mission partenaire: ${error.message}`,
       variant: "destructive",
     });
   }
