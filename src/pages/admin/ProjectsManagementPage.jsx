@@ -586,29 +586,34 @@ const ProjectsManagementPage = () => {
   const [isSaving, setIsSaving] = useState(false); // 🔥 État de chargement
 
   const handleSaveProject = async projectToSave => {
-    setIsSaving(true); // 🔥 Début du chargement
+    // 🔥 OPTIMISTIC UPDATE: Fermer immédiatement, sauvegarder en background
+    setEditingProject(null); // Fermer la modal TOUT DE SUITE
+    setIsSaving(true);
+    
     const newProjectsData = {
       ...(projectsData || {}),
       [projectToSave.type]: projectToSave
     };
     
-    try {
-      await setProjectsData(newProjectsData);
-      toast({
-        title: "Projet enregistré !",
-        description: `Le projet "${projectToSave.title}" a été sauvegardé.`,
-        className: "bg-green-500 text-white"
+    // 🔥 Fire-and-forget avec gestion d'erreur silencieuse
+    setProjectsData(newProjectsData)
+      .then(() => {
+        toast({
+          title: "Projet enregistré !",
+          description: `Le projet "${projectToSave.title}" a été sauvegardé.`,
+          className: "bg-green-500 text-white"
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: "Erreur !",
+          description: "Impossible de sauvegarder le projet. Rechargez la page.",
+          variant: "destructive"
+        });
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
-      setEditingProject(null);
-    } catch (error) {
-      toast({
-        title: "Erreur !",
-        description: "Impossible de sauvegarder le projet.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false); // 🔥 Fin du chargement
-    }
   };
 
   const handleToggleProjectVisibility = (projectType, isPublic) => {
