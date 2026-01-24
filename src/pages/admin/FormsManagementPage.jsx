@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DialogFooter } from '@/components/ui/dialog';
 import { useAppContext } from '@/App';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Trash2, Plus, FileText } from 'lucide-react';
+import { Trash2, Plus, FileText, Loader2 } from 'lucide-react';
 import MultiSelectSearch from '@/components/ui/MultiSelectSearch';
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { logger } from '@/lib/logger';
@@ -18,7 +18,8 @@ import ModulesNavBar from '@/components/admin/ModulesNavBar';
 const FormEditor = ({
   form,
   onSave,
-  onCancel
+  onCancel,
+  isSaving = false
 }) => {
   const {
     projectsData
@@ -445,8 +446,17 @@ const FormEditor = ({
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button variant="outline" onClick={onCancel}>Annuler</Button>
-        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">Enregistrer le formulaire</Button>
+        <Button variant="outline" onClick={onCancel} disabled={isSaving}>Annuler</Button>
+        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700" disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enregistrement...
+            </>
+          ) : (
+            'Enregistrer le formulaire'
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -470,6 +480,7 @@ const FormsManagementPage = () => {
   }, [supabaseForms]);
 
   const [editingForm, setEditingForm] = useState(null);
+  const [isSaving, setIsSaving] = useState(false); // 🔥 État de chargement
 
   // 🔥 NOUVEAU : Récupérer le formulaire pré-rempli depuis le state de navigation
   useEffect(() => {
@@ -490,31 +501,37 @@ const FormsManagementPage = () => {
   }, [location.state]);
 
   const handleSaveForm = async (formToSave) => {
+    setIsSaving(true); // 🔥 Début du chargement
+    
     // Générer un ID unique si nouveau formulaire
     const formId = formToSave.id || `form-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     
-    const result = await saveFormToSupabase(formId, {
-      name: formToSave.name,
-      fields: formToSave.fields || [],
-      projectIds: formToSave.projectIds || [],
-      audience: formToSave.audience || 'client', // 🔥 Audience par défaut 'client'
-    });
+    try {
+      const result = await saveFormToSupabase(formId, {
+        name: formToSave.name,
+        fields: formToSave.fields || [],
+        projectIds: formToSave.projectIds || [],
+        audience: formToSave.audience || 'client', // 🔥 Audience par défaut 'client'
+      });
 
-    if (result.success) {
-      toast({
-        title: "✅ Formulaire enregistré !",
-        description: `Le formulaire "${formToSave.name}" a été sauvegardé dans Supabase.`,
-        className: "bg-green-500 text-white"
-      });
-      
-      // 🔥 Fermer immédiatement - le real-time mettra à jour la liste
-      setEditingForm(null);
-    } else {
-      toast({
-        title: "❌ Erreur",
-        description: `Impossible d'enregistrer le formulaire : ${result.error}`,
-        variant: "destructive"
-      });
+      if (result.success) {
+        toast({
+          title: "✅ Formulaire enregistré !",
+          description: `Le formulaire "${formToSave.name}" a été sauvegardé dans Supabase.`,
+          className: "bg-green-500 text-white"
+        });
+        
+        // 🔥 Fermer immédiatement - le real-time mettra à jour la liste
+        setEditingForm(null);
+      } else {
+        toast({
+          title: "❌ Erreur",
+          description: `Impossible d'enregistrer le formulaire : ${result.error}`,
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsSaving(false); // 🔥 Fin du chargement
     }
   };
 
@@ -640,7 +657,8 @@ const FormsManagementPage = () => {
             <FormEditor 
               form={editingForm} 
               onSave={handleSaveForm} 
-              onCancel={() => setEditingForm(null)} 
+              onCancel={() => setEditingForm(null)}
+              isSaving={isSaving}
             />
           ) : (
             <div className="text-center py-20 text-gray-400">

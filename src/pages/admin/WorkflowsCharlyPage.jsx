@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAppContext } from '@/App';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Trash2, Plus, Bot, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, Bot, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupabasePrompts } from '@/hooks/useSupabasePrompts';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
@@ -567,6 +567,7 @@ const WorkflowsCharlyPage = () => {
   }, [supabasePrompts]);
 
   const [editingPrompt, setEditingPrompt] = useState(null);
+  const [isSaving, setIsSaving] = useState(false); // 🔥 État de sauvegarde en cours
 
   const [promptData, setPromptData] = useState({
     name: '',
@@ -696,6 +697,8 @@ const WorkflowsCharlyPage = () => {
       return;
     }
 
+    setIsSaving(true); // 🔥 Début du chargement
+
     const promptToSave = {
       ...promptData,
       id: editingPrompt?.id || `prompt-${Date.now()}`
@@ -703,27 +706,31 @@ const WorkflowsCharlyPage = () => {
 
     const promptId = promptToSave.id || `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     
-    const result = await savePromptToSupabase(promptId, {
-      name: promptToSave.name,
-      tone: promptToSave.tone,
-      projectId: promptToSave.projectId,
-      stepsConfig: promptToSave.stepsConfig || {},
-    });
+    try {
+      const result = await savePromptToSupabase(promptId, {
+        name: promptToSave.name,
+        tone: promptToSave.tone,
+        projectId: promptToSave.projectId,
+        stepsConfig: promptToSave.stepsConfig || {},
+      });
 
-    if (result.success) {
-      toast({
-        title: "✅ Prompt enregistré !",
-        description: `Le prompt "${promptToSave.name}" a été sauvegardé dans Supabase.`,
-        className: "bg-green-500 text-white"
-      });
-      
-      setEditingPrompt(null);
-    } else {
-      toast({
-        title: "❌ Erreur",
-        description: `Impossible d'enregistrer le prompt : ${result.error}`,
-        variant: "destructive"
-      });
+      if (result.success) {
+        toast({
+          title: "✅ Prompt enregistré !",
+          description: `Le prompt "${promptToSave.name}" a été sauvegardé dans Supabase.`,
+          className: "bg-green-500 text-white"
+        });
+        
+        setEditingPrompt(null);
+      } else {
+        toast({
+          title: "❌ Erreur",
+          description: `Impossible d'enregistrer le prompt : ${result.error}`,
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsSaving(false); // 🔥 Fin du chargement
     }
   };
 
@@ -942,8 +949,17 @@ const WorkflowsCharlyPage = () => {
             )}
 
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button variant="outline" onClick={() => setEditingPrompt(null)}>Annuler</Button>
-              <Button onClick={handleSavePrompt} className="bg-green-600 hover:bg-green-700">Enregistrer le prompt</Button>
+              <Button variant="outline" onClick={() => setEditingPrompt(null)} disabled={isSaving}>Annuler</Button>
+              <Button onClick={handleSavePrompt} className="bg-green-600 hover:bg-green-700" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  'Enregistrer le prompt'
+                )}
+              </Button>
             </div>
           </div>
         </div>

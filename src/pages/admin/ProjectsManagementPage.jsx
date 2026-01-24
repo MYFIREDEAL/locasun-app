@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Trash2, Plus, FolderKanban, GripVertical, ChevronDown } from 'lucide-react';
+import { Trash2, Plus, FolderKanban, GripVertical, ChevronDown, Loader2 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { slugify } from '@/lib/utils';
 import { logger } from '@/lib/logger';
@@ -80,7 +80,8 @@ const ProjectEditor = ({
   project,
   onSave,
   onCancel,
-  globalPipelineSteps = []
+  globalPipelineSteps = [],
+  isSaving = false
 }) => {
   const { organizationReady } = useOrganization();
   
@@ -440,8 +441,17 @@ const ProjectEditor = ({
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button variant="outline" onClick={onCancel}>Annuler</Button>
-        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">Enregistrer le projet</Button>
+        <Button variant="outline" onClick={onCancel} disabled={isSaving}>Annuler</Button>
+        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700" disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enregistrement...
+            </>
+          ) : (
+            'Enregistrer le projet'
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -451,7 +461,8 @@ const CreateProjectDialog = ({
   open,
   onOpenChange,
   onSave,
-  globalPipelineSteps = []
+  globalPipelineSteps = [],
+  isSaving = false
 }) => {
   const { projectsData = {} } = useAppContext();
   const [step, setStep] = useState(1);
@@ -552,7 +563,8 @@ const CreateProjectDialog = ({
               project={project} 
               onSave={handleSaveProject} 
               onCancel={handleCancel} 
-              globalPipelineSteps={globalPipelineSteps} 
+              globalPipelineSteps={globalPipelineSteps}
+              isSaving={isSaving}
             />
           </div>
         )}
@@ -571,8 +583,10 @@ const ProjectsManagementPage = () => {
 
   const [isCreateProjectOpen, setCreateProjectOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [isSaving, setIsSaving] = useState(false); // 🔥 État de chargement
 
   const handleSaveProject = async projectToSave => {
+    setIsSaving(true); // 🔥 Début du chargement
     const newProjectsData = {
       ...(projectsData || {}),
       [projectToSave.type]: projectToSave
@@ -592,6 +606,8 @@ const ProjectsManagementPage = () => {
         description: "Impossible de sauvegarder le projet.",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false); // 🔥 Fin du chargement
     }
   };
 
@@ -751,7 +767,8 @@ const ProjectsManagementPage = () => {
               project={editingProject} 
               onSave={handleSaveProject} 
               onCancel={() => setEditingProject(null)} 
-              globalPipelineSteps={globalPipelineSteps} 
+              globalPipelineSteps={globalPipelineSteps}
+              isSaving={isSaving}
             />
           ) : (
             <div className="text-center py-20 text-gray-400">
@@ -769,7 +786,8 @@ const ProjectsManagementPage = () => {
         open={isCreateProjectOpen} 
         onOpenChange={setCreateProjectOpen} 
         onSave={handleSaveProject} 
-        globalPipelineSteps={globalPipelineSteps} 
+        globalPipelineSteps={globalPipelineSteps}
+        isSaving={isSaving}
       />
     </div>
   );

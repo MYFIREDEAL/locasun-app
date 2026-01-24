@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown, Sparkles, FormInput } from 'lucide-react';
+import { Plus, FileText, Edit, Upload, ZoomIn, ZoomOut, X, Square, Trash2, Move, ChevronDown, Sparkles, FormInput, Loader2 } from 'lucide-react';
 import { useAppContext } from '@/App';
 import { CONTRACT_VARIABLES } from '@/constants/contractVariables';
 import ModulesNavBar from '@/components/admin/ModulesNavBar';
@@ -495,6 +495,7 @@ const ContractTemplatesPage = () => {
   ];
 
   const [editingContractTemplate, setEditingContractTemplate] = useState(null);
+  const [isSaving, setIsSaving] = useState(false); // 🔥 État de chargement
   const [isPreviewTemplateOpen, setIsPreviewTemplateOpen] = useState(false);
   
   // 🆕 États pour le choix du mode de création
@@ -859,6 +860,8 @@ const ContractTemplatesPage = () => {
   };
 
   const handleSaveContractTemplate = async (templateToSave) => {
+    setIsSaving(true); // 🔥 Début du chargement
+    
     const isNew = !templateToSave.id;
     
     // 🔥 Nettoyer le HTML avant sauvegarde
@@ -871,31 +874,35 @@ const ContractTemplatesPage = () => {
       différence: templateToSave.contentHtml !== cleanedHtml
     });
     
-    const result = isNew 
-      ? await createTemplate({
-          name: templateToSave.name,
-          projectType: templateToSave.projectType || 'ACC',
-          contentHtml: cleanedHtml || '',
-        })
-      : await updateTemplate(templateToSave.id, {
-          name: templateToSave.name,
-          projectType: templateToSave.projectType,
-          contentHtml: cleanedHtml,
-        });
+    try {
+      const result = isNew 
+        ? await createTemplate({
+            name: templateToSave.name,
+            projectType: templateToSave.projectType || 'ACC',
+            contentHtml: cleanedHtml || '',
+          })
+        : await updateTemplate(templateToSave.id, {
+            name: templateToSave.name,
+            projectType: templateToSave.projectType,
+            contentHtml: cleanedHtml,
+          });
 
-    if (result.success) {
-      toast({
-        title: "✅ Template enregistré !",
-        description: `Le template "${templateToSave.name}" a été sauvegardé.`,
-        className: "bg-green-500 text-white"
-      });
-      setEditingContractTemplate(null);
-    } else {
-      toast({
-        title: "❌ Erreur",
-        description: `Impossible d'enregistrer le template : ${result.error}`,
-        variant: "destructive"
-      });
+      if (result.success) {
+        toast({
+          title: "✅ Template enregistré !",
+          description: `Le template "${templateToSave.name}" a été sauvegardé.`,
+          className: "bg-green-500 text-white"
+        });
+        setEditingContractTemplate(null);
+      } else {
+        toast({
+          title: "❌ Erreur",
+          description: `Impossible d'enregistrer le template : ${result.error}`,
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsSaving(false); // 🔥 Fin du chargement
     }
   };
 
@@ -1237,16 +1244,23 @@ const ContractTemplatesPage = () => {
                       <Button 
                         variant="secondary"
                         onClick={() => setIsPreviewTemplateOpen(true)}
-                        disabled={!editingContractTemplate.contentHtml}
+                        disabled={!editingContractTemplate.contentHtml || isSaving}
                       >
                         👁️ Visualiser
                       </Button>
                       <Button 
                         onClick={() => handleSaveContractTemplate(editingContractTemplate)}
                         className="bg-purple-600 hover:bg-purple-700"
-                        disabled={!editingContractTemplate.name || !editingContractTemplate.contentHtml}
+                        disabled={!editingContractTemplate.name || !editingContractTemplate.contentHtml || isSaving}
                       >
-                        Enregistrer
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Enregistrement...
+                          </>
+                        ) : (
+                          'Enregistrer'
+                        )}
                       </Button>
                       {editingContractTemplate.id && (
                         <Button 
