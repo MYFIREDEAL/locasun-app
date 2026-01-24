@@ -193,6 +193,35 @@ const scheduleDeferredWrite = (callback) => {
 const AppContext = React.createContext();
 export const useAppContext = () => React.useContext(AppContext);
 
+/**
+ * 🔥 PR-1: Boot Status Machine
+ * 
+ * États possibles (ordre linéaire) :
+ * - 'init'          : App vient de monter
+ * - 'resolving_org' : Résolution hostname → organization_id en cours
+ * - 'auth'          : Vérification session Supabase
+ * - 'loading_user'  : Chargement profil admin/client depuis Supabase
+ * - 'ready'         : ✅ Tout est prêt, app peut fonctionner
+ * - 'error'         : ❌ Échec (timeout, réseau, etc.)
+ * 
+ * Transitions :
+ * init → resolving_org (automatique au mount)
+ * resolving_org → auth (quand organizationReady = true)
+ * resolving_org → error (timeout 10s)
+ * auth → loading_user (quand session trouvée)
+ * auth → ready (si route publique ou pas de session)
+ * loading_user → ready (quand admin/client chargé)
+ * loading_user → error (échec DB)
+ */
+const BOOT_STATUS = {
+  INIT: 'init',
+  RESOLVING_ORG: 'resolving_org',
+  AUTH: 'auth',
+  LOADING_USER: 'loading_user',
+  READY: 'ready',
+  ERROR: 'error'
+};
+
 function App() {
   const location = useLocation();
   
@@ -203,6 +232,10 @@ function App() {
   
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  // 🔥 PR-1: Boot status unifié remplaçant les booléens dispersés
+  const [bootStatus, setBootStatus] = useState(BOOT_STATUS.INIT);
+  const [bootError, setBootError] = useState(null);
   
   // 🔥 RÉCUPÉRATION DE L'ORGANIZATION + BRANDING DEPUIS LE CONTEXT
   const { 
@@ -247,6 +280,60 @@ function App() {
   const [session, setSession] = useState(null); // 🔥 Session Supabase
   // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
+
+  // 🔥 PR-1: Machine d'état bootStatus - transitions automatiques
+  useEffect(() => {
+    // Transition: INIT → RESOLVING_ORG (au mount)
+    if (bootStatus === BOOT_STATUS.INIT) {
+      setBootStatus(BOOT_STATUS.RESOLVING_ORG);
+      return;
+    }
+
+    // Transition: RESOLVING_ORG → AUTH (quand org résolue)
+    if (bootStatus === BOOT_STATUS.RESOLVING_ORG) {
+      if (organizationError) {
+        logger.error('[Boot] Organization resolution failed', { error: organizationError });
+        setBootError(organizationError);
+        setBootStatus(BOOT_STATUS.ERROR);
+        return;
+      }
+      if (organizationReady) {
+        logger.info('[Boot] Organization resolved, moving to auth', { organizationId });
+        setBootStatus(BOOT_STATUS.AUTH);
+        return;
+      }
+      // Sinon, attendre...
+    }
+
+    // Transition: AUTH → LOADING_USER ou READY
+    if (bootStatus === BOOT_STATUS.AUTH) {
+      if (!authLoading) {
+        // Auth terminé
+        if (session) {
+          logger.info('[Boot] Session found, loading user profile');
+          setBootStatus(BOOT_STATUS.LOADING_USER);
+        } else {
+          // Pas de session = route publique ou non connecté
+          logger.info('[Boot] No session, boot complete');
+          setBootStatus(BOOT_STATUS.READY);
+        }
+        return;
+      }
+      // Sinon, attendre auth...
+    }
+
+    // Transition: LOADING_USER → READY
+    if (bootStatus === BOOT_STATUS.LOADING_USER) {
+      // On est ready quand on a soit un admin, soit un client, soit aucun (timeout géré ailleurs)
+      if (adminReady || currentUser || (!activeAdminUser && !currentUser && !authLoading)) {
+        logger.info('[Boot] User loaded, boot complete', { 
+          isAdmin: !!activeAdminUser, 
+          isClient: !!currentUser 
+        });
+        setBootStatus(BOOT_STATUS.READY);
+      }
+    }
+  }, [bootStatus, organizationReady, organizationError, organizationId, authLoading, session, adminReady, activeAdminUser, currentUser]);
 
   // 🔥 FIX: TOUJOURS appeler les hooks (React règle des hooks)
   // mais on désactive la logique interne via les paramètres
@@ -1450,6 +1537,10 @@ function App() {
     activeAdminUser, setActiveAdminUser, switchActiveAdminUser,
     authLoading, // 🔥 Exposer l'état de chargement auth
     adminReady, // 🔥 Exposer le flag pour activer les hooks Supabase
+    // 🔥 PR-1: Boot status unifié
+    bootStatus,
+    bootError,
+    BOOT_STATUS, // Exposer les constantes pour comparaison
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
     companyLogo, setCompanyLogo, removeLogo,
     // 🔥 WHITE-LABEL: Branding dynamique depuis organization_settings
@@ -1492,13 +1583,72 @@ function App() {
   // Le fallback plateforme est géré dans OrganizationContext et l'app
   // doit pouvoir fonctionner même si organizationId === null.
   
-  // 🔥 BLOQUER LE RENDU TANT QUE L'AUTH N'EST PAS COMPLÈTE
-  if (authLoading) {
+  // 🔥 PR-1: Écran d'erreur si boot échoue (timeout, réseau, etc.)
+  if (bootStatus === BOOT_STATUS.ERROR) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <div className="flex justify-center mb-4">
+            <div className="bg-red-100 rounded-full p-4">
+              <svg className="h-12 w-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+          
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Connexion impossible
+          </h1>
+          
+          <p className="text-gray-600 mb-4">
+            {bootError || 'Le serveur ne répond pas. Vérifiez votre connexion internet.'}
+          </p>
+          
+          <div className="bg-gray-50 rounded-lg p-3 mb-6 text-left">
+            <p className="text-xs text-gray-500">
+              <strong>Détails techniques :</strong><br />
+              Boot status: {bootStatus}<br />
+              Organization: {organizationId || 'non résolue'}
+            </p>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Réessayer
+            </button>
+            
+            <button
+              onClick={() => window.location.href = '/'}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            >
+              Retour à l'accueil
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // 🔥 PR-1: Écran de chargement intelligent basé sur bootStatus
+  if (bootStatus !== BOOT_STATUS.READY) {
+    const loadingMessages = {
+      [BOOT_STATUS.INIT]: 'Initialisation...',
+      [BOOT_STATUS.RESOLVING_ORG]: 'Connexion au serveur...',
+      [BOOT_STATUS.AUTH]: 'Vérification de la session...',
+      [BOOT_STATUS.LOADING_USER]: 'Chargement du profil...',
+    };
+    
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Chargement de l'application...</p>
+          <p className="text-gray-600 font-medium">{loadingMessages[bootStatus] || 'Chargement...'}</p>
+          <p className="text-xs text-gray-400 mt-2">
+            {bootStatus === BOOT_STATUS.RESOLVING_ORG && 'Cela peut prendre quelques secondes...'}
+          </p>
         </div>
       </div>
     );

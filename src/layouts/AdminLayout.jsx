@@ -9,8 +9,9 @@ import React, { useEffect } from 'react';
 
     const AdminLayout = () => {
       const { width } = useWindowSize();
-      const { activeAdminUser, setActiveAdminUser, adminReady } = useAppContext();
-      const { organizationId, organizationLoading } = useOrganization();
+      // 🔥 PR-1: Utiliser bootStatus unifié
+      const { activeAdminUser, setActiveAdminUser, adminReady, bootStatus, BOOT_STATUS } = useAppContext();
+      const { organizationId, organizationLoading, organizationError } = useOrganization();
       const isMobile = width < 768;
       const isDesktop = width >= 1024;
       const location = useLocation();
@@ -30,13 +31,59 @@ import React, { useEffect } from 'react';
                          activeAdminUser?.role === 'Admin' || 
                          activeAdminUser?.role === 'platform_admin';
 
-      // 🔥 BLOQUER LE RENDU TANT QUE adminReady ET organizationId NE SONT PAS PRÊTS
+      // 🔥 PR-1: Écran d'erreur organization avec bouton retour
+      if (organizationError) {
+        return (
+          <div className="flex items-center justify-center h-screen bg-gray-50">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+              <div className="flex justify-center mb-4">
+                <div className="bg-red-100 rounded-full p-4">
+                  <svg className="h-12 w-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+                  </svg>
+                </div>
+              </div>
+              
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Connexion au serveur impossible
+              </h1>
+              
+              <p className="text-gray-600 mb-6">
+                {organizationError}
+              </p>
+
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Réessayer
+                </button>
+                
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Retour à l'accueil
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // 🔥 PR-1: Gating simplifié - bloquer tant que pas ready
+      // bootStatus gère maintenant la séquence: org → auth → user
       if (!adminReady || organizationLoading || !organizationId) {
         return (
           <div className="flex items-center justify-center h-screen bg-gray-50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600 font-medium">Chargement de l'espace admin...</p>
+              <p className="text-xs text-gray-400 mt-2">
+                {!organizationId && 'Résolution de l\'organisation...'}
+                {organizationId && !adminReady && 'Chargement du profil...'}
+              </p>
             </div>
           </div>
         );

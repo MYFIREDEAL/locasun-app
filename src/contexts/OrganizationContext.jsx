@@ -62,11 +62,48 @@ export const OrganizationProvider = ({ children }) => {
 
   // 🔥 Re-résoudre l'organisation quand authUserId change
   useEffect(() => {
+    // 🔥 PR-1: Timeout pour éviter spinner infini
+    const ORGANIZATION_TIMEOUT_MS = 10000; // 10 secondes
+    let timeoutId = null;
+    let isAborted = false;
+
+    // 🔥 PR-1: Helper pour terminer la résolution proprement
+    const completeResolution = (orgId, isPlatform = false, error = null) => {
+      if (isAborted) return;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      setOrganizationId(orgId);
+      setIsPlatformOrg(isPlatform);
+      if (error) {
+        setOrganizationError(error);
+      }
+      
+      // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
+      if (!organizationReadyRef.current && !error) {
+        organizationReadyRef.current = true;
+        setOrganizationReady(true);
+      }
+      setOrganizationLoading(false);
+    };
+
     const resolveOrganization = async () => {
       try {
         setOrganizationLoading(true);
         setOrganizationError(null);
         setIsPlatformOrg(false); // Reset à chaque résolution
+
+        // 🔥 PR-1: Démarrer le timeout
+        timeoutId = setTimeout(() => {
+          if (!isAborted) {
+            logger.error('[OrganizationContext] Timeout résolution organisation (10s)');
+            setOrganizationError('Délai de connexion dépassé. Le serveur ne répond pas.');
+            setOrganizationLoading(false);
+            // Ne pas passer organizationReady à true en cas de timeout
+          }
+        }, ORGANIZATION_TIMEOUT_MS);
 
         const hostname = window.location.hostname;
         logger.info('[OrganizationContext] Hostname actuel:', hostname);
@@ -76,6 +113,9 @@ export const OrganizationProvider = ({ children }) => {
         const { data: rpcData, error: rpcError } = await supabase.rpc('resolve_organization_from_host', {
           host: hostname
         });
+
+        // 🔥 PR-1: Vérifier si aborted après chaque await
+        if (isAborted) return;
 
         if (!rpcError && rpcData) {
           hostnameOrgId = rpcData?.id || (Array.isArray(rpcData) && rpcData[0]?.id) || rpcData;
@@ -266,7 +306,13 @@ export const OrganizationProvider = ({ children }) => {
         }
 
         setOrganizationLoading(false);
+        // 🔥 PR-1: Annuler le timeout car succès
+        if (timeoutId) clearTimeout(timeoutId);
       } catch (err) {
+        // 🔥 PR-1: Annuler le timeout en cas d'erreur catch
+        if (timeoutId) clearTimeout(timeoutId);
+        if (isAborted) return;
+        
         logger.error('[OrganizationContext] Exception lors de la résolution:', err);
         // ⚠️ NE JAMAIS BLOQUER L'APP - fallback vers null
         logger.warn('[OrganizationContext] Fallback vers organizationId = null (mode dégradé)');
@@ -283,6 +329,12 @@ export const OrganizationProvider = ({ children }) => {
     };
 
     resolveOrganization();
+    
+    // 🔥 PR-1: Cleanup - annuler le timeout et marquer comme aborté
+    return () => {
+      isAborted = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [authUserId]); // 🔥 Re-résoudre quand l'utilisateur change
 
   // 🔥 Charger le branding une fois que l'organization est résolue
