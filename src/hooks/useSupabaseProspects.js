@@ -228,8 +228,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
         p_name: prospectData.name,
         p_email: prospectData.email,
-        p_phone: prospectData.phone,
-        p_company_name: prospectData.company || '',
+        p_phone: prospectData.phone || '',
+        p_company_name: prospectData.company || prospectData.companyName || '', // 🔥 FIX: Support des deux noms
         p_address: prospectData.address || '',
         p_status: prospectData.status, // ✅ Requis - doit être fourni par l'appelant
         p_tags: prospectData.tags || [],
@@ -238,8 +238,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         p_host: window.location.hostname, // 🔥 AJOUT pour résolution organization_id
       });
       
-      // 🔥 DEBUG: Log du résultat
-      logger.debug('RPC insert_prospect_safe result', { 
+      // 🔥 DEBUG: Log du résultat avec console.log pour être sûr de voir
+      console.log('🔍 RPC insert_prospect_safe result', { 
         rpcResult, 
         insertError: insertError?.message,
         insertErrorCode: insertError?.code 
