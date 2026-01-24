@@ -520,10 +520,12 @@ const FinalPipeline = () => {
       // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
       const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
       
+      // 🔥 FIX: Utiliser user_id (auth UUID) au lieu de id (table UUID)
+      // La FK prospects.owner_id référence users.user_id pour RLS policies
       const createdProspect = await addSupabaseProspectDirect({ 
         ...newProspectData, 
         status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
-        ownerId: activeAdminUser?.id
+        ownerId: activeAdminUser?.user_id
       });
 
       // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
