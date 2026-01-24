@@ -137,15 +137,12 @@ export const OrganizationProvider = ({ children }) => {
             .eq('user_id', authUserId)
             .maybeSingle();
 
+          // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+          if (isAborted) return;
+
           if (adminUser?.organization_id) {
             logger.info('[OrganizationContext] Organization résolue depuis user admin:', adminUser.organization_id);
-            setOrganizationId(adminUser.organization_id);
-            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-            if (!organizationReadyRef.current) {
-              organizationReadyRef.current = true;
-              setOrganizationReady(true);
-            }
-            setOrganizationLoading(false);
+            completeResolution(adminUser.organization_id, false);
             return;
           }
 
@@ -159,21 +156,22 @@ export const OrganizationProvider = ({ children }) => {
               .eq('organization_id', hostnameOrgId)
               .maybeSingle();
 
+            // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+            if (isAborted) return;
+
             if (existingProspect) {
               // Déjà lié à cette org, pas besoin de RPC
               logger.info('[OrganizationContext] Client déjà lié à l\'org du hostname:', hostnameOrgId);
-              setOrganizationId(hostnameOrgId);
-              // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-              if (!organizationReadyRef.current) {
-                organizationReadyRef.current = true;
-                setOrganizationReady(true);
-              }
-              setOrganizationLoading(false);
+              completeResolution(hostnameOrgId, false);
               return;
             }
 
             // Sinon, essayer de lier via RPC (bypass RLS pour prospects avec user_id = null)
             const { data: { session } } = await supabase.auth.getSession();
+            
+            // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+            if (isAborted) return;
+            
             const userEmail = session?.user?.email;
             
             if (userEmail) {
@@ -186,15 +184,12 @@ export const OrganizationProvider = ({ children }) => {
                 }
               );
 
+              // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+              if (isAborted) return;
+
               if (!linkError && linkedProspectId) {
                 logger.info('[OrganizationContext] Client lié au prospect dans l\'org du hostname:', hostnameOrgId);
-                setOrganizationId(hostnameOrgId);
-                // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-                if (!organizationReadyRef.current) {
-                  organizationReadyRef.current = true;
-                  setOrganizationReady(true);
-                }
-                setOrganizationLoading(false);
+                completeResolution(hostnameOrgId, false);
                 return;
               } else if (linkError) {
                 logger.warn('[OrganizationContext] Erreur liaison prospect:', linkError.message);
@@ -210,20 +205,21 @@ export const OrganizationProvider = ({ children }) => {
             .limit(1)
             .maybeSingle();
 
+          // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+          if (isAborted) return;
+
           if (prospectUser?.organization_id) {
             logger.info('[OrganizationContext] Organization résolue depuis prospect (user_id):', prospectUser.organization_id);
-            setOrganizationId(prospectUser.organization_id);
-            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-            if (!organizationReadyRef.current) {
-              organizationReadyRef.current = true;
-              setOrganizationReady(true);
-            }
-            setOrganizationLoading(false);
+            completeResolution(prospectUser.organization_id, false);
             return;
           }
 
           // 2d. Fallback: chercher par email (Magic Link pas encore lié)
           const { data: { session } } = await supabase.auth.getSession();
+          
+          // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+          if (isAborted) return;
+          
           const userEmail = session?.user?.email;
           
           if (userEmail) {
@@ -235,15 +231,12 @@ export const OrganizationProvider = ({ children }) => {
               .limit(1)
               .maybeSingle();
 
+            // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+            if (isAborted) return;
+
             if (prospectByEmail?.organization_id) {
               logger.info('[OrganizationContext] Organization résolue depuis prospect par EMAIL:', prospectByEmail.organization_id);
-              setOrganizationId(prospectByEmail.organization_id);
-              // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-              if (!organizationReadyRef.current) {
-                organizationReadyRef.current = true;
-                setOrganizationReady(true);
-              }
-              setOrganizationLoading(false);
+              completeResolution(prospectByEmail.organization_id, false);
               return;
             }
           }
@@ -252,13 +245,7 @@ export const OrganizationProvider = ({ children }) => {
         // 🔥 ÉTAPE 3: Pas de user connecté, utiliser hostname si trouvé
         if (hostnameOrgId) {
           logger.info('[OrganizationContext] Pas de user, utilisation hostname org:', hostnameOrgId);
-          setOrganizationId(hostnameOrgId);
-          // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-          if (!organizationReadyRef.current) {
-            organizationReadyRef.current = true;
-            setOrganizationReady(true);
-          }
-          setOrganizationLoading(false);
+          completeResolution(hostnameOrgId, false);
           return;
         }
 
@@ -273,41 +260,22 @@ export const OrganizationProvider = ({ children }) => {
           .limit(1)
           .maybeSingle();
 
+        // 🔥 PR-1 FIX: Vérifier si aborted après chaque await
+        if (isAborted) return;
+
         if (!platformError && platformOrg) {
           const platformId = platformOrg.id || platformOrg?.organization_id || platformOrg;
           if (platformId) {
             logger.info('[OrganizationContext] Fallback vers organisation plateforme:', platformId);
-            setOrganizationId(platformId);
-            setIsPlatformOrg(true); // 🔥 C'est l'org plateforme
-            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-            if (!organizationReadyRef.current) {
-              organizationReadyRef.current = true;
-              setOrganizationReady(true);
-            }
+            completeResolution(platformId, true);
           } else {
             logger.warn('[OrganizationContext] Platform organization query returned no id, leaving organizationId null');
-            setOrganizationId(null);
-            setIsPlatformOrg(true); // 🔥 Pas d'org = plateforme par défaut
-            // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-            if (!organizationReadyRef.current) {
-              organizationReadyRef.current = true;
-              setOrganizationReady(true);
-            }
+            completeResolution(null, true);
           }
         } else {
           logger.warn('[OrganizationContext] Impossible de récupérer l\'organisation plateforme, leaving organizationId null', platformError);
-          setOrganizationId(null);
-          setIsPlatformOrg(true); // 🔥 Pas d'org = plateforme par défaut
-          // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-          if (!organizationReadyRef.current) {
-            organizationReadyRef.current = true;
-            setOrganizationReady(true);
-          }
+          completeResolution(null, true);
         }
-
-        setOrganizationLoading(false);
-        // 🔥 PR-1: Annuler le timeout car succès
-        if (timeoutId) clearTimeout(timeoutId);
       } catch (err) {
         // 🔥 PR-1: Annuler le timeout en cas d'erreur catch
         if (timeoutId) clearTimeout(timeoutId);
@@ -316,15 +284,7 @@ export const OrganizationProvider = ({ children }) => {
         logger.error('[OrganizationContext] Exception lors de la résolution:', err);
         // ⚠️ NE JAMAIS BLOQUER L'APP - fallback vers null
         logger.warn('[OrganizationContext] Fallback vers organizationId = null (mode dégradé)');
-        setOrganizationId(null);
-        setIsPlatformOrg(true); // 🔥 En cas d'erreur = plateforme par défaut
-        setOrganizationError(null); // Pas d'erreur bloquante
-        // 🔥 FIX BOUCLE #310: organizationReady passe à true UNE SEULE FOIS
-        if (!organizationReadyRef.current) {
-          organizationReadyRef.current = true;
-          setOrganizationReady(true);
-        }
-        setOrganizationLoading(false);
+        completeResolution(null, true);
       }
     };
 
