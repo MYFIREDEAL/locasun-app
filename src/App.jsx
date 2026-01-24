@@ -914,9 +914,12 @@ function App() {
   }, []);
   
   // ✅ Nouvelle fonction qui met à jour les templates dans Supabase
+  // 🔥 OPTIMISÉ: Ne met à jour QUE les templates qui ont changé
   const handleSetProjectsData = async (newProjectsData) => {
     try {
-      // Convertir l'objet projectsData en array de templates pour Supabase
+      // 🔥 OPTIMISATION: Paralléliser les updates + skip les templates inchangés
+      const updatePromises = [];
+      
       for (const [type, templateData] of Object.entries(newProjectsData)) {
         const existingTemplate = projectTemplates.find(t => t.type === type);
         
@@ -934,15 +937,35 @@ function App() {
         };
         
         if (existingTemplate) {
-          // Mise à jour du template existant
-          await updateTemplate(existingTemplate.id, supabaseData);
+          // 🔥 OPTIMISATION: Vérifier si le template a vraiment changé
+          const hasChanged = 
+            existingTemplate.title !== supabaseData.title ||
+            existingTemplate.client_title !== supabaseData.client_title ||
+            existingTemplate.icon !== supabaseData.icon ||
+            existingTemplate.color !== supabaseData.color ||
+            JSON.stringify(existingTemplate.steps) !== JSON.stringify(supabaseData.steps) ||
+            existingTemplate.is_public !== supabaseData.is_public ||
+            existingTemplate.image_url !== supabaseData.image_url ||
+            existingTemplate.client_description !== supabaseData.client_description ||
+            existingTemplate.cta_text !== supabaseData.cta_text;
+          
+          if (hasChanged) {
+            // Mise à jour du template existant (ajouté à la liste de promesses)
+            updatePromises.push(updateTemplate(existingTemplate.id, supabaseData));
+          }
+          // Si pas de changement, on skip (pas d'appel réseau)
         } else {
           // Ajout d'un nouveau template
-          await addTemplate({
+          updatePromises.push(addTemplate({
             type: type,
             ...supabaseData
-          });
+          }));
         }
+      }
+      
+      // 🔥 Exécuter toutes les updates en parallèle
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
       }
     } catch (error) {
       logger.error('Erreur handleSetProjectsData', { error: error.message });
