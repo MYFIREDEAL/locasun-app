@@ -4,9 +4,12 @@ import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { appointmentToCamel, appointmentToSnake, transformArray } from '@/lib/transforms';
 
 /**
  * Hook personnalisé pour gérer l'agenda via Supabase
+ * PR-4: Utilise transforms centralisés pour la conversion snake_case ↔ camelCase
+ * 
  * Tout est unifié dans la table appointments avec filtrage par type :
  * - type: "physical" ou "virtual" → RDV affichés dans le calendrier
  * - type: "call" → Appels affichés dans la sidebar uniquement
@@ -38,25 +41,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
       if (fetchError) throw fetchError;
 
-      // Transformer vers le format attendu par l'app
-      const transformed = (data || []).map(apt => ({
-        id: apt.id,
-        title: apt.title,
-        start: apt.start_time,  // Le code attend "start" pas "startTime"
-        end: apt.end_time,      // Le code attend "end" pas "endTime"
-        contactId: apt.contact_id,
-        assignedUserId: apt.assigned_user_id,
-        projectId: apt.project_id,
-        step: apt.step,
-        type: apt.type,
-        status: apt.status,
-        rescheduledFromId: apt.rescheduled_from_id,
-        share: apt.share,
-        notes: apt.notes,
-        location: apt.location,
-        createdAt: apt.created_at,
-        updatedAt: apt.updated_at,
-      }));
+      // 🔥 PR-4: Utiliser transforms centralisés
+      const transformed = transformArray(data, appointmentToCamel);
       
       setAppointments(transformed);
       return transformed;
@@ -107,23 +93,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newApt = {
-              id: payload.new.id,
-              title: payload.new.title,
-              start: payload.new.start_time,
-              end: payload.new.end_time,
-              contactId: payload.new.contact_id,
-              assignedUserId: payload.new.assigned_user_id,
-              projectId: payload.new.project_id,
-              step: payload.new.step,
-              type: payload.new.type,
-              status: payload.new.status,
-              share: payload.new.share,
-              notes: payload.new.notes,
-              location: payload.new.location,
-              createdAt: payload.new.created_at,
-              updatedAt: payload.new.updated_at,
-            };
+            // 🔥 PR-4: Utiliser transform centralisé
+            const newApt = appointmentToCamel(payload.new);
             setAppointments(prev => {
               // Éviter les doublons
               if (prev.some(a => a.id === newApt.id)) return prev;
@@ -132,23 +103,10 @@ export const useSupabaseAgenda = (activeAdminUser) => {
           }
           
           if (payload.eventType === 'UPDATE') {
+            // 🔥 PR-4: Utiliser transform centralisé
+            const updatedApt = appointmentToCamel(payload.new);
             setAppointments(prev => prev.map(apt => 
-              apt.id === payload.new.id ? {
-                ...apt,
-                title: payload.new.title,
-                start: payload.new.start_time,
-                end: payload.new.end_time,
-                contactId: payload.new.contact_id,
-                assignedUserId: payload.new.assigned_user_id,
-                projectId: payload.new.project_id,
-                step: payload.new.step,
-                type: payload.new.type,
-                status: payload.new.status,
-                share: payload.new.share,
-                notes: payload.new.notes,
-                location: payload.new.location,
-                updatedAt: payload.new.updated_at,
-              } : apt
+              apt.id === payload.new.id ? updatedApt : apt
             ));
           }
           
@@ -224,23 +182,8 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
       if (insertError) throw insertError;
 
-      const transformed = {
-        id: data.id,
-        title: data.title,
-        start: data.start_time,  // Utiliser "start" pas "startTime"
-        end: data.end_time,      // Utiliser "end" pas "endTime"
-        contactId: data.contact_id,
-        assignedUserId: data.assigned_user_id,
-        projectId: data.project_id,
-        step: data.step,
-        type: data.type,
-        status: data.status,
-        share: data.share,
-        notes: data.notes,
-        location: data.location,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+      // 🔥 PR-4: Utiliser transform centralisé
+      const transformed = appointmentToCamel(data);
 
       setAppointments(prev => [...prev, transformed]);
 
@@ -341,28 +284,11 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
       if (updateError) throw updateError;
 
+      // 🔥 PR-4: Utiliser transform centralisé
+      const transformedData = appointmentToCamel(data);
+      
       setAppointments(prev =>
-        prev.map(apt =>
-          apt.id === id
-            ? {
-                id: data.id,
-                title: data.title,
-                start: data.start_time,  // Utiliser "start" pas "startTime"
-                end: data.end_time,      // Utiliser "end" pas "endTime"
-                contactId: data.contact_id,
-                assignedUserId: data.assigned_user_id,
-                projectId: data.project_id,
-                step: data.step,
-                type: data.type,
-                status: data.status,
-                share: data.share,
-                notes: data.notes,
-                location: data.location,
-                createdAt: data.created_at,
-                updatedAt: data.updated_at,
-              }
-            : apt
-        )
+        prev.map(apt => apt.id === id ? transformedData : apt)
       );
 
       // 🔥 Journalisation dans project_history (uniquement si changement métier)

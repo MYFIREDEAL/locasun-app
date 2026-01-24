@@ -3,10 +3,11 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { prospectToCamel, prospectToSnake, transformArray } from '@/lib/transforms';
 
 /**
  * Hook personnalisé pour gérer les prospects via Supabase
- * Remplace progressivement localStorage
+ * PR-4: Utilise transforms centralisés pour la conversion snake_case ↔ camelCase
  */
 export const useSupabaseProspects = (activeAdminUser) => {
   const [prospects, setProspects] = useState([]);
@@ -38,26 +39,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         throw fetchError;
       }
 
-      // Transformer les données Supabase vers le format attendu par l'app
-      const transformedProspects = (data || []).map(prospect => ({
-        id: prospect.id,
-        name: prospect.name,
-        email: prospect.email,
-        phone: prospect.phone,
-        companyName: prospect.company_name, // ✅ FIX: Utiliser companyName (cohérent avec formContactConfig)
-        company: prospect.company_name, // 🔥 Garder aussi company pour compatibilité
-        address: prospect.address,
-        ownerId: prospect.owner_id,
-        status: prospect.status,
-        tags: prospect.tags || [],
-        hasAppointment: prospect.has_appointment || false,
-        affiliateName: prospect.affiliate_name,
-        formData: prospect.form_data || {}, // 🔥 Réponses aux formulaires (camelCase)
-        form_data: prospect.form_data || {}, // 🔥 AUSSI en snake_case pour compatibilité
-        // Ajouter les champs manquants si nécessaire
-        createdAt: prospect.created_at,
-        updatedAt: prospect.updated_at,
-      }));
+      // 🔥 PR-4: Utiliser transforms centralisés
+      const transformedProspects = transformArray(data, prospectToCamel);
 
       logger.debug('Prospects fetched', { count: transformedProspects.length });
       setProspects(transformedProspects);
@@ -103,25 +86,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            // Nouveau prospect ajouté
-            const newProspect = {
-              id: payload.new.id,
-              name: payload.new.name,
-              email: payload.new.email,
-              phone: payload.new.phone,
-              companyName: payload.new.company_name, // ✅ FIX: Utiliser companyName
-              company: payload.new.company_name, // 🔥 Garder aussi company pour compatibilité
-              address: payload.new.address,
-              ownerId: payload.new.owner_id,
-              status: payload.new.status,
-              tags: payload.new.tags || [],
-              hasAppointment: payload.new.has_appointment || false,
-              affiliateName: payload.new.affiliate_name,
-              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires (camelCase)
-              form_data: payload.new.form_data || {}, // 🔥 AUSSI en snake_case pour compatibilité
-              createdAt: payload.new.created_at,
-              updatedAt: payload.new.updated_at,
-            };
+            // 🔥 PR-4: Utiliser transform centralisé
+            const newProspect = prospectToCamel(payload.new);
             setProspects(prev => [newProspect, ...prev]);
             toast({
               title: "🆕 Nouveau contact",
@@ -129,36 +95,19 @@ export const useSupabaseProspects = (activeAdminUser) => {
               className: "bg-green-500 text-white",
             });
           } else if (payload.eventType === 'UPDATE') {
-            // Prospect modifié
+            // 🔥 PR-4: Utiliser transform centralisé
             logger.info('🔄 [useSupabaseProspects] Real-time UPDATE received', {
               prospectId: payload.new.id,
               name: payload.new.name,
               hasFormData: !!payload.new.form_data,
               formDataKeys: payload.new.form_data ? Object.keys(payload.new.form_data) : []
             });
-            const updatedProspect = {
-              id: payload.new.id,
-              name: payload.new.name,
-              email: payload.new.email,
-              phone: payload.new.phone,
-              companyName: payload.new.company_name, // ✅ FIX: Utiliser companyName
-              company: payload.new.company_name, // 🔥 Garder aussi company pour compatibilité
-              address: payload.new.address,
-              ownerId: payload.new.owner_id,
-              status: payload.new.status,
-              tags: payload.new.tags || [],
-              hasAppointment: payload.new.has_appointment || false,
-              affiliateName: payload.new.affiliate_name,
-              formData: payload.new.form_data || {}, // 🔥 Réponses aux formulaires (camelCase)
-              form_data: payload.new.form_data || {}, // 🔥 AUSSI en snake_case pour compatibilité
-              createdAt: payload.new.created_at,
-              updatedAt: payload.new.updated_at,
-            };
+            const updatedProspect = prospectToCamel(payload.new);
             logger.info('📦 [useSupabaseProspects] updatedProspect after transform', {
               id: updatedProspect.id,
               name: updatedProspect.name,
               hasFormData: !!updatedProspect.formData,
-              formDataProjects: Object.keys(updatedProspect.formData),
+              formDataProjects: Object.keys(updatedProspect.formData || {}),
               fullObject: updatedProspect
             });
             setProspects(prev => {
@@ -284,24 +233,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       const data = rpcResult;
       logger.debug('RPC result', { prospectId: data?.id });
 
-      // Transformer et ajouter à la liste locale
-      const transformed = {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        companyName: data.company_name, // ✅ FIX: Utiliser companyName
-        company: data.company_name, // 🔥 Garder aussi company pour compatibilité
-        address: data.address,
-        ownerId: data.owner_id,
-        status: data.status,
-        tags: data.tags || [],
-        hasAppointment: data.has_appointment || false,
-        affiliateName: data.affiliate_name,
-        formData: data.form_data || {}, // 🔥 Réponses aux formulaires
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+      // 🔥 PR-4: Utiliser transform centralisé
+      const transformed = prospectToCamel(data);
 
       // Ne pas ajouter localement, laisser le real-time s'en charger
 
@@ -464,23 +397,8 @@ export const useSupabaseProspects = (activeAdminUser) => {
       // 🔥 Mettre à jour immédiatement le state local avec les données retournées
       if (data && data.length > 0) {
         const dbProspect = data[0]; // Le RPC retourne un array
-        const transformedProspect = {
-          id: dbProspect.id,
-          name: dbProspect.name,
-          email: dbProspect.email,
-          phone: dbProspect.phone,
-          companyName: dbProspect.company_name, // ✅ FIX: Utiliser companyName
-          company: dbProspect.company_name, // 🔥 Garder aussi company pour compatibilité
-          address: dbProspect.address,
-          ownerId: dbProspect.owner_id,
-          status: dbProspect.status,
-          tags: dbProspect.tags || [],
-          hasAppointment: dbProspect.has_appointment || false,
-          affiliateName: dbProspect.affiliate_name,
-          formData: dbProspect.form_data || {},
-          createdAt: dbProspect.created_at,
-          updatedAt: dbProspect.updated_at,
-        };
+        // 🔥 PR-4: Utiliser transform centralisé
+        const transformedProspect = prospectToCamel(dbProspect);
         
         setProspects(prev => 
           prev.map(p => p.id === id ? transformedProspect : p)
