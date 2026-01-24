@@ -159,6 +159,23 @@ export function useSupabasePrompts({ organizationId = null, enabled = true } = {
       if (error) throw error;
 
       logger.debug('Prompt saved to Supabase', { promptId: data?.prompt_id });
+      
+      // 🔥 FIX: Mettre à jour l'état local immédiatement (ne pas attendre le real-time)
+      if (data) {
+        setPrompts((prev) => ({
+          ...prev,
+          [data.prompt_id]: {
+            id: data.prompt_id,
+            name: data.name,
+            tone: data.tone,
+            projectId: data.project_id,
+            stepsConfig: data.steps_config || {},
+            createdAt: new Date(data.created_at).getTime(),
+            updatedAt: new Date(data.updated_at).getTime(),
+          },
+        }));
+      }
+      
       return { success: true, data };
     } catch (err) {
       logger.error('Error saving prompt:', err);
@@ -176,11 +193,38 @@ export function useSupabasePrompts({ organizationId = null, enabled = true } = {
 
       if (error) throw error;
 
+      // 🔥 FIX: Mettre à jour l'état local immédiatement
+      setPrompts((prev) => {
+        const updated = { ...prev };
+        delete updated[promptId];
+        return updated;
+      });
+
       logger.debug('Prompt deleted from Supabase', { promptId });
       return { success: true };
     } catch (err) {
       logger.error('❌ Error deleting prompt:', err);
       return { success: false, error: err.message };
+    }
+  };
+
+  // 🔥 Fonction de refresh manuel (au cas où le real-time échoue)
+  const refresh = async () => {
+    if (!organizationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformed = transformFromDB(data || []);
+      setPrompts(transformed);
+    } catch (err) {
+      logger.error('❌ Error refreshing prompts:', err);
     }
   };
 
@@ -190,5 +234,6 @@ export function useSupabasePrompts({ organizationId = null, enabled = true } = {
     error,
     savePrompt,
     deletePrompt,
+    refresh,
   };
 }
