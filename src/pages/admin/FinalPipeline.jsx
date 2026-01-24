@@ -520,6 +520,14 @@ const FinalPipeline = () => {
       // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
       const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
       
+      // 🔥 DEBUG: Log des données envoyées
+      console.log('🔍 handleAddProspect called', {
+        newProspectData,
+        firstStepId,
+        ownerId: activeAdminUser?.user_id,
+        activeAdminUser
+      });
+      
       // 🔥 FIX: Utiliser user_id (auth UUID) au lieu de id (table UUID)
       // La FK prospects.owner_id référence users.user_id pour RLS policies
       const createdProspect = await addSupabaseProspectDirect({ 
@@ -527,6 +535,13 @@ const FinalPipeline = () => {
         status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
         ownerId: activeAdminUser?.user_id
       });
+      
+      // 🔥 DEBUG: Log du résultat
+      console.log('🔍 createdProspect result', createdProspect);
+      
+      if (!createdProspect || !createdProspect.id) {
+        throw new Error('Prospect non créé - résultat vide');
+      }
 
       // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
       if (createdProspect && newProspectData.tags && newProspectData.tags.length > 0) {
@@ -568,11 +583,13 @@ const FinalPipeline = () => {
 
       setIsAddModalOpen(false);
     } catch (error) {
+      console.error('❌ handleAddProspect error', error);
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter le prospect.",
+        description: error.message || "Impossible d'ajouter le prospect.",
         variant: "destructive"
       });
+      // 🔥 NE PAS fermer la modal en cas d'erreur
     }
   };
 
