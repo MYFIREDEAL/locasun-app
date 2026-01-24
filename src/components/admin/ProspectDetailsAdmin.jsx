@@ -24,7 +24,7 @@ import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsSt
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
-import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
+// 🔥 PR-3: useSupabaseAgenda supprimé - données centralisées dans AppContext
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
@@ -860,10 +860,8 @@ const ProjectTimeline = ({
   if (!steps) return null;
   
   const [checklistStates, setChecklistStates] = useState({});
-  const { activeAdminUser } = useAppContext();
-  
-  // 🔥 Récupérer les tâches du commercial pour ce prospect
-  const { appointments, updateAppointment } = useSupabaseAgenda(activeAdminUser);
+  // 🔥 PR-3: Récupérer appointments depuis AppContext (source unique)
+  const { activeAdminUser, appointments, updateAppointment } = useAppContext();
   
   // Récupérer le prompt pour ce projet
   const prompt = prompts ? Object.values(prompts).find(p => p.projectId === projectType) : null;
@@ -1141,11 +1139,10 @@ const ProjectTimeline = ({
 };
 
 const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
-    const { forms, prompts, completeStepAndProceed, activeAdminUser } = useAppContext();
+    // 🔥 PR-3: Récupérer appointments depuis AppContext (source unique)
+    const { forms, prompts, completeStepAndProceed, activeAdminUser, appointments, updateAppointment } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
     const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(null);
-    // 🔥 Hook pour mettre à jour les tâches - CORRIGER: Passer activeAdminUser
-    const { appointments, updateAppointment } = useSupabaseAgenda(activeAdminUser);
     // 🆕 Hook pour envoyer des messages dans le chat
     const { sendMessage } = useSupabaseChatMessages(prospect.id, projectType);
     const [editingPanelId, setEditingPanelId] = useState(null);
@@ -3340,12 +3337,13 @@ const ProspectDetailsAdmin = ({
 
 // Composant réutilisant les mêmes cartes et modal que l'Agenda
 const ProspectActivities = ({ prospectId, projectType }) => {
-  const { activeAdminUser, prospects, projectsData } = useAppContext();
-  
-  // 🔥 Utiliser le hook Supabase pour récupérer les vraies activités
+  // 🔥 PR-3: Récupérer toutes les données agenda depuis AppContext (source unique)
   const { 
-    appointments: allAppointments, 
-    loading: agendaLoading, 
+    activeAdminUser, 
+    prospects, 
+    projectsData,
+    appointments: allAppointments,
+    agendaLoading,
     updateAppointment, 
     deleteAppointment,
     addAppointment,
@@ -3353,7 +3351,7 @@ const ProspectActivities = ({ prospectId, projectType }) => {
     addTask,
     updateCall,
     updateTask
-  } = useSupabaseAgenda(activeAdminUser);
+  } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   const { supabaseUserId } = useSupabaseUser();
   

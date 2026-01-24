@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
-import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+// 🔥 PR-3: useSupabaseProspects supprimé - données centralisées dans AppContext
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 const COLUMN_COLORS = [
@@ -88,11 +88,8 @@ const FinalPipeline = () => {
   const { users: supabaseUsers, loading: usersLoading } = useUsers();
   const { authUserId } = useSupabaseUser();
   
-  // 🔥 Hook pour ajouter des prospects - appelé avant les early returns
-  // activeAdminUser peut être undefined si contextData est null, le hook gère ce cas
-  const {
-    addProspect: addSupabaseProspectDirect,
-  } = useSupabaseProspects(contextData?.activeAdminUser);
+  // 🔥 PR-3: addProspect récupéré depuis AppContext (source unique)
+  const addSupabaseProspectDirect = contextData?.addProspect;
 
   // ❌ SUPPRIMÉ : Canal real-time spécifique (duplication inutile)
   // Ancien code causait le bug : selectedProspect était un state local qui ne se synchronisait jamais

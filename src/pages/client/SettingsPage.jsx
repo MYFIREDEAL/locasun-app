@@ -11,7 +11,7 @@ import React, { useState, useEffect } from 'react';
     import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
     import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
     import { supabase } from '@/lib/supabase';
-    import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+    // 🔥 PR-3: useSupabaseProspects supprimé - données centralisées dans AppContext
     import { logger } from '@/lib/logger';
 
     const SettingsSection = ({ title, children }) => (
@@ -28,8 +28,8 @@ import React, { useState, useEffect } from 'react';
     const SettingsPage = () => {
       const location = useLocation();
       const navigate = useNavigate();
-      const { currentUser, setCurrentUser } = useAppContext();
-      const { updateProspect: updateSupabaseProspect } = useSupabaseProspects();
+      // 🔥 PR-3: updateProspect récupéré depuis AppContext (source unique)
+      const { currentUser, setCurrentUser, updateProspect: updateSupabaseProspect } = useAppContext();
       const isProfilePage = location.pathname.includes('/profil');
 
       const [formData, setFormData] = useState({

@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/App';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
-import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+// 🔥 PR-3: useSupabaseProspects supprimé - données centralisées dans AppContext
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
 const OfferCard = ({ project, projectStatus }) => {
-  const { currentUser, setCurrentUser } = useAppContext();
-  const { updateProspect } = useSupabaseProspects();
+  // 🔥 PR-3: updateProspect récupéré depuis AppContext (source unique)
+  const { currentUser, setCurrentUser, updateProspect } = useAppContext();
   const navigate = useNavigate();
   
   // 🔥 Utiliser currentUser.tags depuis Supabase (pas localStorage)

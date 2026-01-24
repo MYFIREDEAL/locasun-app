@@ -19,8 +19,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandG
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAppContext } from '@/App';
 import { cn } from '@/lib/utils';
-import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
-import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+// 🔥 PR-3: useSupabaseAgenda et useSupabaseProspects supprimés - données centralisées dans AppContext
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
 import { useUsers } from '@/contexts/UsersContext';
@@ -1460,21 +1459,15 @@ const AddActivityModal = ({
 }
 
 const Agenda = () => {
-  const { activeAdminUser, projectsData = {} } = useAppContext();
-  const navigate = useNavigate();
-  
-  // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
-  const { supabaseUserId, authUserId, loading: userIdLoading } = useSupabaseUser();
-  
-  // 🔥 Charger TOUS les utilisateurs Supabase (via cache global UsersContext)
-  const { users: supabaseUsers, loading: usersLoading } = useUsers();
-  
-  // 🚀 MIGRATION SUPABASE : Charger les données depuis Supabase
-  const {
+  // 🔥 PR-3: SOURCE UNIQUE - Récupérer agenda depuis AppContext (plus de hook direct)
+  const { 
+    activeAdminUser, 
+    projectsData = {},
+    // � PR-3: Données agenda centralisées
     appointments: supabaseAppointments,
     calls: supabaseCalls,
     tasks: supabaseTasks,
-    loading: agendaLoading,
+    agendaLoading,
     addAppointment: addSupabaseAppointment,
     updateAppointment: updateSupabaseAppointment,
     deleteAppointment: deleteSupabaseAppointment,
@@ -1484,13 +1477,17 @@ const Agenda = () => {
     addTask: addSupabaseTask,
     updateTask: updateSupabaseTask,
     deleteTask: deleteSupabaseTask,
-  } = useSupabaseAgenda(activeAdminUser);
-
-  // 🔥 Charger les prospects depuis Supabase pour l'autocomplétion
-  const {
+    // 🔥 PR-3: Prospects centralisés
     prospects: supabaseProspects,
-    loading: prospectsLoading,
-  } = useSupabaseProspects(activeAdminUser);
+    prospectsLoading,
+  } = useAppContext();
+  const navigate = useNavigate();
+  
+  // 🔥 Charger l'UUID Supabase de l'utilisateur authentifié
+  const { supabaseUserId, authUserId, loading: userIdLoading } = useSupabaseUser();
+  
+  // 🔥 Charger TOUS les utilisateurs Supabase (via cache global UsersContext)
+  const { users: supabaseUsers, loading: usersLoading } = useUsers();
 
   // Utiliser les données Supabase
   const appointments = supabaseAppointments;

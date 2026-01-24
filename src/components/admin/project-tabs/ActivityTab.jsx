@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
-import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda';
-import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+// 🔥 PR-3: useSupabaseAgenda et useSupabaseProspects supprimés - données centralisées dans AppContext
 import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { useAppContext } from '@/App';
@@ -18,14 +17,23 @@ import { AddActivityModal } from '@/pages/admin/Agenda';
 import { useNavigate } from 'react-router-dom';
 
 const ActivityTab = ({ prospectId, projectType, activeAdminUser }) => {
-  const { projectsData } = useAppContext();
+  // 🔥 PR-3: Récupérer toutes les données depuis AppContext (source unique)
+  const { 
+    projectsData, 
+    appointments, 
+    updateAppointment, 
+    deleteAppointment, 
+    addAppointment, 
+    addCall, 
+    addTask, 
+    updateCall, 
+    updateTask,
+    prospects,
+  } = useAppContext();
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [activityModalData, setActivityModalData] = useState(null);
 
-  // 🔥 Charger les données nécessaires pour EventDetailsPopup et AddActivityModal
-  const { appointments, updateAppointment, deleteAppointment, addAppointment, addCall, addTask, updateCall, updateTask } = useSupabaseAgenda(activeAdminUser);
-  const { prospects } = useSupabaseProspects(activeAdminUser);
   const { users: supabaseUsers } = useUsers();
   const { supabaseUserId } = useSupabaseUser();
 

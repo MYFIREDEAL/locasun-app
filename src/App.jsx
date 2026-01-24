@@ -54,6 +54,7 @@ import { formContactConfig as defaultFormContactConfig } from '@/config/formCont
 import { supabase } from '@/lib/supabase';
 import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseProspects } from '@/hooks/useSupabaseProspects'; // 🔥 AJOUT PRO
+import { useSupabaseAgenda } from '@/hooks/useSupabaseAgenda'; // 🔥 PR-3: Source unique agenda
 import { useSupabaseCompanySettings } from '@/hooks/useSupabaseCompanySettings';
 import { useSupabaseGlobalPipeline } from '@/hooks/useSupabaseGlobalPipeline';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
@@ -347,6 +348,25 @@ function App() {
     updateProspect: updateProspectSupabase,
     loading: prospectsLoading 
   } = useSupabaseProspects(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
+  
+  // 🔥 PR-3: SOURCE UNIQUE AGENDA - Appeler useSupabaseAgenda UNE SEULE FOIS ici
+  const {
+    appointments: supabaseAppointments,
+    calls: supabaseCalls,
+    tasks: supabaseTasks,
+    loading: agendaLoading,
+    error: agendaError,
+    addAppointment: addAppointmentSupabase,
+    updateAppointment: updateAppointmentSupabase,
+    deleteAppointment: deleteAppointmentSupabase,
+    addCall: addCallSupabase,
+    updateCall: updateCallSupabase,
+    deleteCall: deleteCallSupabase,
+    addTask: addTaskSupabase,
+    updateTask: updateTaskSupabase,
+    deleteTask: deleteTaskSupabase,
+    refresh: refreshAgenda,
+  } = useSupabaseAgenda(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
   
   // Synchroniser prospects dans le state pour compatibilité avec le code existant
   useEffect(() => {
@@ -1515,10 +1535,23 @@ function App() {
     prospectsLoading, // 🔥 État de chargement des prospects pour skeleton screens
     setProspects, addProspect, updateProspect, 
     currentUser, setCurrentUser: handleSetCurrentUser, 
-    appointments, addAppointment, updateAppointment, deleteAppointment, getSharedAppointments,
+    // 🔥 PR-3: SOURCE UNIQUE AGENDA - Données et fonctions du hook centralisé
+    appointments: supabaseAppointments || [],
+    addAppointment: addAppointmentSupabase,
+    updateAppointment: updateAppointmentSupabase,
+    deleteAppointment: deleteAppointmentSupabase,
+    getSharedAppointments,
     getProjectSteps, updateProjectSteps, completeStepAndProceed,
-    calls, addCall, updateCall, deleteCall,
-    tasks, addTask, updateTask, deleteTask,
+    calls: supabaseCalls || [],
+    addCall: addCallSupabase,
+    updateCall: updateCallSupabase,
+    deleteCall: deleteCallSupabase,
+    tasks: supabaseTasks || [],
+    addTask: addTaskSupabase,
+    updateTask: updateTaskSupabase,
+    deleteTask: deleteTaskSupabase,
+    agendaLoading, // 🔥 PR-3: État de chargement agenda
+    refreshAgenda, // 🔥 PR-3: Forcer refresh agenda si nécessaire
     // ❌ SUPPRIMÉ: users, updateUsers, deleteUser, getAdminById - Utiliser useSupabaseUsers() ou useSupabaseUsersCRUD()
     addChatMessage, // ✅ Conservé pour compatibilité - Envoie maintenant vers Supabase
     notifications, markNotificationAsRead,

@@ -9,7 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
 import SafeProspectDetailsAdmin from '@/components/admin/SafeProspectDetailsAdmin';
-import { useSupabaseProspects } from '@/hooks/useSupabaseProspects';
+// 🔥 PR-3: useSupabaseProspects supprimé - données centralisées dans AppContext
 import { useUsers } from '@/contexts/UsersContext';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
@@ -223,7 +223,17 @@ const FallbackAddModal = ({ open, onOpenChange, onAddProspect }) => {
 
 const CompleteOriginalContacts = () => {
   const context = useAppContext();
-  const { activeAdminUser, projectsData = {}, globalPipelineSteps = [] } = context || {};
+  // 🔥 PR-3: Récupérer prospects directement depuis AppContext (source unique)
+  const { 
+    activeAdminUser, 
+    projectsData = {}, 
+    globalPipelineSteps = [],
+    prospects: supabaseProspects,
+    prospectsLoading,
+    addProspect: addSupabaseProspect,
+    updateProspect: updateSupabaseProspect,
+    deleteProspect: deleteSupabaseProspect,
+  } = context || {};
   // ❌ SUPPRIMÉ: users du context - Utiliser uniquement supabaseUsers
   
   // ✅ Utiliser UsersContext (cache global) au lieu de useSupabaseUsers
@@ -236,15 +246,6 @@ const CompleteOriginalContacts = () => {
       return acc;
     }, {});
   }, [supabaseUsers]);
-  
-  // Utiliser le hook Supabase pour les prospects
-  const {
-    prospects: supabaseProspects,
-    loading: prospectsLoading,
-    addProspect: addSupabaseProspect,
-    updateProspect: updateSupabaseProspect,
-    deleteProspect: deleteSupabaseProspect,
-  } = useSupabaseProspects(activeAdminUser);
   
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [selectedProspectId, setSelectedProspectId] = useState(null);
