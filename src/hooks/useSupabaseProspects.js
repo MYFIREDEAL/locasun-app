@@ -212,6 +212,17 @@ export const useSupabaseProspects = (activeAdminUser) => {
         throw new Error('organization_id manquant');
       }
       
+      // 🔥 DEBUG: Log des données envoyées
+      logger.debug('addProspect input data', {
+        name: prospectData.name,
+        email: prospectData.email,
+        phone: prospectData.phone,
+        status: prospectData.status,
+        ownerId: prospectData.ownerId,
+        tags: prospectData.tags,
+        host: window.location.hostname
+      });
+      
       // ⚠️ Ne plus utiliser 'Intéressé' en fallback - le status doit venir de l'appelant
       // qui utilise le step_id de la première colonne du globalPipelineSteps
       const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
@@ -225,6 +236,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
         p_has_appointment: prospectData.hasAppointment || false,
         p_affiliate_name: prospectData.affiliateName || null,
         p_host: window.location.hostname, // 🔥 AJOUT pour résolution organization_id
+      });
+      
+      // 🔥 DEBUG: Log du résultat
+      logger.debug('RPC insert_prospect_safe result', { 
+        rpcResult, 
+        insertError: insertError?.message,
+        insertErrorCode: insertError?.code 
       });
 
       if (insertError) throw insertError;
