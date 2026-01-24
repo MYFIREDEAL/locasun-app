@@ -6,6 +6,7 @@ import React, { useEffect } from 'react';
     import { useAppContext } from '@/App';
     import { useOrganization } from '@/contexts/OrganizationContext';
     import { supabase } from '@/lib/supabase';
+    import ModuleBoundary from '@/components/ModuleBoundary';
 
     const AdminLayout = () => {
       const { width } = useWindowSize();
@@ -178,7 +179,9 @@ import React, { useEffect } from 'react';
           <AdminHeader />
           <div className="flex flex-1 w-full">
             <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
-              <Outlet />
+              <ModuleBoundary name="Admin Page">
+                <Outlet />
+              </ModuleBoundary>
             </main>
             {isConfigurationIAPage && isDesktop && (
               <aside className="w-[300px] flex-shrink-0 p-6 pr-10 hidden lg:block">

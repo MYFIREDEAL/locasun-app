@@ -6,6 +6,7 @@ import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import ModuleBoundary from '@/components/ModuleBoundary';
 
 const ClientLayout = () => {
   const { width } = useWindowSize();
@@ -101,7 +102,9 @@ const ClientLayout = () => {
       <ClientHeader />
       <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-24 md:pb-8">
         <main className="flex-1 min-w-0">
-          <Outlet />
+          <ModuleBoundary name="Espace Client">
+            <Outlet />
+          </ModuleBoundary>
         </main>
       </div>
     </div>

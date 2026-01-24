@@ -10,6 +10,7 @@ import ProspectCard from '@/components/admin/ProspectCard';
 import SkeletonCard from '@/components/admin/SkeletonCard';
 import ProspectDetailsAdmin from '@/components/admin/ProspectDetailsAdmin';
 import SafeAddProspectModal from '@/components/admin/SafeAddProspectModal';
+import ModuleBoundary from '@/components/ModuleBoundary';
 import { toast } from '@/components/ui/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -605,12 +606,14 @@ const FinalPipeline = () => {
         exit={{ opacity: 0, x: -20 }}
         className="h-full"
       >
-        <ProspectDetailsAdmin 
-          prospect={selectedProspect} 
-          onBack={handleBack}
-          onUpdate={handleUpdateProspect}
-          onEditingChange={setIsEditingProspect}
-        />
+        <ModuleBoundary name="Fiche Prospect">
+          <ProspectDetailsAdmin 
+            prospect={selectedProspect} 
+            onBack={handleBack}
+            onUpdate={handleUpdateProspect}
+            onEditingChange={setIsEditingProspect}
+          />
+        </ModuleBoundary>
       </motion.div>
     );
   }
