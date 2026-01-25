@@ -525,8 +525,14 @@ const FinalPipeline = () => {
         newProspectData,
         firstStepId,
         ownerId: activeAdminUser?.user_id,
-        activeAdminUser
+        activeAdminUser,
+        addSupabaseProspectDirect: typeof addSupabaseProspectDirect,
+        hasFunction: !!addSupabaseProspectDirect
       });
+      
+      if (!addSupabaseProspectDirect) {
+        throw new Error('addSupabaseProspectDirect is undefined - contexte non chargé');
+      }
       
       // 🔥 FIX: Utiliser user_id (auth UUID) au lieu de id (table UUID)
       // La FK prospects.owner_id référence users.user_id pour RLS policies
