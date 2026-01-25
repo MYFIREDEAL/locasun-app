@@ -1,9 +1,8 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { supabase } from '@/lib/supabase';
 
 const normalizeLabel = (label) => (label || '').toString().trim().toUpperCase();
 
@@ -43,39 +42,11 @@ const arePropsEqual = (prevProps, nextProps) => {
 };
 
 const ProspectCardInner = ({ prospect, onClick, sortableId, projectsData = {} }) => {
-  const [projectStatuses, setProjectStatuses] = useState({});
-
-  // Charger les statuts de tous les projets du prospect
-  useEffect(() => {
-    const loadProjectStatuses = async () => {
-      if (!prospect.id || !prospect.tags || prospect.tags.length === 0) return;
-      
-      const { data } = await supabase
-        .from('project_infos')
-        .select('project_type, status')
-        .eq('prospect_id', prospect.id)
-        .in('project_type', prospect.tags);
-      
-      if (data) {
-        const statusMap = {};
-        data.forEach(item => {
-          statusMap[item.project_type] = item.status || 'actif';
-        });
-        setProjectStatuses(statusMap);
-      }
-    };
-    
-    loadProjectStatuses();
-  }, [prospect.id, prospect.tags]);
-
-  // Filtrer les tags pour ne garder que ceux avec statut "actif"
-  const activeTags = (Array.isArray(prospect.tags) ? prospect.tags : [])
-    .filter(tag => {
-      const status = projectStatuses[tag];
-      // Si pas de statut encore chargé, on affiche (optimistic)
-      // Si statut chargé, ne garder que "actif" (ou undefined = actif par défaut)
-      return !status || status === 'actif';
-    });
+  // 🔥 PR-8: Supprimé le useEffect N+1 qui chargeait project_infos pour chaque carte
+  // Les projets sont déjà filtrés côté FinalPipeline via allProjectSteps
+  // On affiche tous les tags du prospect (approche optimistic)
+  const activeTags = Array.isArray(prospect.tags) ? prospect.tags : [];
+  
   // 🎯 Contexte du projet pour CETTE carte spécifique
   const activeProjectLabel =
     prospect._projectContext?.projectTitle ||

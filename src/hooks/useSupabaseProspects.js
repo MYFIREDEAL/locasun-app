@@ -13,13 +13,18 @@ export const useSupabaseProspects = (activeAdminUser) => {
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0); // 🔥 PR-8: Total pour pagination
+  const [hasMore, setHasMore] = useState(true); // 🔥 PR-8: Indicateur pagination
   const channelRef = useRef(null); // 🔥 Stocker le channel pour broadcast manuel
   const { organizationId } = useOrganization(); // 🔥 AJOUT
 
+  // 🔥 PR-8: Limite par page (default élevé pour rétrocompatibilité)
+  const PAGE_SIZE = 500;
+
   // Charger les prospects depuis Supabase
-  const fetchProspects = async () => {
+  const fetchProspects = async (offset = 0, append = false) => {
     try {
-      setLoading(true);
+      if (!append) setLoading(true);
       
       // 🔥 Vérifier si une session existe
       const { data: { session } } = await supabase.auth.getSession();
@@ -30,20 +35,35 @@ export const useSupabaseProspects = (activeAdminUser) => {
         return;
       }
       
-      // 🔥 UTILISER LA FONCTION RPC AU LIEU DU SELECT DIRECT
-      // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies SELECT
-      const { data, error: fetchError } = await supabase.rpc('get_prospects_safe');
+      // 🔥 PR-8: UTILISER LA FONCTION RPC AVEC PAGINATION
+      const { data, error: fetchError } = await supabase.rpc('get_prospects_safe', {
+        p_limit: PAGE_SIZE,
+        p_offset: offset
+      });
 
       if (fetchError) {
         logger.error('Erreur fetch prospects', { error: fetchError.message });
         throw fetchError;
       }
 
+      // 🔥 PR-8: Récupérer le total pour la pagination
+      const { data: countData } = await supabase.rpc('get_prospects_count');
+      if (countData !== null) setTotalCount(countData);
+
       // 🔥 PR-4: Utiliser transforms centralisés
       const transformedProspects = transformArray(data, prospectToCamel);
 
-      logger.debug('Prospects fetched', { count: transformedProspects.length });
-      setProspects(transformedProspects);
+      // 🔥 PR-8: Détecter s'il y a plus de données
+      setHasMore(transformedProspects.length === PAGE_SIZE);
+
+      logger.debug('Prospects fetched', { count: transformedProspects.length, offset, total: countData });
+      
+      if (append) {
+        // 🔥 PR-8: Ajouter aux existants (pagination)
+        setProspects(prev => [...prev, ...transformedProspects]);
+      } else {
+        setProspects(transformedProspects);
+      }
       setError(null);
     } catch (err) {
       logger.error('Erreur chargement prospects', { error: err.message });
@@ -55,6 +75,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🔥 PR-8: Charger la page suivante
+  const loadMore = () => {
+    if (hasMore && !loading) {
+      fetchProspects(prospects.length, true);
     }
   };
 
@@ -394,5 +421,9 @@ export const useSupabaseProspects = (activeAdminUser) => {
     updateProspect,
     deleteProspect,
     refetchProspects: fetchProspects,
+    // 🔥 PR-8: Pagination
+    totalCount,
+    hasMore,
+    loadMore,
   };
 };

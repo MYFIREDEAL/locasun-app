@@ -32,11 +32,21 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
   // ==================== FETCH DATA ====================
 
+  // 🔥 PR-8: Filtrer par range de date (±3 mois autour de la date courante)
   const fetchAppointments = async () => {
     try {
+      // Calculer la plage de dates : 3 mois avant et 3 mois après
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - 3);
+      const endDate = new Date(now);
+      endDate.setMonth(endDate.getMonth() + 3);
+      
       const { data, error: fetchError } = await supabase
         .from('appointments')
         .select('*')
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });
 
       if (fetchError) throw fetchError;
@@ -44,6 +54,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
       // 🔥 PR-4: Utiliser transforms centralisés
       const transformed = transformArray(data, appointmentToCamel);
       
+      logger.debug('Appointments fetched', { count: transformed.length, range: `${startDate.toISOString()} - ${endDate.toISOString()}` });
       setAppointments(transformed);
       return transformed;
     } catch (err) {
