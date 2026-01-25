@@ -73,25 +73,27 @@ import React, { useEffect } from 'react';
         );
       }
 
-      // 🔥 PR-1: Gating simplifié - bloquer tant que pas ready
-      // bootStatus gère maintenant la séquence: org → auth → user
-      if (!adminReady || organizationLoading || !organizationId) {
+      // 🔥 PR-5: Skeleton first paint - afficher le layout même pendant le chargement
+      // On bloque SEULEMENT si on n'a pas encore d'organisation
+      // Le reste du chargement (user, data) se fait avec le layout visible
+      if (organizationLoading || !organizationId) {
         return (
           <div className="flex items-center justify-center h-screen bg-gray-50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 font-medium">Chargement de l'espace admin...</p>
-              <p className="text-xs text-gray-400 mt-2">
-                {!organizationId && 'Résolution de l\'organisation...'}
-                {organizationId && !adminReady && 'Chargement du profil...'}
-              </p>
+              <p className="text-gray-600 font-medium">Connexion...</p>
             </div>
           </div>
         );
       }
+      
+      // 🔥 PR-5: Si pas encore adminReady mais org OK, afficher un skeleton léger dans le layout
+      // plutôt que bloquer complètement - l'utilisateur voit déjà l'interface
+      const isStillLoadingUser = !adminReady && !activeAdminUser;
 
       // 🔒 PROTECTION : Rediriger les non-admins qui accèdent aux routes admin-only
-      if (isAdminOnlyRoute && !isAdminRole) {
+      // 🔥 PR-5: Ne pas bloquer si on charge encore (isStillLoadingUser)
+      if (isAdminOnlyRoute && !isAdminRole && !isStillLoadingUser) {
         return (
           <div className="flex items-center justify-center h-screen bg-gray-50">
             <div className="text-center max-w-md">

@@ -1685,12 +1685,13 @@ function App() {
   }
   
   // 🔥 PR-1: Écran de chargement intelligent basé sur bootStatus
-  if (bootStatus !== BOOT_STATUS.READY) {
+  // 🔥 PR-5: SKELETON FIRST PAINT - Ne plus bloquer le rendu, afficher le layout avec placeholders
+  // On ne bloque QUE pour INIT et RESOLVING_ORG (besoin de l'org pour les routes)
+  // Les autres états permettent d'afficher le layout avec des données en chargement
+  if (bootStatus === BOOT_STATUS.INIT || bootStatus === BOOT_STATUS.RESOLVING_ORG) {
     const loadingMessages = {
       [BOOT_STATUS.INIT]: 'Initialisation...',
       [BOOT_STATUS.RESOLVING_ORG]: 'Connexion au serveur...',
-      [BOOT_STATUS.AUTH]: 'Vérification de la session...',
-      [BOOT_STATUS.LOADING_USER]: 'Chargement du profil...',
     };
     
     return (
@@ -1705,6 +1706,9 @@ function App() {
       </div>
     );
   }
+  
+  // 🔥 PR-5: À partir de AUTH/LOADING_USER/READY, on affiche le layout
+  // Les composants gèrent leur propre état de chargement via prospectsLoading, agendaLoading, etc.
 
   return (
     <AppContext.Provider value={appState}>
