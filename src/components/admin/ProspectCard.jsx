@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
@@ -7,7 +7,42 @@ import { supabase } from '@/lib/supabase';
 
 const normalizeLabel = (label) => (label || '').toString().trim().toUpperCase();
 
-const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
+// 🔥 PR-7: Comparateur shallow pour éviter re-renders inutiles
+const arePropsEqual = (prevProps, nextProps) => {
+  // Comparer les IDs stables (priorité)
+  if (prevProps.sortableId !== nextProps.sortableId) return false;
+  
+  // Comparer les données du prospect (shallow)
+  const prevP = prevProps.prospect;
+  const nextP = nextProps.prospect;
+  if (prevP.id !== nextP.id) return false;
+  if (prevP.name !== nextP.name) return false;
+  if (prevP.hasAppointment !== nextP.hasAppointment) return false;
+  if (prevP.updatedAt !== nextP.updatedAt) return false;
+  
+  // Comparer _projectContext (shallow)
+  const prevCtx = prevP._projectContext || {};
+  const nextCtx = nextP._projectContext || {};
+  if (prevCtx.projectType !== nextCtx.projectType) return false;
+  if (prevCtx.projectTitle !== nextCtx.projectTitle) return false;
+  if (prevCtx.stepLabel !== nextCtx.stepLabel) return false;
+  
+  // Comparer tags (array shallow)
+  const prevTags = prevP.tags || [];
+  const nextTags = nextP.tags || [];
+  if (prevTags.length !== nextTags.length) return false;
+  if (prevTags.some((t, i) => t !== nextTags[i])) return false;
+  
+  // projectsData: comparaison par référence (doit être mémorisé côté parent)
+  if (prevProps.projectsData !== nextProps.projectsData) return false;
+  
+  // onClick: comparaison par référence (doit être useCallback côté parent)
+  if (prevProps.onClick !== nextProps.onClick) return false;
+  
+  return true;
+};
+
+const ProspectCardInner = ({ prospect, onClick, sortableId, projectsData = {} }) => {
   const [projectStatuses, setProjectStatuses] = useState({});
 
   // Charger les statuts de tous les projets du prospect
@@ -122,5 +157,8 @@ const ProspectCard = ({ prospect, onClick, sortableId, projectsData = {} }) => {
     </div>
   );
 };
+
+// 🔥 PR-7: React.memo avec comparateur custom pour perf pipeline 1000+ prospects
+const ProspectCard = memo(ProspectCardInner, arePropsEqual);
 
 export default ProspectCard;

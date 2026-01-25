@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Users, Filter, ChevronDown, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,10 @@ const DEFAULT_PIPELINE_STAGE_DEFINITIONS = [
   { id: 'closed', label: 'FERMÉ', name: 'Fermé' },
 ];
 
+// 🔥 PR-7: Limite de cartes visibles par colonne (windowing soft)
+const CARDS_PER_COLUMN_INITIAL = 50;
+const CARDS_INCREMENT = 50;
+
 const FinalPipeline = () => {
   // Récupération du contexte avec gestion d'erreur
   const contextData = useAppContext();
@@ -86,6 +90,9 @@ const FinalPipeline = () => {
   
   // 🔥 PR-5: Tracker le premier chargement complet pour le blur
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  
+  // 🔥 PR-7: Windowing soft - limite de cartes visibles par colonne
+  const [columnLimits, setColumnLimits] = useState({});
 
   // 🔥 HOOKS DÉPLACÉS ICI (avant les early returns)
   const { users: supabaseUsers, loading: usersLoading } = useUsers();
@@ -507,17 +514,28 @@ const FinalPipeline = () => {
     );
   };
 
-  const handleProspectClick = (prospect, projectType) => {
+  // 🔥 PR-7: Handler stable pour click sur prospect (évite re-render ProspectCard)
+  const handleProspectClick = useCallback((prospect, projectType) => {
     setSelectedProspectId(prospect.id);
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('prospect', prospect.id);
-    if (projectType) {
-      newParams.set('project', projectType);
-    } else {
-      newParams.delete('project');
-    }
-    setSearchParams(newParams);
-  };
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('prospect', prospect.id);
+      if (projectType) {
+        newParams.set('project', projectType);
+      } else {
+        newParams.delete('project');
+      }
+      return newParams;
+    });
+  }, [setSearchParams]);
+
+  // 🔥 PR-7: Handler pour "Voir plus" dans une colonne
+  const handleShowMore = useCallback((stageId) => {
+    setColumnLimits(prev => ({
+      ...prev,
+      [stageId]: (prev[stageId] || CARDS_PER_COLUMN_INITIAL) + CARDS_INCREMENT
+    }));
+  }, []);
 
   const handleBack = () => {
     setSelectedProspectId(null);
@@ -890,9 +908,9 @@ const FinalPipeline = () => {
 
               {/* Prospects List */}
               <div className="flex-1 space-y-3 overflow-y-auto">
-                {/* 🔥 PR-5: Blur appliqué au niveau de la grille parent */}
-                  <>
-                    {(prospectsByStage[stage.id] || [])
+                {/* 🔥 PR-7: Windowing soft avec limite par colonne */}
+                  {(() => {
+                    const allEntries = (prospectsByStage[stage.id] || [])
                       .filter(entry => {
                         // 🎯 Filtrer par tags sélectionnés au niveau de la CARTE (projectType)
                         if (selectedTags.length === 0) return true;
@@ -900,49 +918,69 @@ const FinalPipeline = () => {
                         return selectedTags.some(tag => 
                           tag.toUpperCase() === (projectType || '').toUpperCase()
                         );
-                      })
-                      .map((entry, idx) => {
-                        const { prospect, projectType, activeStep } = entry;
-                        const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
-                        const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
-                        const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
-                        const stepLabel = activeStep?.label || activeStep?.name || stage.name;
-                        const projectColor = stage.color || 'bg-blue-100 text-blue-700';
-                        const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
-
-                        return (
-                        <motion.div
-                          key={key}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          whileHover={{ scale: 1.02 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <ProspectCard
-                            prospect={{ ...prospect, _projectContext: { projectType: projectType || fallbackProjectLabel, projectTitle, stepLabel, projectColor } }}
-                            onClick={() =>
-                              handleProspectClick(
-                                prospect,
-                                projectType || prospect.projectType || (Array.isArray(prospect.tags) ? prospect.tags[0] : fallbackProjectLabel)
-                              )
-                            }
-                            compact={true}
-                            sortableId={sortableId}
-                            projectsData={projectsData}
-                          />
-                        </motion.div>
-                      );
-                    })}
+                      });
                     
-                    {stage.count === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        <div className="w-16 h-16 bg-white bg-opacity-50 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <Users className="w-8 h-8 text-gray-400" />
-                        </div>
-                        <p className="text-sm">Aucun prospect</p>
-                      </div>
-                    )}
-                  </>
+                    const limit = columnLimits[stage.id] || CARDS_PER_COLUMN_INITIAL;
+                    const visibleEntries = allEntries.slice(0, limit);
+                    const hasMore = allEntries.length > limit;
+                    const remaining = allEntries.length - limit;
+
+                    return (
+                      <>
+                        {visibleEntries.map((entry, idx) => {
+                          const { prospect, projectType, activeStep } = entry;
+                          const key = `${prospect.id}-${projectType || 'default'}-${stage.id}-${idx}`;
+                          const fallbackProjectLabel = prospect.projectType || (prospect.tags && prospect.tags[0]) || 'Projet';
+                          const projectTitle = projectType && projectsData[projectType]?.title ? projectsData[projectType].title : fallbackProjectLabel;
+                          const stepLabel = activeStep?.label || activeStep?.name || stage.name;
+                          const projectColor = stage.color || 'bg-blue-100 text-blue-700';
+                          const sortableId = `${prospect.id}-${projectType || projectTitle}-${stage.id}-${idx}`;
+
+                          return (
+                            <motion.div
+                              key={key}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              whileHover={{ scale: 1.02 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ProspectCard
+                                prospect={{ ...prospect, _projectContext: { projectType: projectType || fallbackProjectLabel, projectTitle, stepLabel, projectColor } }}
+                                onClick={() =>
+                                  handleProspectClick(
+                                    prospect,
+                                    projectType || prospect.projectType || (Array.isArray(prospect.tags) ? prospect.tags[0] : fallbackProjectLabel)
+                                  )
+                                }
+                                compact={true}
+                                sortableId={sortableId}
+                                projectsData={projectsData}
+                              />
+                            </motion.div>
+                          );
+                        })}
+                        
+                        {/* 🔥 PR-7: Bouton "Voir plus" si plus de prospects */}
+                        {hasMore && (
+                          <button
+                            onClick={() => handleShowMore(stage.id)}
+                            className="w-full py-3 text-sm text-blue-600 hover:text-blue-800 bg-white bg-opacity-70 hover:bg-opacity-100 rounded-lg transition-all font-medium"
+                          >
+                            Voir {Math.min(remaining, CARDS_INCREMENT)} de plus ({remaining} restants)
+                          </button>
+                        )}
+                    
+                        {allEntries.length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <div className="w-16 h-16 bg-white bg-opacity-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <Users className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-sm">Aucun prospect</p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
               </div>
             </motion.div>
             ))}
