@@ -800,7 +800,12 @@ const FinalPipeline = () => {
       {/* Pipeline Columns */}
       <div className="flex-1 p-6 overflow-hidden">
         <div className="h-full overflow-x-auto pb-4">
-          <div className="grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-4 h-full">
+          {/* 🔥 PR-5: Blur sur toute la grille pendant le chargement */}
+          <div className={`grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-4 h-full transition-all duration-300 ${
+            (!adminReady || prospectsLoading || allStepsLoading) 
+              ? 'blur-sm opacity-50 pointer-events-none' 
+              : ''
+          }`}>
             {stagesWithCounts.map((stage) => (
             <motion.div
               key={stage.id}
@@ -824,12 +829,8 @@ const FinalPipeline = () => {
               </div>
 
               {/* Prospects List */}
-              <div className={`flex-1 space-y-3 overflow-y-auto transition-all duration-300 ${
-                (!adminReady || prospectsLoading || allStepsLoading) 
-                  ? 'blur-sm opacity-50 pointer-events-none' 
-                  : ''
-              }`}>
-                {/* 🔥 PR-5: Blur effect pendant le chargement au lieu de skeletons */}
+              <div className="flex-1 space-y-3 overflow-y-auto">
+                {/* 🔥 PR-5: Blur appliqué au niveau de la grille parent */}
                   <>
                     {(prospectsByStage[stage.id] || [])
                       .filter(entry => {
