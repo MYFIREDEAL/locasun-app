@@ -83,6 +83,9 @@ const FinalPipeline = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const lastProcessedUrl = useRef(null);
   const [isEditingProspect, setIsEditingProspect] = useState(false);
+  
+  // 🔥 PR-5: Tracker le premier chargement complet pour le blur
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // 🔥 HOOKS DÉPLACÉS ICI (avant les early returns)
   const { users: supabaseUsers, loading: usersLoading } = useUsers();
@@ -171,6 +174,14 @@ const FinalPipeline = () => {
       return acc;
     }, {});
   }, [supabaseUsers]);
+
+  // 🔥 PR-5: Détecter quand le premier chargement est terminé
+  useEffect(() => {
+    if (adminReady && !prospectsLoading && !allStepsLoading && !initialLoadComplete) {
+      // Premier chargement terminé - on peut enlever le blur
+      setInitialLoadComplete(true);
+    }
+  }, [adminReady, prospectsLoading, allStepsLoading, initialLoadComplete]);
 
   // Utiliser les prospects Supabase
   const prospects = supabaseProspects;
@@ -800,9 +811,9 @@ const FinalPipeline = () => {
       {/* Pipeline Columns */}
       <div className="flex-1 p-6 overflow-hidden">
         <div className="h-full overflow-x-auto pb-4">
-          {/* 🔥 PR-5: Blur sur toute la grille pendant le chargement */}
+          {/* 🔥 PR-5: Blur sur toute la grille pendant le chargement initial */}
           <div className={`grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-4 h-full transition-all duration-300 ${
-            (!adminReady || prospectsLoading || allStepsLoading) 
+            !initialLoadComplete 
               ? 'blur-sm opacity-50 pointer-events-none' 
               : ''
           }`}>
