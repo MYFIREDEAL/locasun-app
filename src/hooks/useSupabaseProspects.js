@@ -175,12 +175,13 @@ export const useSupabaseProspects = (activeAdminUser) => {
   // Ajouter un prospect
   const addProspect = async (prospectData) => {
     try {
+      console.log('🔍 [1] addProspect started', { prospectData });
+      
       // Récupérer l'UUID réel du user depuis Supabase
       const { data: { user } } = await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
       
-      logger.debug('Auth user', { id: user?.id, email: user?.email });
-      logger.debug('Session status', { hasSession: !!session?.access_token });
+      console.log('🔍 [2] Auth check', { userId: user?.id, hasSession: !!session });
       
       if (!user) {
         throw new Error("Utilisateur non authentifié");
@@ -193,38 +194,20 @@ export const useSupabaseProspects = (activeAdminUser) => {
         .eq('user_id', user.id)
         .single();
       
-      logger.debug('User in users table', { userData, error: userCheckError });
+      console.log('🔍 [3] User check', { userData, userCheckError: userCheckError?.message });
       
       if (userCheckError || !userData) {
         logger.error('Utilisateur non trouvé dans table users', { error: userCheckError?.message });
         throw new Error('Utilisateur non autorisé à créer des prospects');
       }
 
-      // 🔥 IMPORTANT: La FK prospects.owner_id référence users.user_id (auth UUID)
-      // et PAS users.id (UUID PK de la table users)
-      // Donc on utilise directement user.id (auth UUID) sans query supplémentaire
-
-      // 🔥 UTILISER LA FONCTION RPC AU LIEU DE L'INSERT DIRECT
-      // Contourne le problème de auth.uid() qui retourne NULL dans les RLS policies
-      logger.debug('Using RPC insert_prospect_safe');
+      console.log('� [4] organizationId check', { organizationId });
       
       if (!organizationId) {
         throw new Error('organization_id manquant');
       }
       
-      // 🔥 DEBUG: Log des données envoyées
-      logger.debug('addProspect input data', {
-        name: prospectData.name,
-        email: prospectData.email,
-        phone: prospectData.phone,
-        status: prospectData.status,
-        ownerId: prospectData.ownerId,
-        tags: prospectData.tags,
-        host: window.location.hostname
-      });
-      
-      // ⚠️ Ne plus utiliser 'Intéressé' en fallback - le status doit venir de l'appelant
-      // qui utilise le step_id de la première colonne du globalPipelineSteps
+      console.log('🔍 [5] About to call RPC insert_prospect_safe');
       const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
         p_name: prospectData.name,
         p_email: prospectData.email,
