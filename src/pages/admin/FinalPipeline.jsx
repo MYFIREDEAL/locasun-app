@@ -585,6 +585,45 @@ const FinalPipeline = () => {
         }
       }
 
+      // 🔥 PR-4.2: Envoyer invitation client si demandé
+      if (newProspectData.sendInvitation && createdProspect.email) {
+        try {
+          const redirectUrl = `${window.location.origin}/dashboard`;
+          
+          const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+            email: createdProspect.email.trim(),
+            options: {
+              shouldCreateUser: true,
+              emailRedirectTo: redirectUrl,
+            }
+          });
+
+          if (magicLinkError) {
+            console.error('[handleAddProspect] invitation error', magicLinkError);
+            toast({
+              title: "Prospect créé",
+              description: `⚠️ Invitation non envoyée: ${magicLinkError.message}`,
+              variant: "warning",
+            });
+          } else {
+            console.log('[handleAddProspect] invitation sent to', createdProspect.email);
+            toast({
+              title: "✅ Prospect créé",
+              description: `Invitation envoyée à ${createdProspect.email}`,
+              className: "bg-green-500 text-white",
+            });
+          }
+        } catch (inviteErr) {
+          console.error('[handleAddProspect] invitation exception', inviteErr);
+          // Ne pas bloquer la création, juste avertir
+          toast({
+            title: "Prospect créé",
+            description: `⚠️ Erreur envoi invitation: ${inviteErr.message}`,
+            variant: "warning",
+          });
+        }
+      }
+
       setIsAddModalOpen(false);
     } catch (error) {
       console.error('❌ handleAddProspect error', error);

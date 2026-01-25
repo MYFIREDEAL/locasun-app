@@ -77,10 +77,12 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
   };
 
   const [formData, setFormData] = useState(getInitialFormState());
+  const [sendInvitation, setSendInvitation] = useState(true); // Checkbox invitation cochée par défaut
 
   useEffect(() => {
     if (open) {
       setFormData(getInitialFormState());
+      setSendInvitation(true); // Reset à chaque ouverture
     }
   }, [open, formContactConfig]);
 
@@ -180,6 +182,7 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
       ...formData,
       tags: formData.tags,
       hasAppointment: false,
+      sendInvitation: sendInvitation && formData.email && formData.email.trim() !== '', // Demande d'invitation explicite
       // ownerId sera défini dans le handler parent (FinalPipeline ou CompleteOriginalContacts)
     };
 
@@ -272,6 +275,31 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
                 </div>
               );
             })}
+            
+            {/* Checkbox invitation client */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="sendInvitation" className="text-right">
+                Invitation
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Checkbox
+                  id="sendInvitation"
+                  checked={sendInvitation}
+                  onCheckedChange={(checked) => setSendInvitation(checked)}
+                  disabled={!formData.email || formData.email.trim() === ''}
+                />
+                <Label 
+                  htmlFor="sendInvitation" 
+                  className={`font-normal ${!formData.email || formData.email.trim() === '' ? 'text-gray-400' : ''}`}
+                >
+                  Envoyer une invitation au client
+                  {(!formData.email || formData.email.trim() === '') && (
+                    <span className="text-xs text-gray-400 ml-1">(email requis)</span>
+                  )}
+                </Label>
+              </div>
+            </div>
+
             {projectOptions.length > 0 && (
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2">Projets</Label>
