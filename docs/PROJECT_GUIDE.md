@@ -345,7 +345,49 @@ Si une information est manquante, floue ou ambiguë :
 → NE FAIS AUCUNE SUPPOSITION SILENCIEUSE.
 
 ────────────────────────────────
-## 📝 TEMPLATE DE DEMANDE
+## � CHECKLIST OBLIGATOIRE AVANT DE CODER (AUTO-RAPPEL IA)
+
+AVANT D'ÉCRIRE LA MOINDRE LIGNE DE CODE,
+tu dois mentalement vérifier cette checklist :
+
+### 1) Ai-je bien compris CE QUI EST UNE VUE et CE QUI EST LA SOURCE DE VÉRITÉ ?
+   → Pipeline = vue calculée
+   → Projets + étapes = vérité métier
+
+### 2) Est-ce que je touche :
+   - au pipeline ?
+   - aux étapes ?
+   - aux workflows ?
+   - au multitenant ?
+   
+   Si OUI → vigilance maximale, pas d'hypothèse.
+
+### 3) Est-ce que la donnée existe déjà quelque part ?
+   → Si oui, je la CONSOMME (je ne refetch pas).
+   → Si non, je crée UNE source unique.
+
+### 4) Est-ce que je risque :
+   - un double fetch ?
+   - une double subscription realtime ?
+   - un rerender global ?
+   
+   → Si oui, je corrige AVANT.
+
+### 5) Est-ce que le module a :
+   - loading
+   - empty
+   - error
+   
+   → Aucun cas ne doit afficher un écran blanc.
+
+### 6) Est-ce que je sais comment tester que "ça marche encore" ?
+   → Build + SMOKE_TESTS.md obligatoires.
+
+**SI UN POINT EST FLOU :**
+→ JE POSE DES QUESTIONS AVANT DE CODER.
+
+────────────────────────────────
+## �📝 TEMPLATE DE DEMANDE
 
 ```
 Je veux ajouter :
