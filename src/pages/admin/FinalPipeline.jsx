@@ -150,6 +150,7 @@ const FinalPipeline = () => {
     globalPipelineSteps = [],
     pipelineLoading = true,
     getProjectSteps = () => [],
+    adminReady = false, // 🔥 PR-5 FIX: Ajouter adminReady pour gater les skeletons
   } = contextData || {};
 
   // 🔥 TOUS LES HOOKS useMemo DOIVENT ÊTRE ICI (avant tout return conditionnel)
@@ -823,15 +824,12 @@ const FinalPipeline = () => {
               </div>
 
               {/* Prospects List */}
-              <div className="flex-1 space-y-3 overflow-y-auto">
-                {/* 🔥 Skeleton screens pendant le chargement (prospects OU steps préchargés) */}
-                {(prospectsLoading || allStepsLoading) ? (
-                  <>
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                  </>
-                ) : (
+              <div className={`flex-1 space-y-3 overflow-y-auto transition-all duration-300 ${
+                (!adminReady || prospectsLoading || allStepsLoading) 
+                  ? 'blur-sm opacity-50 pointer-events-none' 
+                  : ''
+              }`}>
+                {/* 🔥 PR-5: Blur effect pendant le chargement au lieu de skeletons */}
                   <>
                     {(prospectsByStage[stage.id] || [])
                       .filter(entry => {
@@ -884,7 +882,6 @@ const FinalPipeline = () => {
                       </div>
                     )}
                   </>
-                )}
               </div>
             </motion.div>
             ))}
