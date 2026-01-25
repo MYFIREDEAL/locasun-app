@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Toaster } from '@/components/ui/toaster';
@@ -6,17 +6,23 @@ import AdminLayout from '@/layouts/AdminLayout';
 import ClientLayout from '@/layouts/ClientLayout';
 import PlatformLayout from '@/layouts/PlatformLayout';
 import PartnerLayout from '@/layouts/PartnerLayout';
-import FinalPipeline from '@/pages/admin/FinalPipeline';
+
+// 🔥 PR-6: Lazy load des pages lourdes pour code splitting
+const FinalPipeline = lazy(() => import('@/pages/admin/FinalPipeline'));
+const Agenda = lazy(() => import('@/pages/admin/Agenda'));
+const ProfilePage = lazy(() => import('@/pages/admin/ProfilePage'));
+const CharlyPage = lazy(() => import('@/pages/admin/CharlyPage'));
+const ConfigurationIA = lazy(() => import('@/pages/admin/ConfigurationIA'));
+const ContractTemplatesPage = lazy(() => import('@/pages/admin/ContractTemplatesPage'));
+const ContractTemplateEditorPage = lazy(() => import('@/pages/admin/ContractTemplateEditorPage'));
+const ClientDashboardPage = lazy(() => import('@/pages/client/ClientDashboardPage'));
+
+// Pages moins lourdes - import statique
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
-import Agenda from '@/pages/admin/Agenda';
-import CharlyPage from '@/pages/admin/CharlyPage';
-import ConfigurationIA from '@/pages/admin/ConfigurationIA';
 import WorkflowsCharlyPage from '@/pages/admin/WorkflowsCharlyPage';
 import LandingPageConfigPage from '@/pages/admin/LandingPageConfigPage';
 import ProjectsManagementPage from '@/pages/admin/ProjectsManagementPage';
 import FormsManagementPage from '@/pages/admin/FormsManagementPage';
-import ContractTemplatesPage from '@/pages/admin/ContractTemplatesPage';
-import ContractTemplateEditorPage from '@/pages/admin/ContractTemplateEditorPage';
 import ProjectDisplayManagementPage from '@/pages/admin/ProjectDisplayManagementPage';
 import PartnersListPage from '@/pages/admin/PartnersListPage';
 import PartnerDetailPage from '@/pages/admin/PartnerDetailPage';
@@ -24,8 +30,6 @@ import PartnerLoginPage from '@/pages/partner/PartnerLoginPage';
 import PartnerHomePage from '@/pages/partner/PartnerHomePage';
 import PartnerMissionsPage from '@/pages/partner/PartnerMissionsPage';
 import PartnerMissionDetailPage from '@/pages/partner/PartnerMissionDetailPage';
-import ProfilePage from '@/pages/admin/ProfilePage';
-import ClientDashboardPage from '@/pages/client/ClientDashboardPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
@@ -1719,6 +1723,15 @@ function App() {
         <meta property="og:description" content={getPageDescription()} />
       </Helmet>
       
+      {/* 🔥 PR-6: Suspense pour les composants lazy-loaded */}
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-screen bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-500 text-sm">Chargement...</p>
+          </div>
+        </div>
+      }>
       <Routes>
         {/* ⚠️ IMPORTANT : Routes spécifiques AVANT la route wildcard /:slugUser */}
         {/* 🔒 PLATFORM ADMIN ROUTES */}
@@ -1785,6 +1798,7 @@ function App() {
           <Route path="parametres" element={<SettingsPage />} />
         </Route>
       </Routes>
+      </Suspense>
       
       <Toaster />
     </AppContext.Provider>
