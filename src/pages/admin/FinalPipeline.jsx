@@ -516,6 +516,9 @@ const FinalPipeline = () => {
   };
 
   const handleAddProspect = async (newProspectData) => {
+    // 🔴 DEBUGGER - Stoppe l'exécution pour voir ce qui se passe
+    debugger;
+    
     try {
       // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
       const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
@@ -529,6 +532,9 @@ const FinalPipeline = () => {
         addSupabaseProspectDirect: typeof addSupabaseProspectDirect,
         hasFunction: !!addSupabaseProspectDirect
       });
+      
+      // 🔴 ALERT pour être sûr de voir
+      alert('handleAddProspect appelé! Check la console.');
       
       if (!addSupabaseProspectDirect) {
         throw new Error('addSupabaseProspectDirect is undefined - contexte non chargé');
