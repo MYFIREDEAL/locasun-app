@@ -516,42 +516,34 @@ const FinalPipeline = () => {
   };
 
   const handleAddProspect = async (newProspectData) => {
-    // 🔴 DEBUGGER - Stoppe l'exécution pour voir ce qui se passe
-    debugger;
-    
     try {
-      // 🔥 Utiliser le step_id de la première colonne du pipeline (position 0)
-      const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
-      
-      // 🔥 DEBUG: Log des données envoyées
-      console.log('🔍 handleAddProspect called', {
-        newProspectData,
-        firstStepId,
-        ownerId: activeAdminUser?.user_id,
-        activeAdminUser,
-        addSupabaseProspectDirect: typeof addSupabaseProspectDirect,
-        hasFunction: !!addSupabaseProspectDirect
-      });
-      
-      // 🔴 ALERT pour être sûr de voir
-      alert('handleAddProspect appelé! Check la console.');
-      
+      // Guard: vérifier que addProspect est disponible
       if (!addSupabaseProspectDirect) {
-        throw new Error('addSupabaseProspectDirect is undefined - contexte non chargé');
+        console.error('[handleAddProspect] addProspect is undefined');
+        throw new Error('Fonction addProspect non disponible');
       }
       
-      // 🔥 FIX: Utiliser user_id (auth UUID) au lieu de id (table UUID)
-      // La FK prospects.owner_id référence users.user_id pour RLS policies
-      const createdProspect = await addSupabaseProspectDirect({ 
-        ...newProspectData, 
-        status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
+      // Utiliser le step_id de la première colonne du pipeline (position 0)
+      const firstStepId = globalPipelineSteps[0]?.step_id || globalPipelineSteps[0]?.id;
+      
+      console.log('[handleAddProspect] calling addProspect', {
+        name: newProspectData.name,
+        email: newProspectData.email,
+        status: firstStepId,
         ownerId: activeAdminUser?.user_id
       });
       
-      // 🔥 DEBUG: Log du résultat
-      console.log('🔍 createdProspect result', createdProspect);
+      // PR-4.1: Appel direct, erreurs non masquées
+      const createdProspect = await addSupabaseProspectDirect({ 
+        ...newProspectData, 
+        status: firstStepId,
+        ownerId: activeAdminUser?.user_id
+      });
       
-      if (!createdProspect || !createdProspect.id) {
+      console.log('[handleAddProspect] result', createdProspect);
+      
+      // Fermer modal SEULEMENT si création réussie
+      if (!createdProspect?.id) {
         throw new Error('Prospect non créé - résultat vide');
       }
 

@@ -344,7 +344,8 @@ function App() {
   
   // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
   const { 
-    prospects: supabaseProspects, 
+    prospects: supabaseProspects,
+    addProspect: addProspectSupabase, // 🔥 PR-4.1: Récupérer addProspect du hook
     updateProspect: updateProspectSupabase,
     loading: prospectsLoading 
   } = useSupabaseProspects(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
@@ -1474,13 +1475,8 @@ function App() {
     return true;
   };
 
-  const addProspect = (newProspect) => {
-    setProspects(prevProspects => {
-      const updatedProspects = [newProspect, ...prevProspects];
-      // 🔥 PHASE 6: localStorage supprimé - prospects synchronisés automatiquement via useSupabaseProspects()
-      return updatedProspects;
-    });
-  };
+  // 🔥 PR-4.1: addProspect est maintenant addProspectSupabase du hook useSupabaseProspects
+  // La fonction locale a été supprimée car elle ne faisait que modifier le state local
 
   const updateProspect = async (updatedProspect) => {
     // 🔥 ÉTAPE PRO : Appeler la RPC update_prospect_safe() via le hook Supabase
@@ -1556,7 +1552,7 @@ function App() {
     deleteProjectTemplate: deleteTemplate, // 🔥 Exposer deleteTemplate pour suppression directe
     prospects: supabaseProspects, // 🔥 Utiliser directement supabaseProspects au lieu du state legacy
     prospectsLoading, // 🔥 État de chargement des prospects pour skeleton screens
-    setProspects, addProspect, updateProspect, 
+    setProspects, addProspect: addProspectSupabase, updateProspect, // 🔥 PR-4.1: Exposer addProspect du hook Supabase 
     currentUser, setCurrentUser: handleSetCurrentUser, 
     // 🔥 PR-3: SOURCE UNIQUE AGENDA - Données et fonctions du hook centralisé
     appointments: supabaseAppointments || [],

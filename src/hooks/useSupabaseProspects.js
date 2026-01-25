@@ -173,138 +173,66 @@ export const useSupabaseProspects = (activeAdminUser) => {
   }, []); // Pas de dépendance, canal permanent
 
   // Ajouter un prospect
+  // Ajouter un prospect
   const addProspect = async (prospectData) => {
     try {
-      console.log('🔍 [1] addProspect started', { prospectData });
+      console.log('[addProspect] started', { prospectData });
       
       // Récupérer l'UUID réel du user depuis Supabase
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      console.log('🔍 [2] Auth check', { userId: user?.id, hasSession: !!session });
       
       if (!user) {
         throw new Error("Utilisateur non authentifié");
       }
+      
+      console.log('[addProspect] auth user', { userId: user.id });
 
-      // Vérifier que l'user est bien dans la table users
-      const { data: userData, error: userCheckError } = await supabase
-        .from('users')
-        .select('user_id, name, role')
-        .eq('user_id', user.id)
-        .single();
-      
-      console.log('🔍 [3] User check', { userData, userCheckError: userCheckError?.message });
-      
-      if (userCheckError || !userData) {
-        logger.error('Utilisateur non trouvé dans table users', { error: userCheckError?.message });
-        throw new Error('Utilisateur non autorisé à créer des prospects');
-      }
-
-      console.log('� [4] organizationId check', { organizationId });
-      
       if (!organizationId) {
         throw new Error('organization_id manquant');
       }
       
-      console.log('🔍 [5] About to call RPC insert_prospect_safe');
-      const { data: rpcResult, error: insertError } = await supabase.rpc('insert_prospect_safe', {
-        p_name: prospectData.name,
-        p_email: prospectData.email,
-        p_phone: prospectData.phone || '',
-        p_company_name: prospectData.company || prospectData.companyName || '', // 🔥 FIX: Support des deux noms
-        p_address: prospectData.address || '',
-        p_status: prospectData.status, // ✅ Requis - doit être fourni par l'appelant
-        p_tags: prospectData.tags || [],
-        p_has_appointment: prospectData.hasAppointment || false,
-        p_affiliate_name: prospectData.affiliateName || null,
-        p_host: window.location.hostname, // 🔥 AJOUT pour résolution organization_id
-      });
-      
-      // 🔥 DEBUG: Log du résultat avec console.log pour être sûr de voir
-      console.log('🔍 RPC insert_prospect_safe result', { 
-        rpcResult, 
-        insertError: insertError?.message,
-        insertErrorCode: insertError?.code 
-      });
+      console.log('[addProspect] organizationId', { organizationId });
 
-      if (insertError) throw insertError;
+      // 🔥 PR-4.1: INSERT DIRECT (plus de RPC silencieuse)
+      const { data, error } = await supabase
+        .from('prospects')
+        .insert({
+          name: prospectData.name,
+          email: prospectData.email,
+          phone: prospectData.phone || '',
+          company_name: prospectData.company || prospectData.companyName || '',
+          address: prospectData.address || '',
+          owner_id: prospectData.ownerId || user.id,
+          status: prospectData.status || 'lead',
+          tags: prospectData.tags || [],
+          has_appointment: prospectData.hasAppointment || false,
+          affiliate_name: prospectData.affiliateName || null,
+          organization_id: organizationId,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
-      // La fonction RPC retourne un objet JSON, on le parse
-      const data = rpcResult;
-      logger.debug('RPC result', { prospectId: data?.id });
+      console.log('[addProspect] insert result', { data, error: error?.message });
 
-      // 🔥 PR-4: Utiliser transform centralisé
+      if (error) {
+        console.error('[addProspect] insert failed', error);
+        throw error;
+      }
+
+      // PR-4: Utiliser transform centralisé
       const transformed = prospectToCamel(data);
 
-      // Ne pas ajouter localement, laisser le real-time s'en charger
-
-      // 🎉 AFFICHER LE TOAST DE SUCCÈS IMMÉDIATEMENT
+      // Toast de succès
       toast({
         title: "Succès",
         description: `Prospect "${data.name}" créé !`,
         className: "bg-green-500 text-white",
       });
 
-      // 🔥 ENVOYER UN MAGIC LINK AU PROSPECT (passwordless, comme inscription client)
-      try {
-        logger.debug('Sending Magic Link', { email: data.email });
-        
-        // 🔥 Utiliser le hostname actuel (celui de l'admin qui crée le prospect)
-        const currentHost = window.location.origin; // ex: https://rosca.evatime.fr
-        const redirectUrl = `${currentHost}/dashboard`;
-        logger.debug('Magic Link redirect URL', { redirectUrl });
-        
-        // Envoyer le Magic Link (crée automatiquement le user auth si inexistant)
-        const { data: otpData, error: magicLinkError } = await supabase.auth.signInWithOtp({
-          email: data.email,
-          options: {
-            emailRedirectTo: redirectUrl,
-            shouldCreateUser: true, // ✅ Créer le user auth automatiquement
-          }
-        });
-
-        if (magicLinkError) {
-          logger.error('Erreur envoi Magic Link', { error: magicLinkError.message });
-          
-          // Afficher un toast informatif (ne pas bloquer la création du prospect)
-          toast({
-            title: "Prospect créé",
-            description: "Le prospect a été créé mais l'email de connexion n'a pas pu être envoyé.",
-            variant: "warning",
-          });
-        } else {
-          // 🔥 Lier le user_id au prospect si disponible immédiatement
-          if (otpData?.user?.id) {
-            const { error: updateError } = await supabase
-              .from('prospects')
-              .update({ user_id: otpData.user.id })
-              .eq('id', data.id);
-            
-            if (updateError) {
-              logger.error('Erreur liaison user_id', { error: updateError.message });
-            } else {
-              logger.debug('Prospect linked to user_id', { userId: otpData.user.id });
-            }
-          }
-          
-          logger.debug('Magic Link sent', { email: data.email });
-          
-          // Toast de succès avec info email
-          toast({
-            title: "Prospect créé",
-            description: `Un lien de connexion a été envoyé à ${data.email}`,
-            className: "bg-green-500 text-white",
-          });
-        }
-      } catch (emailErr) {
-        logger.error('Erreur envoi Magic Link', { error: emailErr.message });
-        // Ne pas bloquer si l'email échoue - le prospect est créé
-      }
-
       return transformed;
     } catch (err) {
-      logger.error('Erreur ajout prospect', { error: err.message });
+      console.error('[addProspect] error', err);
       toast({
         title: "Erreur",
         description: err.message || "Impossible d'ajouter le prospect.",
@@ -314,7 +242,6 @@ export const useSupabaseProspects = (activeAdminUser) => {
     }
   };
 
-  // Mettre à jour un prospect
   const updateProspect = async (idOrProspect, updatesParam) => {
     try {
       // Support des deux formats : updateProspect(id, updates) OU updateProspect({ id, ...data })
