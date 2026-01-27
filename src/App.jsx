@@ -16,6 +16,10 @@ const ConfigurationIA = lazy(() => import('@/pages/admin/ConfigurationIA'));
 const ContractTemplatesPage = lazy(() => import('@/pages/admin/ContractTemplatesPage'));
 const ContractTemplateEditorPage = lazy(() => import('@/pages/admin/ContractTemplateEditorPage'));
 const ClientDashboardPage = lazy(() => import('@/pages/client/ClientDashboardPage'));
+// 🔥 V2: Workflow V2 LIVE (lazy loaded, isolé)
+const WorkflowV2Page = lazy(() => import('@/pages/admin/WorkflowV2Page'));
+// 🔥 V2: Prospect Details V2 (lazy loaded, isolé)
+const ProspectDetailsV2 = lazy(() => import('@/components/admin/ProspectDetailsV2'));
 
 // Pages moins lourdes - import statique
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
@@ -1786,6 +1790,9 @@ function App() {
           <Route path="charly" element={<CharlyPage />} />
           <Route path="configuration-ia" element={<ConfigurationIA />} />
           <Route path="workflows-charly" element={<WorkflowsCharlyPage />} />
+          <Route path="workflow-v2/:prospectId/:projectType" element={<WorkflowV2Page />} />
+          {/* 🔥 V2: Prospect Details V2 (isolé, sans import V1) */}
+          <Route path="prospect-v2/:prospectId" element={<ProspectDetailsV2 />} />
           <Route path="landing-page" element={<LandingPageConfigPage />} />
           <Route path="projects-management" element={<ProjectsManagementPage />} />
           <Route path="forms-management" element={<FormsManagementPage />} />
