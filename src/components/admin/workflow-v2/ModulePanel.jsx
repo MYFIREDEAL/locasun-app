@@ -11,16 +11,14 @@
  *     - Aucun envoi de formulaire
  *     - Boutons mockés (gérés par T6)
  * 
- * Sections affichées:
- *   📋 Infos client (nom, email, téléphone)
- *   📝 Formulaires liés au module
- *   📄 Documents/Fichiers
- *   💬 Historique chat du module
+ * ONGLETS:
+ *   📋 Contact — Infos client, formulaires, documents, historique
+ *   ⚙️ Workflow V2 — Configuration IA du module (READ_ONLY)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   User, 
   FileText, 
@@ -32,8 +30,13 @@ import {
   ExternalLink,
   FileSignature,
   File,
+  Settings,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ✅ Import composant config IA (V2 uniquement)
+import ModuleConfigTab from './ModuleConfigTab';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SOUS-COMPOSANT: Section Header
@@ -381,6 +384,16 @@ const ModulePanel = ({
   children,
   className,
 }) => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // SYSTÈME D'ONGLETS
+  // ─────────────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState('contact');
+  
+  const TABS = [
+    { id: 'contact', label: 'Contact', icon: User },
+    { id: 'workflow-v2', label: 'Workflow V2', icon: Settings },
+  ];
+  
   if (!step) {
     return (
       <div className={cn('bg-white rounded-xl shadow-sm border', className)}>
@@ -391,6 +404,11 @@ const ModulePanel = ({
       </div>
     );
   }
+  
+  // Générer un moduleId à partir du nom du step
+  const moduleId = step.name 
+    ? step.name.toLowerCase().replace(/[_\s]/g, '-').replace(/[^a-z0-9-]/g, '')
+    : `step-${stepIndex}`;
   
   return (
     <div className={cn('bg-white rounded-xl shadow-sm border', className)}>
@@ -419,47 +437,90 @@ const ModulePanel = ({
       </div>
       
       {/* ─────────────────────────────────────────────────────────────────
-          CONTENU MODULE (4 sections)
+          NAVIGATION ONGLETS
       ───────────────────────────────────────────────────────────────── */}
-      <div className="px-6 py-6 space-y-6">
+      <div className="px-6 pt-4 border-b">
+        <nav className="flex gap-1" aria-label="Tabs">
+          {TABS.map((tab) => {
+            const TabIcon = tab.icon;
+            const isActive = activeTab === tab.id;
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors',
+                  'border-b-2 -mb-px',
+                  isActive
+                    ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                )}
+              >
+                <TabIcon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          CONTENU ONGLET ACTIF
+      ───────────────────────────────────────────────────────────────── */}
+      <div className="px-6 py-6">
         
-        {/* Section 1: Info Client */}
-        <section>
-          <SectionHeader icon={User} title="Client" />
-          <ClientInfoCard prospect={prospect} />
-        </section>
+        {/* ONGLET: Contact */}
+        {activeTab === 'contact' && (
+          <div className="space-y-6">
+            {/* Section 1: Info Client */}
+            <section>
+              <SectionHeader icon={User} title="Client" />
+              <ClientInfoCard prospect={prospect} />
+            </section>
+            
+            {/* Section 2: Formulaires */}
+            <section>
+              <SectionHeader icon={FileText} title="Formulaires" count={forms.length} />
+              <FormsList forms={forms} />
+            </section>
+            
+            {/* Section 3: Documents */}
+            <section>
+              <SectionHeader icon={FolderOpen} title="Documents" count={documents.length} />
+              <DocumentsList documents={documents} />
+            </section>
+            
+            {/* Section 4: Historique Chat */}
+            <section>
+              <SectionHeader icon={MessageSquare} title="Historique" count={messages.length} />
+              <ChatPreview messages={messages} />
+            </section>
+          </div>
+        )}
         
-        {/* Section 2: Formulaires */}
-        <section>
-          <SectionHeader icon={FileText} title="Formulaires" count={forms.length} />
-          <FormsList forms={forms} />
-        </section>
-        
-        {/* Section 3: Documents */}
-        <section>
-          <SectionHeader icon={FolderOpen} title="Documents" count={documents.length} />
-          <DocumentsList documents={documents} />
-        </section>
-        
-        {/* Section 4: Historique Chat */}
-        <section>
-          <SectionHeader icon={MessageSquare} title="Historique" count={messages.length} />
-          <ChatPreview messages={messages} />
-        </section>
+        {/* ONGLET: Workflow V2 (Config IA) */}
+        {activeTab === 'workflow-v2' && (
+          <ModuleConfigTab
+            moduleId={moduleId}
+            moduleName={step.name || 'Module'}
+            isReadOnly={isReadOnly}
+          />
+        )}
         
       </div>
       
       {/* ─────────────────────────────────────────────────────────────────
-          FOOTER (Boutons d'action - T6)
+          FOOTER (Boutons d'action - T6) - Visible uniquement sur onglet Contact
       ───────────────────────────────────────────────────────────────── */}
-      {children && (
+      {children && activeTab === 'contact' && (
         <div className="px-6 py-4 border-t bg-gray-50 rounded-b-xl">
           {children}
         </div>
       )}
       
       {/* Message READ_ONLY si pas de children */}
-      {!children && isReadOnly && (
+      {!children && isReadOnly && activeTab === 'contact' && (
         <div className="px-6 py-3 border-t bg-amber-50 rounded-b-xl">
           <p className="text-xs text-amber-600 text-center">
             ⚠️ Mode lecture seule — Actions désactivées

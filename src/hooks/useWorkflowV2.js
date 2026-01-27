@@ -150,6 +150,15 @@ export function useWorkflowV2(prospectId, projectType) {
   
   // Steps du projet avec leur statut actuel
   const steps = useMemo(() => {
+    // Debug: afficher les données brutes
+    logV2('DEBUG projectStepsStatus', { 
+      projectStepsStatus, 
+      projectType,
+      keys: projectStepsStatus ? Object.keys(projectStepsStatus) : [],
+      stepsLoading,
+      stepsError
+    });
+    
     // Priorité : données Supabase > template par défaut
     const supabaseSteps = projectStepsStatus?.[projectType];
     
@@ -164,9 +173,9 @@ export function useWorkflowV2(prospectId, projectType) {
       return projectTemplate.steps;
     }
     
-    logV2('Aucun step trouvé');
+    logV2('Aucun step trouvé', { projectType, hasProjectStepsStatus: !!projectStepsStatus });
     return [];
-  }, [projectStepsStatus, projectType, projectTemplate]);
+  }, [projectStepsStatus, projectType, projectTemplate, stepsLoading, stepsError]);
   
   // Step actif
   const activeStep = useMemo(() => {

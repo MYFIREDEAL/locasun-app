@@ -17,3 +17,4 @@ export { default as ModulePanel } from './ModulePanel';
 export { default as ActionButtons } from './ActionButtons';
 export { default as ModuleLiveCard } from './ModuleLiveCard';
 export { default as ModuleConfigPanel, ModuleConfigButton } from './ModuleConfigPanel';
+export { default as ModuleConfigTab } from './ModuleConfigTab';
