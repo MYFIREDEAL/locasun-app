@@ -1,8 +1,10 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar } from 'lucide-react';
+import { Calendar, Rocket } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useNavigate } from 'react-router-dom';
+import { isWorkflowV2Enabled } from '@/lib/workflowV2Config';
 
 const normalizeLabel = (label) => (label || '').toString().trim().toUpperCase();
 
@@ -42,6 +44,8 @@ const arePropsEqual = (prevProps, nextProps) => {
 };
 
 const ProspectCardInner = ({ prospect, onClick, sortableId, projectsData = {} }) => {
+  const navigate = useNavigate();
+  
   // 🔥 PR-8: Supprimé le useEffect N+1 qui chargeait project_infos pour chaque carte
   // Les projets sont déjà filtrés côté FinalPipeline via allProjectSteps
   // On affiche tous les tags du prospect (approche optimistic)
@@ -124,6 +128,21 @@ const ProspectCardInner = ({ prospect, onClick, sortableId, projectsData = {} })
               );
             })}
         </div>
+        
+        {/* ✅ T7: Bouton Workflow V2 */}
+        {isWorkflowV2Enabled() && activeProjectType && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              navigate(`/admin/workflow-v2/${prospect.id}/${activeProjectType}`);
+            }}
+            className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors font-medium"
+          >
+            <Rocket className="h-3 w-3" />
+            Workflow V2
+          </button>
+        )}
       </motion.div>
     </div>
   );

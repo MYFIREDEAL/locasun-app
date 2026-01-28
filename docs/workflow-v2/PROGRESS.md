@@ -30,15 +30,14 @@
 - [x] **Wiring config → ModuleLiveCard** — Labels, instructions, knowledgeKey connectés (zéro changement UX)
 - [x] **Actions possibles (READ_ONLY)** — Affichage collapsible des `allowedActions` avec descriptions
 - [x] **Garde-fous finaux + tests** — `assertNoWrite`, `assertNoRouting`, `generateSecurityReport` + doc `07_tests.md`
+- [x] **Onglet Config IA** — `ModuleConfigTab.jsx` intégré dans `ModulePanel.jsx` (tabs Contact/Workflow V2)
+- [x] **T7 - Lien depuis Pipeline** — Bouton "Workflow V2" ajouté dans `ProspectCard.jsx` (feature-flagged)
 
 ### 🔜 Prêt à exécuter (Phase 2)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA
 
-### 🟨 In progress
-- [ ] **T7 - Lien depuis Pipeline** (en pause)
-
-### 📋 Backlog (7 tickets)
+###  Backlog (7 tickets) — TOUS TERMINÉS ✅
 | # | Ticket | Effort | Status |
 |---|--------|--------|--------|
 | T1 | Feature Flag + Config | XS | ✅ Done |
@@ -47,7 +46,7 @@
 | T4 | Navigation Modules | M | ✅ Done |
 | T5 | Panel Module (lecture) | M | ✅ Done |
 | T6 | Boutons PROCEED/NEED_DATA | S | ✅ Done |
-| T7 | Lien depuis Pipeline | XS | ⏸️ Pause |
+| T7 | Lien depuis Pipeline (ProspectCard) | XS | ✅ Done |
 
 ### ⛔ Blocked / Questions
 - Aucune question bloquante
