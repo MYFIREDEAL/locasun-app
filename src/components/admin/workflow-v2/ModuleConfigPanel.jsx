@@ -12,7 +12,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Settings, 
@@ -24,6 +24,13 @@ import {
   MessageSquare,
   Zap,
   BookOpen,
+  Target,
+  FileText,
+  PenTool,
+  Users,
+  Check,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -32,14 +39,34 @@ import { cn } from '@/lib/utils';
 import { 
   getModuleAIConfig, 
   updateModuleAIConfig,
+  getModuleActionConfig,
+  updateModuleActionConfig,
+  isModuleConfigComplete,
+  getValidationSummary,
   DEFAULT_MODULE_CONFIG,
+  DEFAULT_ACTION_CONFIG,
 } from '@/lib/moduleAIConfig';
+
+// ✅ Import catalogueV2 (read-only)
+import {
+  ACTION_TYPES,
+  TARGET_AUDIENCES,
+  MANAGEMENT_MODES,
+  VERIFICATION_MODES,
+  getActionTypesList,
+  getTargetAudiencesList,
+  getManagementModesList,
+  getVerificationModesList,
+} from '@/lib/catalogueV2';
+
+// ✅ Import simulateur ActionOrder (PROMPT 6)
+import { ActionOrderSimulator } from './ActionOrderSimulator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPOSANTS INTERNES
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SectionHeader = ({ icon: Icon, title, isOpen, onToggle }) => (
+const SectionHeader = ({ icon: Icon, title, isOpen, onToggle, badge }) => (
   <button
     onClick={onToggle}
     className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -47,6 +74,7 @@ const SectionHeader = ({ icon: Icon, title, isOpen, onToggle }) => (
     <div className="flex items-center gap-2">
       <Icon className="h-4 w-4 text-blue-600" />
       <span className="text-sm font-medium text-gray-700">{title}</span>
+      {badge && badge}
     </div>
     {isOpen ? (
       <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -139,6 +167,241 @@ const TagsInput = ({ label, value = [], onChange }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// COMPOSANTS CONFIG ACTIONS V2
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Sélecteur de cible (radio buttons)
+ */
+const TargetAudienceSelector = ({ value, onChange }) => {
+  const targets = getTargetAudiencesList();
+  
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-gray-500">Cible de l'action</label>
+      <div className="grid grid-cols-3 gap-2">
+        {targets.map((target) => (
+          <button
+            key={target.id}
+            type="button"
+            onClick={() => onChange(target.id)}
+            className={cn(
+              "flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all",
+              value === target.id
+                ? "border-blue-500 bg-blue-50 text-blue-700"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+            )}
+          >
+            <span className="text-lg">{target.icon}</span>
+            <span className="text-xs font-medium">{target.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Sélecteur de type d'action (radio buttons)
+ */
+const ActionTypeSelector = ({ value, onChange }) => {
+  const actionTypes = getActionTypesList();
+  
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-gray-500">Type d'action</label>
+      <div className="flex gap-2">
+        {/* Option: Aucune action */}
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className={cn(
+            "flex-1 flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all",
+            value === null
+              ? "border-gray-500 bg-gray-50 text-gray-700"
+              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+          )}
+        >
+          <span className="text-lg">⏸️</span>
+          <span className="text-xs font-medium">Aucune</span>
+        </button>
+        {actionTypes.map((actionType) => (
+          <button
+            key={actionType.id}
+            type="button"
+            onClick={() => onChange(actionType.id)}
+            className={cn(
+              "flex-1 flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all",
+              value === actionType.id
+                ? "border-blue-500 bg-blue-50 text-blue-700"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+            )}
+          >
+            <span className="text-lg">{actionType.icon}</span>
+            <span className="text-xs font-medium">{actionType.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Sélecteur multi pour formulaires/templates autorisés
+ */
+const MultiSelectIds = ({ label, value = [], onChange, options = [], placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const toggleOption = (id) => {
+    if (value.includes(id)) {
+      onChange(value.filter(v => v !== id));
+    } else {
+      onChange([...value, id]);
+    }
+  };
+  
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-gray-500">{label}</label>
+      
+      {/* Selected items */}
+      <div className="flex flex-wrap gap-1 min-h-[28px]">
+        {value.length === 0 ? (
+          <span className="text-xs text-gray-400 italic">{placeholder || 'Aucun sélectionné'}</span>
+        ) : (
+          value.map(id => {
+            const option = options.find(o => o.id === id);
+            return (
+              <span 
+                key={id}
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs"
+              >
+                {option?.name || id}
+                <button onClick={() => toggleOption(id)} className="hover:text-green-900">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            );
+          })
+        )}
+      </div>
+      
+      {/* Dropdown */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 text-sm border rounded-lg text-left flex items-center justify-between hover:bg-gray-50"
+      >
+        <span className="text-gray-500">Sélectionner...</span>
+        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+      
+      {isOpen && (
+        <div className="border rounded-lg max-h-40 overflow-y-auto">
+          {options.length === 0 ? (
+            <p className="p-3 text-xs text-gray-400 text-center">Aucune option disponible</p>
+          ) : (
+            options.map(option => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => toggleOption(option.id)}
+                className={cn(
+                  "w-full px-3 py-2 text-sm text-left flex items-center justify-between hover:bg-gray-50",
+                  value.includes(option.id) && "bg-blue-50"
+                )}
+              >
+                <span>{option.name}</span>
+                {value.includes(option.id) && <Check className="h-4 w-4 text-blue-600" />}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Sélecteur de mode (AI / HUMAN)
+ */
+const ModeSelector = ({ label, value, onChange, modes }) => (
+  <div className="space-y-2">
+    <label className="text-xs font-medium text-gray-500">{label}</label>
+    <div className="flex gap-2">
+      {modes.map((mode) => (
+        <button
+          key={mode.id}
+          type="button"
+          onClick={() => onChange(mode.id)}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 p-2 rounded-lg border-2 transition-all",
+            value === mode.id
+              ? "border-blue-500 bg-blue-50 text-blue-700"
+              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+          )}
+        >
+          <span>{mode.icon}</span>
+          <span className="text-xs font-medium">{mode.label}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * Badge de validation de la config V2
+ * Affiche Complet / Incomplet avec liste des erreurs
+ */
+const ValidationBadge = ({ validationResult, showDetails = true }) => {
+  const { isComplete, errors, warnings } = validationResult;
+  
+  if (isComplete) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-medium text-green-700">
+            Configuration complète
+          </span>
+        </div>
+        {showDetails && warnings.length > 0 && (
+          <div className="pl-2 space-y-1">
+            {warnings.map((warning, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-xs text-amber-600">
+                <span className="mt-0.5">⚠️</span>
+                <span>{warning}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+        <AlertCircle className="h-4 w-4 text-red-600" />
+        <span className="text-sm font-medium text-red-700">
+          Configuration incomplète ({errors.length} erreur{errors.length > 1 ? 's' : ''})
+        </span>
+      </div>
+      {showDetails && errors.length > 0 && (
+        <div className="pl-2 space-y-1">
+          {errors.map((error, idx) => (
+            <div key={idx} className="flex items-start gap-2 text-xs text-red-600">
+              <span className="mt-0.5">•</span>
+              <span>{error.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -151,6 +414,8 @@ const TagsInput = ({ label, value = [], onChange }) => {
  * @param {boolean} props.isOpen - État d'ouverture du panel
  * @param {Function} props.onClose - Callback de fermeture
  * @param {Function} props.onSave - Callback après sauvegarde (optionnel)
+ * @param {Array} props.availableForms - Liste des formulaires disponibles [{id, name}]
+ * @param {Array} props.availableTemplates - Liste des templates disponibles [{id, name}]
  */
 export function ModuleConfigPanel({ 
   moduleId, 
@@ -158,10 +423,14 @@ export function ModuleConfigPanel({
   isOpen, 
   onClose,
   onSave,
+  availableForms = [],
+  availableTemplates = [],
 }) {
   // State local pour édition
   const [config, setConfig] = useState(DEFAULT_MODULE_CONFIG);
+  const [actionConfig, setActionConfig] = useState(DEFAULT_ACTION_CONFIG);
   const [originalConfig, setOriginalConfig] = useState(null);
+  const [originalActionConfig, setOriginalActionConfig] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   
   // Sections collapsibles
@@ -171,24 +440,108 @@ export function ModuleConfigPanel({
     buttons: false,
     actions: false,
     advanced: false,
+    actionConfigV2: true, // ✅ Nouvelle section ouverte par défaut
   });
   
   // Charger la config au mount ou changement de module
   useEffect(() => {
     if (moduleId) {
       const loadedConfig = getModuleAIConfig(moduleId);
+      const loadedActionConfig = getModuleActionConfig(moduleId);
       setConfig(loadedConfig);
+      setActionConfig(loadedActionConfig);
       setOriginalConfig(loadedConfig);
+      setOriginalActionConfig(loadedActionConfig);
       setHasChanges(false);
     }
   }, [moduleId]);
   
   // Détecter les changements
   useEffect(() => {
-    if (originalConfig) {
-      setHasChanges(JSON.stringify(config) !== JSON.stringify(originalConfig));
+    if (originalConfig && originalActionConfig) {
+      const configChanged = JSON.stringify(config) !== JSON.stringify(originalConfig);
+      const actionConfigChanged = JSON.stringify(actionConfig) !== JSON.stringify(originalActionConfig);
+      setHasChanges(configChanged || actionConfigChanged);
     }
-  }, [config, originalConfig]);
+  }, [config, actionConfig, originalConfig, originalActionConfig]);
+  
+  // Validation en temps réel de la config action (PROMPT 5)
+  // ⚠️ Pure validation - aucune exécution, aucun effet de bord
+  const validationResult = useMemo(() => {
+    // Créer une config temporaire avec les valeurs actuelles pour validation
+    // (pas besoin d'aller chercher en mémoire, on valide le state local)
+    const tempConfig = {
+      targetAudience: actionConfig.targetAudience,
+      actionType: actionConfig.actionType,
+      allowedFormIds: actionConfig.allowedFormIds || [],
+      allowedTemplateIds: actionConfig.allowedTemplateIds || [],
+      managementMode: actionConfig.managementMode,
+      verificationMode: actionConfig.verificationMode,
+    };
+    
+    // Validation inline (même logique que isModuleConfigComplete)
+    const errors = [];
+    const warnings = [];
+    
+    // Règle 1: Au moins une cible
+    const audience = tempConfig.targetAudience;
+    const hasTarget = Array.isArray(audience) 
+      ? audience.length > 0 
+      : !!audience;
+    if (!hasTarget) {
+      errors.push({
+        field: 'targetAudience',
+        message: 'Au moins une cible doit être sélectionnée',
+      });
+    }
+    
+    // Règle 2: actionType défini
+    if (!tempConfig.actionType) {
+      errors.push({
+        field: 'actionType',
+        message: 'Le type d\'action doit être défini',
+      });
+    }
+    
+    // Règle 3: Si FORM → au moins un formulaire
+    if (tempConfig.actionType === 'FORM' && tempConfig.allowedFormIds.length === 0) {
+      errors.push({
+        field: 'allowedFormIds',
+        message: 'Au moins un formulaire doit être sélectionné',
+      });
+    }
+    
+    // Règle 4: Si SIGNATURE → au moins un formulaire
+    if (tempConfig.actionType === 'SIGNATURE') {
+      if (tempConfig.allowedFormIds.length === 0) {
+        errors.push({
+          field: 'allowedFormIds',
+          message: 'Au moins un formulaire de collecte requis',
+        });
+      }
+      if (tempConfig.allowedTemplateIds.length === 0) {
+        warnings.push('Aucun template de contrat sélectionné');
+      }
+    }
+    
+    // Règle 5: managementMode défini
+    if (!tempConfig.managementMode || !['AI', 'HUMAN'].includes(tempConfig.managementMode)) {
+      errors.push({
+        field: 'managementMode',
+        message: 'Le mode de gestion doit être défini',
+      });
+    }
+    
+    // Règle 6: verificationMode défini
+    if (!tempConfig.verificationMode || !['AI', 'HUMAN'].includes(tempConfig.verificationMode)) {
+      errors.push({
+        field: 'verificationMode',
+        message: 'Le mode de vérification doit être défini',
+      });
+    }
+    
+    return { isComplete: errors.length === 0, errors, warnings };
+  }, [actionConfig]);
   
   // Toggle section
   const toggleSection = (section) => {
@@ -208,18 +561,28 @@ export function ModuleConfigPanel({
     }));
   };
   
+  // Update action config field
+  const updateActionField = (field, value) => {
+    setActionConfig(prev => ({ ...prev, [field]: value }));
+  };
+  
   // Save (in-memory)
   const handleSave = () => {
-    updateModuleAIConfig(moduleId, config);
+    // Save main config avec actionConfig intégré
+    const fullConfig = { ...config, actionConfig };
+    updateModuleAIConfig(moduleId, fullConfig);
+    updateModuleActionConfig(moduleId, actionConfig);
     setOriginalConfig(config);
+    setOriginalActionConfig(actionConfig);
     setHasChanges(false);
-    onSave?.(config);
-    console.log('[V2 Config] Saved (in-memory)', { moduleId, config });
+    onSave?.(fullConfig);
+    console.log('[V2 Config] Saved (in-memory)', { moduleId, config: fullConfig });
   };
   
   // Reset
   const handleReset = () => {
     setConfig(originalConfig);
+    setActionConfig(originalActionConfig);
     setHasChanges(false);
   };
   
@@ -352,6 +715,94 @@ export function ModuleConfigPanel({
                 onChange={(v) => updateField('knowledgeKey', v)}
                 placeholder="Clé vers la base d'info (ex: pdb)"
               />
+            </div>
+          )}
+        </div>
+        
+        {/* Section: Configuration Actions V2 (Phase 1: FORM + SIGNATURE) */}
+        <div className="space-y-2">
+          <SectionHeader 
+            icon={Target} 
+            title="Configuration Actions V2" 
+            isOpen={openSections.actionConfigV2}
+            onToggle={() => toggleSection('actionConfigV2')}
+            badge={<span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">V2</span>}
+          />
+          {openSections.actionConfigV2 && (
+            <div className="pl-2 space-y-4">
+              {/* Target Audience */}
+              <TargetAudienceSelector
+                value={actionConfig.targetAudience}
+                onChange={(v) => updateActionField('targetAudience', v)}
+              />
+              
+              {/* Action Type */}
+              <ActionTypeSelector
+                value={actionConfig.actionType}
+                onChange={(v) => updateActionField('actionType', v)}
+              />
+              
+              {/* Forms (if actionType = FORM) */}
+              {actionConfig.actionType === ACTION_TYPES.FORM && (
+                <MultiSelectIds
+                  label="Formulaires autorisés"
+                  icon={FileText}
+                  items={availableForms}
+                  selectedIds={actionConfig.allowedFormIds || []}
+                  onChange={(ids) => updateActionField('allowedFormIds', ids)}
+                  emptyMessage="Aucun formulaire disponible"
+                />
+              )}
+              
+              {/* Templates (if actionType = SIGNATURE) */}
+              {actionConfig.actionType === ACTION_TYPES.SIGNATURE && (
+                <MultiSelectIds
+                  label="Templates de contrat autorisés"
+                  icon={PenTool}
+                  items={availableTemplates}
+                  selectedIds={actionConfig.allowedTemplateIds || []}
+                  onChange={(ids) => updateActionField('allowedTemplateIds', ids)}
+                  emptyMessage="Aucun template disponible"
+                />
+              )}
+              
+              {/* Management Mode */}
+              <ModeSelector
+                label="Mode de gestion"
+                value={actionConfig.managementMode}
+                options={Object.values(MANAGEMENT_MODES)}
+                onChange={(v) => updateActionField('managementMode', v)}
+              />
+              
+              {/* Verification Mode */}
+              <ModeSelector
+                label="Mode de vérification"
+                value={actionConfig.verificationMode}
+                options={Object.values(VERIFICATION_MODES)}
+                onChange={(v) => updateActionField('verificationMode', v)}
+              />
+              
+              {/* Validation Badge - PROMPT 5 */}
+              <div className="mt-4 pt-3 border-t">
+                <ValidationBadge 
+                  validationResult={validationResult} 
+                  showDetails={true} 
+                />
+              </div>
+              
+              {/* Simulateur ActionOrder - PROMPT 6 */}
+              {validationResult.isComplete && (
+                <div className="mt-4">
+                  <ActionOrderSimulator
+                    moduleId={moduleId}
+                    projectType={null}
+                    prospectId={null}
+                    actionConfig={actionConfig}
+                    availableForms={availableForms}
+                    availableTemplates={availableTemplates}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -33,9 +33,19 @@
 - [x] **Onglet Config IA** — `ModuleConfigTab.jsx` intégré dans `ModulePanel.jsx` (tabs Contact/Workflow V2)
 - [x] **T7 - Lien depuis Pipeline** — Bouton "Workflow V2" ajouté dans `ProspectCard.jsx` (feature-flagged)
 
-### 🔜 Prêt à exécuter (Phase 2)
+### 🔜 Prêt à exécuter (Phase 2 — Config V2)
+- [x] **PROMPT 1 - Audit V1** — `docs/workflow-v2/08_audit_v1_actions.md`
+- [x] **PROMPT 2 - Catalogue read-only** — `src/lib/catalogueV2.js`
+- [x] **PROMPT 3 - Enrichir moduleAIConfig** — `src/lib/moduleAIConfig.js` (actionConfig ajouté)
+- [x] **PROMPT 4 - UI config actions** — Sélecteurs dans `ModuleConfigPanel.jsx` ✅
+- [x] **PROMPT 5 - Validateur config** — `isModuleConfigComplete()` + badge UI ✅
+- [x] **PROMPT 6 - Simulation ActionOrder** — `buildActionOrder()` + `ActionOrderSimulator.jsx` ✅
+- [x] **PROMPT 7 - Connexion V2→V1** — `executeActionOrder()` + flag `EXECUTION_FROM_V2` ✅
+
+### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA
+- [ ] **Migration `workflow_module_templates`** — Config par (project_type, module_id)
 
 ###  Backlog (7 tickets) — TOUS TERMINÉS ✅
 | # | Ticket | Effort | Status |
@@ -166,4 +176,139 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7
     - Checklist avec commandes grep
     - URLs de test
   - Build OK
+- 2026-01-28: **PROMPT 1 - Audit V1 terminé** — `08_audit_v1_actions.md`
+  - Actions V1 identifiées: `show_form`, `start_signature`, `request_document`, `partner_task`
+  - Cibles V1: `hasClientAction=true` (client), `false` (commercial), `null` (partenaire)
+  - Formulaires: `useSupabaseForms` → table `forms` (audience: client/internal)
+  - Templates: `useSupabaseContractTemplates` → table `contract_templates`
+  - Trigger robot: `handleSelectPrompt()` dans `ProspectDetailsAdmin.jsx`
+  - Auto-exécution: `useWorkflowExecutor.js` → `executeAction()`
+  - Payload ActionOrder documenté
+  - Aucun code modifié
+- 2026-01-29: **PROMPT 2 - Catalogue read-only terminé** — `src/lib/catalogueV2.js`
+  - Types d'actions: `FORM`, `SIGNATURE` avec mapping V1 (`show_form`, `start_signature`)
+  - Cibles: `CLIENT`, `COMMERCIAL`, `PARTENAIRE` avec mapping V1 (`hasClientAction`)
+  - Modes gestion: `AI`, `HUMAN` (automatic/manual)
+  - Modes vérification: `AI`, `HUMAN` (ai/human)
+  - Catalogue formulaires: `getFormsCatalogue()`, `getClientFormsCatalogue()`
+  - Catalogue templates: `getContractTemplatesCatalogue()`, `getActiveContractTemplatesCatalogue()`
+  - Helpers validation: `isValidActionType()`, `isValidFormId()`, `isValidTemplateId()`
+  - Conversion: `v2TypeToV1Type()`, `v1TypeToV2Type()`
+  - ❌ Aucune exécution, ❌ Aucune modif V1, ✅ Read-only strict
+- 2026-01-29: **PROMPT 3 - Enrichir moduleAIConfig terminé**
+  - Nouveau type `ActionConfig` avec 6 propriétés:
+    - `targetAudience`: CLIENT | COMMERCIAL | PARTENAIRE
+    - `actionType`: FORM | SIGNATURE | null
+    - `allowedFormIds`: string[] (liste des formulaires autorisés)
+    - `allowedTemplateIds`: string[] (liste des templates autorisés)
+    - `managementMode`: AI | HUMAN
+    - `verificationMode`: AI | HUMAN
+  - `DEFAULT_ACTION_CONFIG` exporté (valeurs neutres)
+  - `DEFAULT_MODULE_CONFIG` enrichi avec `actionConfig`
+  - Module `pdb` = exemple complet avec actionConfig
+  - Helpers ajoutés:
+    - `getModuleActionConfig(moduleId)`
+    - `updateModuleActionConfig(moduleId, updates)`
+    - `addAllowedFormId()` / `removeAllowedFormId()`
+    - `addAllowedTemplateId()` / `removeAllowedTemplateId()`
+  - ❌ Aucune exécution, ❌ Aucune logique décisionnelle, ✅ Config déclarative
+- 2026-01-29: **PROMPT 4 - UI config actions terminé** — `ModuleConfigPanel.jsx`
+  - Props ajoutés: `availableForms`, `availableTemplates` (catalogue V2)
+  - État `actionConfig` séparé avec persistence via `updateModuleActionConfig()`
+  - Nouvelle section "Configuration Actions V2" avec badge V2
+  - Composants UI ajoutés:
+    - `TargetAudienceSelector`: checkboxes pour CLIENT/COMMERCIAL/PARTENAIRE
+    - `ActionTypeSelector`: radio pour FORM/SIGNATURE
+    - `MultiSelectIds`: sélection multiple formulaires ou templates
+    - `ModeSelector`: sélecteur gestion/vérification (AI/HUMAN)
+  - Affichage conditionnel: formulaires si FORM, templates si SIGNATURE
+  - Résumé config V2 en lecture seule
+  - ❌ Aucune exécution, ❌ Aucun appel V1, ✅ Config UI pure
+- 2026-01-29: **PROMPT 5 - Validateur config terminé**
+  - Fonction `isModuleConfigComplete(moduleId, projectType)` dans `moduleAIConfig.js`
+  - Règles de validation:
+    1. ≥ 1 cible sélectionnée (`targetAudience`)
+    2. `actionType` défini (FORM ou SIGNATURE)
+    3. Si FORM → `allowedFormIds.length ≥ 1`
+    4. Si SIGNATURE → `allowedFormIds.length ≥ 1` (formulaire collecte)
+    5. `managementMode` défini (AI ou HUMAN)
+    6. `verificationMode` défini (AI ou HUMAN)
+  - Type retour `ValidationResult`: `{ isComplete, errors[], warnings[] }`
+  - Helpers ajoutés:
+    - `getValidationSummary(validationResult)` → texte lisible
+    - `isModuleReady(moduleId)` → boolean rapide
+  - UI: Composant `ValidationBadge` dans `ModuleConfigPanel.jsx`
+    - Badge vert "Configuration complète" + avertissements
+    - Badge rouge "Configuration incomplète" + liste erreurs détaillée
+  - Validation temps réel via `useMemo` sur `actionConfig`
+  - ❌ Aucune exécution, ❌ Aucun appel V1, ❌ Aucune persistance DB, ✅ Pure validation UI
+- 2026-01-29: **PROMPT 6 - Simulation ActionOrder terminé**
+  - Nouveau helper: `src/lib/actionOrderV2.js`
+  - Fonction principale: `buildActionOrder({ moduleId, projectType, prospectId, actionConfig, message })`
+  - Structure ActionOrder générée:
+    - `id`: UUID simulation (sim-xxx)
+    - `version`: v2.0
+    - `status`: PENDING (toujours en simulation)
+    - `target`: CLIENT | COMMERCIAL | PARTENAIRE
+    - `hasClientAction`: true | false | null (conversion V1)
+    - `actionType`: FORM | SIGNATURE
+    - `v1ActionType`: show_form | start_signature
+    - `formIds`: liste des formulaires
+    - `templateIds`: liste des templates (si SIGNATURE)
+    - `signatureType`: yousign | null
+    - `managementMode`: AI | HUMAN
+    - `verificationMode`: AI | HUMAN
+    - `message`: texte libre
+    - `_meta`: { generatedBy, isSimulation, timestamp }
+  - Helpers supplémentaires:
+    - `formatActionOrderSummary(order)` → résumé textuel
+    - `getActionOrderJSON(order)` → JSON formaté copiable
+    - `validateActionOrder(order)` → validation de l'ordre
+  - Fonctions de conversion ajoutées dans `catalogueV2.js`:
+    - `v2TargetToV1HasClientAction(target)` → boolean|null
+    - `v1HasClientActionToV2Target(hasClientAction)` → string
+  - UI: Composant `ActionOrderSimulator.jsx`
+    - Bouton "Simuler" (icône Zap/robot)
+    - Affichage visuel: action, cible, formulaires, templates, message, modes
+    - Zone JSON copiable (bouton "Copier")
+    - Disclaimer "Simulation pure"
+    - Affiché uniquement si config complète (validationResult.isComplete)
+  - Intégration dans `ModuleConfigPanel.jsx` après ValidationBadge
+  - ❌ Aucun appel V1, ❌ Aucune cascade, ❌ Aucune persistance DB, ✅ Simulation pure
+- 2026-01-29: **PROMPT 7 - Connexion V2→V1 terminé**
+  - Feature flag: `EXECUTION_FROM_V2` dans `workflowV2Config.js`
+    - OFF par défaut (simulation seulement)
+    - ON uniquement en preview/dev
+    - Rollback immédiat = flag OFF
+  - Helper: `isExecutionFromV2Enabled()` pour vérifier le flag
+  - Nouveau fichier: `src/lib/executeActionOrderV2.js`
+  - Fonction principale: `executeActionOrder(order, context)`
+    - Point d'entrée UNIQUE V2 → V1
+    - Gardes de sécurité:
+      1. Vérifie flag EXECUTION_FROM_V2
+      2. Vérifie `_meta.isSimulation === false`
+      3. Valide l'ordre (prospectId, actionType)
+    - Actions supportées:
+      - FORM → crée `client_form_panels` + message chat
+      - SIGNATURE → crée `signature_procedures` + message chat
+    - Retourne `ExecutionResult`: `{ success, status, message, data }`
+    - Status possibles: `executed`, `simulated`, `blocked`, `error`
+  - Helper: `canExecuteActionOrder(order)` pour vérifier avant exécution
+  - UI mise à jour dans `ActionOrderSimulator.jsx`:
+    - Badge "EXEC ON" si flag activé
+    - Bouton "Exécuter" (vert) si exécution possible
+    - Spinner pendant exécution
+    - Affichage résultat (succès/erreur avec détails)
+    - Footer dynamique selon mode
+  - Contraintes respectées:
+    - ❌ Aucun changement dans ProspectDetailsAdmin V1
+    - ❌ Aucune cascade automatique
+    - ❌ Aucun déclenchement hors feature flag
+    - ❌ Aucun impact sur les flows existants V1
+    - ✅ Rollback immédiat = flag OFF
+
+## 🎉 PHASE 2 COMPLÈTE — Tous les prompts 1-7 terminés
+
+
+
 

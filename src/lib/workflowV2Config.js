@@ -78,6 +78,25 @@ export const WORKFLOW_V2_CONFIG = {
   disableRouting: true,
 
   /**
+   * ═══════════════════════════════════════════════════════════════════════════
+   * EXECUTION_FROM_V2 (PROMPT 7)
+   * ═══════════════════════════════════════════════════════════════════════════
+   * 
+   * Permet à V2 d'exécuter des ActionOrder via V1
+   * 
+   * ⚠️ SÉCURITÉ CRITIQUE:
+   *    - OFF par défaut
+   *    - ON uniquement en preview/dev
+   *    - Si OFF → rien ne s'exécute, même si ActionOrder présent
+   *    - Rollback immédiat = mettre ce flag à false
+   * 
+   * Actions supportées:
+   *    - FORM → envoi formulaire via V1
+   *    - SIGNATURE → lancement signature via V1
+   */
+  executionFromV2: false,
+
+  /**
    * Utilisateurs autorisés
    * ['*']           = Tous les utilisateurs
    * ['email@...']   = Liste blanche d'emails
@@ -117,6 +136,12 @@ export const isMockProceed = () => WORKFLOW_V2_CONFIG.mockProceed;
  * @returns {boolean}
  */
 export const isRoutingDisabled = () => WORKFLOW_V2_CONFIG.disableRouting;
+
+/**
+ * Vérifie si l'exécution V2→V1 est autorisée
+ * @returns {boolean}
+ */
+export const isExecutionFromV2Enabled = () => WORKFLOW_V2_CONFIG.executionFromV2;
 
 /**
  * Vérifie si un utilisateur a accès à V2
