@@ -1577,33 +1577,73 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
                 });
             }
 
-            // Récupérer le prompt pour vérifier autoCompleteStep
-            const prompt = Object.values(prompts).find(p => 
-                p.id === panel.promptId || p.projectId === panel.projectType
-            );
+            // ═══════════════════════════════════════════════════════════════════
+            // 🔥 V2: Vérifier completionTrigger depuis config V2
+            // ═══════════════════════════════════════════════════════════════════
+            const currentSteps = supabaseSteps?.[panel.projectType];
+            const currentStepIdx = currentSteps?.findIndex(s => s.status === 'in_progress') ?? panel.currentStepIndex;
+            const currentStepName = currentSteps?.[currentStepIdx]?.name;
+            
+            // Récupérer la config V2 pour ce module
+            const moduleActionConfig = currentStepName ? getModuleActionConfig(currentStepName) : null;
+            const v2CompletionTrigger = moduleActionConfig?.completionTrigger;
+            
+            logger.debug('[V2] Checking completionTrigger for form approval', {
+                stepName: currentStepName,
+                completionTrigger: v2CompletionTrigger,
+                currentStepIdx,
+            });
 
-            if (prompt) {
-                const stepConfig = prompt.stepsConfig?.[panel.currentStepIndex];
+            // V2: Si completionTrigger === 'form_approved', passer à l'étape suivante
+            if (v2CompletionTrigger === 'form_approved' && currentSteps) {
+                logger.info('[V2] completionTrigger=form_approved → completing step', {
+                    prospectId: prospect.id,
+                    projectType: panel.projectType,
+                    currentStepIdx,
+                    stepName: currentStepName,
+                });
                 
-                // Si autoCompleteStep est activé, passer à l'étape suivante
-                if (stepConfig?.autoCompleteStep) {
-                    logger.debug('Auto-completing step after validation', {
-                        prospect: prospect.id,
-                        projectType: panel.projectType,
-                        stepIndex: panel.currentStepIndex
-                    });
+                await completeStepAndProceed(
+                    prospect.id,
+                    panel.projectType,
+                    currentStepIdx,
+                    currentSteps
+                );
+                
+                toast({
+                    title: '✅ Étape validée automatiquement',
+                    description: `La validation du formulaire a déclenché le passage à l'étape suivante`,
+                    className: 'bg-green-500 text-white',
+                });
+            } else {
+                // ═══════════════════════════════════════════════════════════════════
+                // V1 FALLBACK: Récupérer le prompt pour vérifier autoCompleteStep
+                // ═══════════════════════════════════════════════════════════════════
+                const prompt = Object.values(prompts).find(p => 
+                    p.id === panel.promptId || p.projectId === panel.projectType
+                );
+
+                if (prompt) {
+                    const stepConfig = prompt.stepsConfig?.[panel.currentStepIndex];
                     
-                    // 🔥 FIX SOLUTION A: Récupérer les steps depuis supabaseSteps pour ce projectType
-                    const currentSteps = supabaseSteps?.[panel.projectType];
-                    if (currentSteps) {
-                        await completeStepAndProceed(
-                            prospect.id,
-                            panel.projectType,
-                            panel.currentStepIndex,
-                            currentSteps
-                        );
-                    } else {
-                        logger.error('No steps found in supabaseSteps for projectType', { projectType: panel.projectType });
+                    // Si autoCompleteStep est activé, passer à l'étape suivante
+                    if (stepConfig?.autoCompleteStep) {
+                        logger.debug('[V1] Auto-completing step after validation (legacy)', {
+                            prospect: prospect.id,
+                            projectType: panel.projectType,
+                            stepIndex: panel.currentStepIndex
+                        });
+                        
+                        if (currentSteps) {
+                            await completeStepAndProceed(
+                                prospect.id,
+                                panel.projectType,
+                                panel.currentStepIndex,
+                                currentSteps
+                            );
+                        } else {
+                            logger.error('No steps found in supabaseSteps for projectType', { projectType: panel.projectType });
+                        }
                     }
                 }
             }
