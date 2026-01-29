@@ -450,18 +450,21 @@ async function executeSignatureAction(order, context) {
  */
 async function sendChatMessage({ prospectId, projectType, message, metadata }) {
   try {
-    await supabase
+    const { error } = await supabase
       .from('chat_messages')
       .insert({
         prospect_id: prospectId,
         project_type: projectType || 'general',
-        sender_type: 'system',
-        content: message,
-        metadata: {
-          ...metadata,
-          sentAt: new Date().toISOString(),
-        },
+        sender: 'admin', // 'admin' ou 'client' (pas 'system')
+        text: message,   // 'text' pas 'content'
+        read: false,
+        // metadata stocké dans d'autres colonnes si besoin
       });
+    
+    if (error) {
+      logV2('❌ Erreur envoi message chat', { error: error.message });
+      return;
+    }
     
     logV2('💬 Message chat envoyé', { prospectId, projectType });
   } catch (error) {
