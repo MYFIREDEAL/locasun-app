@@ -49,6 +49,16 @@
 - [x] **Branchement Supabase** — Formulaires et templates chargés depuis Supabase ✅
 - [x] **Activation exécution preview** — `EXECUTION_FROM_V2` activé en localhost/preview/dev ✅
 
+### ✅ PROMPT 11 — Robot Chat → V2
+- [x] **WorkflowV2RobotPanel** — Panneau V2 dans chat (remplace Popover V1)
+- [x] **Human verification unifiée** — `client_form_panels.verification_mode` source unique
+- [x] **Config persistence fix** — Load depuis `configJson` wrapper DB
+
+### ✅ PROMPT 12 — Signature V2 compatible schéma
+- [x] **Migration minimale** — `form_data` seule colonne ajoutée
+- [x] **Insert corrigé** — Utilise `signers[]`, `signature_metadata`, `file_id`, `organization_id`
+- [x] **file_id placeholder** — Crée fichier dans `project_files` avant signature
+
 ### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA

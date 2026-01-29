@@ -337,26 +337,60 @@ async function executeSignatureAction(order, context) {
     };
   }
   
-  // 4. Créer une procédure de signature PENDING
+  // 4. Créer un fichier placeholder dans project_files (file_id est NOT NULL)
+  const { data: placeholderFile, error: fileError } = await supabase
+    .from('project_files')
+    .insert({
+      prospect_id: prospectId,
+      project_type: projectType || 'general',
+      file_name: `signature_pending_${Date.now()}.pdf`,
+      file_type: 'application/pdf',
+      file_size: 0,
+      storage_path: null, // Sera rempli lors de la génération réelle
+      category: 'signature',
+      organization_id: prospect.organization_id,
+    })
+    .select('id')
+    .single();
+  
+  if (fileError) {
+    logV2('❌ Erreur création fichier placeholder', { error: fileError.message });
+    return {
+      success: false,
+      status: 'error',
+      message: `Erreur création fichier: ${fileError.message}`,
+      data: { prospectId, error: fileError.message },
+    };
+  }
+  
+  // 5. Créer une procédure de signature PENDING (schéma Supabase existant)
   const { data: procedure, error: procedureError } = await supabase
     .from('signature_procedures')
     .insert({
       prospect_id: prospectId,
       project_type: projectType || 'general',
-      template_id: templateIds?.[0] || null,
+      file_id: placeholderFile.id,  // OBLIGATOIRE - NOT NULL
       status: 'pending',
-      signer_name: signerName,
-      signer_email: signerEmail,
-      signature_type: signatureType || 'yousign',
-      message: message || 'Document à signer',
+      signers: [
+        {
+          name: signerName,
+          email: signerEmail,
+          role: 'signer',
+          status: 'pending',
+          signed_at: null,
+        }
+      ],
       form_data: formData,
-      metadata: {
+      signature_metadata: {
         source: 'workflow-v2',
         orderId: order.id,
         managementMode: order.managementMode,
         verificationMode: order.verificationMode,
         formIds: formIds,
+        signatureType: signatureType || 'internal',
+        message: message || 'Document à signer',
       },
+      organization_id: prospect.organization_id,
     })
     .select()
     .single();
