@@ -113,6 +113,36 @@ return () => supabase.removeChannel(channel)
 - **Admin pages**: `src/pages/admin/FinalPipeline.jsx` (pipeline), `Agenda.jsx` (calendar)
 - **Client pages**: `src/pages/client/ClientDashboardPage.jsx`
 
+## 🆕 Workflow V2 (état réel)
+
+### Architecture V1 vs V2
+- **V1 (exécution)**: Actions et exécutions dans `WorkflowsCharlyPage.jsx` + `useWorkflowExecutor.js`
+  - Le "petit robot" est déclenché depuis `ProspectDetailsAdmin.jsx`
+  - Exécute directement les actions (formulaires, signatures, etc.)
+- **V2 (cockpit)**: Config + génération d'ActionOrder + simulation + exécution sous feature flag
+  - Ne modifie PAS V1, génère des ordres que V1 exécute
+
+### Fichiers clés V2
+| Fichier | Rôle |
+|---------|------|
+| `src/lib/moduleAIConfig.js` | Config IA par module (objectif, instructions, actionConfig) |
+| `src/lib/catalogueV2.js` | Catalogue read-only (forms, templates, targets, modes) |
+| `src/lib/actionOrderV2.js` | Build ActionOrder JSON (simulation pure) |
+| `src/lib/executeActionOrderV2.js` | Bridge V2→V1 avec guards + feature flag |
+| `src/lib/workflowV2Config.js` | Feature flags (READ_ONLY, EXECUTION_FROM_V2) |
+| `src/components/admin/workflow-v2/ActionOrderSimulator.jsx` | UI simulation + exécution |
+| `src/components/admin/workflow-v2/ModuleConfigTab.jsx` | Éditeur UI config IA |
+
+### Persistance
+| Phase | Mode | Détail |
+|-------|------|--------|
+| Phase 3 (actuel) | **Mémoire** | Config perdue au refresh |
+| Phase 9 (futur) | **Supabase** | Table `workflow_module_templates` par `org_id` + `project_type` + `module_id` |
+
+### Feature Flags (`workflowV2Config.js`)
+- `READ_ONLY: true` → Aucune écriture DB depuis V2
+- `EXECUTION_FROM_V2: false` → Bouton "Exécuter" désactivé (simulation uniquement)
+
 ## Environment Setup
 ```bash
 # .env (required)
