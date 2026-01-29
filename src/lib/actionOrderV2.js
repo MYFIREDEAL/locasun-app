@@ -103,6 +103,7 @@ export function buildActionOrder({
     actionType,
     allowedFormIds = [],
     allowedTemplateIds = [],
+    templateId = null,  // ⚠️ Compat: ModuleConfigTab stocke templateId (singulier)
     managementMode = 'HUMAN',
     verificationMode = 'HUMAN',
   } = actionConfig;
@@ -113,6 +114,11 @@ export function buildActionOrder({
   
   // Déterminer le type de signature (si applicable)
   const signatureType = actionType === 'SIGNATURE' ? 'yousign' : null;
+  
+  // ⚠️ Fusionner templateId (singulier) et allowedTemplateIds (pluriel)
+  const resolvedTemplateIds = templateId 
+    ? [templateId, ...allowedTemplateIds.filter(id => id !== templateId)]
+    : [...allowedTemplateIds];
 
   // Construire l'ordre
   const order = {
@@ -132,7 +138,7 @@ export function buildActionOrder({
     
     // Ressources
     formIds: [...allowedFormIds],
-    templateIds: [...allowedTemplateIds],
+    templateIds: resolvedTemplateIds,  // ✅ Utilise la fusion
     signatureType,
     
     // Modes

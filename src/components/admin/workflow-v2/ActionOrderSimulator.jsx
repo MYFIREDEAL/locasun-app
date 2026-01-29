@@ -108,8 +108,8 @@ export function ActionOrderSimulator({
     if (!hasRealProspectId) return { canExecute: false, reason: 'prospectId réel requis' };
     
     // ⚠️ GUARD SIGNATURE: Bloquer si SIGNATURE sans template
-    if (generatedOrder.action === 'SIGNATURE') {
-      const templateIds = generatedOrder.payload?.templateIds || [];
+    if (generatedOrder.actionType === 'SIGNATURE') {
+      const templateIds = generatedOrder.templateIds || [];
       if (!templateIds.length) {
         return { 
           canExecute: false, 
@@ -309,8 +309,8 @@ export function ActionOrderSimulator({
       )}
       
       {/* ⚠️ Avertissement SIGNATURE sans template */}
-      {generatedOrder?.action === 'SIGNATURE' && 
-       !(generatedOrder.payload?.templateIds?.length) && (
+      {generatedOrder?.actionType === 'SIGNATURE' && 
+       !(generatedOrder.templateIds?.length) && (
         <div className="p-3 bg-amber-50 border-b border-amber-100">
           <div className="flex items-center gap-2 text-sm text-amber-700">
             <AlertTriangle className="h-4 w-4" />
