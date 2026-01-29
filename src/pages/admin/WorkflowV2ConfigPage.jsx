@@ -221,13 +221,14 @@ const WorkflowV2ConfigPage = () => {
   
   // ✅ Liste des modules configurés (depuis les templates persistés)
   const configuredModules = useMemo(() => {
-    if (!templateOps.templates) return [];
+    // templates est un objet indexé par moduleId
+    if (!templateOps.templates || typeof templateOps.templates !== 'object') return [];
     
-    // templates est un objet indexé par moduleId, on a besoin du projectType aussi
-    return templateOps.getAllTemplatesList().map(t => 
-      `${t.project_type}:${t.module_id}`
+    // Convertir l'objet en array et extraire project_type:module_id
+    return Object.values(templateOps.templates).map(t => 
+      `${t.projectType}:${t.moduleId}`
     );
-  }, [templateOps]);
+  }, [templateOps.templates]);
   
   // Handler sélection module
   const handleSelectModule = (projectType, moduleId, step) => {
