@@ -1,5 +1,15 @@
 # Workflow V2 - Progress
 
+> **📅 Dernière mise à jour : 29 janvier 2026**
+> 
+> **🎯 ÉTAT : FONCTIONNEL EN PREVIEW**
+> - Config IA persistée en Supabase ✅
+> - Robot chat V2 opérationnel ✅
+> - Signature V2 compatible schéma ✅
+> - Exécution activée (preview/dev) ✅
+
+---
+
 ## Guardrails (à ne jamais casser)
 - [x] Aucune modification du workflow V1 (UI + moteur)
 - [ ] V2 = nouvelle page / nouveau dossier / feature flag

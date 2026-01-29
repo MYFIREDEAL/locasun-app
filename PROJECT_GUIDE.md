@@ -151,7 +151,48 @@ Quand une action est **associée à un partenaire** :
 
 ---
 
-## 🚫 INTERDITS ABSOLUS (À RESPECTER)
+## � ÉTAT ACTUEL — WORKFLOW V2 (Janvier 2026)
+
+### ✅ Ce qui est FAIT
+
+| Composant | Status | Description |
+|-----------|--------|-------------|
+| **Config IA par module** | ✅ | Objective, instructions, actionConfig éditables |
+| **Catalogue V2** | ✅ | Actions, cibles, modes de gestion/vérification |
+| **Simulateur ActionOrder** | ✅ | Génère un ordre d'action JSON sans exécuter |
+| **Exécution V2→V1** | ✅ | Bridge vers moteur V1 (formulaires, signatures) |
+| **Persistance Supabase** | ✅ | Table `workflow_module_templates` |
+| **Robot Chat V2** | ✅ | Bouton 🤖 dans chat → panneau V2 |
+| **Signature V2** | ✅ | Compatible schéma existant (`signers[]`, `file_id`) |
+| **Vérification humaine** | ✅ | `client_form_panels.verification_mode` source unique |
+
+### 🎯 Feature Flags actuels
+
+```javascript
+// src/lib/workflowV2Config.js
+EXECUTION_FROM_V2: true   // Activé en localhost/preview/dev
+READ_ONLY: false          // Mode exécution ON
+```
+
+### 📂 Fichiers clés V2
+
+| Fichier | Rôle |
+|---------|------|
+| `src/lib/moduleAIConfig.js` | Config IA par module |
+| `src/lib/catalogueV2.js` | Catalogue read-only |
+| `src/lib/executeActionOrderV2.js` | Exécution V2→V1 |
+| `src/components/admin/workflow-v2/` | Composants UI V2 |
+| `docs/workflow-v2/PROGRESS.md` | Suivi détaillé |
+
+### 🔜 Prochaines étapes
+
+1. **Tester signature V2** — Vérifier création procédure + message chat
+2. **Génération PDF** — Injecter `form_data` dans template
+3. **Notifications** — Créer tâches vérification humaine
+
+---
+
+## �🚫 INTERDITS ABSOLUS (À RESPECTER)
 
 * ❌ Déplacer une card de pipeline à la main
 * ❌ Laisser l'IA agir sans cadre
