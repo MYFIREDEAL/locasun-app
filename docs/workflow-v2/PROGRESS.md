@@ -529,3 +529,97 @@ WorkflowV2ConfigPage
 - ❌ Aucune logique métier
 - ❌ Aucun impact V1
 - ✅ UI + navigation uniquement
+
+## 🎉 PROMPT 11 COMPLÈTE — BRANCHER LE ROBOT DU CHAT V1 SUR WORKFLOW V2
+
+### Bouton 🤖 du chat déclenche V2 (sans IA)
+- **Objectif**: Quand l'admin clique 🤖 dans le chat, V2 est consulté → décision affichée → exécution possible
+- **Aucune IA** — L'admin écrit le message manuellement
+
+#### Fichiers créés:
+- `src/components/admin/workflow-v2/WorkflowV2RobotPanel.jsx`
+  - Panneau modal affiché au clic sur 🤖
+  - Affiche la config V2 persistée pour l'étape courante
+  - Génère automatiquement l'ActionOrder via `buildActionOrder()`
+  - Boutons:
+    - 🧪 **Simuler** → génère et affiche l'ActionOrder
+    - 🚀 **Exécuter** → appelle `executeActionOrder()` (V1 exécute)
+  - Zone JSON copiable avec l'ActionOrder complet
+  - Résultat d'exécution affiché (succès/erreur)
+  - Cas "Aucune action disponible" si pas de config V2
+
+#### Fichiers modifiés:
+- `src/components/admin/ProspectDetailsAdmin.jsx`
+  - **Imports V2 ajoutés**:
+    - `WorkflowV2RobotPanel`
+    - `useSupabaseWorkflowModuleTemplates`
+    - `useSupabaseForms`
+    - `useSupabaseContractTemplates`
+    - `useOrganization`
+  - **ChatInterface** enrichi:
+    - State `v2RobotPanelOpen` pour ouvrir/fermer le panneau
+    - Hook `useSupabaseWorkflowModuleTemplates` pour charger la config persistée
+    - Hook `useSupabaseForms` pour les formulaires disponibles
+    - Hook `useSupabaseContractTemplates` pour les templates disponibles
+    - Calcul `currentModuleId` depuis le nom de l'étape courante
+    - Récupération `currentModuleConfig` depuis les templates persistés
+  - **Bouton Bot remplacé**:
+    - Avant: `Popover` avec liste des prompts V1
+    - Après: `Button` qui ouvre `WorkflowV2RobotPanel`
+    - Icône Bot en violet (couleur V2)
+  - **WorkflowV2RobotPanel** ajouté dans le render:
+    - Props: prospectId, projectType, moduleId, moduleName, moduleConfig, context, availableForms, availableTemplates
+
+#### Flux utilisateur:
+```
+Admin clique 🤖 dans le chat
+  ↓
+WorkflowV2RobotPanel s'ouvre
+  ↓
+Config V2 chargée depuis workflow_module_templates
+  ↓
+ActionOrder généré automatiquement (simulation)
+  ↓
+Admin voit: type action, cible, formulaires/templates, modes
+  ↓
+[Optionnel] Admin clique "Exécuter"
+  ↓
+executeActionOrder() appelé
+  ↓
+V1 crée client_form_panel ou signature_procedure
+  ↓
+Message chat = celui écrit MANUELLEMENT par l'admin
+```
+
+#### Cas sans action:
+- Si pas de config V2 pour ce module → affiche "Aucune action disponible pour cette étape"
+- Bouton "Configurer" proposé → redirige vers cockpit
+
+#### Chemin des props:
+```
+ProspectDetailsAdmin
+  └── ChatInterface(prospectId, projectType, currentStepIndex)
+        ├── useSupabaseWorkflowModuleTemplates(orgId, projectType) → v2Templates
+        ├── useSupabaseForms(orgId) → v2Forms
+        ├── useSupabaseContractTemplates(orgId) → v2ContractTemplates
+        ├── currentModuleId = step.name → normalized
+        ├── currentModuleConfig = v2Templates[currentModuleId]?.configJson
+        │
+        └── WorkflowV2RobotPanel(
+              isOpen, onClose,
+              prospectId, projectType,
+              moduleId, moduleName,
+              moduleConfig,
+              context: { organizationId, adminUser },
+              availableForms, availableTemplates
+            )
+```
+
+#### Contraintes respectées:
+- ❌ Aucune IA — humain écrit le message
+- ❌ Aucune génération de texte automatique
+- ❌ Aucun refacto moteur V1
+- ❌ Aucun changement DB
+- ✅ Wiring UI + appel V2 uniquement
+- ✅ V2 = décision affichée, V1 = exécution
+- ✅ Bouton 🤖 = point d'entrée unique V2 dans le chat

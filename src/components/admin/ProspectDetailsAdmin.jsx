@@ -31,6 +31,13 @@ import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 import ProjectCenterPanel from './ProjectCenterPanel';
 
+// 🔥 V2 Imports
+import WorkflowV2RobotPanel from './workflow-v2/WorkflowV2RobotPanel';
+import { useSupabaseWorkflowModuleTemplates } from '@/hooks/useSupabaseWorkflowModuleTemplates';
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
+import { useOrganization } from '@/contexts/OrganizationContext';
+
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
 const STATUS_PENDING = 'pending';
@@ -198,6 +205,53 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  
+  // 🔥 V2: State pour le panneau robot
+  const [v2RobotPanelOpen, setV2RobotPanelOpen] = useState(false);
+  
+  // 🔥 V2: Hook pour charger la config persistée
+  const { organizationId } = useOrganization();
+  const { templates: v2Templates, loading: v2TemplatesLoading } = useSupabaseWorkflowModuleTemplates(
+    organizationId || activeAdminUser?.organization_id, 
+    projectType
+  );
+  
+  // 🔥 V2: Hook pour les formulaires et templates disponibles  
+  const { forms: v2Forms, loading: v2FormsLoading } = useSupabaseForms(organizationId || activeAdminUser?.organization_id);
+  const { templates: v2ContractTemplates, loading: v2ContractTemplatesLoading } = useSupabaseContractTemplates(organizationId || activeAdminUser?.organization_id);
+  
+  // 🔥 V2: Calculer le moduleId à partir de l'étape courante
+  const currentStepData = projectsData[projectType]?.steps?.[currentStepIndex];
+  const currentModuleId = useMemo(() => {
+    if (!currentStepData?.name) return `step-${currentStepIndex}`;
+    return currentStepData.name.toLowerCase().replace(/[_\s]/g, '-').replace(/[^a-z0-9-]/g, '');
+  }, [currentStepData, currentStepIndex]);
+  
+  // 🔥 V2: Récupérer la config pour le module courant
+  const currentModuleConfig = useMemo(() => {
+    if (!v2Templates || !currentModuleId) return null;
+    // v2Templates est indexé par moduleId
+    const template = v2Templates[currentModuleId];
+    return template?.configJson || null;
+  }, [v2Templates, currentModuleId]);
+  
+  // 🔥 V2: Transformer les formulaires pour le panneau
+  const v2AvailableForms = useMemo(() => {
+    if (!v2Forms) return [];
+    return Object.values(v2Forms).map(f => ({ 
+      id: f.id, 
+      name: f.name || f.title || 'Formulaire sans nom' 
+    }));
+  }, [v2Forms]);
+  
+  // 🔥 V2: Transformer les templates pour le panneau
+  const v2AvailableTemplates = useMemo(() => {
+    if (!v2ContractTemplates) return [];
+    if (!Array.isArray(v2ContractTemplates)) {
+      return Object.values(v2ContractTemplates).map(t => ({ id: t.id, name: t.name || 'Template sans nom' }));
+    }
+    return v2ContractTemplates.map(t => ({ id: t.id, name: t.name || 'Template sans nom' }));
+  }, [v2ContractTemplates]);
   
   // 🔥 Trouver le prospect pour afficher son nom dans le chat
   const currentProspect = prospects.find(p => p.id === prospectId);
@@ -784,35 +838,15 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Bot className="h-5 w-5 text-gray-500" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                    <div className="space-y-2">
-                        <h4 className="font-medium leading-none">Prompts disponibles</h4>
-                        <p className="text-sm text-muted-foreground">
-                            Pour l'étape : "{projectsData[projectType]?.steps[currentStepIndex]?.name}"
-                        </p>
-                    </div>
-                    <div className="grid gap-2">
-                        {availablePrompts.length > 0 ? (
-                            availablePrompts.map(prompt => (
-                                <button key={prompt.id} onClick={() => handleSelectPrompt(prompt)} className="text-left p-2 hover:bg-accent rounded-md">
-                                    <p className="font-medium text-sm">{prompt.name}</p>
-                                    <p className="text-xs text-muted-foreground">{projectsData[prompt.projectId]?.title}</p>
-                                </button>
-                            ))
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">Aucun prompt disponible pour cette étape.</p>
-                        )}
-                    </div>
-                </div>
-            </PopoverContent>
-          </Popover>
+          {/* 🔥 V2: Bouton robot ouvre le panneau V2 au lieu du Popover V1 */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setV2RobotPanelOpen(true)}
+            title="Workflow V2 - Actions automatisées"
+          >
+            <Bot className="h-5 w-5 text-purple-600" />
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -843,6 +877,23 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           </Button>
         </div>
       </div>
+      
+      {/* 🔥 V2: Panneau robot workflow */}
+      <WorkflowV2RobotPanel
+        isOpen={v2RobotPanelOpen}
+        onClose={() => setV2RobotPanelOpen(false)}
+        prospectId={prospectId}
+        projectType={projectType}
+        moduleId={currentModuleId}
+        moduleName={currentStepData?.name || `Étape ${currentStepIndex + 1}`}
+        moduleConfig={currentModuleConfig}
+        context={{
+          organizationId: organizationId || activeAdminUser?.organization_id,
+          adminUser: activeAdminUser,
+        }}
+        availableForms={v2AvailableForms}
+        availableTemplates={v2AvailableTemplates}
+      />
     </div>
   );
 };
