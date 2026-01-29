@@ -42,6 +42,9 @@
 - [x] **PROMPT 6 - Simulation ActionOrder** — `buildActionOrder()` + `ActionOrderSimulator.jsx` ✅
 - [x] **PROMPT 7 - Connexion V2→V1** — `executeActionOrder()` + flag `EXECUTION_FROM_V2` ✅
 
+### ✅ Phase 3 — Éditeur IA (PROMPT 8)
+- [x] **PROMPT 8 - UI Éditeur** — `ModuleConfigTab.jsx` entièrement éditable ✅
+
 ### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA
@@ -308,6 +311,41 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7
     - ✅ Rollback immédiat = flag OFF
 
 ## 🎉 PHASE 2 COMPLÈTE — Tous les prompts 1-7 terminés
+
+## 🎉 PHASE 3 COMPLÈTE — PROMPT 8 terminé
+
+### PROMPT 8 - UI Éditeur de configuration IA par module
+- **Objectif**: Rendre le panneau "Configuration Actions V2" entièrement éditable
+- **Fichier modifié**: `src/components/admin/workflow-v2/ModuleConfigTab.jsx`
+- **Composants UI ajoutés**:
+  - `TargetCheckboxGroup`: Checkboxes CLIENT / COMMERCIAL / PARTENAIRE
+  - `ActionTypeRadioGroup`: Radio FORM / SIGNATURE
+  - `FormMultiSelect`: Multi-select formulaires (conditonnel si FORM)
+  - `TemplateSelect`: Select template signature (conditionnel si SIGNATURE)
+  - `ModeSelect`: Sélecteurs mode gestion (AI/HUMAN) et vérification (AI/HUMAN)
+  - `KnowledgeKeySelect`: Multi-select accès données (knowledgeKey)
+  - `ValidationBadge`: Badge temps réel config complète/incomplète
+- **Mapping UI → Config**:
+  | Champ UI | Bind |
+  |----------|------|
+  | Cibles autorisées | `actionConfig.targetAudience[]` |
+  | Type action | `actionConfig.actionType` |
+  | Formulaires autorisés | `actionConfig.allowedFormIds[]` |
+  | Template signature | `actionConfig.templateId` |
+  | Mode gestion | `actionConfig.managementMode` |
+  | Mode vérification | `actionConfig.verificationMode` |
+  | Accès données | `config.knowledgeKey[]` |
+- **Comportement**:
+  - Modifications en temps réel via `updateActionConfigField()` et `updateKnowledgeKey()`
+  - Persistance en mémoire via `updateModuleActionConfig()` (pas de DB)
+  - Badge validation réactif via `useMemo` sur `configValidation`
+  - Simulateur reflète immédiatement les changements
+- **Contraintes respectées**:
+  - ❌ Aucun changement moteur
+  - ❌ Aucune exécution
+  - ❌ Aucune persistance DB
+  - ❌ Aucune logique IA
+  - ✅ Pure UI + wiring config existante
 
 
 

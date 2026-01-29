@@ -18,7 +18,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Save, 
   RotateCcw,
@@ -29,6 +29,10 @@ import {
   Shield,
   Info,
   CheckCircle,
+  Users,
+  FileText,
+  PenTool,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -41,7 +45,9 @@ import {
   DEFAULT_MODULE_CONFIG,
   getActionDescription,
   getModuleActionConfig,
+  updateModuleActionConfig,
   DEFAULT_ACTION_CONFIG,
+  isModuleConfigComplete,
 } from '@/lib/moduleAIConfig';
 
 // ✅ Import simulateur ActionOrder (PROMPT 6-7)
@@ -119,6 +125,260 @@ const ActionTag = ({ action }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SOUS-COMPOSANTS ÉDITABLES (PHASE 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Checkbox multiple pour les cibles
+ */
+const TargetCheckboxGroup = ({ selected = [], onChange, targets }) => (
+  <div className="flex flex-wrap gap-3">
+    {targets.map((target) => {
+      const isChecked = selected.includes(target.id);
+      return (
+        <label
+          key={target.id}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all",
+            isChecked 
+              ? "bg-blue-50 border-blue-300 text-blue-700" 
+              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={(e) => {
+              if (e.target.checked) {
+                onChange([...selected, target.id]);
+              } else {
+                onChange(selected.filter(t => t !== target.id));
+              }
+            }}
+            className="sr-only"
+          />
+          <span className="text-lg">{target.icon}</span>
+          <span className="text-sm font-medium">{target.label}</span>
+          {isChecked && <CheckCircle className="h-4 w-4 text-blue-600" />}
+        </label>
+      );
+    })}
+  </div>
+);
+
+/**
+ * Radio group pour le type d'action
+ */
+const ActionTypeRadioGroup = ({ selected, onChange, actionTypes }) => (
+  <div className="flex gap-3">
+    {actionTypes.map((type) => {
+      const isSelected = selected === type.id;
+      return (
+        <label
+          key={type.id}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all flex-1",
+            isSelected 
+              ? "bg-purple-50 border-purple-300 text-purple-700" 
+              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+          )}
+        >
+          <input
+            type="radio"
+            name="actionType"
+            value={type.id}
+            checked={isSelected}
+            onChange={() => onChange(type.id)}
+            className="sr-only"
+          />
+          <span className="text-lg">{type.icon}</span>
+          <span className="text-sm font-medium">{type.label}</span>
+          {isSelected && <CheckCircle className="h-4 w-4 text-purple-600" />}
+        </label>
+      );
+    })}
+  </div>
+);
+
+/**
+ * Multi-select pour formulaires
+ */
+const FormMultiSelect = ({ selected = [], onChange, forms = [] }) => {
+  if (forms.length === 0) {
+    return (
+      <div className="p-3 bg-gray-50 border border-dashed rounded-lg text-sm text-gray-400 italic">
+        Aucun formulaire disponible. Chargez les formulaires depuis Supabase.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
+      {forms.map((form) => {
+        const isChecked = selected.includes(form.id);
+        return (
+          <label
+            key={form.id}
+            className={cn(
+              "flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors",
+              isChecked ? "bg-blue-50" : "hover:bg-gray-50"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  onChange([...selected, form.id]);
+                } else {
+                  onChange(selected.filter(f => f !== form.id));
+                }
+              }}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <FileText className="h-4 w-4 text-gray-400" />
+            <span className="text-sm">{form.name}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+};
+
+/**
+ * Select pour template signature
+ */
+const TemplateSelect = ({ selected, onChange, templates = [] }) => {
+  if (templates.length === 0) {
+    return (
+      <div className="p-3 bg-gray-50 border border-dashed rounded-lg text-sm text-gray-400 italic">
+        Aucun template disponible. Chargez les templates depuis Supabase.
+      </div>
+    );
+  }
+  return (
+    <select
+      value={selected || ''}
+      onChange={(e) => onChange(e.target.value || null)}
+      className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+    >
+      <option value="">-- Sélectionner un template --</option>
+      {templates.map((template) => (
+        <option key={template.id} value={template.id}>
+          {template.name}
+        </option>
+      ))}
+    </select>
+  );
+};
+
+/**
+ * Select pour mode (AI / HUMAN)
+ */
+const ModeSelect = ({ label, icon: Icon, selected, onChange, modes }) => (
+  <div>
+    <div className="flex items-center gap-2 mb-1.5">
+      {Icon && <Icon className="h-4 w-4 text-gray-500" />}
+      <span className="text-xs text-gray-600">{label}</span>
+    </div>
+    <div className="flex gap-2">
+      {modes.map((mode) => {
+        const isSelected = selected === mode.id;
+        return (
+          <button
+            key={mode.id}
+            type="button"
+            onClick={() => onChange(mode.id)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-all",
+              isSelected
+                ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+            )}
+          >
+            <span>{mode.icon}</span>
+            <span>{mode.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+/**
+ * Multi-select pour knowledgeKey
+ */
+const KnowledgeKeySelect = ({ selected = [], onChange }) => {
+  // Liste des clés disponibles (statique pour Phase 3)
+  const AVAILABLE_KEYS = [
+    { id: 'prospect_info', label: 'Infos Prospect', icon: '👤' },
+    { id: 'project_data', label: 'Données Projet', icon: '📊' },
+    { id: 'contract_history', label: 'Historique Contrats', icon: '📜' },
+    { id: 'forms_submitted', label: 'Formulaires Soumis', icon: '📝' },
+    { id: 'chat_history', label: 'Historique Chat', icon: '💬' },
+    { id: 'documents', label: 'Documents', icon: '📁' },
+  ];
+  
+  const selectedArray = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+  
+  return (
+    <div className="flex flex-wrap gap-2">
+      {AVAILABLE_KEYS.map((key) => {
+        const isChecked = selectedArray.includes(key.id);
+        return (
+          <button
+            key={key.id}
+            type="button"
+            onClick={() => {
+              if (isChecked) {
+                onChange(selectedArray.filter(k => k !== key.id));
+              } else {
+                onChange([...selectedArray, key.id]);
+              }
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs border transition-all",
+              isChecked
+                ? "bg-green-50 border-green-300 text-green-700"
+                : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+            )}
+          >
+            <span>{key.icon}</span>
+            <span>{key.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+/**
+ * Badge de validation config
+ */
+const ValidationBadge = ({ isComplete, details }) => (
+  <div
+    className={cn(
+      "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+      isComplete
+        ? "bg-green-100 text-green-700"
+        : "bg-orange-100 text-orange-700"
+    )}
+    title={details}
+  >
+    {isComplete ? (
+      <>
+        <CheckCircle className="h-3.5 w-3.5" />
+        Config complète
+      </>
+    ) : (
+      <>
+        <Info className="h-3.5 w-3.5" />
+        Config incomplète
+      </>
+    )}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -147,6 +407,11 @@ const ModuleConfigTab = ({
   
   // State pour actionConfig V2 (PROMPT 3-7)
   const [actionConfig, setActionConfig] = useState(DEFAULT_ACTION_CONFIG);
+  
+  // ✅ Calculer si config complète (PHASE 3)
+  const configValidation = useMemo(() => {
+    return isModuleConfigComplete(moduleId, actionConfig);
+  }, [moduleId, actionConfig]);
   
   // Charger la config au mount ou changement de module
   useEffect(() => {
@@ -205,6 +470,25 @@ const ModuleConfigTab = ({
     setConfig({ ...originalConfig });
     setHasChanges(false);
     setSaveSuccess(false);
+  };
+  
+  // ✅ PHASE 3: Update actionConfig field (in-memory)
+  const updateActionConfigField = (field, value) => {
+    setActionConfig(prev => {
+      const updated = { ...prev, [field]: value };
+      // Persister en mémoire via moduleAIConfig
+      updateModuleActionConfig(moduleId, updated);
+      console.log('[V2 Config Tab] ActionConfig updated:', { field, value, moduleId });
+      return updated;
+    });
+  };
+  
+  // ✅ PHASE 3: Update knowledgeKey in main config
+  const updateKnowledgeKey = (value) => {
+    setConfig(prev => {
+      const updated = { ...prev, knowledgeKey: value };
+      return updated;
+    });
   };
   
   if (!config) {
@@ -332,48 +616,89 @@ const ModuleConfigTab = ({
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
-          SECTION 4.5: CONFIGURATION ACTIONS V2 + SIMULATEUR (PROMPT 6-7)
+          SECTION 4.5: CONFIGURATION ACTIONS V2 ÉDITABLE (PHASE 3)
       ───────────────────────────────────────────────────────────────── */}
       <section className="bg-gradient-to-r from-purple-50 to-blue-50 -mx-6 px-6 py-4 border-y border-purple-100">
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="h-5 w-5 text-purple-600" />
-          <h3 className="text-sm font-semibold text-gray-700">Configuration Actions V2</h3>
-          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">
-            Phase 2
-          </span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-purple-600" />
+            <h3 className="text-sm font-semibold text-gray-700">Configuration Actions V2</h3>
+            <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">
+              Phase 3 - Éditable
+            </span>
+          </div>
+          <ValidationBadge 
+            isComplete={configValidation.isComplete} 
+            details={configValidation.summary} 
+          />
         </div>
         
-        {/* Résumé config actuelle */}
-        <div className="mb-4 p-3 bg-white/80 rounded-lg border text-xs space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Cible:</span>
-            <span className="font-medium text-gray-700">
-              {Array.isArray(actionConfig.targetAudience) 
-                ? actionConfig.targetAudience.join(', ') 
-                : actionConfig.targetAudience || 'Non défini'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Type action:</span>
-            <span className="font-medium text-gray-700">
-              {actionConfig.actionType === 'FORM' && '📋 Formulaire'}
-              {actionConfig.actionType === 'SIGNATURE' && '✍️ Signature'}
-              {!actionConfig.actionType && 'Non défini'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Formulaires:</span>
-            <span className="font-medium text-gray-700">
-              {actionConfig.allowedFormIds?.length || 0} sélectionné(s)
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Gestion:</span>
-            <span className="font-medium text-gray-700">
-              {actionConfig.managementMode === 'AI' ? '🤖 IA' : '👤 Humain'}
-            </span>
-          </div>
+        {/* 1️⃣ CIBLES AUTORISÉES */}
+        <div className="mb-4">
+          <FieldLabel icon={Users} label="Cibles autorisées" />
+          <TargetCheckboxGroup
+            selected={Array.isArray(actionConfig.targetAudience) 
+              ? actionConfig.targetAudience 
+              : (actionConfig.targetAudience ? [actionConfig.targetAudience] : [])}
+            onChange={(targets) => updateActionConfigField('targetAudience', targets)}
+            targets={getTargetAudiencesList()}
+          />
         </div>
+        
+        {/* 2️⃣ TYPE D'ACTION */}
+        <div className="mb-4">
+          <FieldLabel icon={Zap} label="Type d'action autorisée" />
+          <ActionTypeRadioGroup
+            selected={actionConfig.actionType}
+            onChange={(type) => updateActionConfigField('actionType', type)}
+            actionTypes={getActionTypesList()}
+          />
+        </div>
+        
+        {/* 3️⃣ FORMULAIRES AUTORISÉS (si actionType = FORM) */}
+        {actionConfig.actionType === 'FORM' && (
+          <div className="mb-4">
+            <FieldLabel icon={FileText} label="Formulaires autorisés" />
+            <FormMultiSelect
+              selected={actionConfig.allowedFormIds || []}
+              onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
+              forms={availableForms}
+            />
+          </div>
+        )}
+        
+        {/* 4️⃣ TEMPLATE SIGNATURE (si actionType = SIGNATURE) */}
+        {actionConfig.actionType === 'SIGNATURE' && (
+          <div className="mb-4">
+            <FieldLabel icon={PenTool} label="Template de signature" />
+            <TemplateSelect
+              selected={actionConfig.templateId}
+              onChange={(templateId) => updateActionConfigField('templateId', templateId)}
+              templates={availableTemplates}
+            />
+          </div>
+        )}
+        
+        {/* 5️⃣ MODES (Gestion + Vérification) */}
+        <div className="mb-4 grid grid-cols-2 gap-4">
+          <ModeSelect
+            label="Mode de gestion"
+            icon={Settings}
+            selected={actionConfig.managementMode || 'AI'}
+            onChange={(mode) => updateActionConfigField('managementMode', mode)}
+            modes={getManagementModesList()}
+          />
+          <ModeSelect
+            label="Mode de vérification"
+            icon={Shield}
+            selected={actionConfig.verificationMode || 'AI'}
+            onChange={(mode) => updateActionConfigField('verificationMode', mode)}
+            modes={getVerificationModesList()}
+          />
+        </div>
+        
+        {/* Séparateur avant simulateur */}
+        <div className="border-t border-purple-200 my-4" />
         
         {/* Simulateur ActionOrder */}
         <ActionOrderSimulator
@@ -384,28 +709,20 @@ const ModuleConfigTab = ({
           availableForms={availableForms}
           availableTemplates={availableTemplates}
         />
-        
-        <p className="text-xs text-purple-600 mt-3 text-center">
-          💡 Configurez les actions dans l'onglet "Config IA" du panneau latéral
-        </p>
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
-          SECTION 5: BASE D'INFO (READ_ONLY)
+          SECTION 5: ACCÈS AUX DONNÉES (ÉDITABLE PHASE 3)
       ───────────────────────────────────────────────────────────────── */}
       <section>
-        <FieldLabel icon={BookOpen} label="Base d'info liée" readOnly />
-        <div className="px-3 py-2 bg-gray-50 border rounded-lg text-sm">
-          {config.knowledgeKey ? (
-            <span className="text-gray-700 font-mono">
-              📚 {config.knowledgeKey}
-            </span>
-          ) : (
-            <span className="text-gray-400 italic">
-              Aucune base de connaissance liée
-            </span>
-          )}
-        </div>
+        <FieldLabel icon={BookOpen} label="Accès aux données (knowledgeKey)" />
+        <KnowledgeKeySelect
+          selected={config.knowledgeKey}
+          onChange={updateKnowledgeKey}
+        />
+        <p className="text-xs text-gray-400 mt-2">
+          Sélectionnez les sources de données auxquelles l'IA peut accéder.
+        </p>
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
