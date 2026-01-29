@@ -205,6 +205,8 @@ const WorkflowV2Page = () => {
               stepIndex={activeStepIndex}
               totalSteps={steps.length}
               prospect={prospect}
+              prospectId={prospectId}
+              projectType={projectType}
               forms={activeStepForms}
               documents={projectDocuments}
               messages={projectMessages}

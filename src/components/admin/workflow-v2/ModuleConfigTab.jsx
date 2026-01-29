@@ -40,7 +40,24 @@ import {
   updateModuleAIConfig,
   DEFAULT_MODULE_CONFIG,
   getActionDescription,
+  getModuleActionConfig,
+  DEFAULT_ACTION_CONFIG,
 } from '@/lib/moduleAIConfig';
+
+// ✅ Import simulateur ActionOrder (PROMPT 6-7)
+import { ActionOrderSimulator } from './ActionOrderSimulator';
+
+// ✅ Import catalogue V2 pour les sélecteurs
+import {
+  ACTION_TYPES,
+  TARGET_AUDIENCES,
+  MANAGEMENT_MODES,
+  VERIFICATION_MODES,
+  getTargetAudiencesList,
+  getActionTypesList,
+  getManagementModesList,
+  getVerificationModesList,
+} from '@/lib/catalogueV2';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SOUS-COMPOSANTS
@@ -117,12 +134,19 @@ const ModuleConfigTab = ({
   moduleId, 
   moduleName,
   isReadOnly = true,
+  prospectId = null,  // ✅ Ajouté pour exécution V2
+  projectType = null, // ✅ Ajouté pour exécution V2
+  availableForms = [], // ✅ Ajouté pour sélection formulaires
+  availableTemplates = [], // ✅ Ajouté pour sélection templates
 }) => {
   // State local pour édition
   const [config, setConfig] = useState(null);
   const [originalConfig, setOriginalConfig] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  // State pour actionConfig V2 (PROMPT 3-7)
+  const [actionConfig, setActionConfig] = useState(DEFAULT_ACTION_CONFIG);
   
   // Charger la config au mount ou changement de module
   useEffect(() => {
@@ -132,6 +156,10 @@ const ModuleConfigTab = ({
       setOriginalConfig({ ...loadedConfig });
       setHasChanges(false);
       setSaveSuccess(false);
+      
+      // Charger aussi l'actionConfig V2
+      const loadedActionConfig = getModuleActionConfig(moduleId);
+      setActionConfig(loadedActionConfig);
     }
   }, [moduleId]);
   
@@ -300,6 +328,65 @@ const ModuleConfigTab = ({
         )}
         <p className="text-xs text-gray-400 mt-2">
           Liste des actions que l'IA peut effectuer (non modifiable en Phase 1).
+        </p>
+      </section>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          SECTION 4.5: CONFIGURATION ACTIONS V2 + SIMULATEUR (PROMPT 6-7)
+      ───────────────────────────────────────────────────────────────── */}
+      <section className="bg-gradient-to-r from-purple-50 to-blue-50 -mx-6 px-6 py-4 border-y border-purple-100">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="h-5 w-5 text-purple-600" />
+          <h3 className="text-sm font-semibold text-gray-700">Configuration Actions V2</h3>
+          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">
+            Phase 2
+          </span>
+        </div>
+        
+        {/* Résumé config actuelle */}
+        <div className="mb-4 p-3 bg-white/80 rounded-lg border text-xs space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Cible:</span>
+            <span className="font-medium text-gray-700">
+              {Array.isArray(actionConfig.targetAudience) 
+                ? actionConfig.targetAudience.join(', ') 
+                : actionConfig.targetAudience || 'Non défini'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Type action:</span>
+            <span className="font-medium text-gray-700">
+              {actionConfig.actionType === 'FORM' && '📋 Formulaire'}
+              {actionConfig.actionType === 'SIGNATURE' && '✍️ Signature'}
+              {!actionConfig.actionType && 'Non défini'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Formulaires:</span>
+            <span className="font-medium text-gray-700">
+              {actionConfig.allowedFormIds?.length || 0} sélectionné(s)
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Gestion:</span>
+            <span className="font-medium text-gray-700">
+              {actionConfig.managementMode === 'AI' ? '🤖 IA' : '👤 Humain'}
+            </span>
+          </div>
+        </div>
+        
+        {/* Simulateur ActionOrder */}
+        <ActionOrderSimulator
+          moduleId={moduleId}
+          projectType={projectType}
+          prospectId={prospectId}
+          actionConfig={actionConfig}
+          availableForms={availableForms}
+          availableTemplates={availableTemplates}
+        />
+        
+        <p className="text-xs text-purple-600 mt-3 text-center">
+          💡 Configurez les actions dans l'onglet "Config IA" du panneau latéral
         </p>
       </section>
       

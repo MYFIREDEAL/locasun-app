@@ -377,6 +377,8 @@ const ModulePanel = ({
   stepIndex = 0,
   totalSteps = 0,
   prospect,
+  prospectId,
+  projectType,
   forms = [],
   documents = [],
   messages = [],
@@ -505,6 +507,8 @@ const ModulePanel = ({
             moduleId={moduleId}
             moduleName={step.name || 'Module'}
             isReadOnly={isReadOnly}
+            prospectId={prospectId}
+            projectType={projectType}
           />
         )}
         
