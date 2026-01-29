@@ -757,14 +757,27 @@ const ModuleConfigTab = ({
         
         {/* 4️⃣ TEMPLATE SIGNATURE (si actionType = SIGNATURE) */}
         {actionConfig.actionType === 'SIGNATURE' && (
-          <div className="mb-4">
-            <FieldLabel icon={PenTool} label="Template de signature" />
-            <TemplateSelect
-              selected={actionConfig.templateId}
-              onChange={(templateId) => updateActionConfigField('templateId', templateId)}
-              templates={availableTemplates}
-            />
-          </div>
+          <>
+            <div className="mb-4">
+              <FieldLabel icon={PenTool} label="Template de signature" />
+              <TemplateSelect
+                selected={actionConfig.templateId}
+                onChange={(templateId) => updateActionConfigField('templateId', templateId)}
+                templates={availableTemplates}
+              />
+            </div>
+            <div className="mb-4">
+              <FieldLabel icon={FileText} label="Formulaire(s) de collecte" />
+              <FormMultiSelect
+                forms={availableForms}
+                selected={actionConfig.allowedFormIds || []}
+                onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Sélectionnez le formulaire contenant les données à injecter dans le contrat
+              </p>
+            </div>
+          </>
         )}
         
         {/* 5️⃣ MODES (Gestion + Vérification) */}
