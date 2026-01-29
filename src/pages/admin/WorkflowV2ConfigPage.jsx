@@ -203,11 +203,19 @@ const WorkflowV2ConfigPage = () => {
   // Transformer pour l'UI
   const availableForms = useMemo(() => {
     if (!supabaseForms) return [];
-    return supabaseForms.map(f => ({ id: f.id, name: f.name || f.title || 'Formulaire sans nom' }));
+    // supabaseForms est un OBJET indexé par form_id, pas un array
+    return Object.values(supabaseForms).map(f => ({ 
+      id: f.id, 
+      name: f.name || f.title || 'Formulaire sans nom' 
+    }));
   }, [supabaseForms]);
   
   const availableTemplates = useMemo(() => {
     if (!supabaseTemplates) return [];
+    // supabaseTemplates est un ARRAY
+    if (!Array.isArray(supabaseTemplates)) {
+      return Object.values(supabaseTemplates).map(t => ({ id: t.id, name: t.name || 'Template sans nom' }));
+    }
     return supabaseTemplates.map(t => ({ id: t.id, name: t.name || 'Template sans nom' }));
   }, [supabaseTemplates]);
   
