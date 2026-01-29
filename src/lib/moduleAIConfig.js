@@ -143,6 +143,7 @@ export const DEFAULT_ACTION_CONFIG = {
   allowedTemplateIds: [],          // Aucun template par défaut
   managementMode: 'HUMAN',         // Par défaut: humain gère
   verificationMode: 'HUMAN',       // Par défaut: humain vérifie
+  completionTrigger: null,         // Trigger de fin d'étape: 'form_approved' | 'signature' | 'checklist' | 'ia_confirmation'
 };
 
 export const DEFAULT_MODULE_CONFIG = {

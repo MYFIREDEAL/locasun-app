@@ -37,6 +37,7 @@ import { useSupabaseWorkflowModuleTemplates } from '@/hooks/useSupabaseWorkflowM
 import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { getModuleActionConfig } from '@/lib/moduleAIConfig';
 
 const STATUS_COMPLETED = 'completed';
 const STATUS_CURRENT = 'in_progress';
@@ -2624,6 +2625,101 @@ const ProspectDetailsAdmin = ({
       onEditingChange(isEditing);
     }
   }, [isEditing, onEditingChange]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🔥 V2: Listener signature_procedures pour completionTrigger: 'signature'
+  // ═══════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!prospect.id) return;
+
+    const channel = supabase
+      .channel(`signature-completion-${prospect.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'signature_procedures',
+          filter: `prospect_id=eq.${prospect.id}`,
+        },
+        async (payload) => {
+          const { new: newRecord, old: oldRecord } = payload;
+          
+          // Déclencher uniquement quand status passe à 'signed'
+          if (newRecord.status !== 'signed' || oldRecord?.status === 'signed') {
+            return;
+          }
+
+          const projectType = newRecord.project_type;
+          logger.info('[V2 Signature Listener] Signature completed', {
+            procedureId: newRecord.id,
+            projectType,
+            prospectId: newRecord.prospect_id,
+          });
+
+          // Récupérer les steps pour ce projet
+          const projectStepsForType = supabaseSteps?.[projectType];
+          if (!projectStepsForType || projectStepsForType.length === 0) {
+            logger.warn('[V2 Signature Listener] No steps found for project type', { projectType });
+            return;
+          }
+
+          // Trouver le step courant (status = 'in_progress')
+          const currentStepIdx = projectStepsForType.findIndex(s => s.status === 'in_progress');
+          if (currentStepIdx === -1) {
+            logger.warn('[V2 Signature Listener] No current step in_progress', { projectType });
+            return;
+          }
+
+          const currentStepName = projectStepsForType[currentStepIdx]?.name;
+          if (!currentStepName) {
+            logger.warn('[V2 Signature Listener] Current step has no name', { currentStepIdx });
+            return;
+          }
+
+          // Vérifier la config V2 pour ce module
+          const moduleActionConfig = getModuleActionConfig(currentStepName);
+          
+          if (moduleActionConfig?.completionTrigger !== 'signature') {
+            logger.debug('[V2 Signature Listener] completionTrigger is not "signature", skipping', {
+              stepName: currentStepName,
+              completionTrigger: moduleActionConfig?.completionTrigger || 'null',
+            });
+            return;
+          }
+
+          // ✅ Trigger completeStepAndProceed
+          logger.info('[V2 Signature Listener] Triggering completeStepAndProceed', {
+            prospectId: prospect.id,
+            projectType,
+            currentStepIdx,
+            stepName: currentStepName,
+          });
+
+          try {
+            await completeStepAndProceed(
+              prospect.id,
+              projectType,
+              currentStepIdx,
+              projectStepsForType
+            );
+            
+            toast({
+              title: '✅ Étape validée automatiquement',
+              description: `La signature a déclenché la validation de "${currentStepName}"`,
+              className: 'bg-green-500 text-white',
+            });
+          } catch (error) {
+            logger.error('[V2 Signature Listener] Error completing step', error);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [prospect.id, supabaseSteps, completeStepAndProceed]);
 
   // ❌ SUPPRIMÉ : Tous les systèmes de blocage de scroll causent plus de problèmes qu'ils n'en résolvent
   // Le vrai problème est le re-render trop fréquent du composant

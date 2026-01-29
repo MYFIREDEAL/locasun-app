@@ -66,6 +66,37 @@ import {
 } from '@/lib/catalogueV2';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTES COMPLETION TRIGGER
+// ─────────────────────────────────────────────────────────────────────────────
+
+const COMPLETION_TRIGGER_OPTIONS = [
+  { 
+    id: 'form_approved', 
+    label: 'Formulaire validé', 
+    icon: '📝',
+    description: 'L\'étape est terminée quand un formulaire est approuvé'
+  },
+  { 
+    id: 'signature', 
+    label: 'Signature complétée', 
+    icon: '✍️',
+    description: 'L\'étape est terminée quand le contrat est signé'
+  },
+  { 
+    id: 'checklist', 
+    label: 'Checklist complétée', 
+    icon: '✅',
+    description: 'L\'étape est terminée quand toutes les cases sont cochées'
+  },
+  { 
+    id: 'ia_confirmation', 
+    label: 'Objectif atteint par échange IA', 
+    icon: '🤖',
+    description: 'L\'étape est terminée quand l\'IA confirme l\'objectif atteint'
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SOUS-COMPOSANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -380,6 +411,55 @@ const ValidationBadge = ({ isComplete, details }) => (
         Config incomplète
       </>
     )}
+  </div>
+);
+
+/**
+ * Select pour le trigger de complétion d'étape
+ */
+const CompletionTriggerSelect = ({ selected, onChange }) => (
+  <div className="space-y-2">
+    {COMPLETION_TRIGGER_OPTIONS.map((option) => {
+      const isSelected = selected === option.id;
+      return (
+        <label
+          key={option.id}
+          className={cn(
+            "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+            isSelected 
+              ? "bg-green-50 border-green-300 shadow-sm" 
+              : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+          )}
+        >
+          <input
+            type="radio"
+            name="completionTrigger"
+            value={option.id}
+            checked={isSelected}
+            onChange={() => onChange(option.id)}
+            className="sr-only"
+          />
+          <span className="text-xl mt-0.5">{option.icon}</span>
+          <div className="flex-1">
+            <p className={cn(
+              "text-sm font-medium",
+              isSelected ? "text-green-800" : "text-gray-700"
+            )}>
+              {option.label}
+            </p>
+            <p className={cn(
+              "text-xs mt-0.5",
+              isSelected ? "text-green-600" : "text-gray-500"
+            )}>
+              {option.description}
+            </p>
+          </div>
+          {isSelected && (
+            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+          )}
+        </label>
+      );
+    })}
   </div>
 );
 
@@ -811,6 +891,16 @@ const ModuleConfigTab = ({
             modes={getVerificationModesList()}
           />
         </div>
+        
+        {/* ─────────────────────────────────────────────────────────────────
+            SECTION 6: VALIDATION DE L'ÉTAPE
+        ───────────────────────────────────────────────────────────────── */}
+        <div className="border-t border-purple-200 my-4" />
+        
+        <CompletionTriggerSelect
+          selected={actionConfig.completionTrigger}
+          onChange={(trigger) => updateActionConfigField('completionTrigger', trigger)}
+        />
         
         {/* Séparateur avant simulateur */}
         <div className="border-t border-purple-200 my-4" />
