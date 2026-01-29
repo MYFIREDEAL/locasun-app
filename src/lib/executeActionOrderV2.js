@@ -202,16 +202,18 @@ async function executeFormAction(order, context) {
       // Générer un panel_id unique (format V1 compatible)
       const panelId = `panel-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       
-      // 1. Créer un client_form_panel
+      // 1. Créer un client_form_panel avec verification_mode
       const { data: panel, error: panelError } = await supabase
         .from('client_form_panels')
         .insert({
-          panel_id: panelId, // ✅ Requis par le schéma
+          panel_id: panelId,
           prospect_id: prospectId,
           project_type: projectType || 'general',
           form_id: formId,
           status: 'pending',
-          message_timestamp: Date.now().toString(), // Timestamp du message
+          message_timestamp: Date.now().toString(),
+          // ✅ Source unique de vérité pour la vérification humaine
+          verification_mode: order.verificationMode || 'HUMAN',
         })
         .select()
         .single();

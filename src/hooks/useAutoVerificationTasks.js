@@ -55,37 +55,26 @@ export function useAutoVerificationTasks(prompts) {
 
 /**
  * Gère la création de tâche de vérification après soumission client
+ * 
+ * ✅ UNIFIÉ V1/V2: Lit verification_mode directement depuis le panel
+ *    (plus de dépendance aux prompts V1)
  */
 async function handleFormSubmission(formPanel, prompts) {
-  const { prospect_id, project_type, form_id, current_step_index, prompt_id } = formPanel;
+  const { prospect_id, project_type, form_id, verification_mode } = formPanel;
 
-  // Récupérer le prompt correspondant
-  const prompt = Object.values(prompts).find(p => p.id === prompt_id || p.projectId === project_type);
-  if (!prompt) {
-    logger.debug('No prompt found for verification', { project_type, prompt_id });
+  // ✅ Source unique de vérité: lire verification_mode depuis le panel
+  const mode = (verification_mode ?? 'HUMAN').toUpperCase();
+  
+  if (mode !== 'HUMAN') {
+    logger.debug('Verification mode is not HUMAN, skipping task creation', { 
+      verification_mode: mode,
+      form_id,
+      prospect_id 
+    });
     return;
   }
-
-  // Récupérer la config de l'étape
-  const stepConfig = prompt.stepsConfig?.[current_step_index];
-  if (!stepConfig) {
-    logger.debug('No step config found', { current_step_index });
-    return;
-  }
-
-  // Trouver l'action correspondant au formulaire soumis
-  const action = stepConfig.actions?.find(a => a.formId === form_id);
-  if (!action) {
-    logger.debug('No action found for form', { form_id });
-    return;
-  }
-
-  // Vérifier si le mode de vérification est 'human'
-  const verificationMode = action.verificationMode || 'human'; // Default human
-  if (verificationMode !== 'human') {
-    logger.debug('Verification mode is not human, skipping task creation', { verificationMode });
-    return;
-  }
+  
+  logger.debug('🔍 Verification mode is HUMAN, creating task...', { form_id, prospect_id });
 
   // Récupérer les infos du prospect
   const { data: prospect, error: prospectError } = await supabase
@@ -113,9 +102,8 @@ async function handleFormSubmission(formPanel, prompts) {
 
   const formName = form?.name || form_id;
 
-  // 🔥 NOUVEAU: Utiliser le step_name stocké dans client_form_panels au lieu de chercher dans project_steps_status
-  // Cela garantit la cohérence avec le code de recherche dans handleApprove/handleReject
-  const stepName = formPanel.step_name || `Étape ${current_step_index + 1}`;
+  // ✅ Utiliser step_name depuis le panel (ou fallback générique)
+  const stepName = formPanel.step_name || project_type || 'Étape';
 
   // 🔥 VÉRIFIER SI UNE TÂCHE EXISTE DÉJÀ pour ce formulaire
   const { data: existingTasks, error: checkError } = await supabase
