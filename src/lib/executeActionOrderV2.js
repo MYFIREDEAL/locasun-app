@@ -408,18 +408,22 @@ async function executeSignatureAction(order, context) {
   
   logV2('✅ Procédure signature créée', { procedureId: procedure.id });
   
-  // 5. Envoyer un message chat
+  // 5. Envoyer un message chat avec le LIEN DE SIGNATURE (comme V1)
   if (hasClientAction === true) {
+    // Construire l'URL de signature
+    const signatureUrl = `${window.location.origin}/signature/${procedure.id}?token=${procedure.access_token}`;
+    
+    // Message HTML avec lien cliquable (format V1)
+    const signatureMessage = `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`;
+    
     await sendChatMessage({
       prospectId,
       projectType,
-      message: message || `Un document est prêt à être signé.`,
-      metadata: {
-        type: 'signature_request',
-        procedureId: procedure.id,
-        source: 'workflow-v2',
-      },
+      message: signatureMessage,
+      organizationId: prospect.organization_id,
     });
+    
+    logV2('📝 Lien signature envoyé dans le chat', { procedureId: procedure.id, signatureUrl });
   }
   
   // 6. Toast de feedback
@@ -448,17 +452,17 @@ async function executeSignatureAction(order, context) {
  * Envoie un message dans le chat du prospect
  * @param {Object} params
  */
-async function sendChatMessage({ prospectId, projectType, message, metadata }) {
+async function sendChatMessage({ prospectId, projectType, message, organizationId }) {
   try {
     const { error } = await supabase
       .from('chat_messages')
       .insert({
         prospect_id: prospectId,
         project_type: projectType || 'general',
-        sender: 'admin', // 'admin' ou 'client' (pas 'system')
-        text: message,   // 'text' pas 'content'
+        sender: 'pro', // 'pro' pour les messages admin (comme V1)
+        text: message,
         read: false,
-        // metadata stocké dans d'autres colonnes si besoin
+        organization_id: organizationId || null,
       });
     
     if (error) {
