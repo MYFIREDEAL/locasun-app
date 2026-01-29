@@ -114,7 +114,11 @@ const WorkflowV2RobotPanel = ({
     const ac = moduleConfig.actionConfig;
     if (!ac) return false;
     if (!ac.actionType) return false;
-    if (!ac.targetAudience || ac.targetAudience.length === 0) return false;
+    // targetAudience peut être string ou array
+    const hasTarget = Array.isArray(ac.targetAudience) 
+      ? ac.targetAudience.length > 0 
+      : !!ac.targetAudience;
+    if (!hasTarget) return false;
     return true;
   }, [moduleConfig]);
 
@@ -135,6 +139,11 @@ const WorkflowV2RobotPanel = ({
     }
 
     try {
+      // Normaliser targetAudience en prenant la première valeur
+      const firstTarget = Array.isArray(actionConfig.targetAudience)
+        ? actionConfig.targetAudience[0]
+        : actionConfig.targetAudience;
+        
       const order = buildActionOrder({
         moduleId,
         projectType,
@@ -142,7 +151,7 @@ const WorkflowV2RobotPanel = ({
         actionConfig: {
           ...actionConfig,
           // Prendre la première cible pour la simulation
-          targetAudience: actionConfig.targetAudience?.[0] || 'CLIENT',
+          targetAudience: firstTarget || 'CLIENT',
         },
         message: '', // Message écrit manuellement par l'admin
       });
@@ -364,10 +373,13 @@ const WorkflowV2RobotPanel = ({
                 </div>
 
                 {/* Cibles */}
-                {actionConfig?.targetAudience?.length > 0 && (
+                {actionConfig?.targetAudience && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-gray-500">Cibles:</span>
-                    {actionConfig.targetAudience.map(target => {
+                    {(Array.isArray(actionConfig.targetAudience) 
+                      ? actionConfig.targetAudience 
+                      : [actionConfig.targetAudience]
+                    ).map(target => {
                       const Icon = TARGET_ICONS[target] || User;
                       return (
                         <span 
