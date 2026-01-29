@@ -346,9 +346,10 @@ async function executeSignatureAction(order, context) {
       file_name: `signature_pending_${Date.now()}.pdf`,
       file_type: 'application/pdf',
       file_size: 0,
-      storage_path: null, // Sera rempli lors de la génération réelle
-      category: 'signature',
+      storage_path: `signatures/${prospectId}/${Date.now()}_pending.pdf`,
+      uploaded_by: null, // Sera rempli lors de la génération réelle
       organization_id: prospect.organization_id,
+      field_label: 'Signature V2',
     })
     .select('id')
     .single();
