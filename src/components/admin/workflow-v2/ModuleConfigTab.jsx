@@ -398,7 +398,16 @@ const ModuleConfigTab = ({
   projectType = null, // ✅ Ajouté pour exécution V2
   availableForms = [], // ✅ Ajouté pour sélection formulaires
   availableTemplates = [], // ✅ Ajouté pour sélection templates
+  templateOps = {},   // ✅ PROMPT 9: Load/Save config vers Supabase
 }) => {
+  // Extraire fonctions templateOps
+  const { 
+    loadTemplate, 
+    saveTemplate, 
+    isPersisted = false, 
+    isSaving = false,
+    loading: templateLoading = false 
+  } = templateOps;
   // State local pour édition
   const [config, setConfig] = useState(null);
   const [originalConfig, setOriginalConfig] = useState(null);
@@ -427,6 +436,26 @@ const ModuleConfigTab = ({
       setActionConfig(loadedActionConfig);
     }
   }, [moduleId]);
+  
+  // ✅ PROMPT 9: Charger config depuis Supabase (si existe)
+  useEffect(() => {
+    const loadFromDB = async () => {
+      if (moduleId && projectType && loadTemplate) {
+        try {
+          const dbConfig = await loadTemplate(projectType, moduleId);
+          if (dbConfig) {
+            // Fusionner avec la config locale (DB a priorité)
+            setConfig(prev => ({ ...prev, ...dbConfig }));
+            setOriginalConfig(prev => ({ ...prev, ...dbConfig }));
+            console.log('[V2 Config Tab] Loaded config from Supabase:', { moduleId, projectType });
+          }
+        } catch (err) {
+          console.warn('[V2 Config Tab] No DB config found, using in-memory:', err.message);
+        }
+      }
+    };
+    loadFromDB();
+  }, [moduleId, projectType, loadTemplate]);
   
   // Détecter les changements
   useEffect(() => {
@@ -463,6 +492,45 @@ const ModuleConfigTab = ({
     });
     
     console.log('[V2 Config Tab] Saved (in-memory)', { moduleId, config });
+  };
+  
+  // ✅ PROMPT 9: Save to Supabase (persistent)
+  const handleSaveToDB = async () => {
+    if (!saveTemplate || !projectType) {
+      toast({
+        title: '⚠️ Persistance non disponible',
+        description: 'projectType ou saveTemplate manquant',
+        variant: 'destructive',
+        duration: 3000,
+      });
+      return;
+    }
+    
+    try {
+      // Fusionner config + actionConfig pour persistance
+      const fullConfig = {
+        ...config,
+        actionConfig: actionConfig,
+      };
+      
+      await saveTemplate(projectType, moduleId, fullConfig);
+      
+      toast({
+        title: '✅ Configuration persistée',
+        description: 'Sauvegarde en base réussie — sera rechargée au prochain refresh',
+        duration: 4000,
+      });
+      
+      console.log('[V2 Config Tab] Saved to Supabase:', { moduleId, projectType, fullConfig });
+    } catch (err) {
+      console.error('[V2 Config Tab] Save to DB failed:', err);
+      toast({
+        title: '❌ Erreur de sauvegarde',
+        description: err.message,
+        variant: 'destructive',
+        duration: 4000,
+      });
+    }
   };
   
   // Reset
@@ -517,21 +585,35 @@ const ModuleConfigTab = ({
           </p>
         </div>
         
-        {/* Badge READ_ONLY */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
-          <Shield className="h-3.5 w-3.5" />
-          Modifications temporaires
-        </div>
+        {/* Badge PERSISTED ou TEMPORARY */}
+        {isPersisted ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Configuration persistée
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+            <Shield className="h-3.5 w-3.5" />
+            Modifications temporaires
+          </div>
+        )}
       </div>
       
-      {/* Warning */}
-      <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-        <p className="text-xs text-blue-700 flex items-start gap-2">
+      {/* Info banner - contextuel */}
+      <div className={cn(
+        "p-3 border rounded-lg",
+        isPersisted ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"
+      )}>
+        <p className={cn(
+          "text-xs flex items-start gap-2",
+          isPersisted ? "text-emerald-700" : "text-blue-700"
+        )}>
           <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <span>
-            Les modifications sont appliquées en mémoire (session uniquement). 
-            Elles seront perdues au rechargement de la page jusqu'à activation 
-            de la persistance (PROMPT 9).
+            {isPersisted 
+              ? "Cette configuration est enregistrée en base. Elle sera rechargée automatiquement au prochain refresh."
+              : "Cliquez 'Enregistrer en base' pour persister cette configuration. Elle sera rechargée automatiquement après refresh."
+            }
           </span>
         </p>
       </div>
@@ -733,7 +815,13 @@ const ModuleConfigTab = ({
           {saveSuccess && (
             <span className="text-xs text-green-600 flex items-center gap-1">
               <CheckCircle className="h-3.5 w-3.5" />
-              Sauvegardé
+              Sauvegardé (session)
+            </span>
+          )}
+          {isPersisted && (
+            <span className="text-xs text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <CheckCircle className="h-3.5 w-3.5" />
+              Persisté en base
             </span>
           )}
         </div>
@@ -757,7 +845,27 @@ const ModuleConfigTab = ({
             )}
           >
             <Save className="h-4 w-4 mr-1" />
-            Sauvegarder
+            Session
+          </Button>
+          {/* ✅ PROMPT 9: Bouton persistance Supabase */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSaveToDB}
+            disabled={isSaving || !projectType}
+            className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+          >
+            {isSaving ? (
+              <>
+                <Settings className="h-4 w-4 mr-1 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-1" />
+                Enregistrer en base
+              </>
+            )}
           </Button>
         </div>
       </div>

@@ -1,6 +1,10 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { Settings, Sparkles, ArrowRight } from "lucide-react";
 
 export default function ConfigurationIA() {
+  const navigate = useNavigate();
+  
   return (
     <div className="p-6">
       {/* Header */}
@@ -122,6 +126,49 @@ Règles :
               /mobile/form/info-client
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────────
+          🛠️ BLOC CONFIGURER CHARLY — Accès cockpit Workflow V2
+      ───────────────────────────────────────────────────────────────── */}
+      <div className="mt-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 shadow-sm ring-1 ring-blue-100">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+              <Settings className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                🛠️ Configurer Charly
+              </h2>
+              <p className="text-sm text-gray-600 mt-1 max-w-xl">
+                Personnalisez les règles d'action par type de projet. Cette configuration 
+                s'applique <strong>automatiquement à tous vos clients</strong>.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/admin/workflow-v2-config')}
+            className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-medium text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition-all group"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>Configurer les workflows</span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+            ⚙️ Règles d'action par module
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700">
+            📋 Formulaires & signatures
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
+            🎯 Cibles (client / commercial / partenaire)
+          </span>
         </div>
       </div>
     </div>

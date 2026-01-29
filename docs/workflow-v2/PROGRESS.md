@@ -52,7 +52,7 @@
 ### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA
-- [ ] **Migration `workflow_module_templates`** — Config par (project_type, module_id)
+- [x] **Migration `workflow_module_templates`** — Config par (project_type, module_id) ✅ PROMPT 9
 
 ###  Backlog (7 tickets) — TOUS TERMINÉS ✅
 | # | Ticket | Effort | Status |
@@ -387,3 +387,145 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7
   - ✅ Templates visibles dans l'éditeur
   - ✅ Bouton 🚀 Exécuter présent en preview/dev
   - ✅ Sécurisé en production (flag OFF)
+
+## 🎉 PROMPT 9 COMPLÈTE — PERSISTANCE CONFIG
+
+### Persistance configuration en base
+- **Objectif**: Config une fois → refresh page → même config rechargée
+- **Table Supabase**: `workflow_module_templates`
+  - Colonnes: `id`, `org_id`, `project_type`, `module_id`, `config_json`, `created_at`, `updated_at`
+  - Contrainte UNIQUE: `(org_id, project_type, module_id)`
+  - RLS: Admin-only read/write (via jointure `public.users`)
+- **Fichiers créés**:
+  - `supabase/migrations/create_workflow_module_templates.sql` — Migration SQL complète
+  - `src/hooks/useSupabaseWorkflowModuleTemplates.js` — Hook load/save
+- **Fichiers modifiés**:
+  - `src/pages/admin/WorkflowV2Page.jsx` — Appel hook + transmission props
+  - `src/components/admin/workflow-v2/ModulePanel.jsx` — Forward templateOps
+  - `src/components/admin/workflow-v2/ModuleConfigTab.jsx` — UI bouton + load/save
+- **Chemin des props**:
+  ```
+  WorkflowV2Page
+    ├── useSupabaseWorkflowModuleTemplates() → templateOps
+    └── ModulePanel(templateOps)
+          └── ModuleConfigTab(templateOps)
+                ├── useEffect → loadTemplate() on mount
+                ├── handleSaveToDB() → saveTemplate()
+                ├── Badge "Persisté en base" si isPersisted
+                └── Bouton "Enregistrer en base" (vert)
+  ```
+- **Hook API**:
+  - `loadTemplate(projectType, moduleId)` → charge config depuis DB
+  - `saveTemplate(projectType, moduleId, config)` → upsert en DB
+  - `isPersisted` → boolean, true si config existe en DB
+  - `isSaving` → boolean, état du save
+- **UI ajoutée**:
+  - Badge dynamique: "Configuration persistée" (vert) vs "Modifications temporaires" (ambre)
+  - Info banner contextuel avec guidance
+  - Bouton "Session" (existant) + Bouton "Enregistrer en base" (nouveau, vert)
+  - Spinner pendant sauvegarde
+  - Toast succès/erreur
+- **Migration à exécuter**:
+  ```sql
+  -- Exécuter dans Supabase SQL Editor:
+  -- supabase/migrations/create_workflow_module_templates.sql
+  ```
+- **Contraintes respectées**:
+  - ❌ Aucun changement moteur V1
+  - ❌ Aucune cascade
+  - ✅ RLS admin-only
+  - ✅ Isolation org_id
+  - ✅ Upsert idempotent
+
+## 🎉 PROMPT 10 COMPLÈTE — COCKPIT CONFIGURATION GLOBALE
+
+### Page cockpit Workflow V2 Configuration
+- **Objectif**: Configurer TOUS les workflows sans ouvrir de prospect
+- **Route**: `/admin/workflow-v2-config`
+- **Accès**: Menu admin (icône Sparkles ✨) — réservé aux admins
+
+#### Fichiers créés:
+- `src/pages/admin/WorkflowV2ConfigPage.jsx` — Page cockpit complète
+  - Vue globale de tous les project_types (ACC, Centrale, PDB, etc.)
+  - Pour chaque type: liste des modules/étapes
+  - Badge "Configuré" (vert) vs "À configurer" (ambre)
+  - Compteur X/Y modules configurés par projet
+  - Clic sur module → ouvre ModuleConfigTab en mode GLOBAL
+
+#### Fichiers modifiés:
+- `src/App.jsx`:
+  - Import lazy WorkflowV2ConfigPage
+  - Route `/admin/workflow-v2-config`
+- `src/components/admin/AdminHeader.jsx`:
+  - Nouveau navItem "Workflow V2" avec icône Sparkles
+  - Visible uniquement pour admins (adminOnly: true)
+- `src/hooks/useSupabaseWorkflowModuleTemplates.js`:
+  - Fonctions loadTemplate/saveTemplate/deleteTemplate acceptent maintenant `targetProjectType` en 1er param
+  - Ajout helper `getAllTemplatesList()` pour le cockpit
+  - Ajout alias `isSaving`, `isPersisted` pour compatibilité
+
+#### Architecture cockpit:
+```
+WorkflowV2ConfigPage
+  ├── useAppContext() → projectsData (tous les types de projets)
+  ├── useOrganization() → organizationId
+  ├── useSupabaseForms(orgId) → formulaires disponibles
+  ├── useSupabaseContractTemplates(orgId) → templates disponibles
+  ├── useSupabaseWorkflowModuleTemplates(orgId, null) → TOUS les templates persistés
+  │
+  ├── Vue Liste (selectedModule === null)
+  │   ├── Header avec stats (X types, Y modules configurés)
+  │   └── ProjectTypeCard[] 
+  │         ├── Titre + icône + couleur du projet
+  │         ├── Liste des modules/étapes
+  │         └── Badge config par module
+  │
+  └── Vue Module (selectedModule !== null)
+      ├── Header avec bouton Retour
+      ├── Banner "Configuration globale - s'applique à tous les projets X"
+      └── ModuleConfigTab (réutilisé, mode global sans prospectId)
+```
+
+#### UX/UI:
+- Design premium avec dégradés et ombres
+- Cartes extensibles par projet
+- Indicateurs visuels clairs (badges, compteurs)
+- Message contextuel "Cette configuration s'applique à tous les projets de ce type"
+- Navigation fluide liste ↔ module avec animations
+
+#### Contraintes respectées:
+- ❌ Aucun changement moteur
+- ❌ Aucune exécution depuis cette page (pas de prospectId = bouton exécuter désactivé)
+- ❌ Aucun impact V1
+- ❌ Pas de refacto
+- ✅ UI + navigation uniquement
+- ✅ Réutilise ModuleConfigTab existant
+- ✅ Réutilise hook persistance existant
+- ✅ Pas de nouvelle table
+
+## 🎉 PROMPT 10 bis COMPLÈTE — ACCÈS DEPUIS CONFIGURATION IA
+
+### Accès cockpit depuis Configuration IA
+- **Objectif**: Ajouter un accès clair vers le cockpit Workflow V2 depuis "Configuration IA"
+- **Fichier modifié**: `src/pages/admin/ConfigurationIA.jsx`
+
+#### Modifications:
+- Import `useNavigate` + icônes Lucide (`Settings`, `Sparkles`, `ArrowRight`)
+- Nouveau bloc CTA après la grille principale:
+  - Icône gradient bleu/indigo
+  - Titre "🛠️ Configurer Charly"
+  - Description: "Personnalisez les règles d'action par type de projet. Cette configuration s'applique automatiquement à tous vos clients."
+  - Bouton "Configurer les workflows" → `/admin/workflow-v2-config`
+  - Tags visuels: "Règles d'action par module", "Formulaires & signatures", "Cibles"
+
+#### UX:
+- Design cohérent avec le reste de l'app (gradient, ombres)
+- Message implicite: configuration GLOBALE (pas de référence client)
+- Animation hover sur le bouton
+- Aucune référence à un prospect/client spécifique
+
+#### Contraintes respectées:
+- ❌ Aucun changement moteur
+- ❌ Aucune logique métier
+- ❌ Aucun impact V1
+- ✅ UI + navigation uniquement

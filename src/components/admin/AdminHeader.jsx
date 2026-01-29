@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
     import { NavLink, Link, useNavigate, useSearchParams } from 'react-router-dom';
     import { motion, AnimatePresence } from 'framer-motion';
-    import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2, Globe } from 'lucide-react';
+    import { LayoutGrid, Calendar, Users, Settings, Bell, User, ArrowLeft, Bot, Menu, X, MessageSquare, Check, Users2, Globe, Sparkles } from 'lucide-react';
     import { Button } from '@/components/ui/button';
     import {
       DropdownMenu,
@@ -26,6 +26,7 @@ const allNavItems = [
   { name: 'Agenda', path: '/admin/agenda', icon: Calendar, adminOnly: false },
   { name: 'Contacts', path: '/admin/contacts', icon: Users, adminOnly: false },
   { name: 'Charly AI', path: '/admin/charly', icon: Bot, adminOnly: false },
+  { name: 'Workflow V2', path: '/admin/workflow-v2-config', icon: Sparkles, adminOnly: true },
   { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings, adminOnly: true },
   { name: 'Landing Page', path: '/admin/landing-page', icon: Globe, adminOnly: true },
 ];    const AdminHeader = () => {

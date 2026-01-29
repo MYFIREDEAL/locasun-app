@@ -20,6 +20,8 @@ const ClientDashboardPage = lazy(() => import('@/pages/client/ClientDashboardPag
 const WorkflowV2Page = lazy(() => import('@/pages/admin/WorkflowV2Page'));
 // 🔥 V2: Prospect Details V2 (lazy loaded, isolé)
 const ProspectDetailsV2 = lazy(() => import('@/components/admin/ProspectDetailsV2'));
+// 🔥 PROMPT 10: Cockpit Workflow V2 Config (lazy loaded)
+const WorkflowV2ConfigPage = lazy(() => import('@/pages/admin/WorkflowV2ConfigPage'));
 
 // Pages moins lourdes - import statique
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
@@ -1791,6 +1793,8 @@ function App() {
           <Route path="configuration-ia" element={<ConfigurationIA />} />
           <Route path="workflows-charly" element={<WorkflowsCharlyPage />} />
           <Route path="workflow-v2/:prospectId/:projectType" element={<WorkflowV2Page />} />
+          {/* 🔥 PROMPT 10: Cockpit Workflow V2 Config (sans prospect) */}
+          <Route path="workflow-v2-config" element={<WorkflowV2ConfigPage />} />
           {/* 🔥 V2: Prospect Details V2 (isolé, sans import V1) */}
           <Route path="prospect-v2/:prospectId" element={<ProspectDetailsV2 />} />
           <Route path="landing-page" element={<LandingPageConfigPage />} />

@@ -36,6 +36,9 @@ import { useSupabaseForms } from '@/hooks/useSupabaseForms';
 import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
+// ✅ Import hook persistance config (PROMPT 9)
+import { useSupabaseWorkflowModuleTemplates } from '@/hooks/useSupabaseWorkflowModuleTemplates';
+
 // ✅ Import composants V2 (autorisé)
 import { ModuleNavigation, ModulePanel, ActionButtons } from '@/components/admin/workflow-v2';
 
@@ -95,6 +98,16 @@ const WorkflowV2Page = () => {
       projectType: template.projectType,
     }));
   }, [supabaseTemplates]);
+  
+  // ✅ PROMPT 9: Hook persistance config Workflow V2
+  const {
+    templates: persistedTemplates,
+    loading: templatesConfigLoading,
+    saving: templatesSaving,
+    saveTemplate,
+    hasPersistedConfig,
+    getPersistedConfig,
+  } = useSupabaseWorkflowModuleTemplates(organizationId, projectType);
   
   // Vérifier feature flag
   if (!isWorkflowV2Enabled()) {
@@ -252,6 +265,7 @@ const WorkflowV2Page = () => {
               availableTemplates={availableTemplates}
               formsLoading={formsLoading}
               templatesLoading={templatesLoading}
+              templateOps={templateOps}
             >
               {/* Footer avec boutons d'action - Composant T6 */}
               <ActionButtons

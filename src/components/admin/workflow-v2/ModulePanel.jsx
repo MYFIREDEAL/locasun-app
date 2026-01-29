@@ -387,6 +387,7 @@ const ModulePanel = ({
   availableTemplates = [],  // ✅ PHASE FINALE: Templates depuis Supabase
   formsLoading = false,     // ✅ État de chargement
   templatesLoading = false, // ✅ État de chargement
+  templateOps = {},         // ✅ PROMPT 9: Load/Save config depuis Supabase
   children,
   className,
 }) => {
@@ -515,6 +516,7 @@ const ModulePanel = ({
             projectType={projectType}
             availableForms={availableForms}
             availableTemplates={availableTemplates}
+            templateOps={templateOps}
           />
         )}
         
