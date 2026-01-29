@@ -166,7 +166,7 @@ const WorkflowV2ConfigPage = () => {
         {/* ─────────────────────────────────────────────────────────────────
             COLONNE GAUCHE: Navigation (sticky)
         ───────────────────────────────────────────────────────────────── */}
-        <div className="w-80 bg-white border-r flex-shrink-0 sticky top-0 self-start h-screen">
+        <div className="w-80 bg-white border-r flex-shrink-0 sticky top-0 self-start max-h-[calc(100vh-64px)] overflow-y-auto">
           
           {/* Project Type Tabs */}
           <div className="border-b p-3 flex-shrink-0">
