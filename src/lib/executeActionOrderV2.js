@@ -199,24 +199,19 @@ async function executeFormAction(order, context) {
   
   for (const formId of formIds) {
     try {
+      // Générer un panel_id unique (format V1 compatible)
+      const panelId = `panel-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      
       // 1. Créer un client_form_panel
       const { data: panel, error: panelError } = await supabase
         .from('client_form_panels')
         .insert({
+          panel_id: panelId, // ✅ Requis par le schéma
           prospect_id: prospectId,
           project_type: projectType || 'general',
           form_id: formId,
           status: 'pending',
-          message: message || 'Formulaire à compléter',
-          has_client_action: hasClientAction,
-          created_by: 'V2-Executor',
-          metadata: {
-            source: 'workflow-v2',
-            orderId: order.id,
-            target: target,
-            managementMode: order.managementMode,
-            verificationMode: order.verificationMode,
-          },
+          message_timestamp: Date.now().toString(), // Timestamp du message
         })
         .select()
         .single();
