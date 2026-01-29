@@ -442,7 +442,9 @@ const ModuleConfigTab = ({
     const loadFromDB = async () => {
       if (moduleId && projectType && loadTemplate) {
         try {
-          const dbConfig = await loadTemplate(projectType, moduleId);
+          const dbRecord = await loadTemplate(projectType, moduleId);
+          // ✅ FIX: La config est dans configJson, pas à la racine
+          const dbConfig = dbRecord?.configJson;
           if (dbConfig) {
             // Fusionner avec la config locale (DB a priorité)
             setConfig(prev => ({ ...prev, ...dbConfig }));
