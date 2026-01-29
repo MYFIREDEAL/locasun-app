@@ -383,6 +383,10 @@ const ModulePanel = ({
   documents = [],
   messages = [],
   isReadOnly = true,
+  availableForms = [],      // ✅ PHASE FINALE: Formulaires depuis Supabase
+  availableTemplates = [],  // ✅ PHASE FINALE: Templates depuis Supabase
+  formsLoading = false,     // ✅ État de chargement
+  templatesLoading = false, // ✅ État de chargement
   children,
   className,
 }) => {
@@ -509,6 +513,8 @@ const ModulePanel = ({
             isReadOnly={isReadOnly}
             prospectId={prospectId}
             projectType={projectType}
+            availableForms={availableForms}
+            availableTemplates={availableTemplates}
           />
         )}
         

@@ -15,7 +15,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -30,6 +30,11 @@ import {
 
 // ✅ Import hook V2 (autorisé)
 import { useWorkflowV2 } from '@/hooks/useWorkflowV2';
+
+// ✅ Import hooks Supabase pour formulaires et templates (PHASE FINALE)
+import { useSupabaseForms } from '@/hooks/useSupabaseForms';
+import { useSupabaseContractTemplates } from '@/hooks/useSupabaseContractTemplates';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 // ✅ Import composants V2 (autorisé)
 import { ModuleNavigation, ModulePanel, ActionButtons } from '@/components/admin/workflow-v2';
@@ -58,6 +63,38 @@ const WorkflowV2Page = () => {
     handleProceed,
     handleNeedData,
   } = useWorkflowV2(prospectId, projectType);
+  
+  // ✅ PHASE FINALE: Charger formulaires et templates depuis Supabase
+  const { organizationId } = useOrganization();
+  
+  const { 
+    forms: supabaseForms, 
+    loading: formsLoading 
+  } = useSupabaseForms(organizationId);
+  
+  const { 
+    templates: supabaseTemplates, 
+    loading: templatesLoading 
+  } = useSupabaseContractTemplates(organizationId);
+  
+  // Transformer en format attendu par l'éditeur V2 [{id, name}]
+  const availableForms = useMemo(() => {
+    if (!supabaseForms) return [];
+    return Object.values(supabaseForms).map(form => ({
+      id: form.id,
+      name: form.name,
+      audience: form.audience || 'client',
+    }));
+  }, [supabaseForms]);
+  
+  const availableTemplates = useMemo(() => {
+    if (!supabaseTemplates) return [];
+    return supabaseTemplates.map(template => ({
+      id: template.id,
+      name: template.name,
+      projectType: template.projectType,
+    }));
+  }, [supabaseTemplates]);
   
   // Vérifier feature flag
   if (!isWorkflowV2Enabled()) {
@@ -211,6 +248,10 @@ const WorkflowV2Page = () => {
               documents={projectDocuments}
               messages={projectMessages}
               isReadOnly={isReadOnly}
+              availableForms={availableForms}
+              availableTemplates={availableTemplates}
+              formsLoading={formsLoading}
+              templatesLoading={templatesLoading}
             >
               {/* Footer avec boutons d'action - Composant T6 */}
               <ActionButtons

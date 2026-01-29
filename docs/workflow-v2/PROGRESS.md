@@ -45,6 +45,10 @@
 ### ✅ Phase 3 — Éditeur IA (PROMPT 8)
 - [x] **PROMPT 8 - UI Éditeur** — `ModuleConfigTab.jsx` entièrement éditable ✅
 
+### ✅ Phase Finale — READY TO PLAY
+- [x] **Branchement Supabase** — Formulaires et templates chargés depuis Supabase ✅
+- [x] **Activation exécution preview** — `EXECUTION_FROM_V2` activé en localhost/preview/dev ✅
+
 ### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA
@@ -347,6 +351,39 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7
   - ❌ Aucune logique IA
   - ✅ Pure UI + wiring config existante
 
+## 🎉 PHASE FINALE COMPLÈTE — READY TO PLAY
 
-
-
+### Branchement Supabase + Activation exécution
+- **Objectif**: Rendre l'outil utilisable en réel pour un admin
+- **Fichiers modifiés**:
+  - `src/pages/admin/WorkflowV2Page.jsx` — Appel hooks Supabase
+  - `src/components/admin/workflow-v2/ModulePanel.jsx` — Props transmission
+  - `src/lib/workflowV2Config.js` — Activation preview/dev
+- **Hooks branchés**:
+  - `useSupabaseForms(organizationId)` → formulaires réels
+  - `useSupabaseContractTemplates(organizationId)` → templates réels
+  - `useOrganization()` → ID organisation courante
+- **Chemin des props**:
+  ```
+  WorkflowV2Page
+    ├── useOrganization() → organizationId
+    ├── useSupabaseForms(organizationId) → supabaseForms
+    ├── useSupabaseContractTemplates(organizationId) → supabaseTemplates
+    ├── Transform → availableForms[{id, name}], availableTemplates[{id, name}]
+    └── ModulePanel
+          └── ModuleConfigTab
+                ├── FormMultiSelect(availableForms)
+                └── TemplateSelect(availableTemplates)
+  ```
+- **Activation exécution**:
+  - `executionFromV2` = **AUTO** selon environnement
+  - `localhost` / `127.0.0.1` → ✅ ON
+  - `*.vercel.app` / `*preview*` → ✅ ON
+  - `*.github.io` → ✅ ON
+  - `import.meta.env.DEV` → ✅ ON
+  - Production → ❌ OFF
+- **Résultat**:
+  - ✅ Formulaires visibles dans l'éditeur
+  - ✅ Templates visibles dans l'éditeur
+  - ✅ Bouton 🚀 Exécuter présent en preview/dev
+  - ✅ Sécurisé en production (flag OFF)

@@ -85,16 +85,34 @@ export const WORKFLOW_V2_CONFIG = {
    * Permet à V2 d'exécuter des ActionOrder via V1
    * 
    * ⚠️ SÉCURITÉ CRITIQUE:
-   *    - OFF par défaut
-   *    - ON uniquement en preview/dev
+   *    - OFF par défaut en production
+   *    - ON automatiquement en preview/dev (localhost, vercel preview)
    *    - Si OFF → rien ne s'exécute, même si ActionOrder présent
    *    - Rollback immédiat = mettre ce flag à false
    * 
    * Actions supportées:
    *    - FORM → envoi formulaire via V1
    *    - SIGNATURE → lancement signature via V1
+   * 
+   * ✅ PHASE FINALE: Activé en preview/dev, OFF en production
    */
-  executionFromV2: false,
+  executionFromV2: (() => {
+    // Détection environnement preview/dev
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isVercelPreview = hostname.includes('vercel.app') || hostname.includes('preview');
+    const isGitHubPagesPreview = hostname.includes('github.io');
+    const isDev = import.meta.env?.DEV === true;
+    
+    // Activer en preview/dev, désactiver en production
+    const enabled = isLocalhost || isVercelPreview || isGitHubPagesPreview || isDev;
+    
+    if (enabled) {
+      console.log('[V2 Config] 🚀 EXECUTION_FROM_V2 = ON (preview/dev mode)');
+    }
+    
+    return enabled;
+  })(),
 
   /**
    * Utilisateurs autorisés
