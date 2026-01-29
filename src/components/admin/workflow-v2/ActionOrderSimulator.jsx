@@ -106,6 +106,18 @@ export function ActionOrderSimulator({
     if (!generatedOrder) return { canExecute: false, reason: 'Générez d\'abord un ActionOrder' };
     if (!executionEnabled) return { canExecute: false, reason: 'Flag EXECUTION_FROM_V2 désactivé' };
     if (!hasRealProspectId) return { canExecute: false, reason: 'prospectId réel requis' };
+    
+    // ⚠️ GUARD SIGNATURE: Bloquer si SIGNATURE sans template
+    if (generatedOrder.action === 'SIGNATURE') {
+      const templateIds = generatedOrder.payload?.templateIds || [];
+      if (!templateIds.length) {
+        return { 
+          canExecute: false, 
+          reason: 'Sélectionnez un template pour générer le contrat' 
+        };
+      }
+    }
+    
     return canExecuteActionOrder(generatedOrder);
   }, [generatedOrder, executionEnabled, hasRealProspectId]);
   
@@ -292,6 +304,19 @@ export function ActionOrderSimulator({
           <div className="flex items-center gap-2 text-sm text-red-700">
             <AlertTriangle className="h-4 w-4" />
             <span>{error}</span>
+          </div>
+        </div>
+      )}
+      
+      {/* ⚠️ Avertissement SIGNATURE sans template */}
+      {generatedOrder?.action === 'SIGNATURE' && 
+       !(generatedOrder.payload?.templateIds?.length) && (
+        <div className="p-3 bg-amber-50 border-b border-amber-100">
+          <div className="flex items-center gap-2 text-sm text-amber-700">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="font-medium">
+              ⚠️ Sélectionnez un template pour générer le contrat
+            </span>
           </div>
         </div>
       )}

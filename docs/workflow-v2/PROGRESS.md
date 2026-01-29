@@ -75,6 +75,18 @@
 - [x] **Fallback placeholder** — Si pas de template, crée placeholder comme avant
 - [x] **Build OK** — Compilation réussie
 
+### ✅ PROMPT 14 — View/Download PDF
+- [x] **FilesTab.jsx** — Déjà équipé avec `createSignedUrl` pour view/download
+- [x] **Protection placeholders** — Badge "⏳ En attente" si `file_size = 0`
+- [x] **UX améliorée** — Boutons view/download uniquement si fichier réel existe
+
+### ✅ PROMPT 15 — Verrouillage Signature V2
+- [x] **Guard bloquant** — `executeActionOrderV2.js` retourne erreur si pas de templateId
+- [x] **Zéro placeholder** — Plus de création de fichier vide (supprimé)
+- [x] **Guard UI Simulator** — Bouton Exécuter désactivé + warning jaune si SIGNATURE sans template
+- [x] **Guard UI ModuleConfigTab** — Badge "Requis" + message d'avertissement sous le sélecteur
+- [x] **FieldLabel amélioré** — Nouvelle prop `required` avec badge orange
+
 ### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA

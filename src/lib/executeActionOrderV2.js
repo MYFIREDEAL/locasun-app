@@ -342,62 +342,40 @@ async function executeSignatureAction(order, context) {
   //    Cette fonction: charge le template, génère le PDF, upload dans Storage, crée project_files
   const templateId = templateIds?.[0] || null;
   
+  // ❌ GUARD BLOQUANT: Signature impossible sans template
   if (!templateId) {
-    logV2('⚠️ Aucun template sélectionné, création placeholder uniquement');
-    // Fallback: créer un placeholder si pas de template
-    const { data: placeholderFile, error: fileError } = await supabase
-      .from('project_files')
-      .insert({
-        prospect_id: prospectId,
-        project_type: projectType || 'general',
-        file_name: `signature_pending_${Date.now()}.pdf`,
-        file_type: 'application/pdf',
-        file_size: 0,
-        storage_path: `signatures/${prospectId}/${Date.now()}_pending.pdf`,
-        uploaded_by: null,
-        organization_id: prospect.organization_id,
-        field_label: 'Signature V2 (placeholder)',
-      })
-      .select('id')
-      .single();
-    
-    if (fileError) {
-      logV2('❌ Erreur création fichier placeholder', { error: fileError.message });
-      return {
-        success: false,
-        status: 'error',
-        message: `Erreur création fichier: ${fileError.message}`,
-        data: { prospectId, error: fileError.message },
-      };
-    }
-    
-    var fileId = placeholderFile.id;
-    logV2('📄 Placeholder créé (pas de template)', { fileId });
-  } else {
-    // ✅ Génération PDF réelle via V1
-    logV2('📝 Génération PDF via V1', { templateId, formDataKeys: Object.keys(formData) });
-    
-    const pdfResult = await executeContractSignatureAction({
-      templateId,
-      projectType: projectType || 'general',
-      prospectId,
-      formData,
-      organizationId: prospect.organization_id,
-    });
-    
-    if (!pdfResult.success) {
-      logV2('❌ Erreur génération PDF V1', { error: pdfResult.error });
-      return {
-        success: false,
-        status: 'error',
-        message: `Erreur génération PDF: ${pdfResult.error}`,
-        data: { prospectId, error: pdfResult.error },
-      };
-    }
-    
-    var fileId = pdfResult.fileData.id;
-    logV2('✅ PDF généré via V1', { fileId, fileName: pdfResult.fileData.file_name });
+    logV2('❌ ERREUR: Aucun template sélectionné - signature bloquée');
+    return {
+      success: false,
+      status: 'error',
+      message: 'Signature impossible : aucun template de signature sélectionné.',
+      data: { prospectId },
+    };
   }
+  
+  // ✅ Génération PDF réelle via V1
+  logV2('📝 Génération PDF via V1', { templateId, formDataKeys: Object.keys(formData) });
+  
+  const pdfResult = await executeContractSignatureAction({
+    templateId,
+    projectType: projectType || 'general',
+    prospectId,
+    formData,
+    organizationId: prospect.organization_id,
+  });
+  
+  if (!pdfResult.success) {
+    logV2('❌ Erreur génération PDF V1', { error: pdfResult.error });
+    return {
+      success: false,
+      status: 'error',
+      message: `Erreur génération PDF: ${pdfResult.error}`,
+      data: { prospectId, error: pdfResult.error },
+    };
+  }
+  
+  const fileId = pdfResult.fileData.id;
+  logV2('✅ PDF généré via V1', { fileId, fileName: pdfResult.fileData.file_name });
   
   // 5. Créer une procédure de signature PENDING (schéma Supabase existant)
   const { data: procedure, error: procedureError } = await supabase

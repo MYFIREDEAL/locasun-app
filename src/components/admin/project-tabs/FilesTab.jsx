@@ -255,27 +255,36 @@ const FilesTab = ({ projectType, prospectId, currentUser, activeAdminUser: activ
                 </div>
 
                 <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => handleView(file)}
-                    className="p-2 hover:bg-green-50 rounded text-green-600 transition-colors"
-                    title="Voir"
-                    disabled={deleting}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  {file.field_label === 'Document signé' && (
-                    <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">
-                      ✓ Signé
+                  {/* Fichier disponible seulement si file_size > 0 */}
+                  {file.file_size > 0 ? (
+                    <>
+                      <button
+                        onClick={() => handleView(file)}
+                        className="p-2 hover:bg-green-50 rounded text-green-600 transition-colors"
+                        title="Voir"
+                        disabled={deleting}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      {file.field_label === 'Document signé' && (
+                        <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded">
+                          ✓ Signé
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handleDownload(file)}
+                        className="p-2 hover:bg-blue-50 rounded text-blue-600 transition-colors"
+                        title="Télécharger"
+                        disabled={deleting}
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="px-2 py-1 text-xs text-amber-600 bg-amber-50 rounded-full">
+                      ⏳ En attente
                     </span>
                   )}
-                  <button
-                    onClick={() => handleDownload(file)}
-                    className="p-2 hover:bg-blue-50 rounded text-blue-600 transition-colors"
-                    title="Télécharger"
-                    disabled={deleting}
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
                   <button
                     onClick={() => handleDelete(file)}
                     className="p-2 hover:bg-red-50 rounded text-red-600 transition-colors disabled:opacity-50"

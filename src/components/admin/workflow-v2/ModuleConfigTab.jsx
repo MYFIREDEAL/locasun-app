@@ -69,10 +69,15 @@ import {
 // SOUS-COMPOSANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FieldLabel = ({ icon: Icon, label, readOnly = false }) => (
+const FieldLabel = ({ icon: Icon, label, readOnly = false, required = false }) => (
   <div className="flex items-center gap-2 mb-1.5">
     {Icon && <Icon className="h-4 w-4 text-blue-600" />}
     <span className="text-sm font-medium text-gray-700">{label}</span>
+    {required && (
+      <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+        Requis
+      </span>
+    )}
     {readOnly && (
       <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
         Lecture seule
@@ -761,12 +766,19 @@ const ModuleConfigTab = ({
         {actionConfig.actionType === 'SIGNATURE' && (
           <>
             <div className="mb-4">
-              <FieldLabel icon={PenTool} label="Template de signature" />
+              <FieldLabel icon={PenTool} label="Template de signature" required />
               <TemplateSelect
                 selected={actionConfig.templateId}
                 onChange={(templateId) => updateActionConfigField('templateId', templateId)}
                 templates={availableTemplates}
               />
+              {/* ⚠️ Avertissement template obligatoire */}
+              {!actionConfig.templateId && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <span className="text-amber-500">⚠️</span>
+                  <span className="font-medium">Obligatoire pour générer le contrat PDF</span>
+                </p>
+              )}
             </div>
             <div className="mb-4">
               <FieldLabel icon={FileText} label="Formulaire(s) de collecte" />
