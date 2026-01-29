@@ -69,6 +69,12 @@
 - [x] **Insert corrigé** — Utilise `signers[]`, `signature_metadata`, `file_id`, `organization_id`
 - [x] **file_id placeholder** — Crée fichier dans `project_files` avant signature
 
+### ✅ PROMPT 13 — Génération PDF via V1
+- [x] **Fonction V1 identifiée** — `executeContractSignatureAction` dans `contractPdfGenerator.js`
+- [x] **Branchement V2→V1** — Si templateId fourni, génère PDF réel via V1
+- [x] **Fallback placeholder** — Si pas de template, crée placeholder comme avant
+- [x] **Build OK** — Compilation réussie
+
 ### ⏸️ En attente (Supabase)
 - [ ] **Migration `module_info_base`** — Table pour mémoire IA par module
 - [ ] **Migration `ai_interaction_logs`** — Historique des interactions IA

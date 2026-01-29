@@ -25,6 +25,7 @@
 import { supabase } from '@/lib/supabase';
 import { isExecutionFromV2Enabled, logV2 } from '@/lib/workflowV2Config';
 import { toast } from '@/components/ui/use-toast';
+import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -337,31 +338,65 @@ async function executeSignatureAction(order, context) {
     };
   }
   
-  // 4. Créer un fichier placeholder dans project_files (file_id est NOT NULL)
-  const { data: placeholderFile, error: fileError } = await supabase
-    .from('project_files')
-    .insert({
-      prospect_id: prospectId,
-      project_type: projectType || 'general',
-      file_name: `signature_pending_${Date.now()}.pdf`,
-      file_type: 'application/pdf',
-      file_size: 0,
-      storage_path: `signatures/${prospectId}/${Date.now()}_pending.pdf`,
-      uploaded_by: null, // Sera rempli lors de la génération réelle
-      organization_id: prospect.organization_id,
-      field_label: 'Signature V2',
-    })
-    .select('id')
-    .single();
+  // 4. Générer le PDF via V1 (executeContractSignatureAction)
+  //    Cette fonction: charge le template, génère le PDF, upload dans Storage, crée project_files
+  const templateId = templateIds?.[0] || null;
   
-  if (fileError) {
-    logV2('❌ Erreur création fichier placeholder', { error: fileError.message });
-    return {
-      success: false,
-      status: 'error',
-      message: `Erreur création fichier: ${fileError.message}`,
-      data: { prospectId, error: fileError.message },
-    };
+  if (!templateId) {
+    logV2('⚠️ Aucun template sélectionné, création placeholder uniquement');
+    // Fallback: créer un placeholder si pas de template
+    const { data: placeholderFile, error: fileError } = await supabase
+      .from('project_files')
+      .insert({
+        prospect_id: prospectId,
+        project_type: projectType || 'general',
+        file_name: `signature_pending_${Date.now()}.pdf`,
+        file_type: 'application/pdf',
+        file_size: 0,
+        storage_path: `signatures/${prospectId}/${Date.now()}_pending.pdf`,
+        uploaded_by: null,
+        organization_id: prospect.organization_id,
+        field_label: 'Signature V2 (placeholder)',
+      })
+      .select('id')
+      .single();
+    
+    if (fileError) {
+      logV2('❌ Erreur création fichier placeholder', { error: fileError.message });
+      return {
+        success: false,
+        status: 'error',
+        message: `Erreur création fichier: ${fileError.message}`,
+        data: { prospectId, error: fileError.message },
+      };
+    }
+    
+    var fileId = placeholderFile.id;
+    logV2('📄 Placeholder créé (pas de template)', { fileId });
+  } else {
+    // ✅ Génération PDF réelle via V1
+    logV2('📝 Génération PDF via V1', { templateId, formDataKeys: Object.keys(formData) });
+    
+    const pdfResult = await executeContractSignatureAction({
+      templateId,
+      projectType: projectType || 'general',
+      prospectId,
+      formData,
+      organizationId: prospect.organization_id,
+    });
+    
+    if (!pdfResult.success) {
+      logV2('❌ Erreur génération PDF V1', { error: pdfResult.error });
+      return {
+        success: false,
+        status: 'error',
+        message: `Erreur génération PDF: ${pdfResult.error}`,
+        data: { prospectId, error: pdfResult.error },
+      };
+    }
+    
+    var fileId = pdfResult.fileData.id;
+    logV2('✅ PDF généré via V1', { fileId, fileName: pdfResult.fileData.file_name });
   }
   
   // 5. Créer une procédure de signature PENDING (schéma Supabase existant)
@@ -370,7 +405,7 @@ async function executeSignatureAction(order, context) {
     .insert({
       prospect_id: prospectId,
       project_type: projectType || 'general',
-      file_id: placeholderFile.id,  // OBLIGATOIRE - NOT NULL
+      file_id: fileId,  // ✅ Utilise le fileId du PDF généré (ou placeholder)
       status: 'pending',
       signers: [
         {
@@ -410,8 +445,9 @@ async function executeSignatureAction(order, context) {
   
   // 5. Envoyer un message chat avec le LIEN DE SIGNATURE (comme V1)
   if (hasClientAction === true) {
-    // Construire l'URL de signature
-    const signatureUrl = `${window.location.origin}/signature/${procedure.id}?token=${procedure.access_token}`;
+    // Construire l'URL de signature (domaine production comme V1)
+    const baseUrl = import.meta.env.PROD ? 'https://evatime.fr' : window.location.origin;
+    const signatureUrl = `${baseUrl}/signature/${procedure.id}?token=${procedure.access_token}`;
     
     // Message HTML avec lien cliquable (format V1)
     const signatureMessage = `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`;
