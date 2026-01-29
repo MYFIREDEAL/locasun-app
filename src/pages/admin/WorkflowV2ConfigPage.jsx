@@ -124,7 +124,7 @@ const WorkflowV2ConfigPage = () => {
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50">
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
@@ -161,12 +161,12 @@ const WorkflowV2ConfigPage = () => {
       </div>
       
       {/* Main Content - 2 colonnes */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex">
         
         {/* ─────────────────────────────────────────────────────────────────
-            COLONNE GAUCHE: Navigation
+            COLONNE GAUCHE: Navigation (sticky)
         ───────────────────────────────────────────────────────────────── */}
-        <div className="w-80 bg-white border-r flex flex-col flex-shrink-0">
+        <div className="w-80 bg-white border-r flex-shrink-0 sticky top-0 self-start h-screen">
           
           {/* Project Type Tabs */}
           <div className="border-b p-3 flex-shrink-0">
@@ -213,7 +213,7 @@ const WorkflowV2ConfigPage = () => {
           </div>
           
           {/* Modules List */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="overflow-y-auto flex-1">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider px-4 pt-3 pb-2">
               Modules ({currentSteps.length})
             </p>
@@ -274,7 +274,7 @@ const WorkflowV2ConfigPage = () => {
         {/* ─────────────────────────────────────────────────────────────────
             COLONNE DROITE: Configuration
         ───────────────────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           {selectedModule ? (
             <div className="p-6 max-w-4xl mx-auto">
               {/* Header module */}
