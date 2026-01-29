@@ -447,7 +447,13 @@ const ModuleConfigTab = ({
             // Fusionner avec la config locale (DB a priorité)
             setConfig(prev => ({ ...prev, ...dbConfig }));
             setOriginalConfig(prev => ({ ...prev, ...dbConfig }));
-            console.log('[V2 Config Tab] Loaded config from Supabase:', { moduleId, projectType });
+            
+            // ✅ FIX: Charger aussi actionConfig depuis la DB
+            if (dbConfig.actionConfig) {
+              setActionConfig(prev => ({ ...prev, ...dbConfig.actionConfig }));
+            }
+            
+            console.log('[V2 Config Tab] Loaded config from Supabase:', { moduleId, projectType, hasActionConfig: !!dbConfig.actionConfig });
           }
         } catch (err) {
           console.warn('[V2 Config Tab] No DB config found, using in-memory:', err.message);
