@@ -654,14 +654,6 @@ const IAKnowledgeDocuments = ({
   
   return (
     <div className="space-y-3">
-      {/* Info box */}
-      <div className="p-2 bg-purple-50 border border-purple-100 rounded-lg">
-        <p className="text-xs text-purple-700 flex items-center gap-1.5">
-          <Shield className="h-3.5 w-3.5" />
-          <span>Documents privés — L'IA les consulte pour répondre aux clients, mais ils ne sont jamais visibles par le client.</span>
-        </p>
-      </div>
-      
       {/* Bouton d'upload */}
       <div className="flex items-center gap-2">
         <input
