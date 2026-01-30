@@ -77,6 +77,7 @@ import { useSupabaseAllProjectSteps } from '@/hooks/useSupabaseAllProjectSteps';
 import { useSupabaseProjectInfos } from '@/hooks/useSupabaseProjectInfos';
 import { useAutoCreateTasks } from '@/hooks/useAutoCreateTasks';
 import { useAutoVerificationTasks } from '@/hooks/useAutoVerificationTasks'; // 🔥 AJOUT: Tâches de vérification
+import { useFormReminderWatcher } from '@/hooks/useFormReminderWatcher'; // 🔥 AJOUT: Surveillance relances formulaires
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -529,6 +530,9 @@ function App() {
   
   // 🔥 Système de création automatique de tâches de vérification (écoute les soumissions client)
   useAutoVerificationTasks(supabasePrompts);
+  
+  // 🔥 Système de surveillance relances formulaires (crée tâche au seuil atteint)
+  useFormReminderWatcher(!authLoading && adminReady);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
   const {

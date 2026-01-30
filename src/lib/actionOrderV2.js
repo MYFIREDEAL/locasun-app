@@ -106,6 +106,7 @@ export function buildActionOrder({
     templateId = null,  // ⚠️ Compat: ModuleConfigTab stocke templateId (singulier)
     managementMode = 'HUMAN',
     verificationMode = 'HUMAN',
+    reminderConfig = null, // ✅ Config relances automatiques
   } = actionConfig;
 
   // Conversion V2 → V1
@@ -144,6 +145,15 @@ export function buildActionOrder({
     // Modes
     managementMode,
     verificationMode,
+    
+    // ✅ Config relances (si action = FORM et cible = CLIENT)
+    reminderConfig: (actionType === 'FORM' && targetAudience === 'CLIENT' && reminderConfig) 
+      ? {
+          enabled: reminderConfig.enabled ?? false,
+          delayDays: reminderConfig.delayDays ?? 1,
+          maxRemindersBeforeTask: reminderConfig.maxRemindersBeforeTask ?? 3,
+        }
+      : null,
     
     // Contexte
     moduleId,

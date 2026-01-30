@@ -203,7 +203,13 @@ async function executeFormAction(order, context) {
       // Générer un panel_id unique (format V1 compatible)
       const panelId = `panel-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       
-      // 1. Créer un client_form_panel avec verification_mode
+      // Extraire la config reminder depuis l'ActionOrder
+      const reminderConfig = order.reminderConfig || {};
+      const reminderEnabled = reminderConfig.enabled ?? false;
+      const reminderDelayDays = reminderConfig.delayDays ?? 1;
+      const maxRemindersBeforeTask = reminderConfig.maxRemindersBeforeTask ?? 3;
+      
+      // 1. Créer un client_form_panel avec verification_mode + config reminder
       const { data: panel, error: panelError } = await supabase
         .from('client_form_panels')
         .insert({
@@ -215,6 +221,13 @@ async function executeFormAction(order, context) {
           message_timestamp: Date.now().toString(),
           // ✅ Source unique de vérité pour la vérification humaine
           verification_mode: order.verificationMode || 'HUMAN',
+          // ✅ Config relances automatiques
+          auto_reminder_enabled: reminderEnabled,
+          reminder_delay_days: reminderDelayDays,
+          max_reminders_before_task: maxRemindersBeforeTask,
+          reminder_count: 0,
+          last_reminder_at: null,
+          task_created: false,
         })
         .select()
         .single();
@@ -224,7 +237,13 @@ async function executeFormAction(order, context) {
         logV2('❌ Erreur création panel', { formId, error: panelError.message });
       } else {
         createdPanels.push(panel);
-        logV2('✅ Panel créé', { formId, panelId: panel.id });
+        logV2('✅ Panel créé avec config reminder', { 
+          formId, 
+          panelId: panel.id,
+          reminderEnabled,
+          reminderDelayDays,
+          maxRemindersBeforeTask,
+        });
       }
       
       // 2. Envoyer un message chat (optionnel)
