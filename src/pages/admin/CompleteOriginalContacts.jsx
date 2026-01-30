@@ -440,7 +440,7 @@ const CompleteOriginalContacts = () => {
       const createdProspect = await addSupabaseProspect({ 
         ...newProspectData, 
         status: firstStepId, // ✅ Utilise l'ID de la première colonne (MARKET)
-        ownerId: activeAdminUser?.id
+        ownerId: activeAdminUser?.user_id // ✅ FIX: user_id (pas id) pour FK vers auth.users
       });
 
       // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
