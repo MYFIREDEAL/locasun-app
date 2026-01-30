@@ -37,6 +37,9 @@ import {
   Trash2,
   File,
   Download,
+  FolderOpen,
+  Check,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -474,7 +477,7 @@ const CompletionTriggerSelect = ({ selected, onChange }) => (
  * UX-4: Documents privés pour l'IA (FAQ, argumentaires, procédures)
  * 
  * ⚠️ Ces documents sont EXCLUSIVEMENT pour l'IA, le client n'y a pas accès
- * Liés à: organization_id + project_type + module_id (PAS de prospect_id)
+ * Utilise module_ids[] pour permettre le partage sur plusieurs étapes
  */
 const IAKnowledgeDocuments = ({ 
   moduleId, 
@@ -484,11 +487,14 @@ const IAKnowledgeDocuments = ({
 }) => {
   const fileInputRef = useRef(null);
   const [files, setFiles] = useState([]);
+  const [allProjectFiles, setAllProjectFiles] = useState([]); // Tous les docs du projet
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState(new Set());
   
-  // Label unique pour identifier les docs IA de cette étape
-  const knowledgeLabel = `ia-knowledge:${projectType}:${moduleId}`;
+  // Label pour identifier les docs IA de ce projet
+  const projectLabel = `ia-knowledge:${projectType}`;
   
   // Charger les fichiers de connaissance IA pour cette étape
   const loadFiles = async () => {
@@ -496,12 +502,14 @@ const IAKnowledgeDocuments = ({
     
     setLoading(true);
     try {
+      // Fichiers de cette étape (moduleId dans module_ids[])
       const { data, error } = await supabase
         .from('project_files')
         .select('*')
         .eq('organization_id', organizationId)
-        .eq('field_label', knowledgeLabel)
-        .is('prospect_id', null) // Documents globaux, pas liés à un prospect
+        .like('field_label', `${projectLabel}:%`)
+        .is('prospect_id', null)
+        .contains('module_ids', [moduleId])
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -513,9 +521,98 @@ const IAKnowledgeDocuments = ({
     }
   };
   
+  // Charger TOUS les fichiers du projet (pour la bibliothèque)
+  const loadAllProjectFiles = async () => {
+    if (!projectType || !organizationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .like('field_label', `${projectLabel}:%`)
+        .is('prospect_id', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setAllProjectFiles(data || []);
+      
+      // Pré-sélectionner ceux déjà liés à cette étape
+      const alreadyLinked = new Set(
+        (data || [])
+          .filter(f => f.module_ids?.includes(moduleId))
+          .map(f => f.id)
+      );
+      setSelectedFiles(alreadyLinked);
+    } catch (err) {
+      console.error('Error loading all project files:', err);
+    }
+  };
+  
   useEffect(() => {
     loadFiles();
   }, [projectType, moduleId, organizationId]);
+  
+  // Ouvrir la bibliothèque
+  const openLibrary = () => {
+    loadAllProjectFiles();
+    setShowLibrary(true);
+  };
+  
+  // Toggle sélection d'un fichier
+  const toggleFileSelection = (fileId) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId);
+      } else {
+        newSet.add(fileId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Valider la sélection de la bibliothèque
+  const confirmLibrarySelection = async () => {
+    try {
+      // Pour chaque fichier du projet, mettre à jour module_ids
+      for (const file of allProjectFiles) {
+        const isSelected = selectedFiles.has(file.id);
+        const currentlyHasModule = file.module_ids?.includes(moduleId);
+        
+        if (isSelected && !currentlyHasModule) {
+          // Ajouter moduleId
+          const newModuleIds = [...(file.module_ids || []), moduleId];
+          await supabase
+            .from('project_files')
+            .update({ module_ids: newModuleIds })
+            .eq('id', file.id);
+        } else if (!isSelected && currentlyHasModule) {
+          // Retirer moduleId
+          const newModuleIds = (file.module_ids || []).filter(m => m !== moduleId);
+          await supabase
+            .from('project_files')
+            .update({ module_ids: newModuleIds })
+            .eq('id', file.id);
+        }
+      }
+      
+      toast({
+        title: '✅ Sélection enregistrée',
+        description: 'Les documents ont été liés à cette étape.',
+        duration: 3000,
+      });
+      
+      setShowLibrary(false);
+      loadFiles(); // Refresh
+    } catch (err) {
+      toast({
+        title: '❌ Erreur',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
   
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -535,7 +632,7 @@ const IAKnowledgeDocuments = ({
       // Upload dans Storage
       const ext = file.name.split('.').pop();
       const newName = `${crypto.randomUUID()}.${ext}`;
-      const storagePath = `ia-knowledge/${projectType}/${moduleId}/${newName}`;
+      const storagePath = `ia-knowledge/${projectType}/${newName}`;
       
       const { error: uploadError } = await supabase.storage
         .from('project-files')
@@ -543,19 +640,20 @@ const IAKnowledgeDocuments = ({
       
       if (uploadError) throw uploadError;
       
-      // Insert dans la table SANS prospect_id
+      // Insert avec module_ids array
       const { error: insertError } = await supabase
         .from('project_files')
         .insert({
           project_type: projectType,
-          prospect_id: null, // ⚠️ NULL = document global pour l'IA
+          prospect_id: null,
           organization_id: organizationId,
           file_name: file.name,
           file_type: file.type,
           file_size: file.size,
           storage_path: storagePath,
           uploaded_by: uploadedBy || 'admin',
-          field_label: knowledgeLabel,
+          field_label: `${projectLabel}:${moduleId}`,
+          module_ids: [moduleId], // Array avec cette étape
         });
       
       if (insertError) throw insertError;
@@ -654,7 +752,7 @@ const IAKnowledgeDocuments = ({
   
   return (
     <div className="space-y-3">
-      {/* Bouton d'upload */}
+      {/* Boutons d'action */}
       <div className="flex items-center gap-2">
         <input
           ref={fileInputRef}
@@ -674,18 +772,120 @@ const IAKnowledgeDocuments = ({
           {uploading ? (
             <>
               <div className="h-4 w-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-              Upload en cours...
+              Upload...
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              Ajouter un document pour l'IA
+              Nouveau
             </>
           )}
         </Button>
+        
+        {/* Bouton Bibliothèque */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={openLibrary}
+          disabled={!organizationId}
+          className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+        >
+          <FolderOpen className="h-4 w-4" />
+          Bibliothèque
+        </Button>
       </div>
       
-      {/* Liste des fichiers */}
+      {/* Modal Bibliothèque */}
+      {showLibrary && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">📚 Bibliothèque - {projectType}</h3>
+                <p className="text-xs text-gray-500">Sélectionnez les documents à utiliser sur cette étape</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowLibrary(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Liste des documents */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {allProjectFiles.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  Aucun document dans la bibliothèque.
+                  <br />
+                  <span className="text-sm">Uploadez d'abord un document via "Nouveau".</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allProjectFiles.map((file) => {
+                    const isSelected = selectedFiles.has(file.id);
+                    const usedOn = file.module_ids?.length || 0;
+                    
+                    return (
+                      <div
+                        key={file.id}
+                        onClick={() => toggleFileSelection(file.id)}
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-50 border-2 border-blue-400' 
+                            : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {/* Checkbox visuel */}
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                        
+                        <File className="h-5 w-5 text-purple-500 flex-shrink-0" />
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">
+                            {file.file_name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {formatFileSize(file.file_size)} • Utilisé sur {usedOn} étape{usedOn > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLibrary(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={confirmLibrarySelection}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Valider ({selectedFiles.size} sélectionné{selectedFiles.size > 1 ? 's' : ''})
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Liste des fichiers de cette étape */}
       {loading ? (
         <div className="text-sm text-gray-400 italic">Chargement...</div>
       ) : files.length === 0 ? (
@@ -705,7 +905,7 @@ const IAKnowledgeDocuments = ({
                   {file.file_name}
                 </p>
                 <p className="text-xs text-gray-400">
-                  {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString('fr-FR')}
+                  {formatFileSize(file.file_size)} • {file.module_ids?.length || 1} étape{(file.module_ids?.length || 1) > 1 ? 's' : ''}
                 </p>
               </div>
               <div className="flex items-center gap-1">
