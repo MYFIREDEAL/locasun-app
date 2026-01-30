@@ -83,12 +83,24 @@ const WorkflowV2Page = () => {
   // Transformer en format attendu par l'éditeur V2 [{id, name, fields}]
   const availableForms = useMemo(() => {
     if (!supabaseForms) return [];
-    return Object.values(supabaseForms).map(form => ({
-      id: form.id,
-      name: form.name,
-      audience: form.audience || 'client',
-      fields: form.fields || [], // ✨ Ajout pour FormRequiredFieldsConfig
-    }));
+    console.log('🔍 WorkflowV2Page - supabaseForms RAW:', supabaseForms);
+    const transformed = Object.values(supabaseForms).map(form => {
+      console.log('🔍 WorkflowV2Page - Transforming form:', {
+        id: form.id,
+        name: form.name,
+        hasFields: !!form.fields,
+        fieldsLength: form.fields?.length,
+        fullForm: form
+      });
+      return {
+        id: form.id,
+        name: form.name,
+        audience: form.audience || 'client',
+        fields: form.fields || [], // ✨ Ajout pour FormRequiredFieldsConfig
+      };
+    });
+    console.log('🔍 WorkflowV2Page - transformed availableForms:', transformed);
+    return transformed;
   }, [supabaseForms]);
   
   const availableTemplates = useMemo(() => {
