@@ -625,10 +625,10 @@ const FormRequiredFieldsConfig = ({
               ) : (
                 <div className="space-y-2">
                   {formFields.map((field) => {
-                    const isRequired = tempRequiredFields.includes(field.name);
+                    const isRequired = tempRequiredFields.includes(field.id);
                     return (
                       <label
-                        key={field.name}
+                        key={field.id}
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                           isRequired
@@ -639,7 +639,7 @@ const FormRequiredFieldsConfig = ({
                         <input
                           type="checkbox"
                           checked={isRequired}
-                          onChange={() => toggleField(field.name)}
+                          onChange={() => toggleField(field.id)}
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
                         <div className="flex-1">
