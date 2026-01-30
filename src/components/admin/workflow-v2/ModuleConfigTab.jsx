@@ -174,12 +174,14 @@ const ActionTag = ({ action }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Checkbox multiple pour les cibles
+ * Radio group pour les cibles (sélection unique)
  */
-const TargetCheckboxGroup = ({ selected = [], onChange, targets }) => (
+const TargetCheckboxGroup = ({ selected, onChange, targets }) => (
   <div className="flex flex-wrap gap-3">
     {targets.map((target) => {
-      const isChecked = selected.includes(target.id);
+      // Support legacy: si selected est un array, prendre le premier élément
+      const selectedValue = Array.isArray(selected) ? selected[0] : selected;
+      const isChecked = selectedValue === target.id;
       return (
         <label
           key={target.id}
@@ -191,15 +193,11 @@ const TargetCheckboxGroup = ({ selected = [], onChange, targets }) => (
           )}
         >
           <input
-            type="checkbox"
+            type="radio"
+            name="targetAudience"
+            value={target.id}
             checked={isChecked}
-            onChange={(e) => {
-              if (e.target.checked) {
-                onChange([...selected, target.id]);
-              } else {
-                onChange(selected.filter(t => t !== target.id));
-              }
-            }}
+            onChange={() => onChange(target.id)}
             className="sr-only"
           />
           <span className="text-lg">{target.icon}</span>
@@ -1277,12 +1275,12 @@ const ModuleConfigTab = ({
         
         {/* 1️⃣ CIBLES AUTORISÉES */}
         <div className="mb-4">
-          <FieldLabel icon={Users} label="Cibles autorisées" />
+          <FieldLabel icon={Users} label="Cible autorisée" />
           <TargetCheckboxGroup
             selected={Array.isArray(actionConfig.targetAudience) 
-              ? actionConfig.targetAudience 
-              : (actionConfig.targetAudience ? [actionConfig.targetAudience] : [])}
-            onChange={(targets) => updateActionConfigField('targetAudience', targets)}
+              ? actionConfig.targetAudience[0] 
+              : actionConfig.targetAudience}
+            onChange={(target) => updateActionConfigField('targetAudience', target)}
             targets={getTargetAudiencesList()}
           />
         </div>
