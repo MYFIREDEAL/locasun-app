@@ -80,30 +80,15 @@ const WorkflowV2Page = () => {
     loading: templatesLoading 
   } = useSupabaseContractTemplates(organizationId);
   
-  console.log('🔍🔍🔍 WorkflowV2Page - HOOK RESULT:', { supabaseForms, type: typeof supabaseForms, isNull: supabaseForms === null, isUndefined: supabaseForms === undefined });
-  
   // Transformer en format attendu par l'éditeur V2 [{id, name, fields}]
   const availableForms = useMemo(() => {
-    console.log('🔍 WorkflowV2Page - useMemo triggered, supabaseForms:', supabaseForms);
     if (!supabaseForms) return [];
-    console.log('🔍 WorkflowV2Page - supabaseForms RAW:', supabaseForms);
-    const transformed = Object.values(supabaseForms).map(form => {
-      console.log('🔍 WorkflowV2Page - Transforming form:', {
-        id: form.id,
-        name: form.name,
-        hasFields: !!form.fields,
-        fieldsLength: form.fields?.length,
-        fullForm: form
-      });
-      return {
-        id: form.id,
-        name: form.name,
-        audience: form.audience || 'client',
-        fields: form.fields || [], // ✨ Ajout pour FormRequiredFieldsConfig
-      };
-    });
-    console.log('🔍 WorkflowV2Page - transformed availableForms:', transformed);
-    return transformed;
+    return Object.values(supabaseForms).map(form => ({
+      id: form.id,
+      name: form.name,
+      audience: form.audience || 'client',
+      fields: form.fields || [], // ✨ Ajout pour FormRequiredFieldsConfig
+    }));
   }, [supabaseForms]);
   
   const availableTemplates = useMemo(() => {

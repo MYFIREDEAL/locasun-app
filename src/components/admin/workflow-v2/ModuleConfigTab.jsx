@@ -482,12 +482,6 @@ const FormRequiredFieldsConfig = ({
   const selectedForm = useMemo(() => {
     if (!selectedFormIds || selectedFormIds.length === 0) return null;
     const form = availableForms.find(f => f.id === selectedFormIds[0]);
-    console.log('🔍 selectedForm:', {
-      selectedFormIds,
-      availableForms,
-      foundForm: form,
-      formFields: form?.fields
-    });
     return form;
   }, [selectedFormIds, availableForms]);
   
