@@ -350,53 +350,34 @@ const ModeSelect = ({ label, icon: Icon, selected, onChange, modes }) => (
 );
 
 /**
- * Multi-select pour knowledgeKey
+ * Multi-select pour knowledgeKey - LECTURE SEULE (tout coché par défaut)
  */
 const KnowledgeKeySelect = ({ selected = [], onChange }) => {
-  // Liste des clés disponibles (statique pour Phase 3)
+  // Liste des clés disponibles - toutes activées, non modifiable
   const AVAILABLE_KEYS = [
-    // Données du prospect/projet en cours
     { id: 'prospect_info', label: 'Infos Prospect', icon: '👤' },
-    { id: 'project_data', label: 'Données Projet', icon: '📊' },
     { id: 'contract_history', label: 'Historique Contrats', icon: '📜' },
     { id: 'forms_submitted', label: 'Formulaires Soumis', icon: '📝' },
     { id: 'chat_history', label: 'Historique Chat', icon: '💬' },
     { id: 'documents', label: 'Documents', icon: '📁' },
-    // Données étendues (autres projets du même client)
     { id: 'client_projects_history', label: 'Historique projets (client)', icon: '🗂️' },
     { id: 'commercial_activity', label: 'Activité commerciaux', icon: '📞' },
     { id: 'partner_activity', label: 'Activité partenaires', icon: '🤝' },
   ];
   
-  const selectedArray = Array.isArray(selected) ? selected : (selected ? [selected] : []);
-  
+  // Tout est coché par défaut, lecture seule
   return (
     <div className="flex flex-wrap gap-2">
-      {AVAILABLE_KEYS.map((key) => {
-        const isChecked = selectedArray.includes(key.id);
-        return (
-          <button
-            key={key.id}
-            type="button"
-            onClick={() => {
-              if (isChecked) {
-                onChange(selectedArray.filter(k => k !== key.id));
-              } else {
-                onChange([...selectedArray, key.id]);
-              }
-            }}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs border transition-all",
-              isChecked
-                ? "bg-green-50 border-green-300 text-green-700"
-                : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
-            )}
-          >
-            <span>{key.icon}</span>
-            <span>{key.label}</span>
-          </button>
-        );
-      })}
+      {AVAILABLE_KEYS.map((key) => (
+        <div
+          key={key.id}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs border bg-green-50 border-green-300 text-green-700 cursor-default"
+          title="Activé par défaut (lecture seule)"
+        >
+          <span>{key.icon}</span>
+          <span>{key.label}</span>
+        </div>
+      ))}
     </div>
   );
 };
