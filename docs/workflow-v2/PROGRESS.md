@@ -661,3 +661,108 @@ ProspectDetailsAdmin
 - ✅ Wiring UI + appel V2 uniquement
 - ✅ V2 = décision affichée, V1 = exécution
 - ✅ Bouton 🤖 = point d'entrée unique V2 dans le chat
+
+---
+
+## 🆕 Configuration Champs Requis & Relances (Client uniquement)
+
+**Date** : 30 janvier 2026  
+**Commit** : `59a5e55`
+
+### Fonctionnalité
+
+Pour les actions **Formulaire (Client)**, possibilité de configurer :
+1. **Champs requis** pour valider l'objectif (sélection depuis le form schema)
+2. **Relance automatique** si formulaire incomplet (J+1 à J+4)
+
+### Composant ajouté : `FormRequiredFieldsConfig`
+
+**Emplacement** : `src/components/admin/workflow-v2/ModuleConfigTab.jsx`
+
+**Affichage conditionnel** :
+```javascript
+actionConfig.actionType === 'FORM' && actionConfig.targetAudience === 'CLIENT'
+```
+
+**Interface** :
+- **Bloc bleu** : "Champs requis pour validation"
+  - Bouton "Définir" → Modal listant les champs du formulaire
+  - Checkbox pour chaque champ (nom, type, obligatoire)
+  - Validation → Stockage dans `actionConfig.requiredFields[]`
+
+- **Bloc violet** : "Relance automatique"
+  - Toggle ON/OFF
+  - Si activé : Grille J+1 / J+2 / J+3 / J+4
+  - Stockage dans `actionConfig.reminderConfig { enabled, delayDays }`
+  - Textes : "⏱️ Relance J+X si incomplet" + "✅ Arrêt auto dès validation"
+
+### Structure de données (Phase 3 - Mémoire)
+
+```javascript
+actionConfig: {
+  targetAudience: 'CLIENT',
+  actionType: 'FORM',
+  allowedFormIds: ['abc-123'],
+  requiredFields: ['nom', 'email'],          // ← Nouveau
+  reminderConfig: {                          // ← Nouveau
+    enabled: true,
+    delayDays: 2
+  }
+}
+```
+
+**Ajouté dans `DEFAULT_ACTION_CONFIG`** (`moduleAIConfig.js`) :
+```javascript
+requiredFields: [],
+reminderConfig: { enabled: false, delayDays: 1 }
+```
+
+### Comportement attendu (conceptuel)
+
+```
+1. Admin configure requiredFields = ['nom', 'email']
+2. Admin active relance J+2
+3. Client remplit formulaire, soumet
+4. Backend vérifie requiredFields
+   → Tous remplis ? → DONE = true → Passage étape suivante autorisé
+   → Manquants ? → DONE = false → Client bloqué
+5. J+2 après soumission : Relance envoyée (si DONE = false)
+6. Client complète → DONE = true → Relances arrêtées automatiquement
+```
+
+### ⚠️ Limitations Phase 3
+
+- ✅ UI complète (modal, toggle, sélection délai)
+- ✅ Stockage en mémoire (perdu au refresh)
+- ❌ **Validation backend non implémentée** (vérifier requiredFields)
+- ❌ **Système de relance non implémenté** (cron/edge function)
+- ❌ **Connexion réelle au bloc "Formulaire validé"** (DONE = true/false)
+- ❌ Persistance DB (Phase 9)
+
+### Backend à implémenter (hors V2)
+
+1. **Hook validation formulaire** :
+   - Comparer `submittedFields` vs `requiredFields`
+   - Retourner `{ valid: boolean, missingFields: string[] }`
+   - Mettre à jour `DONE` status
+
+2. **Système de relance** :
+   - Cron quotidien ou Edge Function
+   - Query prospects : `DONE = false` + `reminderConfig.enabled = true`
+   - Calcul : `date_soumission + delayDays`
+   - Envoi message chat si délai atteint
+   - Arrêt si `DONE = true`
+
+3. **Contrôle passage étape suivante** :
+   - Vérifier `DONE = true` avant autorisation
+   - Bloquer si `completionTrigger = 'form_approved'` et `DONE = false`
+
+### Contraintes respectées
+
+- ✅ **Client uniquement** (pas Commercial, pas Partenaire)
+- ✅ **Aucun nouveau bloc** de validation créé
+- ✅ **Aucune action relance/mail** ajoutée dans V2
+- ✅ Utilise le système existant `completionTrigger: 'form_approved'`
+- ✅ Configuration découplée de l'exécution (Phase 3)
+
+---
