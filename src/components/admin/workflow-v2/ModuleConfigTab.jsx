@@ -1275,7 +1275,7 @@ const ModuleConfigTab = ({
         
         {/* 1️⃣ CIBLES AUTORISÉES */}
         <div className="mb-4">
-          <FieldLabel icon={Users} label="Cible autorisée" />
+          <FieldLabel icon={Users} label="Qui réalise l'action ?" />
           <TargetCheckboxGroup
             selected={Array.isArray(actionConfig.targetAudience) 
               ? actionConfig.targetAudience[0] 
