@@ -642,6 +642,34 @@ export function isModuleConfigComplete(moduleId, projectType = null) {
     });
   }
   
+  // Règle 7: completionTrigger défini
+  const completionTrigger = actionConfig.completionTrigger;
+  if (!completionTrigger) {
+    errors.push({
+      field: 'completionTrigger',
+      message: 'Un trigger de complétion doit être sélectionné (Formulaire validé, Signature complétée, etc.)',
+    });
+  }
+  
+  // Règle 8: Si FORM ET cible CLIENT → au moins 1 champ requis + relance activée
+  if (actionType === 'FORM' && audience === 'CLIENT') {
+    const requiredFields = actionConfig.requiredFields || [];
+    if (requiredFields.length === 0) {
+      errors.push({
+        field: 'requiredFields',
+        message: 'Au moins un champ requis doit être défini pour éviter les validations incomplètes',
+      });
+    }
+    
+    const reminderEnabled = actionConfig.reminderConfig?.enabled;
+    if (!reminderEnabled) {
+      errors.push({
+        field: 'reminderConfig',
+        message: 'La relance automatique doit être activée pour les formulaires Client',
+      });
+    }
+  }
+  
   // Log pour debug (V2)
   console.log('[V2 Validator] Config validation', {
     moduleId,
