@@ -100,14 +100,8 @@ const WorkflowV2Page = () => {
   }, [supabaseTemplates]);
   
   // ✅ PROMPT 9: Hook persistance config Workflow V2
-  const {
-    templates: persistedTemplates,
-    loading: templatesConfigLoading,
-    saving: templatesSaving,
-    saveTemplate,
-    hasPersistedConfig,
-    getPersistedConfig,
-  } = useSupabaseWorkflowModuleTemplates(organizationId, projectType);
+  // Passé directement comme templateOps au composant ModuleConfigTab
+  const templateOps = useSupabaseWorkflowModuleTemplates(organizationId, projectType);
   
   // Vérifier feature flag
   if (!isWorkflowV2Enabled()) {

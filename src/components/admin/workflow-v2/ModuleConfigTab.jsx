@@ -1218,10 +1218,6 @@ const ModuleConfigTab = ({
       ───────────────────────────────────────────────────────────────── */}
       <section>
         <FieldLabel icon={FileText} label="📚 Documents IA (Base de connaissances)" />
-        <p className="text-xs text-gray-500 mb-3">
-          <span className="text-amber-600 font-medium">⚠️ Privé:</span> Ces documents sont exclusivement pour l'IA 
-          (FAQ, argumentaires, procédures). Le client n'y a jamais accès.
-        </p>
         <IAKnowledgeDocuments
           moduleId={moduleId}
           projectType={projectType}

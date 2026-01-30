@@ -329,6 +329,9 @@ export function useSupabaseWorkflowModuleTemplates(organizationId, projectType =
     loading,
     saving,
     error,
+    
+    // Context (pour IAKnowledgeDocuments)
+    organizationId,
 
     // Actions
     loadTemplate,
