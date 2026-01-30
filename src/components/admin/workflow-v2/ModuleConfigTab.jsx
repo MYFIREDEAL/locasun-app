@@ -29,6 +29,7 @@ import {
   Shield,
   Info,
   CheckCircle,
+  AlertCircle,
   Users,
   FileText,
   PenTool,
@@ -561,33 +562,68 @@ const FormRequiredFieldsConfig = ({
         </div>
         
         {reminderConfig.enabled && (
-          <div className="pt-2 border-t border-purple-200">
-            <label className="block text-xs font-medium text-purple-800 mb-2">
-              Délai de relance
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map(days => (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() => onReminderConfigChange({ ...reminderConfig, delayDays: days })}
-                  className={cn(
-                    "px-3 py-2 text-xs font-medium rounded border transition-all",
-                    reminderConfig.delayDays === days
-                      ? "bg-purple-600 text-white border-purple-700"
-                      : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
-                  )}
-                >
-                  J+{days}
-                </button>
-              ))}
+          <div className="pt-2 border-t border-purple-200 space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-purple-800 mb-2">
+                Délai de relance
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map(days => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => onReminderConfigChange({ ...reminderConfig, delayDays: days })}
+                    className={cn(
+                      "px-3 py-2 text-xs font-medium rounded border transition-all",
+                      reminderConfig.delayDays === days
+                        ? "bg-purple-600 text-white border-purple-700"
+                        : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
+                    )}
+                  >
+                    J+{days}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-purple-600 mt-2">
+                ⏱️ Relance envoyée J+{reminderConfig.delayDays || 1} si formulaire incomplet
+              </p>
+              <p className="text-xs text-purple-500 mt-1">
+                ✅ Arrêt automatique dès validation du formulaire
+              </p>
             </div>
-            <p className="text-xs text-purple-600 mt-2">
-              ⏱️ Relance envoyée J+{reminderConfig.delayDays || 1} si formulaire incomplet
-            </p>
-            <p className="text-xs text-purple-500 mt-1">
-              ✅ Arrêt automatique dès validation du formulaire
-            </p>
+            
+            {/* Nouveau paramètre: Seuil de relances avant création de tâche */}
+            <div>
+              <label className="block text-xs font-medium text-purple-800 mb-2">
+                Après combien de relances créer une tâche pour le commercial ?
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map(count => (
+                  <button
+                    key={count}
+                    type="button"
+                    onClick={() => onReminderConfigChange({ ...reminderConfig, maxRemindersBeforeTask: count })}
+                    className={cn(
+                      "px-3 py-2 text-xs font-medium rounded border transition-all",
+                      (reminderConfig.maxRemindersBeforeTask || 3) === count
+                        ? "bg-orange-600 text-white border-orange-700"
+                        : "bg-white text-orange-700 border-orange-300 hover:bg-orange-50"
+                    )}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-orange-600 mt-2">
+                📋 Après {reminderConfig.maxRemindersBeforeTask || 3} relance(s), une tâche sera créée pour le commercial
+              </p>
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">
+                  ⚠️ La création automatique de tâche pour le commercial n'est pas encore activée.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -148,6 +148,7 @@ export const DEFAULT_ACTION_CONFIG = {
   reminderConfig: {                // Configuration de relance automatique (Client uniquement)
     enabled: false,
     delayDays: 1,                  // J+1, J+2, J+3, J+4
+    maxRemindersBeforeTask: 3,     // Après X relances → créer tâche pour commercial
   },
 };
 
