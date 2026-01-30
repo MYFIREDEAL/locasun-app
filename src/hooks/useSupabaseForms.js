@@ -16,8 +16,17 @@ export function useSupabaseForms(organizationId = null) {
 
   // Transformation Supabase → App (object avec form_id comme clé)
   const transformFromDB = (dbForms) => {
+    console.log('🔍 useSupabaseForms - transformFromDB INPUT:', dbForms);
     const formsObject = {};
     dbForms.forEach(form => {
+      console.log('🔍 useSupabaseForms - Processing form from DB:', {
+        form_id: form.form_id,
+        name: form.name,
+        hasFields: !!form.fields,
+        fieldsType: typeof form.fields,
+        fieldsLength: form.fields?.length,
+        rawFields: form.fields
+      });
       formsObject[form.form_id] = {
         id: form.form_id,
         name: form.name,
@@ -28,6 +37,7 @@ export function useSupabaseForms(organizationId = null) {
         updatedAt: new Date(form.updated_at).getTime(),
       };
     });
+    console.log('🔍 useSupabaseForms - transformFromDB OUTPUT:', formsObject);
     return formsObject;
   };
 

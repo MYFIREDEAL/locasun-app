@@ -80,8 +80,11 @@ const WorkflowV2Page = () => {
     loading: templatesLoading 
   } = useSupabaseContractTemplates(organizationId);
   
+  console.log('🔍🔍🔍 WorkflowV2Page - HOOK RESULT:', { supabaseForms, type: typeof supabaseForms, isNull: supabaseForms === null, isUndefined: supabaseForms === undefined });
+  
   // Transformer en format attendu par l'éditeur V2 [{id, name, fields}]
   const availableForms = useMemo(() => {
+    console.log('🔍 WorkflowV2Page - useMemo triggered, supabaseForms:', supabaseForms);
     if (!supabaseForms) return [];
     console.log('🔍 WorkflowV2Page - supabaseForms RAW:', supabaseForms);
     const transformed = Object.values(supabaseForms).map(form => {
