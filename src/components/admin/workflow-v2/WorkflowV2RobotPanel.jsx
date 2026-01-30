@@ -217,10 +217,10 @@ const WorkflowV2RobotPanel = ({
           className: "bg-green-500 text-white",
         });
         
-        // 🔥 UX-3: Auto-fermeture après 2 secondes si succès
+        // 🔥 UX-3: Auto-fermeture après 1 seconde si succès
         setTimeout(() => {
           onClose();
-        }, 2000);
+        }, 1000);
       } else {
         toast({
           title: "⚠️ Exécution bloquée",
