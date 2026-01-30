@@ -38,6 +38,14 @@ export const ACTION_TYPES = {
     icon: '✍️',
     description: 'Lancer une procédure de signature de contrat',
   },
+  PAYMENT: {
+    id: 'PAYMENT',
+    v1Type: 'open_payment', // Mock - Stripe non intégré
+    label: 'Paiement',
+    icon: '💳',
+    description: 'Ouvrir un paiement (Stripe - bientôt disponible)',
+    isMock: true, // Flag pour indiquer que c'est un mock
+  },
 };
 
 /**

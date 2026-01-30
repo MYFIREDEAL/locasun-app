@@ -216,14 +216,16 @@ const ActionTypeRadioGroup = ({ selected, onChange, actionTypes }) => (
   <div className="flex gap-3">
     {actionTypes.map((type) => {
       const isSelected = selected === type.id;
+      const isMock = type.isMock;
       return (
         <label
           key={type.id}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all flex-1",
+            "flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all flex-1 relative",
             isSelected 
               ? "bg-purple-50 border-purple-300 text-purple-700" 
-              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300",
+            isMock && "opacity-75"
           )}
         >
           <input
@@ -236,6 +238,11 @@ const ActionTypeRadioGroup = ({ selected, onChange, actionTypes }) => (
           />
           <span className="text-lg">{type.icon}</span>
           <span className="text-sm font-medium">{type.label}</span>
+          {isMock && (
+            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">
+              Bientôt
+            </span>
+          )}
           {isSelected && <CheckCircle className="h-4 w-4 text-purple-600" />}
         </label>
       );
