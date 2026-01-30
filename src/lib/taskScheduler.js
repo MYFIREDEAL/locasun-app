@@ -117,7 +117,7 @@ Action requise : Contacter le client pour l'accompagner dans la complétion du f
         contact_id: prospectId,
         owner_id: ownerId,
         status: 'pending',
-        priority: 'high',
+        priority: 'medium',
         due_date: scheduledAt.toISOString(),
         task_type: 'follow_up',
         metadata: {
