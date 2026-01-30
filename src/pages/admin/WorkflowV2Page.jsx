@@ -80,13 +80,14 @@ const WorkflowV2Page = () => {
     loading: templatesLoading 
   } = useSupabaseContractTemplates(organizationId);
   
-  // Transformer en format attendu par l'éditeur V2 [{id, name}]
+  // Transformer en format attendu par l'éditeur V2 [{id, name, fields}]
   const availableForms = useMemo(() => {
     if (!supabaseForms) return [];
     return Object.values(supabaseForms).map(form => ({
       id: form.id,
       name: form.name,
       audience: form.audience || 'client',
+      fields: form.fields || [], // ✨ Ajout pour FormRequiredFieldsConfig
     }));
   }, [supabaseForms]);
   

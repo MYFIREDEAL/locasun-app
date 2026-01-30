@@ -485,8 +485,8 @@ const FormRequiredFieldsConfig = ({
   }, [selectedFormIds, availableForms]);
   
   const formFields = useMemo(() => {
-    if (!selectedForm?.form_schema?.fields) return [];
-    return selectedForm.form_schema.fields;
+    if (!selectedForm?.fields) return [];
+    return selectedForm.fields;
   }, [selectedForm]);
   
   const openModal = () => {
@@ -603,7 +603,7 @@ const FormRequiredFieldsConfig = ({
                     Champs requis pour validation
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    Formulaire : <span className="font-medium">{selectedForm?.title}</span>
+                    Formulaire : <span className="font-medium">{selectedForm?.name}</span>
                   </p>
                 </div>
                 <button
