@@ -144,6 +144,11 @@ export const DEFAULT_ACTION_CONFIG = {
   managementMode: 'HUMAN',         // Par défaut: humain gère
   verificationMode: 'HUMAN',       // Par défaut: humain vérifie
   completionTrigger: null,         // Trigger de fin d'étape: 'form_approved' | 'signature' | 'checklist' | 'ia_confirmation'
+  requiredFields: [],              // Champs requis du formulaire pour validation (Client uniquement)
+  reminderConfig: {                // Configuration de relance automatique (Client uniquement)
+    enabled: false,
+    delayDays: 1,                  // J+1, J+2, J+3, J+4
+  },
 };
 
 export const DEFAULT_MODULE_CONFIG = {

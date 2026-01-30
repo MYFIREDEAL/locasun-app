@@ -464,6 +464,236 @@ const CompletionTriggerSelect = ({ selected, onChange }) => (
 );
 
 /**
+ * Composant pour configurer les champs requis d'un formulaire
+ * + Paramétrage de la relance automatique
+ */
+const FormRequiredFieldsConfig = ({ 
+  selectedFormIds = [], 
+  availableForms = [],
+  requiredFields = [],
+  reminderConfig = { enabled: false, delayDays: 1 },
+  onRequiredFieldsChange,
+  onReminderConfigChange
+}) => {
+  const [showModal, setShowModal] = useState(false);
+  const [tempRequiredFields, setTempRequiredFields] = useState([]);
+  
+  // Récupérer les champs du premier formulaire sélectionné
+  const selectedForm = useMemo(() => {
+    if (!selectedFormIds || selectedFormIds.length === 0) return null;
+    return availableForms.find(f => f.id === selectedFormIds[0]);
+  }, [selectedFormIds, availableForms]);
+  
+  const formFields = useMemo(() => {
+    if (!selectedForm?.form_schema?.fields) return [];
+    return selectedForm.form_schema.fields;
+  }, [selectedForm]);
+  
+  const openModal = () => {
+    setTempRequiredFields(requiredFields || []);
+    setShowModal(true);
+  };
+  
+  const toggleField = (fieldName) => {
+    setTempRequiredFields(prev => {
+      if (prev.includes(fieldName)) {
+        return prev.filter(f => f !== fieldName);
+      }
+      return [...prev, fieldName];
+    });
+  };
+  
+  const confirmSelection = () => {
+    onRequiredFieldsChange(tempRequiredFields);
+    setShowModal(false);
+    toast({
+      title: "✅ Champs requis enregistrés",
+      description: `${tempRequiredFields.length} champ(s) obligatoire(s)`,
+    });
+  };
+  
+  if (!selectedFormIds || selectedFormIds.length === 0) {
+    return null;
+  }
+  
+  return (
+    <div className="space-y-3">
+      {/* Bouton pour définir les champs requis */}
+      <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div>
+          <p className="text-sm font-medium text-blue-900">Champs requis pour validation</p>
+          <p className="text-xs text-blue-600 mt-0.5">
+            {requiredFields.length > 0 
+              ? `${requiredFields.length} champ(s) obligatoire(s) défini(s)` 
+              : "Aucun champ requis défini"}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={openModal}
+          className="border-blue-300 text-blue-700 hover:bg-blue-100"
+        >
+          <Settings className="h-4 w-4 mr-1" />
+          Définir
+        </Button>
+      </div>
+      
+      {/* Configuration de la relance */}
+      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-purple-900">Relance automatique</p>
+            <p className="text-xs text-purple-600 mt-0.5">
+              Si le formulaire n'est pas validé
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={reminderConfig.enabled || false}
+              onChange={(e) => onReminderConfigChange({ ...reminderConfig, enabled: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+          </label>
+        </div>
+        
+        {reminderConfig.enabled && (
+          <div className="pt-2 border-t border-purple-200">
+            <label className="block text-xs font-medium text-purple-800 mb-2">
+              Délai de relance
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map(days => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => onReminderConfigChange({ ...reminderConfig, delayDays: days })}
+                  className={cn(
+                    "px-3 py-2 text-xs font-medium rounded border transition-all",
+                    reminderConfig.delayDays === days
+                      ? "bg-purple-600 text-white border-purple-700"
+                      : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
+                  )}
+                >
+                  J+{days}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-purple-600 mt-2">
+              ⏱️ Relance envoyée J+{reminderConfig.delayDays || 1} si formulaire incomplet
+            </p>
+            <p className="text-xs text-purple-500 mt-1">
+              ✅ Arrêt automatique dès validation du formulaire
+            </p>
+          </div>
+        )}
+      </div>
+      
+      {/* Modal de sélection des champs */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Champs requis pour validation
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Formulaire : <span className="font-medium">{selectedForm?.title}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {formFields.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Info className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p>Aucun champ disponible dans ce formulaire</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {formFields.map((field) => {
+                    const isRequired = tempRequiredFields.includes(field.name);
+                    return (
+                      <label
+                        key={field.name}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                          isRequired
+                            ? "bg-blue-50 border-blue-300"
+                            : "bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isRequired}
+                          onChange={() => toggleField(field.name)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <p className={cn(
+                            "text-sm font-medium",
+                            isRequired ? "text-blue-900" : "text-gray-700"
+                          )}>
+                            {field.label}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {field.type} {field.required && '• Obligatoire dans le formulaire'}
+                          </p>
+                        </div>
+                        {isRequired && (
+                          <CheckCircle className="h-5 w-5 text-blue-600" />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                {tempRequiredFields.length} champ(s) sélectionné(s)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={confirmSelection}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Valider
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
  * Composant pour uploader et afficher les documents de connaissance IA par étape
  * UX-4: Documents privés pour l'IA (FAQ, argumentaires, procédures)
  * 
@@ -1304,14 +1534,30 @@ const ModuleConfigTab = ({
         
         {/* 3️⃣ FORMULAIRES AUTORISÉS (si actionType = FORM) */}
         {actionConfig.actionType === 'FORM' && (
-          <div className="mb-4">
-            <FieldLabel icon={FileText} label="Formulaires autorisés" />
-            <FormMultiSelect
-              selected={actionConfig.allowedFormIds || []}
-              onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
-              forms={availableForms}
-            />
-          </div>
+          <>
+            <div className="mb-4">
+              <FieldLabel icon={FileText} label="Formulaires autorisés" />
+              <FormMultiSelect
+                selected={actionConfig.allowedFormIds || []}
+                onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
+                forms={availableForms}
+              />
+            </div>
+            
+            {/* ✨ Configuration champs requis + relance */}
+            {actionConfig.targetAudience === 'CLIENT' && (
+              <div className="mb-4">
+                <FormRequiredFieldsConfig
+                  selectedFormIds={actionConfig.allowedFormIds || []}
+                  availableForms={availableForms}
+                  requiredFields={actionConfig.requiredFields || []}
+                  reminderConfig={actionConfig.reminderConfig || { enabled: false, delayDays: 1 }}
+                  onRequiredFieldsChange={(fields) => updateActionConfigField('requiredFields', fields)}
+                  onReminderConfigChange={(config) => updateActionConfigField('reminderConfig', config)}
+                />
+              </div>
+            )}
+          </>
         )}
         
         {/* 4️⃣ TEMPLATE SIGNATURE (si actionType = SIGNATURE) */}
