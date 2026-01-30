@@ -404,7 +404,7 @@ const ModuleLiveCard = ({
             className="w-full px-4 py-2 flex items-center justify-between text-sm text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <span className="flex items-center gap-2">
-              <span>🤖</span>
+              <span>✨</span>
               <span>Actions IA possibles ({moduleConfig.allowedActions.length})</span>
             </span>
             {showAllowedActions ? (

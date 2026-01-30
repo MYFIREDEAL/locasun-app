@@ -417,8 +417,8 @@ const WorkflowV2RobotPanel = ({
 
                 {/* Modes */}
                 <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
-                  <span>Gestion: {actionConfig?.managementMode === 'AI' ? '🤖 IA' : '👤 Humain'}</span>
-                  <span>Vérif: {actionConfig?.verificationMode === 'AI' ? '🤖 IA' : '👤 Humain'}</span>
+                  <span>Gestion: {actionConfig?.managementMode === 'AI' ? '✨ IA' : '👤 Humain'}</span>
+                  <span>Vérif: {actionConfig?.verificationMode === 'AI' ? '✨ IA' : '👤 Humain'}</span>
                 </div>
               </div>
 

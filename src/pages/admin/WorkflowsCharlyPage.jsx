@@ -368,7 +368,7 @@ const ActionEditor = ({
                                     }`}
                                 >
                                     <div className="flex items-center justify-center gap-2">
-                                        <span className="text-lg">🤖</span>
+                                        <span className="text-lg">✨</span>
                                         <span className="font-medium text-sm">Géré par l'IA</span>
                                     </div>
                                 </button>
@@ -449,7 +449,7 @@ const ActionEditor = ({
                                 </Select>
                                 <p className="text-xs text-gray-500">
                                     {action.verificationMode === 'none' && '✅ Validé automatiquement dès que le client termine'}
-                                    {action.verificationMode === 'ai' && '🤖 L\'IA analysera et validera automatiquement'}
+                                    {action.verificationMode === 'ai' && '✨ L\'IA analysera et validera automatiquement'}
                                     {(!action.verificationMode || action.verificationMode === 'human') && '👤 Une tâche sera créée pour que le commercial vérifie'}
                                 </p>
                                 

@@ -165,7 +165,7 @@ export const MANAGEMENT_MODES = {
     id: 'AI',
     v1Value: 'automatic',
     label: 'IA',
-    icon: '🤖',
+    icon: '✨',
     description: "L'IA déclenche automatiquement l'action",
   },
   HUMAN: {
@@ -196,7 +196,7 @@ export const VERIFICATION_MODES = {
     id: 'AI',
     v1Value: 'ai',
     label: 'IA',
-    icon: '🤖',
+    icon: '✨',
     description: "L'IA vérifie automatiquement",
   },
   HUMAN: {

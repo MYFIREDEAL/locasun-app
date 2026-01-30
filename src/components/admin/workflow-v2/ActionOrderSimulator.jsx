@@ -411,13 +411,13 @@ export function ActionOrderSimulator({
             <div>
               <span className="text-gray-400">Gestion: </span>
               <span className="font-medium text-gray-700">
-                {generatedOrder.managementMode === 'AI' ? '🤖 IA' : '👤 Humain'}
+                {generatedOrder.managementMode === 'AI' ? '✨ IA' : '👤 Humain'}
               </span>
             </div>
             <div>
               <span className="text-gray-400">Vérification: </span>
               <span className="font-medium text-gray-700">
-                {generatedOrder.verificationMode === 'AI' ? '🤖 IA' : '👤 Humain'}
+                {generatedOrder.verificationMode === 'AI' ? '✨ IA' : '👤 Humain'}
               </span>
             </div>
           </div>

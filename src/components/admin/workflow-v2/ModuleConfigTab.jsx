@@ -100,7 +100,7 @@ const COMPLETION_TRIGGER_OPTIONS = [
   { 
     id: 'ia_confirmation', 
     label: 'Objectif atteint par échange IA', 
-    icon: '🤖',
+    icon: '✨',
     description: 'L\'étape est terminée quand l\'IA confirme l\'objectif atteint'
   },
 ];
