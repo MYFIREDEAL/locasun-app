@@ -470,78 +470,139 @@ const CompletionTriggerSelect = ({ selected, onChange }) => (
 );
 
 /**
- * Composant pour uploader et afficher les documents liés à une étape
- * UX-4: Ajout de documents manuels par étape
+ * Composant pour uploader et afficher les documents de connaissance IA par étape
+ * UX-4: Documents privés pour l'IA (FAQ, argumentaires, procédures)
+ * 
+ * ⚠️ Ces documents sont EXCLUSIVEMENT pour l'IA, le client n'y a pas accès
+ * Liés à: organization_id + project_type + module_id (PAS de prospect_id)
  */
-const ModuleDocuments = ({ 
+const IAKnowledgeDocuments = ({ 
   moduleId, 
   projectType, 
-  prospectId, 
   organizationId,
   uploadedBy 
 }) => {
   const fileInputRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   
-  // Hook pour gérer les fichiers avec field_label = moduleId pour filtrer par étape
-  const { 
-    files, 
-    loading, 
-    uploading, 
-    uploadFile, 
-    deleteFile 
-  } = useSupabaseProjectFiles({ 
-    projectType, 
-    prospectId, 
-    organizationId,
-    enabled: !!projectType && !!prospectId 
-  });
+  // Label unique pour identifier les docs IA de cette étape
+  const knowledgeLabel = `ia-knowledge:${projectType}:${moduleId}`;
   
-  // Filtrer les fichiers pour ce module spécifique
-  const moduleFiles = useMemo(() => {
-    if (!files || !moduleId) return [];
-    return files.filter(f => f.field_label === `module:${moduleId}`);
-  }, [files, moduleId]);
+  // Charger les fichiers de connaissance IA pour cette étape
+  const loadFiles = async () => {
+    if (!projectType || !moduleId || !organizationId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('field_label', knowledgeLabel)
+        .is('prospect_id', null) // Documents globaux, pas liés à un prospect
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setFiles(data || []);
+    } catch (err) {
+      console.error('Error loading IA knowledge files:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    loadFiles();
+  }, [projectType, moduleId, organizationId]);
   
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    try {
-      await uploadFile({
-        file,
-        uploadedBy: uploadedBy || 'admin',
-        fieldLabel: `module:${moduleId}`, // Tag pour identifier le module
+    if (!organizationId) {
+      toast({
+        title: '❌ Erreur',
+        description: 'Organization ID manquant',
+        variant: 'destructive',
       });
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      // Upload dans Storage
+      const ext = file.name.split('.').pop();
+      const newName = `${crypto.randomUUID()}.${ext}`;
+      const storagePath = `ia-knowledge/${projectType}/${moduleId}/${newName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(storagePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      // Insert dans la table SANS prospect_id
+      const { error: insertError } = await supabase
+        .from('project_files')
+        .insert({
+          project_type: projectType,
+          prospect_id: null, // ⚠️ NULL = document global pour l'IA
+          organization_id: organizationId,
+          file_name: file.name,
+          file_type: file.type,
+          file_size: file.size,
+          storage_path: storagePath,
+          uploaded_by: uploadedBy || 'admin',
+          field_label: knowledgeLabel,
+        });
+      
+      if (insertError) throw insertError;
       
       toast({
-        title: '✅ Document ajouté',
-        description: `${file.name} a été uploadé pour cette étape.`,
+        title: '✅ Document IA ajouté',
+        description: `${file.name} est maintenant disponible pour l'IA à cette étape.`,
         duration: 3000,
       });
+      
+      loadFiles(); // Refresh
     } catch (err) {
       toast({
         title: '❌ Erreur upload',
         description: err.message,
         variant: 'destructive',
       });
-    }
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
   
   const handleDelete = async (file) => {
-    if (!confirm(`Supprimer "${file.file_name}" ?`)) return;
+    if (!confirm(`Supprimer "${file.file_name}" de la base de connaissance IA ?`)) return;
     
     try {
-      await deleteFile(file.id, file.storage_path);
+      // Delete storage
+      await supabase.storage
+        .from('project-files')
+        .remove([file.storage_path]);
+      
+      // Delete DB
+      await supabase
+        .from('project_files')
+        .delete()
+        .eq('id', file.id);
+      
       toast({
         title: '🗑️ Document supprimé',
-        description: `${file.file_name} a été supprimé.`,
+        description: `${file.file_name} n'est plus accessible à l'IA.`,
         duration: 3000,
       });
+      
+      loadFiles(); // Refresh
     } catch (err) {
       toast({
         title: '❌ Erreur suppression',
@@ -559,7 +620,6 @@ const ModuleDocuments = ({
       
       if (error) throw error;
       
-      // Créer un lien de téléchargement
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -584,16 +644,24 @@ const ModuleDocuments = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
   
-  if (!prospectId || !projectType) {
+  if (!projectType || !moduleId) {
     return (
-      <div className="p-3 bg-gray-50 border border-dashed rounded-lg text-sm text-gray-400 italic text-center">
-        Sélectionnez un prospect pour gérer les documents de cette étape.
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 text-center">
+        Sélectionnez un projet et une étape pour gérer les documents IA.
       </div>
     );
   }
   
   return (
     <div className="space-y-3">
+      {/* Info box */}
+      <div className="p-2 bg-purple-50 border border-purple-100 rounded-lg">
+        <p className="text-xs text-purple-700 flex items-center gap-1.5">
+          <Shield className="h-3.5 w-3.5" />
+          <span>Documents privés — L'IA les consulte pour répondre aux clients, mais ils ne sont jamais visibles par le client.</span>
+        </p>
+      </div>
+      
       {/* Bouton d'upload */}
       <div className="flex items-center gap-2">
         <input
@@ -601,25 +669,25 @@ const ModuleDocuments = ({
           type="file"
           onChange={handleFileSelect}
           className="hidden"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md"
         />
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-2"
+          disabled={uploading || !organizationId}
+          className="flex items-center gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
         >
           {uploading ? (
             <>
-              <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <div className="h-4 w-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
               Upload en cours...
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              Ajouter un document pour cette étape
+              Ajouter un document pour l'IA
             </>
           )}
         </Button>
@@ -627,19 +695,19 @@ const ModuleDocuments = ({
       
       {/* Liste des fichiers */}
       {loading ? (
-        <div className="text-sm text-gray-400 italic">Chargement des documents...</div>
-      ) : moduleFiles.length === 0 ? (
+        <div className="text-sm text-gray-400 italic">Chargement...</div>
+      ) : files.length === 0 ? (
         <div className="text-sm text-gray-400 italic">
-          Aucun document pour cette étape.
+          Aucun document IA pour cette étape.
         </div>
       ) : (
         <div className="space-y-2">
-          {moduleFiles.map((file) => (
+          {files.map((file) => (
             <div
               key={file.id}
-              className="flex items-center gap-3 p-2 bg-white border rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 p-2 bg-white border border-purple-100 rounded-lg hover:bg-purple-50/50 transition-colors"
             >
-              <File className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <File className="h-5 w-5 text-purple-500 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">
                   {file.file_name}
@@ -653,7 +721,7 @@ const ModuleDocuments = ({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-gray-500 hover:text-blue-600"
+                  className="h-8 w-8 text-gray-500 hover:text-purple-600"
                   onClick={() => handleDownload(file)}
                   title="Télécharger"
                 >
@@ -1146,17 +1214,17 @@ const ModuleConfigTab = ({
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
-          SECTION 6: DOCUMENTS DE L'ÉTAPE (UX-4)
+          SECTION 6: DOCUMENTS IA - BASE DE CONNAISSANCES (UX-4)
       ───────────────────────────────────────────────────────────────── */}
       <section>
-        <FieldLabel icon={FileText} label="Documents de cette étape" />
+        <FieldLabel icon={FileText} label="📚 Documents IA (Base de connaissances)" />
         <p className="text-xs text-gray-500 mb-3">
-          Ajoutez des documents spécifiques à cette étape (contrats, guides, annexes...).
+          <span className="text-amber-600 font-medium">⚠️ Privé:</span> Ces documents sont exclusivement pour l'IA 
+          (FAQ, argumentaires, procédures). Le client n'y a jamais accès.
         </p>
-        <ModuleDocuments
+        <IAKnowledgeDocuments
           moduleId={moduleId}
           projectType={projectType}
-          prospectId={prospectId}
           organizationId={templateOps?.organizationId}
           uploadedBy={templateOps?.uploadedBy}
         />
