@@ -1351,7 +1351,7 @@ const ModuleConfigTab = ({
           <ModeSelect
             label="Mode de vérification"
             icon={Shield}
-            selected={actionConfig.verificationMode || 'AI'}
+            selected={actionConfig.verificationMode || 'HUMAN'}
             onChange={(mode) => updateActionConfigField('verificationMode', mode)}
             modes={getVerificationModesList()}
           />
