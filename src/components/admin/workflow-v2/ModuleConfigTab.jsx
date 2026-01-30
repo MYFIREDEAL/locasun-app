@@ -355,12 +355,17 @@ const ModeSelect = ({ label, icon: Icon, selected, onChange, modes }) => (
 const KnowledgeKeySelect = ({ selected = [], onChange }) => {
   // Liste des clés disponibles (statique pour Phase 3)
   const AVAILABLE_KEYS = [
+    // Données du prospect/projet en cours
     { id: 'prospect_info', label: 'Infos Prospect', icon: '👤' },
     { id: 'project_data', label: 'Données Projet', icon: '📊' },
     { id: 'contract_history', label: 'Historique Contrats', icon: '📜' },
     { id: 'forms_submitted', label: 'Formulaires Soumis', icon: '📝' },
     { id: 'chat_history', label: 'Historique Chat', icon: '💬' },
     { id: 'documents', label: 'Documents', icon: '📁' },
+    // Données étendues (autres projets du même client)
+    { id: 'client_projects_history', label: 'Historique projets (client)', icon: '🗂️' },
+    { id: 'commercial_activity', label: 'Activité commerciaux', icon: '📞' },
+    { id: 'partner_activity', label: 'Activité partenaires', icon: '🤝' },
   ];
   
   const selectedArray = Array.isArray(selected) ? selected : (selected ? [selected] : []);
@@ -580,20 +585,26 @@ const IAKnowledgeDocuments = ({
         const isSelected = selectedFiles.has(file.id);
         const currentlyHasModule = file.module_ids?.includes(moduleId);
         
+        console.log('[Library] File:', file.file_name, 'selected:', isSelected, 'hasModule:', currentlyHasModule);
+        
         if (isSelected && !currentlyHasModule) {
           // Ajouter moduleId
           const newModuleIds = [...(file.module_ids || []), moduleId];
-          await supabase
+          console.log('[Library] Adding moduleId:', moduleId, 'to', file.file_name, '→', newModuleIds);
+          const { error } = await supabase
             .from('project_files')
             .update({ module_ids: newModuleIds })
             .eq('id', file.id);
+          if (error) console.error('[Library] Update error:', error);
         } else if (!isSelected && currentlyHasModule) {
           // Retirer moduleId
           const newModuleIds = (file.module_ids || []).filter(m => m !== moduleId);
-          await supabase
+          console.log('[Library] Removing moduleId:', moduleId, 'from', file.file_name, '→', newModuleIds);
+          const { error } = await supabase
             .from('project_files')
             .update({ module_ids: newModuleIds })
             .eq('id', file.id);
+          if (error) console.error('[Library] Update error:', error);
         }
       }
       
