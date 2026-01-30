@@ -651,7 +651,7 @@ const IAKnowledgeDocuments = ({
           file_type: file.type,
           file_size: file.size,
           storage_path: storagePath,
-          uploaded_by: uploadedBy || 'admin',
+          uploaded_by: uploadedBy || null, // UUID ou null
           field_label: `${projectLabel}:${moduleId}`,
           module_ids: [moduleId], // Array avec cette étape
         });
