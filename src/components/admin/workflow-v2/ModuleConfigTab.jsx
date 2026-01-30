@@ -18,7 +18,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Save, 
   RotateCcw,
@@ -33,10 +33,16 @@ import {
   FileText,
   PenTool,
   Settings,
+  Upload,
+  Trash2,
+  File,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
+import { supabase } from '@/lib/supabase';
 
 // ✅ Import config V2 (pas de V1)
 import { 
@@ -462,6 +468,215 @@ const CompletionTriggerSelect = ({ selected, onChange }) => (
     })}
   </div>
 );
+
+/**
+ * Composant pour uploader et afficher les documents liés à une étape
+ * UX-4: Ajout de documents manuels par étape
+ */
+const ModuleDocuments = ({ 
+  moduleId, 
+  projectType, 
+  prospectId, 
+  organizationId,
+  uploadedBy 
+}) => {
+  const fileInputRef = useRef(null);
+  
+  // Hook pour gérer les fichiers avec field_label = moduleId pour filtrer par étape
+  const { 
+    files, 
+    loading, 
+    uploading, 
+    uploadFile, 
+    deleteFile 
+  } = useSupabaseProjectFiles({ 
+    projectType, 
+    prospectId, 
+    organizationId,
+    enabled: !!projectType && !!prospectId 
+  });
+  
+  // Filtrer les fichiers pour ce module spécifique
+  const moduleFiles = useMemo(() => {
+    if (!files || !moduleId) return [];
+    return files.filter(f => f.field_label === `module:${moduleId}`);
+  }, [files, moduleId]);
+  
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      await uploadFile({
+        file,
+        uploadedBy: uploadedBy || 'admin',
+        fieldLabel: `module:${moduleId}`, // Tag pour identifier le module
+      });
+      
+      toast({
+        title: '✅ Document ajouté',
+        description: `${file.name} a été uploadé pour cette étape.`,
+        duration: 3000,
+      });
+    } catch (err) {
+      toast({
+        title: '❌ Erreur upload',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  const handleDelete = async (file) => {
+    if (!confirm(`Supprimer "${file.file_name}" ?`)) return;
+    
+    try {
+      await deleteFile(file.id, file.storage_path);
+      toast({
+        title: '🗑️ Document supprimé',
+        description: `${file.file_name} a été supprimé.`,
+        duration: 3000,
+      });
+    } catch (err) {
+      toast({
+        title: '❌ Erreur suppression',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleDownload = async (file) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .download(file.storage_path);
+      
+      if (error) throw error;
+      
+      // Créer un lien de téléchargement
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({
+        title: '❌ Erreur téléchargement',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+  
+  if (!prospectId || !projectType) {
+    return (
+      <div className="p-3 bg-gray-50 border border-dashed rounded-lg text-sm text-gray-400 italic text-center">
+        Sélectionnez un prospect pour gérer les documents de cette étape.
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-3">
+      {/* Bouton d'upload */}
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileSelect}
+          className="hidden"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-2"
+        >
+          {uploading ? (
+            <>
+              <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              Upload en cours...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              Ajouter un document pour cette étape
+            </>
+          )}
+        </Button>
+      </div>
+      
+      {/* Liste des fichiers */}
+      {loading ? (
+        <div className="text-sm text-gray-400 italic">Chargement des documents...</div>
+      ) : moduleFiles.length === 0 ? (
+        <div className="text-sm text-gray-400 italic">
+          Aucun document pour cette étape.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {moduleFiles.map((file) => (
+            <div
+              key={file.id}
+              className="flex items-center gap-3 p-2 bg-white border rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <File className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">
+                  {file.file_name}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-500 hover:text-blue-600"
+                  onClick={() => handleDownload(file)}
+                  title="Télécharger"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-gray-500 hover:text-red-600"
+                  onClick={() => handleDelete(file)}
+                  title="Supprimer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
@@ -928,6 +1143,23 @@ const ModuleConfigTab = ({
         <p className="text-xs text-gray-400 mt-2">
           Sélectionnez les sources de données auxquelles l'IA peut accéder.
         </p>
+      </section>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          SECTION 6: DOCUMENTS DE L'ÉTAPE (UX-4)
+      ───────────────────────────────────────────────────────────────── */}
+      <section>
+        <FieldLabel icon={FileText} label="Documents de cette étape" />
+        <p className="text-xs text-gray-500 mb-3">
+          Ajoutez des documents spécifiques à cette étape (contrats, guides, annexes...).
+        </p>
+        <ModuleDocuments
+          moduleId={moduleId}
+          projectType={projectType}
+          prospectId={prospectId}
+          organizationId={templateOps?.organizationId}
+          uploadedBy={templateOps?.uploadedBy}
+        />
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
