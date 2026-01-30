@@ -69,7 +69,9 @@ const WorkflowV2ConfigPage = () => {
     // supabaseForms est un OBJET indexé par form_id, pas un array
     return Object.values(supabaseForms).map(f => ({ 
       id: f.id, 
-      name: f.name || f.title || 'Formulaire sans nom' 
+      name: f.name || f.title || 'Formulaire sans nom',
+      fields: f.fields || [], // ✨ AJOUT: Champs pour FormRequiredFieldsConfig
+      audience: f.audience || 'client',
     }));
   }, [supabaseForms]);
   
