@@ -615,14 +615,8 @@ const FormRequiredFieldsConfig = ({
                 ))}
               </div>
               <p className="text-xs text-orange-600 mt-2">
-                📋 Après {reminderConfig.maxRemindersBeforeTask || 3} relance(s), une tâche sera créée pour le commercial
+                📋 Après {reminderConfig.maxRemindersBeforeTask || 3} relance(s), une tâche sera créée automatiquement pour le commercial
               </p>
-              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
-                  ⚠️ La création automatique de tâche pour le commercial n'est pas encore activée.
-                </p>
-              </div>
             </div>
           </div>
         )}
