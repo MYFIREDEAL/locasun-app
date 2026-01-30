@@ -5,13 +5,16 @@ import { logger } from '@/lib/logger';
 /**
  * Hook pour gérer les notifications client avec Supabase
  * Synchronisation temps réel des notifications de réponses admin
+ * @param {string} prospectId - L'ID du prospect (client)
+ * @param {boolean} enabled - Active/désactive le hook (default: true)
  */
-export function useSupabaseClientNotifications(prospectId) {
+export function useSupabaseClientNotifications(prospectId, enabled = true) {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!prospectId) {
+    // 🔥 FIX: Ne pas charger si disabled ou pas de prospectId
+    if (!enabled || !prospectId) {
       setNotifications([]) // Vider les notifications si pas de prospectId
       setLoading(false)
       return
@@ -56,7 +59,7 @@ export function useSupabaseClientNotifications(prospectId) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [prospectId])
+  }, [prospectId, enabled])
 
   async function loadNotifications() {
     try {

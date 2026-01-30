@@ -5,13 +5,16 @@ import { logger } from '@/lib/logger'
 /**
  * Hook pour gérer les notifications admin avec Supabase
  * Synchronisation temps réel des notifications de nouveaux messages
+ * @param {string} userId - L'ID de l'utilisateur admin (owner_id)
+ * @param {boolean} enabled - Active/désactive le hook (default: true)
  */
-export function useSupabaseNotifications(userId) {
+export function useSupabaseNotifications(userId, enabled = true) {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!userId) {
+    // 🔥 FIX: Ne pas charger si disabled ou pas d'userId
+    if (!enabled || !userId) {
       setLoading(false)
       return
     }
@@ -61,7 +64,7 @@ export function useSupabaseNotifications(userId) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [userId, enabled])
 
   async function loadNotifications() {
     try {
