@@ -115,16 +115,27 @@ return () => supabase.removeChannel(channel)
 
 ## 🆕 Workflow V2 (état réel)
 
+### ⚠️ IMPORTANT : Workflow V2 = UNE SEULE PAGE
+**Quand on parle de "Workflow V2", on parle UNIQUEMENT de** :
+```
+http://localhost:5173/admin/workflow-v2-config
+```
+- **Cockpit de configuration globale** pour TOUS les clients
+- Configure une fois les modules par project_type (centrale, ACC, piscine...)
+- S'applique automatiquement à tous les prospects du même type
+
 ### Architecture V1 vs V2
 - **V1 (exécution)**: Actions et exécutions dans `WorkflowsCharlyPage.jsx` + `useWorkflowExecutor.js`
   - Le "petit robot" est déclenché depuis `ProspectDetailsAdmin.jsx`
   - Exécute directement les actions (formulaires, signatures, etc.)
 - **V2 (cockpit)**: Config + génération d'ActionOrder + simulation + exécution sous feature flag
   - Ne modifie PAS V1, génère des ordres que V1 exécute
+  - ⚠️ La route `/admin/workflow-v2/:prospectId/:projectType` existe dans le code mais N'EST PLUS UTILISÉE (ancien design par prospect)
 
 ### Fichiers clés V2
 | Fichier | Rôle |
 |---------|------|
+| `src/pages/admin/WorkflowV2ConfigPage.jsx` | ⭐ **LA PAGE WORKFLOW V2** (cockpit config globale) |
 | `src/lib/moduleAIConfig.js` | Config IA par module (objectif, instructions, actionConfig) |
 | `src/lib/catalogueV2.js` | Catalogue read-only (forms, templates, targets, modes) |
 | `src/lib/actionOrderV2.js` | Build ActionOrder JSON (simulation pure) |
@@ -132,6 +143,13 @@ return () => supabase.removeChannel(channel)
 | `src/lib/workflowV2Config.js` | Feature flags (READ_ONLY, EXECUTION_FROM_V2) |
 | `src/components/admin/workflow-v2/ActionOrderSimulator.jsx` | UI simulation + exécution |
 | `src/components/admin/workflow-v2/ModuleConfigTab.jsx` | Éditeur UI config IA |
+| `src/hooks/useSupabaseWorkflowModuleTemplates.js` | Persistance Supabase des configs |
+
+### Page obsolète (code legacy)
+| Fichier | Statut |
+|---------|--------|
+| `src/pages/admin/WorkflowV2Page.jsx` | ⚠️ OBSOLÈTE - Config par prospect (ancien design, plus utilisé) |
+| `src/hooks/useWorkflowV2.js` | ⚠️ OBSOLÈTE - Hook pour page WorkflowV2Page |
 
 ### Persistance
 | Phase | Mode | Détail |

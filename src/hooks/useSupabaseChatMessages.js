@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import logger from '../lib/logger';
 
 /**
  * Hook pour gérer les messages chat via Supabase

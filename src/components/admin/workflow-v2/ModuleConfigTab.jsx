@@ -178,7 +178,7 @@ const ActionTag = ({ action }) => {
  * Radio group pour les cibles (sélection unique)
  */
 const TargetCheckboxGroup = ({ selected, onChange, targets }) => (
-  <div className="flex flex-wrap gap-3">
+  <div className="grid grid-cols-3 gap-3">
     {targets.map((target) => {
       // Support legacy: si selected est un array, prendre le premier élément
       const selectedValue = Array.isArray(selected) ? selected[0] : selected;
@@ -187,7 +187,7 @@ const TargetCheckboxGroup = ({ selected, onChange, targets }) => (
         <label
           key={target.id}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all",
+            "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all",
             isChecked 
               ? "bg-blue-50 border-blue-300 text-blue-700" 
               : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
@@ -262,29 +262,32 @@ const FormMultiSelect = ({ selected = [], onChange, forms = [] }) => {
       </div>
     );
   }
+  
+  // Convertir selected en tableau si ce n'est pas déjà le cas
+  const selectedArray = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+  const selectedId = selectedArray.length > 0 ? selectedArray[0] : null;
+  
   return (
     <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
       {forms.map((form) => {
-        const isChecked = selected.includes(form.id);
+        const isChecked = selectedId === form.id;
         return (
           <label
             key={form.id}
             className={cn(
               "flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors",
-              isChecked ? "bg-blue-50" : "hover:bg-gray-50"
+              isChecked ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-50"
             )}
           >
             <input
-              type="checkbox"
+              type="radio"
+              name="formSelection"
               checked={isChecked}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  onChange([...selected, form.id]);
-                } else {
-                  onChange(selected.filter(f => f !== form.id));
-                }
+              onChange={() => {
+                // Sélectionner uniquement ce formulaire
+                onChange([form.id]);
               }}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="text-blue-600 focus:ring-blue-500"
             />
             <FileText className="h-4 w-4 text-gray-400" />
             <span className="text-sm">{form.name}</span>
@@ -477,7 +480,13 @@ const FormRequiredFieldsConfig = ({
   onReminderConfigChange
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
   const [tempRequiredFields, setTempRequiredFields] = useState([]);
+  const [tempReminderConfig, setTempReminderConfig] = useState({
+    enabled: false,
+    delayDays: 1,
+    maxRemindersBeforeTask: 3
+  });
   
   // Récupérer les champs du premier formulaire sélectionné
   const selectedForm = useMemo(() => {
@@ -494,6 +503,15 @@ const FormRequiredFieldsConfig = ({
   const openModal = () => {
     setTempRequiredFields(requiredFields || []);
     setShowModal(true);
+  };
+  
+  const openReminderModal = () => {
+    setTempReminderConfig({
+      enabled: reminderConfig.enabled || false,
+      delayDays: reminderConfig.delayDays || 1,
+      maxRemindersBeforeTask: reminderConfig.maxRemindersBeforeTask || 3
+    });
+    setShowReminderModal(true);
   };
   
   const toggleField = (fieldName) => {
@@ -519,15 +537,15 @@ const FormRequiredFieldsConfig = ({
   }
   
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-2 gap-4 items-start">
       {/* Bouton pour définir les champs requis */}
-      <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div>
-          <p className="text-sm font-medium text-blue-900">Champs requis pour validation</p>
-          <p className="text-xs text-blue-600 mt-0.5">
-            {requiredFields.length > 0 
-              ? `${requiredFields.length} champ(s) obligatoire(s) défini(s)` 
-              : "Aucun champ requis défini"}
+      <div className="flex flex-col items-center justify-center p-6 bg-blue-50 border border-blue-200 rounded-lg min-h-[120px]">
+        <div className="text-center mb-3">
+          <p className="text-5xl font-bold text-blue-600">
+            {requiredFields.length}
+          </p>
+          <p className="text-sm font-medium text-blue-900 mt-2">
+            {requiredFields.length > 1 ? "champs requis" : requiredFields.length === 1 ? "champ requis" : "Aucun champ requis"}
           </p>
         </div>
         <Button
@@ -542,98 +560,40 @@ const FormRequiredFieldsConfig = ({
       </div>
       
       {/* Configuration de la relance */}
-      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-purple-900">Relance automatique</p>
-            <p className="text-xs text-purple-600 mt-0.5">
-              Si le formulaire n'est pas validé
-            </p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={reminderConfig.enabled || false}
-              onChange={(e) => onReminderConfigChange({ ...reminderConfig, enabled: e.target.checked })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-          </label>
+      <div className="flex flex-col items-center justify-center p-6 bg-purple-50 border border-purple-200 rounded-lg min-h-[120px]">
+        <div className="text-center mb-3">
+          <p className="text-5xl font-bold text-purple-600">
+            {reminderConfig.enabled ? (reminderConfig.maxRemindersBeforeTask || 3) : 0}
+          </p>
+          <p className="text-sm font-medium text-purple-900 mt-2">
+            {reminderConfig.enabled 
+              ? `relance${(reminderConfig.maxRemindersBeforeTask || 3) > 1 ? 's' : ''}`
+              : "Relance désactivée"}
+          </p>
         </div>
-        
-        {reminderConfig.enabled && (
-          <div className="pt-2 border-t border-purple-200 space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-purple-800 mb-2">
-                Délai de relance
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[1, 2, 3, 4].map(days => (
-                  <button
-                    key={days}
-                    type="button"
-                    onClick={() => onReminderConfigChange({ ...reminderConfig, delayDays: days })}
-                    className={cn(
-                      "px-3 py-2 text-xs font-medium rounded border transition-all",
-                      reminderConfig.delayDays === days
-                        ? "bg-purple-600 text-white border-purple-700"
-                        : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
-                    )}
-                  >
-                    J+{days}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-purple-600 mt-2">
-                ⏱️ Relance envoyée J+{reminderConfig.delayDays || 1} si formulaire incomplet
-              </p>
-              <p className="text-xs text-purple-500 mt-1">
-                ✅ Arrêt automatique dès validation du formulaire
-              </p>
-            </div>
-            
-            {/* Nouveau paramètre: Seuil de relances avant création de tâche */}
-            <div>
-              <label className="block text-xs font-medium text-purple-800 mb-2">
-                Après combien de relances créer une tâche pour le commercial ?
-              </label>
-              <div className="grid grid-cols-5 gap-2">
-                {[1, 2, 3, 4, 5].map(count => (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => onReminderConfigChange({ ...reminderConfig, maxRemindersBeforeTask: count })}
-                    className={cn(
-                      "px-3 py-2 text-xs font-medium rounded border transition-all",
-                      (reminderConfig.maxRemindersBeforeTask || 3) === count
-                        ? "bg-orange-600 text-white border-orange-700"
-                        : "bg-white text-orange-700 border-orange-300 hover:bg-orange-50"
-                    )}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-orange-600 mt-2">
-                📋 Après {reminderConfig.maxRemindersBeforeTask || 3} relance(s), une tâche sera créée automatiquement pour le commercial
-              </p>
-            </div>
-          </div>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={openReminderModal}
+          className="border-purple-300 text-purple-700 hover:bg-purple-100"
+        >
+          <Settings className="h-4 w-4 mr-1" />
+          Configurer
+        </Button>
       </div>
       
       {/* Modal de sélection des champs */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
             {/* Header */}
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-gray-900">
                     Champs requis pour validation
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Formulaire : <span className="font-medium">{selectedForm?.name}</span>
                   </p>
                 </div>
@@ -716,6 +676,135 @@ const FormRequiredFieldsConfig = ({
                   Valider
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de configuration de la relance */}
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Configuration de la relance
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Si le formulaire n'est pas validé
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowReminderModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-4">
+              {/* Toggle activation */}
+              <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-purple-900">Activer la relance</p>
+                  <p className="text-xs text-purple-600 mt-0.5">
+                    Relancer automatiquement le client
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tempReminderConfig.enabled}
+                    onChange={(e) => setTempReminderConfig({ ...tempReminderConfig, enabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+
+              {tempReminderConfig.enabled && (
+                <>
+                  {/* Délai de relance */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Délai de relance
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[1, 2, 3, 4].map(days => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => setTempReminderConfig({ ...tempReminderConfig, delayDays: days })}
+                          className={cn(
+                            "px-3 py-2 text-sm font-medium rounded border transition-all",
+                            tempReminderConfig.delayDays === days
+                              ? "bg-purple-600 text-white border-purple-700"
+                              : "bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
+                          )}
+                        >
+                          J+{days}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-purple-600 mt-2">
+                      ⏱️ Relance envoyée J+{tempReminderConfig.delayDays} si formulaire incomplet
+                    </p>
+                  </div>
+
+                  {/* Seuil de relances */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre de relances avant création de tâche
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {[1, 2, 3, 4, 5].map(count => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => setTempReminderConfig({ ...tempReminderConfig, maxRemindersBeforeTask: count })}
+                          className={cn(
+                            "px-3 py-2 text-sm font-medium rounded border transition-all",
+                            tempReminderConfig.maxRemindersBeforeTask === count
+                              ? "bg-orange-600 text-white border-orange-700"
+                              : "bg-white text-orange-700 border-orange-300 hover:bg-orange-50"
+                          )}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-orange-600 mt-2">
+                      📋 Après {tempReminderConfig.maxRemindersBeforeTask} relance(s), une tâche sera créée pour le commercial
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200 flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowReminderModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  onReminderConfigChange(tempReminderConfig);
+                  setShowReminderModal(false);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Valider
+              </Button>
             </div>
           </div>
         </div>
@@ -1474,9 +1563,199 @@ const ModuleConfigTab = ({
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
-          SECTION 3: LABELS BOUTONS
+          SECTION 4.5: CONFIGURATION ACTIONS V2 ÉDITABLE (PHASE 3)
       ───────────────────────────────────────────────────────────────── */}
-      <section>
+      <section className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 -mx-6 px-6 py-6 border border-purple-200/50 rounded-xl shadow-sm overflow-hidden">
+        {/* Effet de fond décoratif */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-100/30 rounded-full blur-3xl -z-0" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-100/30 rounded-full blur-3xl -z-0" />
+        
+        {/* Header du bloc */}
+        <div className="relative z-10 flex items-center justify-between mb-6 pb-4 border-b border-purple-200/50">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg shadow-md">
+              <Zap className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                Configuration Actions V2
+                <span className="px-2 py-0.5 text-[10px] font-semibold bg-white/80 text-purple-700 rounded-full border border-purple-200 shadow-sm">
+                  Phase 3
+                </span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">Définissez les actions automatisées du workflow</p>
+            </div>
+          </div>
+          <ValidationBadge 
+            isComplete={configValidation.isComplete} 
+            details={configValidation.summary} 
+          />
+        </div>
+        
+        {/* Contenu du bloc (avec z-index pour être au-dessus du fond) */}
+        <div className="relative z-10 space-y-5">
+          
+          {/* 1️⃣ CIBLES AUTORISÉES */}
+          <div>
+            <FieldLabel icon={Users} label="Qui réalise l'action ?" />
+            <TargetCheckboxGroup
+              selected={Array.isArray(actionConfig.targetAudience) 
+                ? actionConfig.targetAudience[0] 
+                : actionConfig.targetAudience}
+              onChange={(target) => updateActionConfigField('targetAudience', target)}
+              targets={getTargetAudiencesList()}
+            />
+          </div>
+          
+          {/* 2️⃣ TYPE D'ACTION */}
+          <div>
+            <FieldLabel icon={Zap} label="Type d'action autorisée" />
+            <ActionTypeRadioGroup
+              selected={actionConfig.actionType}
+              onChange={(type) => updateActionConfigField('actionType', type)}
+              actionTypes={getActionTypesList()}
+            />
+          </div>
+          
+          {/* 3️⃣ FORMULAIRES AUTORISÉS (si actionType = FORM) */}
+          {actionConfig.actionType === 'FORM' && (
+            <>
+              <div>
+                <FieldLabel icon={FileText} label="Formulaires autorisés" />
+                <FormMultiSelect
+                  selected={actionConfig.allowedFormIds || []}
+                  onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
+                  forms={availableForms}
+                />
+              </div>
+              
+              {/* ✨ Configuration champs requis + relance */}
+              {actionConfig.targetAudience === 'CLIENT' && (
+                <div>
+                  <FormRequiredFieldsConfig
+                    selectedFormIds={actionConfig.allowedFormIds || []}
+                    availableForms={availableForms}
+                    requiredFields={actionConfig.requiredFields || []}
+                    reminderConfig={actionConfig.reminderConfig || { enabled: false, delayDays: 1 }}
+                    onRequiredFieldsChange={(fields) => updateActionConfigField('requiredFields', fields)}
+                    onReminderConfigChange={(config) => updateActionConfigField('reminderConfig', config)}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* 4️⃣ TEMPLATE SIGNATURE (si actionType = SIGNATURE) */}
+          {actionConfig.actionType === 'SIGNATURE' && (
+            <>
+              <div>
+                <FieldLabel icon={PenTool} label="Template de signature" required />
+                <TemplateSelect
+                  selected={actionConfig.templateId}
+                  onChange={(templateId) => updateActionConfigField('templateId', templateId)}
+                  templates={availableTemplates}
+                />
+                {/* ⚠️ Avertissement template obligatoire */}
+                {!actionConfig.templateId && (
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <span className="text-amber-500">⚠️</span>
+                    <span className="font-medium">Obligatoire pour générer le contrat PDF</span>
+                  </p>
+                )}
+              </div>
+              <div>
+                <FieldLabel icon={FileText} label="Formulaire(s) de collecte" />
+                <FormMultiSelect
+                  forms={availableForms}
+                  selected={actionConfig.allowedFormIds || []}
+                  onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Sélectionnez le formulaire contenant les données à injecter dans le contrat
+                </p>
+              </div>
+            </>
+          )}
+          
+          {/* 5️⃣ MODES (Gestion + Vérification) */}
+          <div className="grid grid-cols-2 gap-4">
+            <ModeSelect
+              label="Mode de gestion"
+              icon={Settings}
+              selected={actionConfig.managementMode || 'AI'}
+              onChange={(mode) => updateActionConfigField('managementMode', mode)}
+              modes={getManagementModesList()}
+            />
+            <ModeSelect
+              label="Mode de vérification"
+              icon={Shield}
+              selected={actionConfig.verificationMode || 'HUMAN'}
+              onChange={(mode) => updateActionConfigField('verificationMode', mode)}
+              modes={getVerificationModesList()}
+            />
+          </div>
+          
+          {/* ─────────────────────────────────────────────────────────────────
+              SECTION 6: VALIDATION DE L'ÉTAPE
+          ───────────────────────────────────────────────────────────────── */}
+          <div className="border-t border-purple-200/50 my-5" />
+          
+          <div>
+            <CompletionTriggerSelect
+              selected={actionConfig.completionTrigger}
+              onChange={(trigger) => updateActionConfigField('completionTrigger', trigger)}
+            />
+          </div>
+          
+          {/* Séparateur avant simulateur */}
+          <div className="border-t border-purple-200/50 my-5" />
+          
+          {/* Simulateur ActionOrder */}
+          <div>
+            <ActionOrderSimulator
+              moduleId={moduleId}
+              projectType={projectType}
+              prospectId={prospectId}
+              actionConfig={actionConfig}
+              availableForms={availableForms}
+              availableTemplates={availableTemplates}
+            />
+          </div>
+          
+        </div>
+      </section>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          SECTION 5: DOCUMENTS IA - BASE DE CONNAISSANCES (UX-4)
+      ───────────────────────────────────────────────────────────────── */}
+      <section className="mt-8">
+        <FieldLabel icon={FileText} label="📚 Documents IA (Base de connaissances)" />
+        <IAKnowledgeDocuments
+          moduleId={moduleId}
+          projectType={projectType}
+          organizationId={templateOps?.organizationId}
+          uploadedBy={templateOps?.uploadedBy}
+        />
+      </section>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          SECTION 6: ACCÈS AUX DONNÉES (ÉDITABLE PHASE 3)
+      ───────────────────────────────────────────────────────────────── */}
+      <section className="mt-8">
+        <FieldLabel icon={BookOpen} label="Accès aux données (knowledgeKey)" />
+        <KnowledgeKeySelect
+          selected={config.knowledgeKey}
+          onChange={updateKnowledgeKey}
+        />
+        <p className="text-xs text-gray-400 mt-2">
+          Sélectionnez les sources de données auxquelles l'IA peut accéder.
+        </p>
+      </section>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          SECTION 3: LABELS BOUTONS (déplacé en bas)
+      ───────────────────────────────────────────────────────────────── */}
+      <section className="mt-8">
         <FieldLabel icon={Zap} label="Labels des boutons" />
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -1503,9 +1782,9 @@ const ModuleConfigTab = ({
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
-          SECTION 4: ACTIONS AUTORISÉES (READ_ONLY)
+          SECTION 4: ACTIONS AUTORISÉES (READ_ONLY) (déplacé en bas)
       ───────────────────────────────────────────────────────────────── */}
-      <section>
+      <section className="mt-8">
         <FieldLabel icon={BookOpen} label="Actions autorisées" readOnly />
         {config.allowedActions && config.allowedActions.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -1521,175 +1800,6 @@ const ModuleConfigTab = ({
         <p className="text-xs text-gray-400 mt-2">
           Liste des actions que l'IA peut effectuer (non modifiable en Phase 1).
         </p>
-      </section>
-      
-      {/* ─────────────────────────────────────────────────────────────────
-          SECTION 4.5: CONFIGURATION ACTIONS V2 ÉDITABLE (PHASE 3)
-      ───────────────────────────────────────────────────────────────── */}
-      <section className="bg-gradient-to-r from-purple-50 to-blue-50 -mx-6 px-6 py-4 border-y border-purple-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-purple-600" />
-            <h3 className="text-sm font-semibold text-gray-700">Configuration Actions V2</h3>
-            <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">
-              Phase 3 - Éditable
-            </span>
-          </div>
-          <ValidationBadge 
-            isComplete={configValidation.isComplete} 
-            details={configValidation.summary} 
-          />
-        </div>
-        
-        {/* 1️⃣ CIBLES AUTORISÉES */}
-        <div className="mb-4">
-          <FieldLabel icon={Users} label="Qui réalise l'action ?" />
-          <TargetCheckboxGroup
-            selected={Array.isArray(actionConfig.targetAudience) 
-              ? actionConfig.targetAudience[0] 
-              : actionConfig.targetAudience}
-            onChange={(target) => updateActionConfigField('targetAudience', target)}
-            targets={getTargetAudiencesList()}
-          />
-        </div>
-        
-        {/* 2️⃣ TYPE D'ACTION */}
-        <div className="mb-4">
-          <FieldLabel icon={Zap} label="Type d'action autorisée" />
-          <ActionTypeRadioGroup
-            selected={actionConfig.actionType}
-            onChange={(type) => updateActionConfigField('actionType', type)}
-            actionTypes={getActionTypesList()}
-          />
-        </div>
-        
-        {/* 3️⃣ FORMULAIRES AUTORISÉS (si actionType = FORM) */}
-        {actionConfig.actionType === 'FORM' && (
-          <>
-            <div className="mb-4">
-              <FieldLabel icon={FileText} label="Formulaires autorisés" />
-              <FormMultiSelect
-                selected={actionConfig.allowedFormIds || []}
-                onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
-                forms={availableForms}
-              />
-            </div>
-            
-            {/* ✨ Configuration champs requis + relance */}
-            {actionConfig.targetAudience === 'CLIENT' && (
-              <div className="mb-4">
-                <FormRequiredFieldsConfig
-                  selectedFormIds={actionConfig.allowedFormIds || []}
-                  availableForms={availableForms}
-                  requiredFields={actionConfig.requiredFields || []}
-                  reminderConfig={actionConfig.reminderConfig || { enabled: false, delayDays: 1 }}
-                  onRequiredFieldsChange={(fields) => updateActionConfigField('requiredFields', fields)}
-                  onReminderConfigChange={(config) => updateActionConfigField('reminderConfig', config)}
-                />
-              </div>
-            )}
-          </>
-        )}
-        
-        {/* 4️⃣ TEMPLATE SIGNATURE (si actionType = SIGNATURE) */}
-        {actionConfig.actionType === 'SIGNATURE' && (
-          <>
-            <div className="mb-4">
-              <FieldLabel icon={PenTool} label="Template de signature" required />
-              <TemplateSelect
-                selected={actionConfig.templateId}
-                onChange={(templateId) => updateActionConfigField('templateId', templateId)}
-                templates={availableTemplates}
-              />
-              {/* ⚠️ Avertissement template obligatoire */}
-              {!actionConfig.templateId && (
-                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                  <span className="text-amber-500">⚠️</span>
-                  <span className="font-medium">Obligatoire pour générer le contrat PDF</span>
-                </p>
-              )}
-            </div>
-            <div className="mb-4">
-              <FieldLabel icon={FileText} label="Formulaire(s) de collecte" />
-              <FormMultiSelect
-                forms={availableForms}
-                selected={actionConfig.allowedFormIds || []}
-                onChange={(formIds) => updateActionConfigField('allowedFormIds', formIds)}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Sélectionnez le formulaire contenant les données à injecter dans le contrat
-              </p>
-            </div>
-          </>
-        )}
-        
-        {/* 5️⃣ MODES (Gestion + Vérification) */}
-        <div className="mb-4 grid grid-cols-2 gap-4">
-          <ModeSelect
-            label="Mode de gestion"
-            icon={Settings}
-            selected={actionConfig.managementMode || 'AI'}
-            onChange={(mode) => updateActionConfigField('managementMode', mode)}
-            modes={getManagementModesList()}
-          />
-          <ModeSelect
-            label="Mode de vérification"
-            icon={Shield}
-            selected={actionConfig.verificationMode || 'HUMAN'}
-            onChange={(mode) => updateActionConfigField('verificationMode', mode)}
-            modes={getVerificationModesList()}
-          />
-        </div>
-        
-        {/* ─────────────────────────────────────────────────────────────────
-            SECTION 6: VALIDATION DE L'ÉTAPE
-        ───────────────────────────────────────────────────────────────── */}
-        <div className="border-t border-purple-200 my-4" />
-        
-        <CompletionTriggerSelect
-          selected={actionConfig.completionTrigger}
-          onChange={(trigger) => updateActionConfigField('completionTrigger', trigger)}
-        />
-        
-        {/* Séparateur avant simulateur */}
-        <div className="border-t border-purple-200 my-4" />
-        
-        {/* Simulateur ActionOrder */}
-        <ActionOrderSimulator
-          moduleId={moduleId}
-          projectType={projectType}
-          prospectId={prospectId}
-          actionConfig={actionConfig}
-          availableForms={availableForms}
-          availableTemplates={availableTemplates}
-        />
-      </section>
-      
-      {/* ─────────────────────────────────────────────────────────────────
-          SECTION 5: ACCÈS AUX DONNÉES (ÉDITABLE PHASE 3)
-      ───────────────────────────────────────────────────────────────── */}
-      <section>
-        <FieldLabel icon={BookOpen} label="Accès aux données (knowledgeKey)" />
-        <KnowledgeKeySelect
-          selected={config.knowledgeKey}
-          onChange={updateKnowledgeKey}
-        />
-        <p className="text-xs text-gray-400 mt-2">
-          Sélectionnez les sources de données auxquelles l'IA peut accéder.
-        </p>
-      </section>
-      
-      {/* ─────────────────────────────────────────────────────────────────
-          SECTION 6: DOCUMENTS IA - BASE DE CONNAISSANCES (UX-4)
-      ───────────────────────────────────────────────────────────────── */}
-      <section>
-        <FieldLabel icon={FileText} label="📚 Documents IA (Base de connaissances)" />
-        <IAKnowledgeDocuments
-          moduleId={moduleId}
-          projectType={projectType}
-          organizationId={templateOps?.organizationId}
-          uploadedBy={templateOps?.uploadedBy}
-        />
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
