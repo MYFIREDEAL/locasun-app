@@ -47,11 +47,12 @@ const PRESENCE_CHECK_DELAY_MS = 10 * 60 * 1000; // 10 minutes
 const PRESENCE_MESSAGE = "👋 Vous êtes toujours là ? N'hésitez pas si vous avez des questions, je suis là pour vous aider.";
 
 /**
- * Fenêtre horaire autorisée (même que le cron pour cohérence)
+ * Fenêtre horaire autorisée
  * Format: Europe/Paris
+ * Note: Presence check actif 7j/7 (contrairement au cron de relances)
  */
 const ALLOWED_HOURS = { start: 8, end: 20 }; // 08:00-20:00
-const ALLOWED_DAYS = [1, 2, 3, 4, 5]; // Lundi-vendredi
+const ALLOWED_DAYS = [0, 1, 2, 3, 4, 5, 6]; // Tous les jours (0=dimanche, 6=samedi)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
