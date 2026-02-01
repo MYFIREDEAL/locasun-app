@@ -258,7 +258,9 @@ export function usePresenceCheck(enabled = false) {
     logger.info('👀 [PresenceCheck] Activation surveillance activité client');
     
     // ───────────────────────────────────────────────────────────────────────
-    // CANAL 1 : Écoute des messages chat (détecte activité client)
+    // CANAL 1 : Écoute des messages chat
+    // - Message ADMIN → démarrer timer (attente réponse client)
+    // - Message CLIENT → reset timer (client actif)
     // ───────────────────────────────────────────────────────────────────────
     
     const chatChannel = supabase
@@ -273,7 +275,53 @@ export function usePresenceCheck(enabled = false) {
         async (payload) => {
           const message = payload.new;
           
-          // Ignorer les messages non-client
+          // ─────────────────────────────────────────────────────────────────
+          // CAS 1 : Message ADMIN/PRO → Démarrer timer (attente réponse)
+          // ─────────────────────────────────────────────────────────────────
+          if (message.sender === 'admin' || message.sender === 'pro') {
+            logger.debug('[PresenceCheck] Message admin/pro détecté, démarrage timer', {
+              prospectId: message.prospect_id,
+              projectType: message.project_type,
+              sender: message.sender,
+            });
+            
+            // Trouver les panels pending pour ce prospect/projectType
+            const { data: panels, error } = await supabase
+              .from('client_form_panels')
+              .select('panel_id, prospect_id, project_type, presence_message_sent')
+              .eq('prospect_id', message.prospect_id)
+              .eq('project_type', message.project_type)
+              .eq('status', 'pending');
+            
+            if (error || !panels || panels.length === 0) {
+              return;
+            }
+            
+            // Pour chaque panel : démarrer/redémarrer timer
+            for (const panel of panels) {
+              // Reset le flag si déjà envoyé (nouveau message admin = nouveau cycle)
+              if (panel.presence_message_sent) {
+                await supabase
+                  .from('client_form_panels')
+                  .update({ presence_message_sent: false })
+                  .eq('panel_id', panel.panel_id);
+                
+                processedPanelsRef.current.delete(panel.panel_id);
+              }
+              
+              // Démarrer timer
+              startTimer(
+                panel.prospect_id,
+                panel.project_type,
+                panel.panel_id
+              );
+            }
+            return;
+          }
+          
+          // ─────────────────────────────────────────────────────────────────
+          // CAS 2 : Message CLIENT → Annuler timer (client actif)
+          // ─────────────────────────────────────────────────────────────────
           if (message.sender !== 'client') {
             return;
           }
@@ -284,28 +332,41 @@ export function usePresenceCheck(enabled = false) {
           });
           
           // Trouver les panels pending pour ce prospect/projectType
+          // Note: On cherche TOUS les panels (pas seulement presence_message_sent=false)
+          // car on veut reset le flag quand le client répond
           const { data: panels, error } = await supabase
             .from('client_form_panels')
             .select('panel_id, prospect_id, project_type, presence_message_sent')
             .eq('prospect_id', message.prospect_id)
             .eq('project_type', message.project_type)
-            .eq('status', 'pending')
-            .eq('presence_message_sent', false);
+            .eq('status', 'pending');
           
           if (error || !panels || panels.length === 0) {
             return;
           }
           
-          // Pour chaque panel : annuler timer existant
-          // ⚠️ NE PAS redémarrer le timer - le message est envoyé UNE SEULE FOIS par panel
+          // Pour chaque panel : annuler timer + reset flag + redémarrer timer
           for (const panel of panels) {
-            // Annuler le timer (client a répondu)
+            // Annuler le timer existant (client a répondu)
             cancelTimer(panel.panel_id);
             
-            // Marquer comme traité localement (évite spam si refresh)
-            processedPanelsRef.current.add(panel.panel_id);
+            // Retirer du set local pour permettre nouveau message
+            processedPanelsRef.current.delete(panel.panel_id);
             
-            logger.debug('[PresenceCheck] Timer annulé, client actif', { panelId: panel.panel_id });
+            // Reset le flag en DB pour permettre un nouveau message après silence
+            await supabase
+              .from('client_form_panels')
+              .update({ presence_message_sent: false })
+              .eq('panel_id', panel.panel_id);
+            
+            // Redémarrer un nouveau timer (nouvelle période de silence)
+            startTimer(
+              panel.prospect_id,
+              panel.project_type,
+              panel.panel_id
+            );
+            
+            logger.debug('[PresenceCheck] Timer reset après réponse client', { panelId: panel.panel_id });
           }
         }
       )
