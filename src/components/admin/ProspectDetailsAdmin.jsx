@@ -2498,6 +2498,13 @@ const ProspectDetailsAdmin = ({
   const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   const { projectStepsStatus: supabaseSteps, updateProjectSteps: updateSupabaseSteps } = useSupabaseProjectStepsStatus(prospect.id); // 🔥 Real-time steps
   
+  // 🔥 V2: Hook pour charger les configs workflow persistées
+  const { organizationId } = useOrganization();
+  const { templates: v2Templates } = useSupabaseWorkflowModuleTemplates(
+    organizationId || activeAdminUser?.organization_id, 
+    null // Charger tous les project_types pour avoir accès à toutes les configs
+  );
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
   const notificationId = searchParams.get('notificationId');
