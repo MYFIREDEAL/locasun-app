@@ -39,7 +39,7 @@ import { logger } from '@/lib/logger';
  * Délai avant envoi du message "Vous êtes toujours là ?"
  * Configurable entre 30 et 60 minutes
  */
-const PRESENCE_CHECK_DELAY_MS = 45 * 60 * 1000; // 45 minutes par défaut
+const PRESENCE_CHECK_DELAY_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
  * Message système envoyé (texte fixe, pas d'IA)
