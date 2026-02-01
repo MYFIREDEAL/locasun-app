@@ -276,10 +276,28 @@ export function usePresenceCheck(enabled = false) {
           const message = payload.new;
           
           // ─────────────────────────────────────────────────────────────────
-          // CAS 1 : Message ADMIN/PRO → Démarrer timer (attente réponse)
+          // CAS 1 : Message ADMIN/PRO → Démarrer timer SI client a déjà interagi
           // ─────────────────────────────────────────────────────────────────
           if (message.sender === 'admin' || message.sender === 'pro') {
-            logger.debug('[PresenceCheck] Message admin/pro détecté, démarrage timer', {
+            // Vérifier si le client a déjà envoyé au moins 1 message
+            const { data: clientMessages, error: clientError } = await supabase
+              .from('chat_messages')
+              .select('id')
+              .eq('prospect_id', message.prospect_id)
+              .eq('project_type', message.project_type)
+              .eq('sender', 'client')
+              .limit(1);
+            
+            if (clientError || !clientMessages || clientMessages.length === 0) {
+              // Client n'a JAMAIS répondu → pas de timer, relances cron uniquement
+              logger.debug('[PresenceCheck] Client jamais interagi, pas de timer', {
+                prospectId: message.prospect_id,
+                projectType: message.project_type,
+              });
+              return;
+            }
+            
+            logger.debug('[PresenceCheck] Message admin/pro détecté, client a déjà interagi, démarrage timer', {
               prospectId: message.prospect_id,
               projectType: message.project_type,
               sender: message.sender,
