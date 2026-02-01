@@ -183,11 +183,7 @@ export function usePresenceCheck(enabled = false) {
           sender: 'system', // ⚠️ Identifié comme système, pas admin
           text: PRESENCE_MESSAGE,
           read: false,
-          metadata: {
-            type: 'presence_check',
-            automated: true,
-            panel_id: panelId,
-          },
+          // Note: pas de colonne 'metadata' dans chat_messages
         });
       
       if (messageError) {

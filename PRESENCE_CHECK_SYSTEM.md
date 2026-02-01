@@ -12,8 +12,10 @@ Envoyer automatiquement un message système :
 
 Quand :
 - Une action est en cours (panel `status='pending'`)
-- Le client a cessé de répondre depuis **45 minutes**
+- Le client a cessé de répondre depuis **10 minutes**
 - Aucun message de présence n'a été envoyé pour cette action
+
+**Disponibilité** : 24h/24, 7j/7 (le client est déjà actif sur l'app)
 
 ---
 
@@ -58,7 +60,7 @@ usePresenceCheck(!authLoading && adminReady);
 │ 1. usePresenceCheck s'active                                        │
 │ 2. Charge tous les panels pending avec presence_message_sent=false  │
 │ 3. Pour chaque panel : calcule le temps écoulé depuis création      │
-│    └─ Si > 45 min sans message client → Timer immédiat              │
+│    └─ Si > 10 min sans message client → Timer immédiat              │
 │    └─ Sinon → Timer pour le temps restant                           │
 └─────────────────────────────────────────────────────────────────────┘
                               │
@@ -67,21 +69,20 @@ usePresenceCheck(!authLoading && adminReady);
 │                    SURVEILLANCE REAL-TIME                            │
 ├─────────────────────────────────────────────────────────────────────┤
 │ Canal 1: chat_messages (INSERT)                                      │
-│   └─ Si sender='client' → Annule timer + Redémarre 45 min           │
+│   └─ Si sender='client' → Annule timer + Redémarre 10 min           │
 │                                                                      │
 │ Canal 2: client_form_panels (INSERT/UPDATE)                          │
-│   └─ INSERT panel pending → Démarre timer 45 min                    │
+│   └─ INSERT panel pending → Démarre timer 10 min                    │
 │   └─ UPDATE status != 'pending' → Annule timer                      │
 └─────────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    TIMER EXPIRE (45 min)                             │
+│                    TIMER EXPIRE (10 min)                             │
 ├─────────────────────────────────────────────────────────────────────┤
 │ 1. Vérifie panel.status === 'pending'                               │
 │ 2. Vérifie panel.presence_message_sent === false                    │
-│ 3. Vérifie fenêtre horaire (08:00-20:00, lun-ven)                   │
-│    └─ Si hors fenêtre → Report au prochain créneau                  │
+│ 3. Actif 24h/24, 7j/7 (pas de restriction horaire)                  │
 │ 4. Envoie message chat (sender='system')                            │
 │ 5. Update presence_message_sent = true                              │
 └─────────────────────────────────────────────────────────────────────┘
@@ -91,10 +92,10 @@ usePresenceCheck(!authLoading && adminReady);
 
 | Événement | Action |
 |-----------|--------|
-| Nouveau panel créé | Démarre timer 45 min |
-| Client envoie message | Annule timer + Redémarre 45 min |
+| Nouveau panel créé | Démarre timer 10 min |
+| Client envoie message | Annule timer + Redémarre 10 min |
 | Panel terminé (approved/rejected) | Annule timer |
-| Timer expire | Envoie message si conditions OK |
+| Timer expire | Envoie message (24h/24, 7j/7) |
 
 ---
 
@@ -138,11 +139,15 @@ const ALLOWED_DAYS = [1, 2, 3, 4, 5]; // Lundi-vendredi
 ### Pour changer le délai (30 ou 60 min)
 
 ```javascript
+// Valeur actuelle : 10 minutes
+const PRESENCE_CHECK_DELAY_MS = 10 * 60 * 1000;
+
+// Autres exemples :
+// 5 minutes
+const PRESENCE_CHECK_DELAY_MS = 5 * 60 * 1000;
+
 // 30 minutes
 const PRESENCE_CHECK_DELAY_MS = 30 * 60 * 1000;
-
-// 60 minutes
-const PRESENCE_CHECK_DELAY_MS = 60 * 60 * 1000;
 ```
 
 ---
@@ -176,11 +181,11 @@ const PRESENCE_CHECK_DELAY_MS = 60 * 60 * 1000;
 
 ## 🧪 TESTS
 
-### Test 1 : Nouveau panel → Message après 45 min
+### Test 1 : Nouveau panel → Message après 10 min
 
 ```
 1. Créer un panel (status='pending')
-2. Attendre 45 min (ou réduire PRESENCE_CHECK_DELAY_MS à 1 min pour test)
+2. Attendre 10 min
 3. Vérifier qu'un message sender='system' apparaît dans chat_messages
 4. Vérifier que presence_message_sent=true dans le panel
 ```
@@ -189,10 +194,10 @@ const PRESENCE_CHECK_DELAY_MS = 60 * 60 * 1000;
 
 ```
 1. Créer un panel
-2. Attendre 20 min
+2. Attendre 5 min
 3. Envoyer un message client
-4. Attendre 45 min SUPPLÉMENTAIRES
-5. Vérifier le message (total 65 min depuis création)
+4. Attendre 10 min SUPPLÉMENTAIRES
+5. Vérifier le message (total 15 min depuis création)
 ```
 
 ### Test 3 : Panel terminé → Pas de message

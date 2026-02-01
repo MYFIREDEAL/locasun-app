@@ -161,6 +161,41 @@ http://localhost:5173/admin/workflow-v2-config
 - `READ_ONLY: true` → Aucune écriture DB depuis V2
 - `EXECUTION_FROM_V2: false` → Bouton "Exécuter" désactivé (simulation uniquement)
 
+## 🔔 Système de Relances Automatiques
+
+### Architecture
+Le système de relances fonctionne en **3 couches** :
+
+| Couche | Fichier | Déclencheur | Horaires |
+|--------|---------|-------------|----------|
+| **Presence Check** | `usePresenceCheck.js` | Timer 10 min silence | 24h/24, 7j/7 |
+| **Reminder Reset** | `useReminderReset.js` | Message client | 24h/24, 7j/7 |
+| **Relances Cron** | `auto-form-reminders/index.ts` | Cron J+X | 08:00-20:00, lun-ven |
+
+### Flow complet
+```
+Panel créé → Timer 10 min
+     ↓
+Silence 10 min → "Vous êtes toujours là ?" (1 seule fois)
+     ↓
+Client répond → Reset (reminder_count=0)
+     ↓
+Silence continue → Cron J+X → Relance 1, 2, 3 → Tâche
+```
+
+### Fichiers clés
+| Fichier | Rôle |
+|---------|------|
+| `src/hooks/usePresenceCheck.js` | Message "Vous êtes toujours là ?" après 10 min |
+| `src/hooks/useReminderReset.js` | Reset compteurs quand client répond |
+| `src/hooks/useFormReminderWatcher.js` | Surveillance création tâche au seuil |
+| `supabase/functions/auto-form-reminders/index.ts` | Cron relances J+X |
+
+### Documentation complète
+- `PRESENCE_CHECK_SYSTEM.md` — Message de présence
+- `REMINDER_RESET_SYSTEM.md` — Reset des relances
+- `ANALYSE_RELANCES_POUR_CHATGPT.md` — Analyse factuelle du système
+
 ## Environment Setup
 ```bash
 # .env (required)
