@@ -175,7 +175,7 @@ export function usePresenceCheck(enabled = false) {
       }
       
       // 4. Envoyer le message système
-      // Colonnes valides: prospect_id, project_type, sender, text, timestamp
+      // Colonnes valides: prospect_id, project_type, sender, text, organization_id
       // Contrainte sender: only 'client', 'admin', 'pro'
       const { error: messageError } = await supabase
         .from('chat_messages')
@@ -184,7 +184,6 @@ export function usePresenceCheck(enabled = false) {
           project_type: projectType,
           sender: 'admin',
           text: PRESENCE_MESSAGE,
-          timestamp: new Date().toISOString(),
         });
       
       if (messageError) {
