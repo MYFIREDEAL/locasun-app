@@ -49,10 +49,12 @@ const PRESENCE_MESSAGE = "👋 Vous êtes toujours là ? N'hésitez pas si vous 
 /**
  * Fenêtre horaire autorisée
  * Format: Europe/Paris
- * Note: Presence check actif 7j/7 (contrairement au cron de relances)
+ * Note: Presence check actif 24h/24, 7j/7 
+ * (le client est déjà actif sur l'app, on lui répond peu importe l'heure)
+ * Contrairement au cron de relances qui respecte les horaires de bureau.
  */
-const ALLOWED_HOURS = { start: 8, end: 20 }; // 08:00-20:00
-const ALLOWED_DAYS = [0, 1, 2, 3, 4, 5, 6]; // Tous les jours (0=dimanche, 6=samedi)
+const ALLOWED_HOURS = { start: 0, end: 24 }; // 24h/24
+const ALLOWED_DAYS = [0, 1, 2, 3, 4, 5, 6]; // 7j/7
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
