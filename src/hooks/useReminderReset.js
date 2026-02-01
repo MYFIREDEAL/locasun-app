@@ -101,12 +101,12 @@ export function useReminderReset(enabled = false) {
       if (panelsToReset.length === 0) {
         logger.debug('[ReminderReset] Aucun panel avec relances à reset', { prospectId, projectType });
         
-        // Même si pas de relances, reset presence_message_sent pour permettre nouveau message
+        // Reset uniquement last_reminder_at pour forcer délai complet
+        // ⚠️ NE PAS reset presence_message_sent (sinon spam "Vous êtes toujours là ?")
         const panelIds = panels.map(p => p.panel_id);
         await supabase
           .from('client_form_panels')
           .update({
-            presence_message_sent: false,
             last_reminder_at: new Date().toISOString(), // Force délai complet
           })
           .in('panel_id', panelIds);
@@ -122,7 +122,7 @@ export function useReminderReset(enabled = false) {
         .update({
           reminder_count: 0,                          // ✅ Reset compteur
           last_reminder_at: new Date().toISOString(), // ✅ Force délai complet avant prochaine relance
-          presence_message_sent: false,               // ✅ Permet nouveau message de présence
+          // ⚠️ NE PAS reset presence_message_sent (sinon spam "Vous êtes toujours là ?")
         })
         .in('panel_id', panelIds);
       

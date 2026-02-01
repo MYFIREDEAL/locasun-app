@@ -296,17 +296,16 @@ export function usePresenceCheck(enabled = false) {
             return;
           }
           
-          // Pour chaque panel : annuler timer existant + redémarrer
+          // Pour chaque panel : annuler timer existant
+          // ⚠️ NE PAS redémarrer le timer - le message est envoyé UNE SEULE FOIS par panel
           for (const panel of panels) {
             // Annuler le timer (client a répondu)
             cancelTimer(panel.panel_id);
             
-            // Redémarrer le timer (nouvelle période de silence)
-            startTimer(
-              panel.prospect_id,
-              panel.project_type,
-              panel.panel_id
-            );
+            // Marquer comme traité localement (évite spam si refresh)
+            processedPanelsRef.current.add(panel.panel_id);
+            
+            logger.debug('[PresenceCheck] Timer annulé, client actif', { panelId: panel.panel_id });
           }
         }
       )
