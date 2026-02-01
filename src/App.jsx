@@ -79,6 +79,7 @@ import { useAutoCreateTasks } from '@/hooks/useAutoCreateTasks';
 import { useAutoVerificationTasks } from '@/hooks/useAutoVerificationTasks'; // 🔥 AJOUT: Tâches de vérification
 import { useFormReminderWatcher } from '@/hooks/useFormReminderWatcher'; // 🔥 AJOUT: Surveillance relances formulaires
 import { usePresenceCheck } from '@/hooks/usePresenceCheck'; // 🔥 AJOUT: Message "Vous êtes toujours là ?"
+import { useReminderReset } from '@/hooks/useReminderReset'; // 🔥 AJOUT: Reset relances quand client répond
 import { supabase as supabaseClient } from '@/lib/supabase';
 
 // ✅ globalPipelineSteps et projectTemplates maintenant gérés par Supabase (constantes localStorage supprimées)
@@ -537,6 +538,9 @@ function App() {
   
   // 🔥 Système de message "Vous êtes toujours là ?" après 45 min de silence client
   usePresenceCheck(!authLoading && adminReady);
+  
+  // 🔥 Système de reset des relances quand le client répond
+  useReminderReset(!authLoading && adminReady);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
   const {
