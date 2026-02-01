@@ -1190,7 +1190,7 @@ const ProjectTimeline = ({
         </div>;
 };
 
-const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
+const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUpdate }) => {
     // 🔥 PR-3: Récupérer appointments depuis AppContext (source unique)
     const { forms, prompts, completeStepAndProceed, activeAdminUser, appointments, updateAppointment } = useAppContext();
     // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
@@ -1578,29 +1578,47 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, onUpdate }) => {
             }
 
             // ═══════════════════════════════════════════════════════════════════
-            // 🔥 V2: Vérifier completionTrigger depuis config V2
+            // 🔥 V2: Vérifier completionTrigger depuis config V2 (Supabase ou in-memory)
             // ═══════════════════════════════════════════════════════════════════
             const currentSteps = supabaseSteps?.[panel.projectType];
             const currentStepIdx = currentSteps?.findIndex(s => s.status === 'in_progress') ?? panel.currentStepIndex;
             const currentStepName = currentSteps?.[currentStepIdx]?.name;
             
-            // Récupérer la config V2 pour ce module
-            const moduleActionConfig = currentStepName ? getModuleActionConfig(currentStepName) : null;
-            const v2CompletionTrigger = moduleActionConfig?.completionTrigger;
+            // Normaliser le moduleId comme dans ModuleConfigTab
+            const moduleId = currentStepName 
+              ? currentStepName.toLowerCase().replace(/[_\s]/g, '-').replace(/[^a-z0-9-]/g, '')
+              : null;
+            
+            // Chercher la config V2 depuis Supabase (v2Templates passé en closure)
+            // Note: v2Templates est accessible via le contexte parent
+            const v2Template = moduleId && v2Templates ? v2Templates[moduleId] : null;
+            const v2ActionConfig = v2Template?.configJson?.actionConfig;
+            
+            // Fallback: utiliser config in-memory
+            const memoryActionConfig = currentStepName ? getModuleActionConfig(currentStepName) : null;
+            
+            // Priorité: Supabase > In-memory
+            const effectiveCompletionTrigger = v2ActionConfig?.completionTrigger || memoryActionConfig?.completionTrigger;
             
             logger.debug('[V2] Checking completionTrigger for form approval', {
                 stepName: currentStepName,
-                completionTrigger: v2CompletionTrigger,
+                moduleId,
+                v2TemplateFound: !!v2Template,
+                completionTrigger: effectiveCompletionTrigger,
                 currentStepIdx,
             });
 
-            // V2: Si completionTrigger === 'form_approved', passer à l'étape suivante
-            if (v2CompletionTrigger === 'form_approved' && currentSteps) {
-                logger.info('[V2] completionTrigger=form_approved → completing step', {
+            // V2: Si completionTrigger === 'form_approved' OU aucune config explicite
+            // Comportement par défaut: valider un formulaire = passer à l'étape suivante
+            const shouldCompleteStep = effectiveCompletionTrigger === 'form_approved' || !effectiveCompletionTrigger;
+            
+            if (shouldCompleteStep && currentSteps) {
+                logger.info('[V2] Form approved → completing step', {
                     prospectId: prospect.id,
                     projectType: panel.projectType,
                     currentStepIdx,
                     stepName: currentStepName,
+                    trigger: effectiveCompletionTrigger || 'default_behavior',
                 });
                 
                 await completeStepAndProceed(
@@ -3290,6 +3308,7 @@ const ProspectDetailsAdmin = ({
                 prospect={editableProspect} 
                 projectType={activeProjectTag}
                 supabaseSteps={supabaseSteps}
+                v2Templates={v2Templates}
                 onUpdate={(updated) => {
                   // 🔥 FIX: Mettre à jour editableProspect immédiatement
                   setEditableProspect(updated);
