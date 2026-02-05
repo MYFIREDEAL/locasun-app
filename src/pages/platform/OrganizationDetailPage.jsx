@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const OrganizationDetailPage = () => {
   const { id } = useParams();
@@ -12,56 +22,116 @@ const OrganizationDetailPage = () => {
   const [kpis, setKpis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusAction, setStatusAction] = useState(null); // 'suspend' | 'reactivate'
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const fetchOrganizationData = async () => {
+    try {
+      // Utiliser RPC platform_get_organization_detail (pas d'accès direct tables)
+      const { data, error: rpcError } = await supabase.rpc(
+        'platform_get_organization_detail',
+        { p_org_id: id }
+      );
+
+      if (rpcError) {
+        console.error('[OrganizationDetailPage] RPC error:', rpcError);
+        setError(rpcError.message);
+        return;
+      }
+
+      // Vérifier si erreur retournée par la RPC
+      if (data?.error) {
+        console.error('[OrganizationDetailPage] RPC returned error:', data.error);
+        setError(data.error);
+        return;
+      }
+
+      // Extraire les données
+      setOrganization(data.organization || null);
+      setDomains(data.domains || []);
+      setSettings(data.settings || null);
+
+      // Charger les KPIs via RPC dédiée
+      const { data: kpisData, error: kpisError } = await supabase.rpc(
+        'platform_get_org_kpis',
+        { p_org_id: id }
+      );
+
+      if (!kpisError && kpisData && !kpisData.error) {
+        setKpis(kpisData);
+      }
+    } catch (err) {
+      console.error('[OrganizationDetailPage] Exception:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrganizationData = async () => {
-      try {
-        // Utiliser RPC platform_get_organization_detail (pas d'accès direct tables)
-        const { data, error: rpcError } = await supabase.rpc(
-          'platform_get_organization_detail',
-          { p_org_id: id }
-        );
-
-        if (rpcError) {
-          console.error('[OrganizationDetailPage] RPC error:', rpcError);
-          setError(rpcError.message);
-          return;
-        }
-
-        // Vérifier si erreur retournée par la RPC
-        if (data?.error) {
-          console.error('[OrganizationDetailPage] RPC returned error:', data.error);
-          setError(data.error);
-          return;
-        }
-
-        // Extraire les données
-        setOrganization(data.organization || null);
-        setDomains(data.domains || []);
-        setSettings(data.settings || null);
-
-        // Charger les KPIs via RPC dédiée
-        const { data: kpisData, error: kpisError } = await supabase.rpc(
-          'platform_get_org_kpis',
-          { p_org_id: id }
-        );
-
-        if (!kpisError && kpisData && !kpisData.error) {
-          setKpis(kpisData);
-        }
-      } catch (err) {
-        console.error('[OrganizationDetailPage] Exception:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrganizationData();
   }, [id]);
 
   const handleBackClick = () => {
     navigate('/platform/organizations');
+  };
+
+  const openStatusDialog = (action) => {
+    setStatusAction(action);
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusAction) return;
+    
+    setStatusLoading(true);
+    const newStatus = statusAction === 'suspend' ? 'suspended' : 'active';
+    
+    try {
+      const { data, error: rpcError } = await supabase.rpc('platform_set_org_status', {
+        p_org_id: id,
+        p_status: newStatus
+      });
+
+      if (rpcError) {
+        console.error('[OrganizationDetailPage] Status change RPC error:', rpcError);
+        toast({
+          title: 'Erreur',
+          description: rpcError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Erreur',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: statusAction === 'suspend' ? 'Organisation suspendue' : 'Organisation réactivée',
+        description: `L'organisation a été ${statusAction === 'suspend' ? 'suspendue' : 'réactivée'} avec succès.`,
+      });
+
+      // Rafraîchir les données
+      await fetchOrganizationData();
+    } catch (err) {
+      console.error('[OrganizationDetailPage] Status change exception:', err);
+      toast({
+        title: 'Erreur',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setStatusLoading(false);
+      setStatusDialogOpen(false);
+      setStatusAction(null);
+    }
   };
 
   const copyToClipboard = (url, type) => {
@@ -119,11 +189,80 @@ const OrganizationDetailPage = () => {
         <span>Retour à la liste</span>
       </button>
 
-      {/* Titre */}
+      {/* Titre + Gouvernance */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900">{organization.name}</h2>
-        <p className="text-gray-600 mt-1">ID: {organization.id}</p>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-bold text-gray-900">{organization.name}</h2>
+              {/* Badge de statut */}
+              {organization.status === 'suspended' ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                  🔴 Suspendue
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  🟢 Active
+                </span>
+              )}
+            </div>
+            <p className="text-gray-600 mt-1">ID: {organization.id}</p>
+          </div>
+          
+          {/* Bouton Suspendre / Réactiver */}
+          <div>
+            {organization.status === 'suspended' ? (
+              <button
+                onClick={() => openStatusDialog('reactivate')}
+                disabled={statusLoading}
+                className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+              >
+                {statusLoading ? 'En cours...' : '✅ Réactiver'}
+              </button>
+            ) : (
+              <button
+                onClick={() => openStatusDialog('suspend')}
+                disabled={statusLoading}
+                className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                {statusLoading ? 'En cours...' : '⛔ Suspendre'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* AlertDialog de confirmation */}
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {statusAction === 'suspend' 
+                ? 'Suspendre cette organisation ?' 
+                : 'Réactiver cette organisation ?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusAction === 'suspend'
+                ? 'Les utilisateurs de cette organisation ne pourront plus accéder à la plateforme.'
+                : 'Les utilisateurs de cette organisation pourront à nouveau accéder à la plateforme.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusLoading}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleStatusChange}
+              disabled={statusLoading}
+              className={statusAction === 'suspend' 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-green-600 hover:bg-green-700'}
+            >
+              {statusLoading 
+                ? 'En cours...' 
+                : statusAction === 'suspend' ? 'Suspendre' : 'Réactiver'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="space-y-6">
         {/* Section Connexion EVATIME */}
