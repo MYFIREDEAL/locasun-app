@@ -182,6 +182,12 @@ export function useSupabaseNotifications(userId, enabled = true) {
    * Marquer une notification comme lue
    */
   async function markAsRead(notificationId) {
+    // 🔥 FIX: Vérifier que l'ID est valide avant de faire la requête
+    if (!notificationId) {
+      logger.warn('markAsRead appelé sans notificationId valide');
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('notifications')
@@ -189,6 +195,11 @@ export function useSupabaseNotifications(userId, enabled = true) {
         .eq('id', notificationId)
 
       if (error) throw error
+      
+      // 🔥 FIX: Mettre à jour l'état local immédiatement (comme le hook client)
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      )
     } catch (error) {
       logger.error('Error marking notification as read:', error)
     }
