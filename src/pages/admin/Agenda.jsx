@@ -1157,21 +1157,36 @@ const AddActivityModal = ({
     }, [defaultAssignedUserId, assignedUserId, initialData]);
 
     useEffect(() => {
-      if (selectedContact && selectedProject && projectStepsStatus) {
+      if (selectedContact && selectedProject) {
         // 🔥 projectStepsStatus est un objet { projectType: steps[] }
-        const projectSteps = projectStepsStatus[selectedProject];
-        if (projectSteps && Array.isArray(projectSteps)) {
+        const projectSteps = projectStepsStatus?.[selectedProject];
+        
+        if (projectSteps && Array.isArray(projectSteps) && projectSteps.length > 0) {
+          // Chercher l'étape en cours
           const currentStep = projectSteps.find(step => step.status === 'in_progress');
           if (currentStep) {
             setSelectedStep(currentStep.name);
           } else {
-            setSelectedStep('');
+            // 🔥 FIX: Si aucune étape in_progress, prendre la première étape non-completed
+            const firstPendingStep = projectSteps.find(step => step.status !== 'completed');
+            if (firstPendingStep) {
+              setSelectedStep(firstPendingStep.name);
+            } else {
+              // Toutes terminées → prendre la dernière
+              setSelectedStep(projectSteps[projectSteps.length - 1]?.name || '');
+            }
           }
         } else {
-          setSelectedStep('');
+          // 🔥 FIX: Pas de steps en base → utiliser le template par défaut
+          const templateSteps = projectsData?.[selectedProject]?.steps;
+          if (templateSteps && templateSteps.length > 0) {
+            setSelectedStep(templateSteps[0]?.name || '');
+          } else {
+            setSelectedStep('');
+          }
         }
       }
-    }, [selectedContact, selectedProject, projectStepsStatus]);
+    }, [selectedContact, selectedProject, projectStepsStatus, projectsData]);
 
 
     const resetForm = () => {

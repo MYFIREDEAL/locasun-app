@@ -455,7 +455,25 @@ const ProjectDetails = ({ project, onBack }) => {
   ) : false;
   
   // ✅ PRIORITÉ ABSOLUE : Utiliser Supabase en priorité, sinon fallback sur template
-  const steps = stepsFromSupabase || project.steps;
+  // 🔥 FIX: Si on utilise le template (fallback), s'assurer que la 1ère étape est "in_progress"
+  const rawSteps = stepsFromSupabase || project.steps;
+  const steps = useMemo(() => {
+    if (!rawSteps || rawSteps.length === 0) return [];
+    
+    // Vérifier si au moins une étape est in_progress
+    const hasCurrentStep = rawSteps.some(step => step.status === STATUS_CURRENT);
+    
+    if (!hasCurrentStep) {
+      // Aucune étape en cours → mettre la première non-completed en in_progress
+      const firstPendingIndex = rawSteps.findIndex(step => step.status !== STATUS_COMPLETED);
+      if (firstPendingIndex !== -1) {
+        return rawSteps.map((step, idx) => 
+          idx === firstPendingIndex ? { ...step, status: STATUS_CURRENT } : step
+        );
+      }
+    }
+    return rawSteps;
+  }, [rawSteps]);
   
   const currentStepIndex = steps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = steps[currentStepIndex] || steps[0];
