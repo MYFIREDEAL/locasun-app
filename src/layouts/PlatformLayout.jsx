@@ -17,27 +17,28 @@ const PlatformLayout = () => {
           return;
         }
 
-        // Vérifier que l'utilisateur a le rôle platform_admin
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, email, role, name')
+        // Vérifier présence dans platform_admins (table dédiée)
+        const { data: platformAdmin, error: paError } = await supabase
+          .from('platform_admins')
+          .select('user_id, email')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (userError || !userData) {
-          console.error('[PlatformLayout] Utilisateur non trouvé dans public.users');
+        if (paError) {
+          console.error('[PlatformLayout] Error querying platform_admins:', paError);
+          await supabase.auth.signOut();
           navigate('/platform-login');
           return;
         }
 
-        if (userData.role !== 'platform_admin') {
-          console.error('[PlatformLayout] Access denied - role:', userData.role);
+        if (!platformAdmin) {
+          console.error('[PlatformLayout] User not in platform_admins');
           setLoading(false);
           setPlatformUser(null); // Afficher message refus
           return;
         }
 
-        setPlatformUser(userData);
+        setPlatformUser(platformAdmin);
         setLoading(false);
       } catch (err) {
         console.error('[PlatformLayout] Error checking access:', err);
@@ -71,8 +72,8 @@ const PlatformLayout = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h2>
           <p className="text-gray-600 mb-6">
-            Votre compte n'a pas les permissions nécessaires pour accéder à la plateforme EVATIME.
-            Seuls les utilisateurs avec le rôle <span className="font-mono font-semibold">platform_admin</span> peuvent y accéder.
+            Votre compte n'est pas autorisé à accéder à la plateforme EVATIME.
+            Contactez un administrateur si vous pensez que c'est une erreur.
           </p>
           <button
             onClick={async () => {

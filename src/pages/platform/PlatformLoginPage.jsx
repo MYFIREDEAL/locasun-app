@@ -26,14 +26,14 @@ const PlatformLoginPage = () => {
           return;
         }
 
-        // Vérifier le rôle
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('role')
+        // Vérifier présence dans platform_admins (nouvelle table dédiée)
+        const { data: platformAdmin, error: paError } = await supabase
+          .from('platform_admins')
+          .select('user_id, email')
           .eq('user_id', user.id)
           .single();
 
-        if (!userError && userData?.role === 'platform_admin') {
+        if (!paError && platformAdmin) {
           navigate('/platform/organizations', { replace: true });
         } else {
           setCheckingAuth(false);
@@ -95,15 +95,15 @@ const PlatformLoginPage = () => {
         throw new Error('Aucun utilisateur retourné après connexion');
       }
 
-      // 2. Vérifier présence dans public.users et role platform_admin
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, role, name')
+      // 2. Vérifier présence dans platform_admins (table dédiée)
+      const { data: platformAdmin, error: paError } = await supabase
+        .from('platform_admins')
+        .select('user_id, email')
         .eq('user_id', authData.user.id)
         .single();
 
-      if (userError || !userData) {
-        console.error('[PlatformLogin] User not found in public.users:', userError);
+      if (paError || !platformAdmin) {
+        console.error('[PlatformLogin] User not in platform_admins:', paError);
         
         // Déconnecter l'utilisateur
         await supabase.auth.signOut();
@@ -117,26 +117,10 @@ const PlatformLoginPage = () => {
         return;
       }
 
-      // 3. Vérifier role === 'platform_admin'
-      if (userData.role !== 'platform_admin') {
-        console.error('[PlatformLogin] Access denied - role:', userData.role);
-        
-        // Déconnecter l'utilisateur
-        await supabase.auth.signOut();
-        
-        toast({
-          title: "Accès plateforme refusé",
-          description: `Votre rôle (${userData.role}) n'est pas autorisé. Seuls les Platform Admin peuvent accéder.`,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // 4. Succès - Redirection
+      // 3. Succès - Redirection
       toast({
         title: "Connexion réussie",
-        description: `Bienvenue ${userData.name || userData.email}`,
+        description: `Bienvenue ${platformAdmin.email}`,
         className: "bg-green-500 text-white",
       });
 
