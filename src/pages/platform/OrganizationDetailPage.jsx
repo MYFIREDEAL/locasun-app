@@ -9,6 +9,7 @@ const OrganizationDetailPage = () => {
   const [organization, setOrganization] = useState(null);
   const [domains, setDomains] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [kpis, setKpis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,6 +39,16 @@ const OrganizationDetailPage = () => {
         setOrganization(data.organization || null);
         setDomains(data.domains || []);
         setSettings(data.settings || null);
+
+        // Charger les KPIs via RPC dédiée
+        const { data: kpisData, error: kpisError } = await supabase.rpc(
+          'platform_get_org_kpis',
+          { p_org_id: id }
+        );
+
+        if (!kpisError && kpisData && !kpisData.error) {
+          setKpis(kpisData);
+        }
       } catch (err) {
         console.error('[OrganizationDetailPage] Exception:', err);
         setError(err.message);
@@ -160,6 +171,59 @@ const OrganizationDetailPage = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Section KPIs V1 */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">📊 KPIs Platform V1</h3>
+          </div>
+          <div className="px-6 py-4">
+            {!kpis ? (
+              <p className="text-sm text-gray-500 italic">Chargement des KPIs...</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-700">{kpis.admins}</p>
+                  <p className="text-xs text-blue-600 mt-1">Admins</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-green-700">{kpis.prospects}</p>
+                  <p className="text-xs text-green-600 mt-1">Prospects</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-purple-700">{kpis.projects}</p>
+                  <p className="text-xs text-purple-600 mt-1">Projets</p>
+                </div>
+                <div className="bg-indigo-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-indigo-700">{kpis.projects_active}</p>
+                  <p className="text-xs text-indigo-600 mt-1">Projets actifs</p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-orange-700">{kpis.forms_pending}</p>
+                  <p className="text-xs text-orange-600 mt-1">Formulaires en attente</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
+                  <p className="text-2xl font-bold text-gray-700">{kpis.files}</p>
+                  <p className="text-xs text-gray-600 mt-1">Fichiers</p>
+                </div>
+                <div className="bg-teal-50 rounded-lg p-4 text-center col-span-2">
+                  <p className="text-sm font-medium text-teal-700">
+                    {kpis.last_activity 
+                      ? new Date(kpis.last_activity).toLocaleDateString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'Aucune activité'}
+                  </p>
+                  <p className="text-xs text-teal-600 mt-1">Dernière activité</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
