@@ -543,19 +543,27 @@ function App() {
   useReminderReset(!authLoading && adminReady);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
+  // 🔥 FIX: Activer quand adminReady ET qu'on a un activeAdminUser
   const {
     notifications,
     createOrUpdateNotification,
     markAsRead: markAdminNotificationAsRead
-  } = useSupabaseNotifications(authLoading ? null : activeAdminUser?.user_id, adminReady && !authLoading);
+  } = useSupabaseNotifications(
+    activeAdminUser?.user_id || null, 
+    !authLoading && adminReady && !!activeAdminUser
+  );
 
   // 🔥 Charger les notifications client depuis Supabase avec real-time
   // Note: currentUser.id est le prospect_id dans la table prospects
+  // 🔥 FIX: Activer quand on a un currentUser (client connecté), pas besoin de adminReady
   const {
     notifications: clientNotifications,
     createOrUpdateNotification: createOrUpdateClientNotification,
     markAsRead: markClientNotificationAsRead
-  } = useSupabaseClientNotifications(authLoading ? null : currentUser?.id, adminReady && !authLoading);
+  } = useSupabaseClientNotifications(
+    currentUser?.id || null, 
+    !authLoading && !!currentUser
+  );
 
   const {
     projectInfos: supabaseProjectInfos,
