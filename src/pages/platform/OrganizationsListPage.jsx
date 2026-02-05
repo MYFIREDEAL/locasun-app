@@ -25,10 +25,8 @@ const OrganizationsListPage = () => {
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const { data, error: fetchError } = await supabase
-          .from('organizations')
-          .select('id, name, slug, created_at')
-          .order('created_at', { ascending: false });
+        // Utiliser RPC platform_list_organizations (pas d'accès direct table)
+        const { data, error: fetchError } = await supabase.rpc('platform_list_organizations');
 
         if (fetchError) {
           console.error('[OrganizationsListPage] Error fetching organizations:', fetchError);
@@ -95,11 +93,8 @@ const OrganizationsListPage = () => {
         className: 'bg-green-500 text-white',
       });
 
-      // Rafraîchir la liste
-      const { data: orgs } = await supabase
-        .from('organizations')
-        .select('id, name, slug, created_at')
-        .order('created_at', { ascending: false });
+      // Rafraîchir la liste via RPC
+      const { data: orgs } = await supabase.rpc('platform_list_organizations');
 
       setOrganizations(orgs || []);
 

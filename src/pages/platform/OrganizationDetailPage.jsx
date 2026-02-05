@@ -15,46 +15,29 @@ const OrganizationDetailPage = () => {
   useEffect(() => {
     const fetchOrganizationData = async () => {
       try {
-        // Charger organization
-        const { data: orgData, error: orgError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', id)
-          .single();
+        // Utiliser RPC platform_get_organization_detail (pas d'accès direct tables)
+        const { data, error: rpcError } = await supabase.rpc(
+          'platform_get_organization_detail',
+          { p_org_id: id }
+        );
 
-        if (orgError) {
-          console.error('[OrganizationDetailPage] Error fetching organization:', orgError);
-          setError(orgError.message);
+        if (rpcError) {
+          console.error('[OrganizationDetailPage] RPC error:', rpcError);
+          setError(rpcError.message);
           return;
         }
 
-        setOrganization(orgData);
-
-        // Charger domains
-        const { data: domainsData, error: domainsError } = await supabase
-          .from('organization_domains')
-          .select('*')
-          .eq('organization_id', id)
-          .order('created_at', { ascending: false });
-
-        if (domainsError) {
-          console.error('[OrganizationDetailPage] Error fetching domains:', domainsError);
-        } else {
-          setDomains(domainsData || []);
+        // Vérifier si erreur retournée par la RPC
+        if (data?.error) {
+          console.error('[OrganizationDetailPage] RPC returned error:', data.error);
+          setError(data.error);
+          return;
         }
 
-        // Charger settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('organization_settings')
-          .select('*')
-          .eq('organization_id', id)
-          .single();
-
-        if (settingsError && settingsError.code !== 'PGRST116') {
-          console.error('[OrganizationDetailPage] Error fetching settings:', settingsError);
-        } else {
-          setSettings(settingsData);
-        }
+        // Extraire les données
+        setOrganization(data.organization || null);
+        setDomains(data.domains || []);
+        setSettings(data.settings || null);
       } catch (err) {
         console.error('[OrganizationDetailPage] Exception:', err);
         setError(err.message);
