@@ -342,7 +342,8 @@ const EventDetailsPopup = ({ event, onClose, onReport, onEdit, prospects, supaba
   }
 
   const contact = prospects.find(p => p.id === event.contactId);
-  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
+  // 🔥 Chercher par id OU user_id pour couvrir les deux cas
+  const assignedUser = supabaseUsers.find(u => u.id === event.assignedUserId || u.user_id === event.assignedUserId) || (contact ? supabaseUsers.find(u => u.user_id === contact.ownerId) : null);
 
   const capitalizeFirstLetter = (string) => {
     if (!string) return '';

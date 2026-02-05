@@ -93,8 +93,8 @@ const allNavItems = [
       };
 
       const handleUserSwitch = (userId) => {
-        // Récupérer l'objet user complet depuis Supabase
-        const userObject = supabaseUsers.find(u => u.id === userId);
+        // Récupérer l'objet user complet depuis Supabase (chercher par id ou user_id)
+        const userObject = supabaseUsers.find(u => u.id === userId || u.user_id === userId);
         if (userObject) {
           switchActiveAdminUser(userObject);
           const newParams = new URLSearchParams(searchParams);
