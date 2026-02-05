@@ -21,6 +21,22 @@ const ClientAccessPage = () => {
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [suspendedMessage, setSuspendedMessage] = useState(null);
+
+  // 🔥 PR-5: Afficher message si organisation suspendue
+  useEffect(() => {
+    const msg = sessionStorage.getItem('org_suspended_message');
+    if (msg) {
+      setSuspendedMessage(msg);
+      sessionStorage.removeItem('org_suspended_message');
+      toast({
+        title: "Organisation suspendue",
+        description: msg,
+        variant: "destructive",
+        duration: 10000,
+      });
+    }
+  }, []);
 
   // 🔥 REDIRECTION AUTO si déjà connecté
   useEffect(() => {
@@ -155,6 +171,34 @@ const ClientAccessPage = () => {
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Chargement...</p>
         </div>
+      </div>
+    );
+  }
+
+  // 🔥 PR-5: Affichage si organisation suspendue
+  if (suspendedMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center"
+        >
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <span className="text-4xl">⛔</span>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Accès suspendu</h2>
+          <p className="text-gray-600 mb-6">{suspendedMessage}</p>
+          <Button
+            onClick={() => navigate('/')}
+            variant="outline"
+            className="w-full"
+          >
+            Retour à l'accueil
+          </Button>
+        </motion.div>
       </div>
     );
   }

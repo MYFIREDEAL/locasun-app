@@ -678,6 +678,24 @@ function App() {
         .maybeSingle();
 
       if (admin) {
+        // 🔥 PR-5: Vérifier si l'organisation est suspendue
+        if (admin.organization_id) {
+          const { data: orgStatus } = await supabase.rpc(
+            'platform_get_org_status',
+            { p_org_id: admin.organization_id }
+          );
+
+          if (orgStatus?.status === 'suspended') {
+            logger.info('Organization suspended, logging out admin');
+            await supabase.auth.signOut();
+            setAuthLoading(false);
+            isLoadingAuthRef.current = false;
+            // 🔥 Stocker le message pour affichage
+            sessionStorage.setItem('org_suspended_message', 'Votre organisation est temporairement suspendue. Contactez le support.');
+            return;
+          }
+        }
+
         // 🔥 FIX : Transformer snake_case → camelCase pour cohérence
         // Garder les 2 versions (snake_case + camelCase) pour compatibilité
         const transformedAdmin = {
@@ -752,6 +770,24 @@ function App() {
       }
 
       if (prospect) {
+        // 🔥 PR-5: Vérifier si l'organisation est suspendue
+        if (prospect.organization_id) {
+          const { data: orgStatus } = await supabase.rpc(
+            'platform_get_org_status',
+            { p_org_id: prospect.organization_id }
+          );
+
+          if (orgStatus?.status === 'suspended') {
+            logger.info('Organization suspended, logging out client');
+            await supabase.auth.signOut();
+            setAuthLoading(false);
+            isLoadingAuthRef.current = false;
+            // 🔥 Stocker le message pour affichage
+            sessionStorage.setItem('org_suspended_message', 'Votre organisation est temporairement suspendue. Contactez le support.');
+            return;
+          }
+        }
+
         // 🔥 FIX: Transformer les données Supabase (snake_case → camelCase)
         const transformedProspect = {
           id: prospect.id,

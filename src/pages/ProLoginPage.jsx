@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
@@ -16,6 +16,22 @@ const ProLoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [suspendedMessage, setSuspendedMessage] = useState(null);
+
+  // 🔥 PR-5: Afficher message si organisation suspendue
+  useEffect(() => {
+    const msg = sessionStorage.getItem('org_suspended_message');
+    if (msg) {
+      setSuspendedMessage(msg);
+      sessionStorage.removeItem('org_suspended_message');
+      toast({
+        title: "Organisation suspendue",
+        description: msg,
+        variant: "destructive",
+        duration: 10000,
+      });
+    }
+  }, []);
 
   const handleProLogin = async (e) => {
     e.preventDefault();
@@ -55,6 +71,26 @@ const ProLoginPage = () => {
         await supabase.auth.signOut();
         setLoading(false);
         return;
+      }
+
+      // 🔥 PR-5: Vérifier si l'organisation est suspendue
+      if (userData.organization_id) {
+        const { data: orgStatus, error: orgStatusError } = await supabase.rpc(
+          'platform_get_org_status',
+          { p_org_id: userData.organization_id }
+        );
+
+        if (!orgStatusError && orgStatus?.status === 'suspended') {
+          await supabase.auth.signOut();
+          toast({
+            title: "Organisation suspendue",
+            description: "Votre organisation est temporairement suspendue. Contactez le support.",
+            variant: "destructive",
+            duration: 10000,
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       // Connexion PRO réussie
@@ -99,6 +135,37 @@ const ProLoginPage = () => {
   const handleForgotPassword = () => {
     navigate('/reset-password');
   };
+
+  // 🔥 PR-5: Affichage si organisation suspendue
+  if (suspendedMessage) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex flex-col items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-4xl">⛔</span>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Accès suspendu</h2>
+            <p className="text-gray-600 mb-6">{suspendedMessage}</p>
+            <Button
+              onClick={() => navigate('/')}
+              variant="outline"
+              className="w-full"
+            >
+              Retour à l'accueil
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex flex-col items-center justify-center px-4">
