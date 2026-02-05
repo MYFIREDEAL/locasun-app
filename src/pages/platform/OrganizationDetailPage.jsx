@@ -183,7 +183,7 @@ const OrganizationDetailPage = () => {
             {!kpis ? (
               <p className="text-sm text-gray-500 italic">Chargement des KPIs...</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="bg-blue-50 rounded-lg p-4 text-center">
                   <p className="text-2xl font-bold text-blue-700">{kpis.admins}</p>
                   <p className="text-xs text-blue-600 mt-1">Admins</p>
@@ -196,10 +196,6 @@ const OrganizationDetailPage = () => {
                   <p className="text-2xl font-bold text-purple-700">{kpis.projects}</p>
                   <p className="text-xs text-purple-600 mt-1">Projets</p>
                 </div>
-                <div className="bg-indigo-50 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-indigo-700">{kpis.projects_active}</p>
-                  <p className="text-xs text-indigo-600 mt-1">Projets actifs</p>
-                </div>
                 <div className="bg-orange-50 rounded-lg p-4 text-center">
                   <p className="text-2xl font-bold text-orange-700">{kpis.forms_pending}</p>
                   <p className="text-xs text-orange-600 mt-1">Formulaires en attente</p>
@@ -208,7 +204,7 @@ const OrganizationDetailPage = () => {
                   <p className="text-2xl font-bold text-gray-700">{kpis.files}</p>
                   <p className="text-xs text-gray-600 mt-1">Fichiers</p>
                 </div>
-                <div className="bg-teal-50 rounded-lg p-4 text-center col-span-2">
+                <div className="bg-teal-50 rounded-lg p-4 text-center col-span-2 sm:col-span-3 lg:col-span-5">
                   <p className="text-sm font-medium text-teal-700">
                     {kpis.last_activity 
                       ? new Date(kpis.last_activity).toLocaleDateString('fr-FR', {

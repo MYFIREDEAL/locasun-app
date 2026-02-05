@@ -17,7 +17,6 @@ DECLARE
   v_admins integer;
   v_prospects integer;
   v_projects integer;
-  v_projects_active integer;
   v_forms_pending integer;
   v_files integer;
   v_last_activity timestamptz;
@@ -47,12 +46,6 @@ BEGIN
   FROM public.project_steps_status
   WHERE organization_id = p_org_id;
 
-  -- Projets actifs (au moins une étape non terminée)
-  SELECT COUNT(DISTINCT (prospect_id, project_type)) INTO v_projects_active
-  FROM public.project_steps_status
-  WHERE organization_id = p_org_id
-    AND status != 'completed';
-
   -- Formulaires en attente (panels non soumis ou en attente de validation)
   SELECT COUNT(*) INTO v_forms_pending
   FROM public.client_form_panels
@@ -65,22 +58,16 @@ BEGIN
   JOIN public.prospects p ON pf.prospect_id = p.id
   WHERE p.organization_id = p_org_id;
 
-  -- Dernière activité (max updated_at parmi prospects, chat_messages, appointments)
+  -- Dernière activité (max updated_at parmi prospects, project_steps_status)
   SELECT GREATEST(
     (SELECT MAX(updated_at) FROM public.prospects WHERE organization_id = p_org_id),
-    (SELECT MAX(cm.created_at) FROM public.chat_messages cm 
-     JOIN public.prospects p ON cm.prospect_id = p.id 
-     WHERE p.organization_id = p_org_id),
-    (SELECT MAX(a.updated_at) FROM public.appointments a 
-     JOIN public.users u ON a.assigned_user_id = u.id 
-     WHERE u.organization_id = p_org_id)
+    (SELECT MAX(updated_at) FROM public.project_steps_status WHERE organization_id = p_org_id)
   ) INTO v_last_activity;
 
   RETURN jsonb_build_object(
     'admins', COALESCE(v_admins, 0),
     'prospects', COALESCE(v_prospects, 0),
     'projects', COALESCE(v_projects, 0),
-    'projects_active', COALESCE(v_projects_active, 0),
     'forms_pending', COALESCE(v_forms_pending, 0),
     'files', COALESCE(v_files, 0),
     'last_activity', v_last_activity
