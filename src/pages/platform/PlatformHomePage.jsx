@@ -176,12 +176,15 @@ const PlatformHomePage = () => {
 
       {/* Signaux business */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Low pricing avec forte activité */}
+        {/* Opportunités d'augmentation */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-orange-50 border-b border-orange-200">
             <h3 className="text-lg font-semibold text-orange-800">
-              ⚠️ À revoir (pricing &lt; 1000€ avec activité)
+              🟠 Opportunités d'augmentation
             </h3>
+            <p className="text-sm text-orange-600 mt-1">
+              EVATIME travaille beaucoup pour ces clients. Le prix actuel est inférieur à la charge observée.
+            </p>
           </div>
           <div className="px-6 py-4">
             {signals.lowPricing.length === 0 ? (
@@ -206,12 +209,15 @@ const PlatformHomePage = () => {
           </div>
         </div>
 
-        {/* Churn risk */}
+        {/* Clients à risque */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-red-50 border-b border-red-200">
             <h3 className="text-lg font-semibold text-red-800">
-              ⚠️ Risque churn (pricing élevé, faible activité)
+              🔴 Clients à risque (valeur perçue)
             </h3>
+            <p className="text-sm text-red-600 mt-1">
+              Ces clients paient cher mais utilisent peu EVATIME. Ils peuvent ne plus percevoir la valeur.
+            </p>
           </div>
           <div className="px-6 py-4">
             {signals.churnRisk.length === 0 ? (

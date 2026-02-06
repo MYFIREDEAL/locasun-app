@@ -651,56 +651,56 @@ const OrganizationDetailPage = () => {
           </div>
         </div>
 
-        {/* Section Charge EVATIME (interne) */}
+        {/* Section Prix recommandé (indicatif) */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">⚡ Charge EVATIME (interne)</h3>
+            <h3 className="text-lg font-semibold text-gray-900">💰 Prix recommandé (indicatif)</h3>
           </div>
           <div className="px-6 py-4">
-            {/* Badge incohérence */}
-            {isPricingInconsistent() && (
-              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
-                <span className="text-lg">⚠️</span>
-                <p className="text-sm text-orange-700">
-                  <strong>Incohérence détectée</strong> — Le pricing semble incompatible avec le niveau de charge.
-                </p>
-              </div>
-            )}
-            
             {/* Helper text */}
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <p className="text-sm text-gray-600">
-                Indicateur interne basé sur la complexité et la durée des dossiers.
+                Basé sur la charge observée. Aucun changement automatique.
               </p>
             </div>
             
-            <div className="max-w-sm">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Niveau de charge
-              </label>
-              <select
-                value={evatimeLoad}
-                onChange={(e) => setEvatimeLoad(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">-- Non défini --</option>
-                <option value="0">0 — Léger</option>
-                <option value="1">1 — Normal</option>
-                <option value="2">2 — Complexe</option>
-                <option value="3">3 — Critique</option>
-              </select>
+            {/* Prix recommandé */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                <p className="text-lg font-semibold text-blue-800">
+                  {(() => {
+                    const PRICE_BY_LOAD = {
+                      0: '≈ 490 € / mois',
+                      1: '≈ 1 500 € / mois',
+                      2: '≈ 3 000 € / mois',
+                      3: 'Sur engagement'
+                    };
+                    return PRICE_BY_LOAD[evatimeLoadEstimated] || 'Non calculé';
+                  })()}
+                </p>
+              </div>
             </div>
             
-            {/* Bouton Save */}
-            <div className="mt-4">
-              <button
-                onClick={handleLoadSave}
-                disabled={loadSaving}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {loadSaving ? 'Enregistrement...' : 'Enregistrer la charge'}
-              </button>
-            </div>
+            {/* Alerte incohérence */}
+            {(() => {
+              const price = parseInt(monthlyPrice, 10) || 0;
+              const load = evatimeLoadEstimated;
+              const expectedPrices = { 0: 490, 1: 1500, 2: 3000, 3: 5000 };
+              const expected = expectedPrices[load];
+              if (load === null || load === undefined || price === 0 || !expected) return null;
+              const diff = Math.abs(price - expected) / expected;
+              if (diff > 0.5) {
+                return (
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+                    <span className="text-lg">⚠️</span>
+                    <p className="text-sm text-orange-700">
+                      Prix actuel très différent de la charge observée.
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
