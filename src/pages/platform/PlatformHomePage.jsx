@@ -9,6 +9,17 @@ const PlatformHomePage = () => {
   const [kpis, setKpis] = useState(null);
   const [signals, setSignals] = useState({ lowPricing: [], churnRisk: [] });
   const [searchQuery, setSearchQuery] = useState('');
+  const [allOrgs, setAllOrgs] = useState([]);
+
+  // Filtrer les organisations selon la recherche
+  const filteredOrgs = allOrgs.filter(org => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      org.name?.toLowerCase().includes(query) ||
+      org.slug?.toLowerCase().includes(query)
+    );
+  });
 
   useEffect(() => {
     const fetchHomeKpis = async () => {
@@ -43,6 +54,7 @@ const PlatformHomePage = () => {
 
         // Calculer les signaux business
         const orgsData = data.orgs_data || [];
+        setAllOrgs(orgsData);
         const now = new Date();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -72,13 +84,6 @@ const PlatformHomePage = () => {
 
     fetchHomeKpis();
   }, []);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/platform/organizations?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   if (loading) {
     return (
@@ -200,35 +205,102 @@ const PlatformHomePage = () => {
         </div>
       </div>
 
-      {/* Actions rapides */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">🚀 Actions rapides</h3>
-        
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Bouton voir toutes les orgs */}
+      {/* Liste des organisations */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Organisations</h3>
+            <p className="text-sm text-gray-500">{allOrgs.length} organisation{allOrgs.length > 1 ? 's' : ''} enregistrée{allOrgs.length > 1 ? 's' : ''}</p>
+          </div>
           <button
-            onClick={() => navigate('/platform/organizations')}
-            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => navigate('/platform/organizations?action=create')}
+            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
           >
-            Voir toutes les organisations
+            <span>+</span> Créer une organisation
           </button>
+        </div>
 
-          {/* Recherche */}
-          <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher une organisation..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Rechercher
-            </button>
-          </form>
+        {/* Search bar */}
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher par nom, slug..."
+            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+          />
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pricing</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Users</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prospects</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Connexions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredOrgs.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    {searchQuery ? 'Aucune organisation trouvée' : 'Aucune organisation'}
+                  </td>
+                </tr>
+              ) : (
+                filteredOrgs.map(org => (
+                  <tr key={org.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/platform/organizations/${org.id}`)}>
+                    <td className="px-6 py-4">
+                      <span className="font-medium text-gray-900">{org.name}</span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">{org.slug}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        org.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {org.status === 'active' ? '✓ Actif' : '⏸ Suspendu'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {org.monthly_price_reference ? (
+                        <span className="text-gray-900 font-medium">{org.monthly_price_reference.toLocaleString('fr-FR')} €</span>
+                      ) : (
+                        <span className="text-gray-400 italic">Non défini</span>
+                      )}
+                      {org.pricing_plan && (
+                        <span className="ml-2 text-xs text-gray-500">({org.pricing_plan})</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-600">{org.users_count || 0}</td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-600">{org.prospects_count || 0}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => window.open(`https://evatime.fr/admin?org=${org.slug}`, '_blank')}
+                          className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors"
+                        >
+                          👤 PRO
+                        </button>
+                        <button
+                          onClick={() => window.open(`https://evatime.fr/dashboard?org=${org.slug}`, '_blank')}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-200 transition-colors"
+                        >
+                          👤 CLIENT
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
