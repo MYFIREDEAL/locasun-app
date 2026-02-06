@@ -125,6 +125,29 @@ const PlatformHomePage = () => {
     return load >= 2 && price < 1500;
   };
 
+  // Prix recommandé basé sur la charge
+  const getRecommendedPrice = (load) => {
+    switch (load) {
+      case 0: return { value: 490, label: '490 €' };
+      case 1: return { value: 1500, label: '1 500 €' };
+      case 2: return { value: 3000, label: '3 000 €' };
+      case 3: return { value: 5000, label: '5 000 €+' };
+      default: return { value: 0, label: '-' };
+    }
+  };
+
+  // Comparer prix actuel vs recommandé
+  const getPricingComparison = (org) => {
+    const price = org.monthly_price_reference || 0;
+    const load = getEstimatedLoad(org);
+    const recommended = getRecommendedPrice(load).value;
+    
+    if (!price || !recommended) return 'neutral';
+    if (price < recommended * 0.7) return 'under'; // sous-facturé
+    if (price > recommended * 1.5) return 'over';  // sur-facturé
+    return 'ok';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -283,11 +306,10 @@ const PlatformHomePage = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Charge</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pricing</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Users</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actuel</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Recommandé</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prospects</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Connexions</th>
               </tr>
@@ -295,7 +317,7 @@ const PlatformHomePage = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredOrgs.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                     {searchQuery ? 'Aucune organisation trouvée' : 'Aucune organisation'}
                   </td>
                 </tr>
@@ -304,8 +326,8 @@ const PlatformHomePage = () => {
                   <tr key={org.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/platform/organizations/${org.id}`)}>
                     <td className="px-6 py-4">
                       <span className="font-medium text-gray-900">{org.name}</span>
+                      <span className="ml-2 text-xs text-gray-400">{org.slug}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{org.slug}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         org.status === 'active' 
@@ -320,22 +342,27 @@ const PlatformHomePage = () => {
                         <span title={`Score estimé: ${(org.users_count || 0) * 2 + (org.prospects_count || 0)}`}>
                           {getLoadBadge(getEstimatedLoad(org)).emoji}
                         </span>
-                        {hasLoadPricingAlert(org) && (
-                          <span className="text-orange-500" title="Charge élevée, pricing bas">⚠️</span>
-                        )}
+                        <span className="text-xs text-gray-500">{getLoadBadge(getEstimatedLoad(org)).label}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {org.monthly_price_reference ? (
-                        <span className="text-gray-900 font-medium">{org.monthly_price_reference.toLocaleString('fr-FR')} €</span>
+                        <span className={`font-medium ${
+                          getPricingComparison(org) === 'under' ? 'text-orange-600' :
+                          getPricingComparison(org) === 'over' ? 'text-red-600' :
+                          'text-gray-900'
+                        }`}>
+                          {org.monthly_price_reference.toLocaleString('fr-FR')} €
+                        </span>
                       ) : (
                         <span className="text-gray-400 italic">Non défini</span>
                       )}
-                      {org.pricing_plan && (
-                        <span className="ml-2 text-xs text-gray-500">({org.pricing_plan})</span>
-                      )}
                     </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-600">{org.users_count || 0}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className="text-blue-600 font-medium">
+                        {getRecommendedPrice(getEstimatedLoad(org)).label}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-600">{org.prospects_count || 0}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
