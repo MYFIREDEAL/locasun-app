@@ -325,6 +325,24 @@ const OrganizationDetailPage = () => {
     }
   };
 
+  // Calcul automatique de la charge basé sur les KPIs disponibles
+  const getAutoCalculatedLoad = () => {
+    // Si déjà calculé en DB, utiliser cette valeur
+    if (evatimeLoadEstimated !== null && evatimeLoadEstimated !== undefined) {
+      return evatimeLoadEstimated;
+    }
+    // Sinon, calculer à partir des KPIs
+    if (!kpis) return null;
+    const score = (kpis.admins || 0) * 2 + (kpis.prospects || 0) + (kpis.forms_pending || 0) * 5;
+    if (score <= 15) return 0;
+    if (score <= 40) return 1;
+    if (score <= 70) return 2;
+    return 3;
+  };
+
+  // Charge effective (auto-calculée)
+  const effectiveLoad = getAutoCalculatedLoad();
+
   const copyToClipboard = (url, type) => {
     navigator.clipboard.writeText(url).then(() => {
       toast({
@@ -628,14 +646,14 @@ const OrganizationDetailPage = () => {
             {/* Badge de charge */}
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{getLoadBadge(evatimeLoadEstimated).emoji}</span>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLoadBadge(evatimeLoadEstimated).color}`}>
-                  {getLoadBadge(evatimeLoadEstimated).label}
+                <span className="text-2xl">{getLoadBadge(effectiveLoad).emoji}</span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLoadBadge(effectiveLoad).color}`}>
+                  {getLoadBadge(effectiveLoad).label}
                 </span>
               </div>
-              {evatimeLoadScore !== null && (
+              {kpis && (
                 <span className="text-sm text-gray-500">
-                  Score: {evatimeLoadScore}
+                  Score: {(kpis.admins || 0) * 2 + (kpis.prospects || 0) + (kpis.forms_pending || 0) * 5}
                 </span>
               )}
             </div>
@@ -675,7 +693,7 @@ const OrganizationDetailPage = () => {
                       2: '≈ 3 000 € / mois',
                       3: 'Sur engagement'
                     };
-                    return PRICE_BY_LOAD[evatimeLoadEstimated] || 'Non calculé';
+                    return PRICE_BY_LOAD[effectiveLoad] || 'Non calculé';
                   })()}
                 </p>
               </div>
@@ -684,7 +702,7 @@ const OrganizationDetailPage = () => {
             {/* Alerte incohérence */}
             {(() => {
               const price = parseInt(monthlyPrice, 10) || 0;
-              const load = evatimeLoadEstimated;
+              const load = effectiveLoad;
               const expectedPrices = { 0: 490, 1: 1500, 2: 3000, 3: 5000 };
               const expected = expectedPrices[load];
               if (load === null || load === undefined || price === 0 || !expected) return null;
