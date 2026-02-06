@@ -30,6 +30,10 @@ const OrganizationDetailPage = () => {
   const [pricingPlan, setPricingPlan] = useState('');
   const [monthlyPrice, setMonthlyPrice] = useState('');
   const [pricingSaving, setPricingSaving] = useState(false);
+  
+  // EVATIME Load states
+  const [evatimeLoad, setEvatimeLoad] = useState('');
+  const [loadSaving, setLoadSaving] = useState(false);
 
   const fetchOrganizationData = async () => {
     try {
@@ -61,6 +65,7 @@ const OrganizationDetailPage = () => {
       if (data.organization) {
         setPricingPlan(data.organization.pricing_plan || '');
         setMonthlyPrice(data.organization.monthly_price_reference || '');
+        setEvatimeLoad(data.organization.evatime_load !== null ? String(data.organization.evatime_load) : '');
       }
 
       // Charger les KPIs via RPC dédiée
@@ -190,6 +195,69 @@ const OrganizationDetailPage = () => {
     } finally {
       setPricingSaving(false);
     }
+  };
+
+  const handleLoadSave = async () => {
+    setLoadSaving(true);
+    try {
+      const loadValue = evatimeLoad === '' ? null : parseInt(evatimeLoad, 10);
+      
+      const { data, error: rpcError } = await supabase.rpc('platform_update_org_load', {
+        p_org_id: id,
+        p_evatime_load: loadValue
+      });
+
+      if (rpcError) {
+        console.error('[OrganizationDetailPage] Load update RPC error:', rpcError);
+        toast({
+          title: 'Erreur',
+          description: rpcError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Erreur',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Charge EVATIME mise à jour',
+        description: 'L\'indicateur de charge a été enregistré.',
+      });
+
+      // Rafraîchir les données
+      await fetchOrganizationData();
+    } catch (err) {
+      console.error('[OrganizationDetailPage] Load update exception:', err);
+      toast({
+        title: 'Erreur',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadSaving(false);
+    }
+  };
+
+  // Vérifier incohérence pricing/load
+  const isPricingInconsistent = () => {
+    const price = parseInt(monthlyPrice, 10) || 0;
+    const load = parseInt(evatimeLoad, 10);
+    
+    if (isNaN(load) || price === 0) return false;
+    
+    // Incohérences simples
+    if (load === 0 && price > 2000) return true;  // Léger mais > 2000€
+    if (load === 1 && price > 5000) return true;  // Normal mais > 5000€
+    if (load === 3 && price < 2000) return true;  // Critique mais < 2000€
+    
+    return false;
   };
 
   const copyToClipboard = (url, type) => {
@@ -474,6 +542,59 @@ const OrganizationDetailPage = () => {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 {pricingSaving ? 'Enregistrement...' : 'Enregistrer le pricing'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Charge EVATIME (interne) */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">⚡ Charge EVATIME (interne)</h3>
+          </div>
+          <div className="px-6 py-4">
+            {/* Badge incohérence */}
+            {isPricingInconsistent() && (
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+                <span className="text-lg">⚠️</span>
+                <p className="text-sm text-orange-700">
+                  <strong>Incohérence détectée</strong> — Le pricing semble incompatible avec le niveau de charge.
+                </p>
+              </div>
+            )}
+            
+            {/* Helper text */}
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600">
+                Indicateur interne basé sur la complexité et la durée des dossiers.
+              </p>
+            </div>
+            
+            <div className="max-w-sm">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Niveau de charge
+              </label>
+              <select
+                value={evatimeLoad}
+                onChange={(e) => setEvatimeLoad(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">-- Non défini --</option>
+                <option value="0">0 — Léger</option>
+                <option value="1">1 — Normal</option>
+                <option value="2">2 — Complexe</option>
+                <option value="3">3 — Critique</option>
+              </select>
+            </div>
+            
+            {/* Bouton Save */}
+            <div className="mt-4">
+              <button
+                onClick={handleLoadSave}
+                disabled={loadSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {loadSaving ? 'Enregistrement...' : 'Enregistrer la charge'}
               </button>
             </div>
           </div>
