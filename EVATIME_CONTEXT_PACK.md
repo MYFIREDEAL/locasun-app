@@ -926,4 +926,93 @@ Rétention : 7 ans (légal), PII hashé après 90 jours.
 
 ---
 
+## 6) Pricing & Charge EVATIME
+
+> **Système interne** — Visible uniquement par les Platform Admins (`/platform/*`)
+
+### 6.1 Colonnes `organizations`
+
+| Colonne | Type | Rôle |
+|---------|------|------|
+| `pricing_plan` | TEXT | Formule commerciale (ex: "Starter", "Pro", "Enterprise") |
+| `monthly_price_reference` | INTEGER | Prix mensuel HT en euros (référence interne) |
+| `evatime_load_score` | INTEGER | Score brut calculé automatiquement |
+| `evatime_load_estimated` | INTEGER | Niveau de charge (0-3) déduit du score |
+
+⚠️ Ces colonnes sont **strictement internes** — Aucune organisation cliente n'y a accès.
+
+### 6.2 Charge EVATIME (calcul automatique)
+
+La charge est calculée automatiquement via la RPC `platform_calculate_evatime_load(org_id)`.
+
+**Facteurs pris en compte :**
+- Nombre d'utilisateurs
+- Nombre de prospects
+- Nombre de projets actifs
+- Formulaires en attente
+- Fichiers stockés
+- Activité récente (dernier mois)
+
+**Formule indicative :**
+```
+score = users_count × 2 + prospects_count + forms_pending × 5
+```
+
+Aucun input humain requis — le calcul est déclenché à la demande.
+
+### 6.3 Niveaux de charge
+
+| Score | Niveau | Label | Couleur |
+|-------|--------|-------|---------|
+| 0-10 | 0 | Léger | 🟢 Vert |
+| 11-30 | 1 | Normal | 🟡 Jaune |
+| 31-60 | 2 | Complexe | 🟠 Orange |
+| 61+ | 3 | Critique | 🔴 Rouge |
+
+### 6.4 Prix recommandé (indicatif)
+
+Le système suggère un prix basé sur le niveau de charge :
+
+| Niveau | Prix recommandé |
+|--------|-----------------|
+| 0 (Léger) | 490 € |
+| 1 (Normal) | 1 500 € |
+| 2 (Complexe) | 3 000 € |
+| 3 (Critique) | Sur engagement |
+
+⚠️ **Lecture seule** — Le système ne modifie jamais le prix réel. La décision reste humaine.
+
+### 6.5 Alertes pricing
+
+Deux types d'alertes affichées sur le dashboard Platform :
+
+| Alerte | Condition | Rôle |
+|--------|-----------|------|
+| **Opportunités d'augmentation** | `prix_actuel < prix_recommandé` | Signale un sous-pricing potentiel |
+| **Clients à risque** | `prix_actuel > prix_recommandé` | Signale une valeur perçue faible |
+
+Ces alertes sont **purement indicatives** — Aucune action automatique.
+
+### 6.6 RPCs Platform
+
+| RPC | Rôle |
+|-----|------|
+| `platform_calculate_evatime_load(org_id)` | Calcule et stocke score + niveau de charge |
+| `platform_get_home_kpis()` | Retourne KPIs globaux (orgs actives, suspendues, revenu) |
+| `platform_update_org_pricing(org_id, plan, price)` | Met à jour pricing_plan et monthly_price_reference |
+| `platform_get_organization_detail(org_id)` | Retourne détail org incluant pricing et charge |
+
+Toutes ces RPCs sont protégées par `is_platform_admin()`.
+
+### 6.7 Principe fondamental
+
+> **EVATIME observe, EVATIME n'impose jamais.**
+
+- Le système **calcule** des indicateurs
+- Le système **affiche** des recommandations
+- Le système **ne décide pas** à la place de l'humain
+- Toute action commerciale reste une **décision explicite**
+
+---
+
 **FIN DU CONTEXT PACK**

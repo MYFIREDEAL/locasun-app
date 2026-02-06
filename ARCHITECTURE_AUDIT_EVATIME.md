@@ -59,6 +59,27 @@ locasun-app/
 
 ---
 
+## Migrations Platform (001–010)
+
+> **Traçabilité** — Historique des migrations créées pour l'espace Platform Admin
+
+| Migration | Fichier | Objectif |
+|-----------|---------|----------|
+| 001 | `001_create_platform_admins_table.sql` | Création table `platform_admins` (séparation du rôle platform_admin) |
+| 002 | `002_migrate_platform_admin_data.sql` | Migration des données platform_admin existantes |
+| 003 | `003_platform_rpc_organizations.sql` | RPC `platform_list_organizations` (lecture orgs) |
+| 004 | `004_platform_rpc_org_kpis.sql` | RPC `platform_get_organization_kpis` (KPIs par org) |
+| 005 | `005_platform_rpc_set_org_status.sql` | RPC `platform_set_org_status` (suspension/activation) |
+| 006 | `006_platform_rpc_get_org_status.sql` | RPC `platform_get_org_status` (lecture statut) |
+| 007 | `007_platform_pricing_editor.sql` | Colonnes `pricing_plan`, `monthly_price_reference` + RPC update |
+| 008 | `008_platform_home_kpis.sql` | RPC `platform_get_home_kpis` (dashboard global) |
+| 009 | `009_evatime_load_indicator.sql` | Colonne `evatime_load` (charge manuelle, obsolète) |
+| 010 | `010_evatime_load_auto.sql` | RPC `platform_calculate_evatime_load` + colonnes `evatime_load_score`, `evatime_load_estimated` |
+
+**Sécurité** : Toutes les RPCs Platform sont protégées par `is_platform_admin()` (SECURITY DEFINER).
+
+---
+
 ## Diagramme 1: Vue Macroscopique
 
 ```mermaid

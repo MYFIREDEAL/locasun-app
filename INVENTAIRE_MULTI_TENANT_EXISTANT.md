@@ -168,8 +168,20 @@
 | Route | Composant | Rôle |
 |-------|-----------|------|
 | `/platform-login` | `PlatformLoginPage.jsx` | Login spécifique platform_admin |
+| `/platform` | `PlatformHomePage.jsx` | Dashboard global (KPIs, liste orgs, alertes) |
 | `/platform/organizations` | `OrganizationsListPage.jsx` | Liste toutes les organisations |
-| `/platform/organizations/:id` | `OrganizationDetailPage.jsx` | Détail d'une organisation |
+| `/platform/organizations/:id` | `OrganizationDetailPage.jsx` | Pilotage org (pricing, charge, suspension) |
+
+**Fonctionnalités Platform :**
+
+| Fonctionnalité | Description | Fichier |
+|----------------|-------------|---------|
+| **KPIs globaux** | Orgs actives, suspendues, revenu mensuel estimé | `PlatformHomePage.jsx` |
+| **Pricing interne** | Édition `pricing_plan` et `monthly_price_reference` | `OrganizationDetailPage.jsx` |
+| **Charge EVATIME auto** | Calcul automatique basé sur l'activité (0-3) | RPC `platform_calculate_evatime_load` |
+| **Alertes pricing** | Opportunités d'augmentation, Clients à risque | `PlatformHomePage.jsx` |
+| **Suspension / réactivation** | Toggle statut org (active ↔ suspended) | `OrganizationDetailPage.jsx` |
+| **Prix recommandé** | Suggestion basée sur charge (lecture seule) | `PlatformHomePage.jsx`, `OrganizationDetailPage.jsx` |
 
 **Rôle spécial :**
 - **`platform_admin`** — Rôle stocké dans `users.role`
