@@ -96,9 +96,23 @@ const PlatformHomePage = () => {
     }
   };
 
+  // Calculer la charge estimée côté client si pas encore calculée en DB
+  const getEstimatedLoad = (org) => {
+    // Si déjà calculé en DB, utiliser cette valeur
+    if (org.evatime_load_estimated !== null && org.evatime_load_estimated !== undefined) {
+      return org.evatime_load_estimated;
+    }
+    // Sinon, calcul rapide basé sur les données disponibles
+    const score = (org.users_count || 0) * 2 + (org.prospects_count || 0);
+    if (score <= 15) return 0;
+    if (score <= 40) return 1;
+    if (score <= 70) return 2;
+    return 3;
+  };
+
   // Vérifier si alerte charge/pricing
   const hasLoadPricingAlert = (org) => {
-    const load = org.evatime_load_estimated;
+    const load = getEstimatedLoad(org);
     const price = org.monthly_price_reference || 0;
     return load >= 2 && price < 1500;
   };
@@ -289,8 +303,8 @@ const PlatformHomePage = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
-                        <span title={`Score: ${org.evatime_load_score || '-'}`}>
-                          {getLoadBadge(org.evatime_load_estimated).emoji}
+                        <span title={`Score estimé: ${(org.users_count || 0) * 2 + (org.prospects_count || 0)}`}>
+                          {getLoadBadge(getEstimatedLoad(org)).emoji}
                         </span>
                         {hasLoadPricingAlert(org) && (
                           <span className="text-orange-500" title="Charge élevée, pricing bas">⚠️</span>
