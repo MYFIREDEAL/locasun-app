@@ -44,6 +44,7 @@ import ActivateAccountPage from '@/pages/ActivateAccountPage';
 import OrganizationsListPage from '@/pages/platform/OrganizationsListPage';
 import OrganizationDetailPage from '@/pages/platform/OrganizationDetailPage';
 import PlatformLoginPage from '@/pages/platform/PlatformLoginPage';
+import PlatformHomePage from '@/pages/platform/PlatformHomePage';
 import HomePage from '@/pages/HomePage';
 import ClientAccessPage from '@/pages/ClientAccessPage';
 import ProLoginPage from '@/pages/ProLoginPage';
@@ -1799,7 +1800,7 @@ function App() {
         {/* 🔒 PLATFORM ADMIN ROUTES */}
         <Route path="/platform-login" element={<PlatformLoginPage />} />
         <Route path="/platform" element={<PlatformLayout />}>
-          <Route index element={<Navigate to="/platform/organizations" replace />} />
+          <Route index element={<PlatformHomePage />} />
           <Route path="organizations" element={<OrganizationsListPage />} />
           <Route path="organizations/:id" element={<OrganizationDetailPage />} />
         </Route>
