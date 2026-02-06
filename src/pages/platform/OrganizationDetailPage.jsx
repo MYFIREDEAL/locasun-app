@@ -25,6 +25,11 @@ const OrganizationDetailPage = () => {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusAction, setStatusAction] = useState(null); // 'suspend' | 'reactivate'
   const [statusLoading, setStatusLoading] = useState(false);
+  
+  // Pricing states
+  const [pricingPlan, setPricingPlan] = useState('');
+  const [monthlyPrice, setMonthlyPrice] = useState('');
+  const [pricingSaving, setPricingSaving] = useState(false);
 
   const fetchOrganizationData = async () => {
     try {
@@ -51,6 +56,12 @@ const OrganizationDetailPage = () => {
       setOrganization(data.organization || null);
       setDomains(data.domains || []);
       setSettings(data.settings || null);
+      
+      // Initialiser les valeurs pricing
+      if (data.organization) {
+        setPricingPlan(data.organization.pricing_plan || '');
+        setMonthlyPrice(data.organization.monthly_price_reference || '');
+      }
 
       // Charger les KPIs via RPC dédiée
       const { data: kpisData, error: kpisError } = await supabase.rpc(
@@ -131,6 +142,53 @@ const OrganizationDetailPage = () => {
       setStatusLoading(false);
       setStatusDialogOpen(false);
       setStatusAction(null);
+    }
+  };
+
+  const handlePricingSave = async () => {
+    setPricingSaving(true);
+    try {
+      const { data, error: rpcError } = await supabase.rpc('platform_update_org_pricing', {
+        p_org_id: id,
+        p_pricing_plan: pricingPlan || null,
+        p_monthly_price: monthlyPrice ? parseInt(monthlyPrice, 10) : null
+      });
+
+      if (rpcError) {
+        console.error('[OrganizationDetailPage] Pricing update RPC error:', rpcError);
+        toast({
+          title: 'Erreur',
+          description: rpcError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Erreur',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Pricing mis à jour',
+        description: 'Les informations de pricing ont été enregistrées.',
+      });
+
+      // Rafraîchir les données
+      await fetchOrganizationData();
+    } catch (err) {
+      console.error('[OrganizationDetailPage] Pricing update exception:', err);
+      toast({
+        title: 'Erreur',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setPricingSaving(false);
     }
   };
 
@@ -359,6 +417,65 @@ const OrganizationDetailPage = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Section Pricing (interne) */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">💰 Pricing (interne)</h3>
+          </div>
+          <div className="px-6 py-4">
+            {/* Badge info */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                ℹ️ Indicateur interne – aucune facturation automatique
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Select pricing_plan */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Plan tarifaire
+                </label>
+                <select
+                  value={pricingPlan}
+                  onChange={(e) => setPricingPlan(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">-- Non défini --</option>
+                  <option value="standard">Standard</option>
+                  <option value="custom">Custom</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              
+              {/* Input monthly_price_reference */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Prix mensuel de référence (€)
+                </label>
+                <input
+                  type="number"
+                  value={monthlyPrice}
+                  onChange={(e) => setMonthlyPrice(e.target.value)}
+                  placeholder="490 / 1500 / 3000 / 10000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            
+            {/* Bouton Save */}
+            <div className="mt-4">
+              <button
+                onClick={handlePricingSave}
+                disabled={pricingSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {pricingSaving ? 'Enregistrement...' : 'Enregistrer le pricing'}
+              </button>
+            </div>
           </div>
         </div>
 
