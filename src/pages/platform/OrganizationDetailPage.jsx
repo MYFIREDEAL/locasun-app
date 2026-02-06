@@ -34,6 +34,11 @@ const OrganizationDetailPage = () => {
   // EVATIME Load states
   const [evatimeLoad, setEvatimeLoad] = useState('');
   const [loadSaving, setLoadSaving] = useState(false);
+  
+  // EVATIME Load Auto states
+  const [evatimeLoadEstimated, setEvatimeLoadEstimated] = useState(null);
+  const [evatimeLoadScore, setEvatimeLoadScore] = useState(null);
+  const [loadCalculating, setLoadCalculating] = useState(false);
 
   const fetchOrganizationData = async () => {
     try {
@@ -66,6 +71,8 @@ const OrganizationDetailPage = () => {
         setPricingPlan(data.organization.pricing_plan || '');
         setMonthlyPrice(data.organization.monthly_price_reference || '');
         setEvatimeLoad(data.organization.evatime_load !== null ? String(data.organization.evatime_load) : '');
+        setEvatimeLoadEstimated(data.organization.evatime_load_estimated);
+        setEvatimeLoadScore(data.organization.evatime_load_score);
       }
 
       // Charger les KPIs via RPC dédiée
@@ -258,6 +265,64 @@ const OrganizationDetailPage = () => {
     if (load === 3 && price < 2000) return true;  // Critique mais < 2000€
     
     return false;
+  };
+
+  // Recalculer la charge automatique
+  const handleRecalculateLoad = async () => {
+    setLoadCalculating(true);
+    try {
+      const { data, error: rpcError } = await supabase.rpc('platform_calculate_evatime_load', {
+        p_org_id: id
+      });
+
+      if (rpcError) {
+        console.error('[OrganizationDetailPage] Calculate load RPC error:', rpcError);
+        toast({
+          title: 'Erreur',
+          description: rpcError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Erreur',
+          description: data.error,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Mettre à jour les valeurs locales
+      setEvatimeLoadEstimated(data.load);
+      setEvatimeLoadScore(data.score);
+
+      toast({
+        title: 'Charge recalculée',
+        description: `Score: ${data.score} → Niveau: ${data.load}`,
+      });
+    } catch (err) {
+      console.error('[OrganizationDetailPage] Calculate load exception:', err);
+      toast({
+        title: 'Erreur',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadCalculating(false);
+    }
+  };
+
+  // Helper pour afficher le badge de charge
+  const getLoadBadge = (load) => {
+    switch (load) {
+      case 0: return { emoji: '🟢', label: 'Léger', color: 'bg-green-100 text-green-800' };
+      case 1: return { emoji: '🟡', label: 'Normal', color: 'bg-yellow-100 text-yellow-800' };
+      case 2: return { emoji: '🟠', label: 'Complexe', color: 'bg-orange-100 text-orange-800' };
+      case 3: return { emoji: '🔴', label: 'Critique', color: 'bg-red-100 text-red-800' };
+      default: return { emoji: '⚪', label: 'Non calculé', color: 'bg-gray-100 text-gray-600' };
+    }
   };
 
   const copyToClipboard = (url, type) => {
@@ -544,6 +609,45 @@ const OrganizationDetailPage = () => {
                 {pricingSaving ? 'Enregistrement...' : 'Enregistrer le pricing'}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Section Charge EVATIME (auto) */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">🤖 Charge EVATIME (auto)</h3>
+          </div>
+          <div className="px-6 py-4">
+            {/* Helper text */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                Calculée automatiquement à partir de l'activité réelle.
+              </p>
+            </div>
+            
+            {/* Badge de charge */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{getLoadBadge(evatimeLoadEstimated).emoji}</span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLoadBadge(evatimeLoadEstimated).color}`}>
+                  {getLoadBadge(evatimeLoadEstimated).label}
+                </span>
+              </div>
+              {evatimeLoadScore !== null && (
+                <span className="text-sm text-gray-500">
+                  Score: {evatimeLoadScore}
+                </span>
+              )}
+            </div>
+            
+            {/* Bouton Recalculer */}
+            <button
+              onClick={handleRecalculateLoad}
+              disabled={loadCalculating}
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              {loadCalculating ? 'Calcul en cours...' : '🔄 Recalculer'}
+            </button>
           </div>
         </div>
 

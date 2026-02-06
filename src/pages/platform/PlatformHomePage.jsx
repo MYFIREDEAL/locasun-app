@@ -85,6 +85,24 @@ const PlatformHomePage = () => {
     fetchHomeKpis();
   }, []);
 
+  // Helper pour afficher le badge de charge
+  const getLoadBadge = (load) => {
+    switch (load) {
+      case 0: return { emoji: '🟢', label: 'Léger' };
+      case 1: return { emoji: '🟡', label: 'Normal' };
+      case 2: return { emoji: '🟠', label: 'Complexe' };
+      case 3: return { emoji: '🔴', label: 'Critique' };
+      default: return { emoji: '⚪', label: '-' };
+    }
+  };
+
+  // Vérifier si alerte charge/pricing
+  const hasLoadPricingAlert = (org) => {
+    const load = org.evatime_load_estimated;
+    const price = org.monthly_price_reference || 0;
+    return load >= 2 && price < 1500;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -239,6 +257,7 @@ const PlatformHomePage = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Charge</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pricing</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Users</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prospects</th>
@@ -248,7 +267,7 @@ const PlatformHomePage = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredOrgs.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                     {searchQuery ? 'Aucune organisation trouvée' : 'Aucune organisation'}
                   </td>
                 </tr>
@@ -267,6 +286,16 @@ const PlatformHomePage = () => {
                       }`}>
                         {org.status === 'active' ? '✓ Actif' : '⏸ Suspendu'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <span title={`Score: ${org.evatime_load_score || '-'}`}>
+                          {getLoadBadge(org.evatime_load_estimated).emoji}
+                        </span>
+                        {hasLoadPricingAlert(org) && (
+                          <span className="text-orange-500" title="Charge élevée, pricing bas">⚠️</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {org.monthly_price_reference ? (
