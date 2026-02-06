@@ -55,23 +55,31 @@ const PlatformHomePage = () => {
         // Calculer les signaux business
         const orgsData = data.orgs_data || [];
         setAllOrgs(orgsData);
-        const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        // Low pricing avec forte activité (pricing < 1000, activité récente)
+        // Helper: calculer la charge estimée
+        const getLoad = (org) => {
+          if (org.evatime_load_estimated !== null && org.evatime_load_estimated !== undefined) {
+            return org.evatime_load_estimated;
+          }
+          const score = (org.users_count || 0) * 2 + (org.prospects_count || 0);
+          if (score <= 15) return 0;
+          if (score <= 40) return 1;
+          if (score <= 70) return 2;
+          return 3;
+        };
+
+        // 🟠 Opportunités d'augmentation : charge élevée (≥2) mais prix bas (<1500)
         const lowPricing = orgsData.filter(org => {
           const price = org.monthly_price_reference || 0;
-          const hasRecentActivity = org.last_activity && new Date(org.last_activity) > thirtyDaysAgo;
-          const hasProspects = org.prospects_count > 5;
-          return price > 0 && price < 1000 && (hasRecentActivity || hasProspects);
+          const load = getLoad(org);
+          return price > 0 && price < 1500 && load >= 2;
         });
 
-        // Churn risk (pricing élevé avec faible activité)
+        // 🔴 Clients à risque : prix élevé (≥1500) mais charge faible (≤1)
         const churnRisk = orgsData.filter(org => {
           const price = org.monthly_price_reference || 0;
-          const hasNoRecentActivity = !org.last_activity || new Date(org.last_activity) < thirtyDaysAgo;
-          const lowProspects = org.prospects_count < 3;
-          return price >= 1000 && hasNoRecentActivity && lowProspects;
+          const load = getLoad(org);
+          return price >= 1500 && load <= 1;
         });
 
         setSignals({ lowPricing, churnRisk });
