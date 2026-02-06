@@ -97,7 +97,7 @@ const OrganizationDetailPage = () => {
   }, [id]);
 
   const handleBackClick = () => {
-    navigate('/platform/organizations');
+    navigate('/platform');
   };
 
   const openStatusDialog = (action) => {
