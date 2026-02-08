@@ -106,12 +106,44 @@ const WorkflowV2RobotPanel = ({
   const executionEnabled = isExecutionFromV2Enabled();
 
   // ─────────────────────────────────────────────────────────────────────────
+  // MULTI-ACTIONS SUPPORT
+  // ─────────────────────────────────────────────────────────────────────────
+  
+  // Résoudre les actions[] depuis la config persistée
+  const resolvedActions = useMemo(() => {
+    if (!moduleConfig) return [];
+    if (moduleConfig.actions && moduleConfig.actions.length > 0) {
+      return moduleConfig.actions;
+    }
+    // Fallback: config simple (pas de multi-actions)
+    if (moduleConfig.actionConfig) {
+      return [{ order: 1, status: 'pending', actionConfig: moduleConfig.actionConfig }];
+    }
+    return [];
+  }, [moduleConfig]);
+
+  // Index de l'action courante (première non-validée)
+  const [currentActionIndex, setCurrentActionIndex] = useState(0);
+  
+  // Trouver la première action pending au mount
+  useEffect(() => {
+    if (isOpen && resolvedActions.length > 0) {
+      const pendingIndex = resolvedActions.findIndex(a => a.status !== 'validated');
+      setCurrentActionIndex(pendingIndex >= 0 ? pendingIndex : resolvedActions.length - 1);
+    }
+  }, [isOpen, resolvedActions]);
+
+  const currentAction = resolvedActions[currentActionIndex] || null;
+  const totalActions = resolvedActions.length;
+  const isMultiAction = totalActions > 1;
+
+  // ─────────────────────────────────────────────────────────────────────────
   // CONFIG VALIDATION
   // ─────────────────────────────────────────────────────────────────────────
   
   const hasValidConfig = useMemo(() => {
-    if (!moduleConfig) return false;
-    const ac = moduleConfig.actionConfig;
+    if (!currentAction) return false;
+    const ac = currentAction.actionConfig;
     if (!ac) return false;
     if (!ac.actionType) return false;
     // targetAudience peut être string ou array
@@ -120,9 +152,9 @@ const WorkflowV2RobotPanel = ({
       : !!ac.targetAudience;
     if (!hasTarget) return false;
     return true;
-  }, [moduleConfig]);
+  }, [currentAction]);
 
-  const actionConfig = moduleConfig?.actionConfig || null;
+  const actionConfig = currentAction?.actionConfig || null;
 
   // ─────────────────────────────────────────────────────────────────────────
   // BUILD ACTION ORDER
@@ -275,6 +307,7 @@ const WorkflowV2RobotPanel = ({
       setGeneratedOrder(null);
       setExecutionResult(null);
       setShowJson(false);
+      setCurrentActionIndex(0);
     }
   }, [isOpen]);
 
@@ -310,7 +343,14 @@ const WorkflowV2RobotPanel = ({
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">Workflow V2</h3>
-              <p className="text-xs text-gray-500">{moduleName || moduleId}</p>
+              <p className="text-xs text-gray-500">
+                {moduleName || moduleId}
+                {isMultiAction && (
+                  <span className="ml-2 text-blue-600 font-medium">
+                    — Action {currentActionIndex + 1}/{totalActions}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
           <button 
@@ -324,6 +364,46 @@ const WorkflowV2RobotPanel = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           
+          {/* Multi-actions timeline */}
+          {isMultiAction && hasValidConfig && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {resolvedActions.map((action, idx) => {
+                const isActive = idx === currentActionIndex;
+                const isValidated = action.status === 'validated';
+                const isPending = !isValidated;
+                return (
+                  <React.Fragment key={idx}>
+                    {idx > 0 && (
+                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    )}
+                    <button
+                      onClick={() => {
+                        setCurrentActionIndex(idx);
+                        setGeneratedOrder(null);
+                        setExecutionResult(null);
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                        isActive && "bg-blue-100 border-blue-300 text-blue-700",
+                        !isActive && isValidated && "bg-green-50 border-green-200 text-green-600",
+                        !isActive && isPending && "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100",
+                      )}
+                    >
+                      {isValidated ? (
+                        <CheckCircle className="h-3.5 w-3.5" />
+                      ) : (
+                        <span className="w-4 h-4 rounded-full bg-current opacity-30 flex items-center justify-center text-[10px] text-white font-bold">
+                          {idx + 1}
+                        </span>
+                      )}
+                      Action {idx + 1}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+
           {/* Pas de config */}
           {!hasValidConfig && (
             <div className="text-center py-8">
@@ -355,7 +435,9 @@ const WorkflowV2RobotPanel = ({
               {/* Résumé de la config */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-500 uppercase">Action configurée</span>
+                  <span className="text-xs font-medium text-gray-500 uppercase">
+                    {isMultiAction ? `Action ${currentActionIndex + 1}/${totalActions}` : 'Action configurée'}
+                  </span>
                   {executionEnabled && (
                     <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
                       EXEC ON
