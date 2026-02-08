@@ -136,16 +136,26 @@ const WorkflowV2RobotPanel = ({
     const fetchApprovedCount = async () => {
       setLoadingStatus(true);
       try {
-        const { data, error } = await supabase
+        // Chercher les formulaires approuvés pour ce prospect + étape
+        // Essayer d'abord par step_name, puis fallback sans step_name
+        let query = supabase
           .from('client_form_panels')
-          .select('id')
+          .select('id, step_name')
           .eq('prospect_id', prospectId)
-          .eq('step_name', moduleName)
+          .eq('project_type', projectType)
           .eq('status', 'approved');
         
+        const { data, error } = await query;
+        
         if (!error && data) {
-          setApprovedCount(data.length);
-          console.log('[V2 Robot] Approved panels count:', data.length, 'for step:', moduleName);
+          // Filtrer côté client : panels avec step_name = moduleName OU step_name = moduleId OU step_name = null
+          const matchingPanels = data.filter(p => 
+            !p.step_name || // Panels sans step_name (legacy / V2 avant fix)
+            p.step_name === moduleName || 
+            p.step_name === moduleId
+          );
+          setApprovedCount(matchingPanels.length);
+          console.log('[V2 Robot] Approved panels:', matchingPanels.length, 'total:', data.length, 'for step:', moduleName);
         }
       } catch (err) {
         console.error('[V2 Robot] Error fetching approved count:', err);
@@ -155,7 +165,7 @@ const WorkflowV2RobotPanel = ({
     };
     
     fetchApprovedCount();
-  }, [isOpen, prospectId, moduleName, configActions.length]);
+  }, [isOpen, prospectId, projectType, moduleName, moduleId, configActions.length]);
 
   // Enrichir les actions avec le vrai statut basé sur les formulaires approuvés
   const resolvedActions = useMemo(() => {
@@ -222,6 +232,7 @@ const WorkflowV2RobotPanel = ({
         
       const order = buildActionOrder({
         moduleId,
+        moduleName,
         projectType,
         prospectId,
         actionConfig: {

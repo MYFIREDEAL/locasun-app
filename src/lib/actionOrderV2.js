@@ -78,6 +78,7 @@ function generateSimulationId() {
  */
 export function buildActionOrder({
   moduleId,
+  moduleName,
   projectType,
   prospectId,
   actionConfig,
@@ -157,6 +158,7 @@ export function buildActionOrder({
     
     // Contexte
     moduleId,
+    moduleName: moduleName || moduleId,
     projectType: projectType || 'unknown',
     prospectId,
     message: message || `Action ${actionType} pour le module ${moduleId}`,
