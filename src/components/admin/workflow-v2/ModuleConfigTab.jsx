@@ -41,6 +41,7 @@ import {
   FolderOpen,
   Check,
   X,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -1324,6 +1325,10 @@ const ModuleConfigTab = ({
   // State pour actionConfig V2 (PROMPT 3-7)
   const [actionConfig, setActionConfig] = useState(DEFAULT_ACTION_CONFIG);
   
+  // ✅ MULTI-ACTIONS: Liste d'actions et index actif
+  const [actions, setActions] = useState([]); // Array d'objets { config, actionConfig }
+  const [activeActionIndex, setActiveActionIndex] = useState(0);
+  
   // ✅ Calculer si config complète (PHASE 3)
   const configValidation = useMemo(() => {
     return isModuleConfigComplete(moduleId, actionConfig);
@@ -1362,7 +1367,26 @@ const ModuleConfigTab = ({
               setActionConfig(prev => ({ ...prev, ...dbConfig.actionConfig }));
             }
             
-            console.log('[V2 Config Tab] Loaded config from Supabase:', { moduleId, projectType, hasActionConfig: !!dbConfig.actionConfig });
+            // ✅ MULTI-ACTIONS: Restaurer actions[] si persistées
+            if (dbConfig.actions && Array.isArray(dbConfig.actions) && dbConfig.actions.length > 0) {
+              setActions(dbConfig.actions.map(a => ({
+                order: a.order,
+                status: a.status || 'pending',
+                config: a.config || {},
+                actionConfig: a.actionConfig || { ...DEFAULT_ACTION_CONFIG },
+              })));
+              setActiveActionIndex(0);
+              // Charger la première action dans config/actionConfig
+              const firstAction = dbConfig.actions[0];
+              if (firstAction?.config) {
+                setConfig(prev => ({ ...prev, ...firstAction.config }));
+              }
+              if (firstAction?.actionConfig) {
+                setActionConfig(prev => ({ ...prev, ...firstAction.actionConfig }));
+              }
+            }
+            
+            console.log('[V2 Config Tab] Loaded config from Supabase:', { moduleId, projectType, hasActionConfig: !!dbConfig.actionConfig, actionsCount: dbConfig.actions?.length || 0 });
           }
         } catch (err) {
           console.warn('[V2 Config Tab] No DB config found, using in-memory:', err.message);
@@ -1379,6 +1403,102 @@ const ModuleConfigTab = ({
       if (hasChanges) setSaveSuccess(false);
     }
   }, [config, originalConfig]);
+  
+  // ✅ MULTI-ACTIONS: Initialiser actions[] quand config + actionConfig sont prêts
+  useEffect(() => {
+    if (config && actions.length === 0) {
+      setActions([{
+        order: 1,
+        status: 'pending', // 'pending' | 'validated'
+        config: JSON.parse(JSON.stringify(config)),
+        actionConfig: JSON.parse(JSON.stringify(actionConfig)),
+      }]);
+      setActiveActionIndex(0);
+    }
+  }, [config !== null]); // Se déclenche une seule fois quand config passe de null à non-null
+  
+  // ✅ MULTI-ACTIONS: Sync config/actionConfig → actions[activeActionIndex] (quand l'utilisateur édite)
+  useEffect(() => {
+    if (actions.length > 0 && config) {
+      setActions(prev => {
+        const updated = [...prev];
+        if (updated[activeActionIndex]) {
+          updated[activeActionIndex] = {
+            ...updated[activeActionIndex], // Conserver order + status
+            config: JSON.parse(JSON.stringify(config)),
+            actionConfig: JSON.parse(JSON.stringify(actionConfig)),
+          };
+        }
+        return updated;
+      });
+    }
+  }, [config, actionConfig]);
+  
+  // ✅ MULTI-ACTIONS: Quand on change d'onglet, charger l'action correspondante
+  const switchToAction = (index) => {
+    if (index === activeActionIndex || index < 0 || index >= actions.length) return;
+    // Sauvegarder l'action courante dans actions[]
+    setActions(prev => {
+      const updated = [...prev];
+      updated[activeActionIndex] = {
+        ...updated[activeActionIndex], // Conserver order + status
+        config: JSON.parse(JSON.stringify(config)),
+        actionConfig: JSON.parse(JSON.stringify(actionConfig)),
+      };
+      return updated;
+    });
+    // Charger la nouvelle action
+    const target = actions[index];
+    if (target) {
+      setConfig(JSON.parse(JSON.stringify(target.config)));
+      setActionConfig(JSON.parse(JSON.stringify(target.actionConfig)));
+      setActiveActionIndex(index);
+    }
+  };
+  
+  // ✅ MULTI-ACTIONS: Ajouter une action (duplication profonde de l'action courante)
+  const handleAddAction = () => {
+    // Sauvegarder l'action courante d'abord
+    const currentAction = {
+      ...actions[activeActionIndex], // Conserver order + status existants
+      config: JSON.parse(JSON.stringify(config)),
+      actionConfig: JSON.parse(JSON.stringify(actionConfig)),
+    };
+    // Dupliquer avec nouvel order et status pending
+    const newOrder = actions.length + 1;
+    const newAction = {
+      order: newOrder,
+      status: 'pending', // Toujours pending à la création
+      config: JSON.parse(JSON.stringify(currentAction.config)),
+      actionConfig: JSON.parse(JSON.stringify(currentAction.actionConfig)),
+    };
+    
+    setActions(prev => {
+      const updated = [...prev];
+      updated[activeActionIndex] = currentAction; // sync courante
+      return [...updated, newAction];
+    });
+    
+    // Sélectionner automatiquement la nouvelle action
+    const newIndex = actions.length; // index de la nouvelle action
+    setActiveActionIndex(newIndex);
+    // Charger la copie dans config/actionConfig
+    setConfig(JSON.parse(JSON.stringify(newAction.config)));
+    setActionConfig(JSON.parse(JSON.stringify(newAction.actionConfig)));
+    
+    toast({
+      title: `➕ Action ${newOrder} ajoutée`,
+      description: `Ordre : ${newOrder} — En attente de validation de l'action ${newOrder - 1}`,
+      duration: 3000,
+    });
+  };
+  
+  // ✅ MULTI-ACTIONS: Vérifier si une action est bloquée (action précédente non validée)
+  const isActionBlocked = (index) => {
+    if (index === 0) return false; // Action 1 jamais bloquée
+    const previousAction = actions[index - 1];
+    return previousAction?.status !== 'validated';
+  };
   
   // Update field
   const updateField = (field, value) => {
@@ -1422,10 +1542,28 @@ const ModuleConfigTab = ({
     }
     
     try {
-      // Fusionner config + actionConfig pour persistance
+      // Sync l'action active avant sauvegarde
+      const syncedActions = actions.map((action, i) => {
+        if (i === activeActionIndex) {
+          return {
+            ...action,
+            config: JSON.parse(JSON.stringify(config)),
+            actionConfig: JSON.parse(JSON.stringify(actionConfig)),
+          };
+        }
+        return action;
+      });
+      
+      // Fusionner config + actionConfig + actions[] pour persistance
       const fullConfig = {
         ...config,
         actionConfig: actionConfig,
+        actions: syncedActions.map(a => ({
+          order: a.order,
+          status: a.status,
+          config: a.config,
+          actionConfig: a.actionConfig,
+        })),
       };
       
       await saveTemplate(projectType, moduleId, fullConfig);
@@ -1532,6 +1670,36 @@ const ModuleConfigTab = ({
           </span>
         </p>
       </div>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          ONGLETS MULTI-ACTIONS
+      ───────────────────────────────────────────────────────────────── */}
+      {actions.length > 1 && (
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
+          {actions.map((action, index) => {
+            const blocked = isActionBlocked(index);
+            const statusIcon = action.status === 'validated' ? '✅' : blocked ? '🔒' : '⏳';
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => switchToAction(index)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  activeActionIndex === index
+                    ? "bg-white text-blue-700 shadow-sm border border-blue-200"
+                    : blocked
+                      ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <span className="text-xs">{statusIcon}</span>
+                Action {index + 1}
+              </button>
+            );
+          })}
+        </div>
+      )}
       
       {/* ─────────────────────────────────────────────────────────────────
           SECTION 1: OBJECTIF
@@ -1801,6 +1969,22 @@ const ModuleConfigTab = ({
           Liste des actions que l'IA peut effectuer (non modifiable en Phase 1).
         </p>
       </section>
+      
+      {/* ─────────────────────────────────────────────────────────────────
+          BOUTON AJOUTER UNE ACTION
+      ───────────────────────────────────────────────────────────────── */}
+      <div className="pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAddAction}
+          className="w-full border-dashed border-2 border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400"
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Ajouter une action
+        </Button>
+      </div>
       
       {/* ─────────────────────────────────────────────────────────────────
           FOOTER: BOUTONS ACTION
