@@ -1502,13 +1502,13 @@ const ModuleConfigTab = ({
       config: JSON.parse(JSON.stringify(config)),
       actionConfig: JSON.parse(JSON.stringify(actionConfig)),
     };
-    // Dupliquer avec nouvel order et status pending
+    // ✅ Nouvelle action VIERGE (pas un clone de l'action courante)
     const newOrder = actions.length + 1;
     const newAction = {
       order: newOrder,
-      status: 'pending', // Toujours pending à la création
-      config: JSON.parse(JSON.stringify(currentAction.config)),
-      actionConfig: JSON.parse(JSON.stringify(currentAction.actionConfig)),
+      status: 'pending',
+      config: JSON.parse(JSON.stringify(currentAction.config)), // config module partagée OK
+      actionConfig: { ...DEFAULT_ACTION_CONFIG }, // ← actionConfig vierge
     };
     
     setActions(prev => {
@@ -1520,9 +1520,9 @@ const ModuleConfigTab = ({
     // Sélectionner automatiquement la nouvelle action
     const newIndex = actions.length; // index de la nouvelle action
     setActiveActionIndex(newIndex);
-    // Charger la copie dans config/actionConfig
+    // Charger la nouvelle action vierge dans config/actionConfig
     setConfig(JSON.parse(JSON.stringify(newAction.config)));
-    setActionConfig(JSON.parse(JSON.stringify(newAction.actionConfig)));
+    setActionConfig({ ...DEFAULT_ACTION_CONFIG });
     
     // 🔓 Désactiver le guard après le cycle de rendu React
     setTimeout(() => {
