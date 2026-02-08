@@ -98,9 +98,11 @@ const WorkflowV2ConfigPage = () => {
     if (!templateOps.templates || typeof templateOps.templates !== 'object') return [];
     
     // Convertir l'objet en array et extraire project_type:module_id
-    return Object.values(templateOps.templates).map(t => 
+    const result = Object.values(templateOps.templates).map(t => 
       `${t.projectType}:${t.moduleId}`
     );
+    console.log('[V2 ConfigPage] configuredModules:', result, 'selectedProjectType:', selectedProjectType);
+    return result;
   }, [templateOps.templates]);
 
   // Auto-select first project type
