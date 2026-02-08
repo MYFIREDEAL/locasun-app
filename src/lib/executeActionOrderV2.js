@@ -221,6 +221,8 @@ async function executeFormAction(order, context) {
           message_timestamp: Date.now().toString(),
           // ✅ Nom de l'étape pour identifier les actions multi-step
           step_name: order.moduleName || order.moduleId || null,
+          // ✅ ID unique de l'action V2 (pour résolution multi-actions)
+          action_id: order.actionId || null,
           // ✅ Source unique de vérité pour la vérification humaine
           verification_mode: order.verificationMode || 'HUMAN',
           // ✅ Config relances automatiques

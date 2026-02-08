@@ -123,58 +123,87 @@ const WorkflowV2RobotPanel = ({
     return [];
   }, [moduleConfig]);
 
-  // 🔥 Interroger Supabase pour connaître le vrai statut (formulaires approuvés)
-  const [approvedCount, setApprovedCount] = useState(0);
+  // 🔥 Interroger Supabase pour connaître le vrai statut de chaque action
+  const [actionStatuses, setActionStatuses] = useState({}); // { 'v2-inscription-action-0': 'approved', ... }
   const [loadingStatus, setLoadingStatus] = useState(false);
   
   useEffect(() => {
-    if (!isOpen || !prospectId || !moduleName || configActions.length <= 1) {
-      setApprovedCount(0);
+    if (!isOpen || !prospectId || !moduleId || configActions.length <= 1) {
+      setActionStatuses({});
       return;
     }
     
-    const fetchApprovedCount = async () => {
+    const fetchActionStatuses = async () => {
       setLoadingStatus(true);
       try {
-        // Chercher les formulaires approuvés pour ce prospect + étape
-        // Essayer d'abord par step_name, puis fallback sans step_name
-        let query = supabase
+        // Générer tous les action_id possibles pour ce module
+        const expectedActionIds = configActions.map((_, idx) => `v2-${moduleId}-action-${idx}`);
+        
+        // Query 1: Chercher par action_id exact (panels V2 avec le fix)
+        const { data: v2Panels, error: v2Error } = await supabase
           .from('client_form_panels')
-          .select('id, step_name')
+          .select('id, action_id, status')
           .eq('prospect_id', prospectId)
           .eq('project_type', projectType)
-          .eq('status', 'approved');
+          .in('action_id', expectedActionIds);
         
-        const { data, error } = await query;
+        const statuses = {};
         
-        if (!error && data) {
-          // Filtrer côté client : panels avec step_name = moduleName OU step_name = moduleId OU step_name = null
-          const matchingPanels = data.filter(p => 
-            !p.step_name || // Panels sans step_name (legacy / V2 avant fix)
-            p.step_name === moduleName || 
-            p.step_name === moduleId
-          );
-          setApprovedCount(matchingPanels.length);
-          console.log('[V2 Robot] Approved panels:', matchingPanels.length, 'total:', data.length, 'for step:', moduleName);
+        if (!v2Error && v2Panels && v2Panels.length > 0) {
+          // Résolution par action_id exact
+          for (const panel of v2Panels) {
+            if (panel.action_id && (panel.status === 'approved' || panel.status === 'submitted')) {
+              statuses[panel.action_id] = panel.status;
+            }
+          }
+          console.log('[V2 Robot] Action statuses by action_id:', statuses);
+        } else {
+          // Fallback: compter les approved pour ce prospect+project_type (legacy panels sans action_id)
+          const { data: legacyPanels } = await supabase
+            .from('client_form_panels')
+            .select('id, step_name, status')
+            .eq('prospect_id', prospectId)
+            .eq('project_type', projectType)
+            .in('status', ['approved', 'submitted']);
+          
+          if (legacyPanels) {
+            // Filtrer par step_name matching
+            const matchingPanels = legacyPanels.filter(p => 
+              !p.step_name || p.step_name === moduleName || p.step_name === moduleId
+            );
+            // Assigner séquentiellement (premier approved = action 0, etc.)
+            matchingPanels.forEach((panel, idx) => {
+              if (idx < configActions.length) {
+                statuses[`v2-${moduleId}-action-${idx}`] = panel.status;
+              }
+            });
+            console.log('[V2 Robot] Fallback legacy statuses:', statuses, 'from', matchingPanels.length, 'panels');
+          }
         }
+        
+        setActionStatuses(statuses);
       } catch (err) {
-        console.error('[V2 Robot] Error fetching approved count:', err);
+        console.error('[V2 Robot] Error fetching action statuses:', err);
       } finally {
         setLoadingStatus(false);
       }
     };
     
-    fetchApprovedCount();
+    fetchActionStatuses();
   }, [isOpen, prospectId, projectType, moduleName, moduleId, configActions.length]);
 
-  // Enrichir les actions avec le vrai statut basé sur les formulaires approuvés
+  // Enrichir les actions avec le vrai statut basé sur les panels DB
   const resolvedActions = useMemo(() => {
-    return configActions.map((action, idx) => ({
-      ...action,
-      // Les N premières actions (jusqu'à approvedCount) sont validées
-      realStatus: idx < approvedCount ? 'validated' : 'pending',
-    }));
-  }, [configActions, approvedCount]);
+    return configActions.map((action, idx) => {
+      const actionId = `v2-${moduleId}-action-${idx}`;
+      const dbStatus = actionStatuses[actionId];
+      return {
+        ...action,
+        actionId,
+        realStatus: dbStatus === 'approved' ? 'validated' : (dbStatus === 'submitted' ? 'submitted' : 'pending'),
+      };
+    });
+  }, [configActions, actionStatuses, moduleId]);
 
   // Index de l'action courante (première non-validée selon le vrai statut)
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
@@ -235,6 +264,7 @@ const WorkflowV2RobotPanel = ({
         moduleName,
         projectType,
         prospectId,
+        actionIndex: currentActionIndex,
         actionConfig: {
           ...actionConfig,
           // Prendre la première cible pour la simulation

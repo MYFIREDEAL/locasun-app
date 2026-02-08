@@ -82,6 +82,7 @@ export function buildActionOrder({
   projectType,
   prospectId,
   actionConfig,
+  actionIndex = 0,
   message = '',
 }) {
   // Validation des entrées requises
@@ -161,6 +162,8 @@ export function buildActionOrder({
     moduleName: moduleName || moduleId,
     projectType: projectType || 'unknown',
     prospectId,
+    actionIndex,
+    actionId: `v2-${moduleId}-action-${actionIndex}`,
     message: message || `Action ${actionType} pour le module ${moduleId}`,
     
     // Métadonnées (debug)

@@ -1618,23 +1618,44 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             let allActionsCompleted = true;
             
             if (hasMultiActions) {
-                // Compter combien de formulaires approuvés existent pour ce prospect + étape
-                const { data: approvedPanels } = await supabase
+                // Générer les action_id attendus pour chaque action
+                const expectedActionIds = v2Actions.map((_, idx) => `v2-${moduleId}-action-${idx}`);
+                
+                // Chercher par action_id exact (robuste, pas de faux positifs)
+                const { data: v2ApprovedPanels } = await supabase
                     .from('client_form_panels')
-                    .select('id')
+                    .select('id, action_id')
                     .eq('prospect_id', prospect.id)
                     .eq('project_type', panel.projectType)
-                    .eq('step_name', currentStepName)
-                    .eq('status', 'approved');
+                    .eq('status', 'approved')
+                    .in('action_id', expectedActionIds);
                 
-                const approvedCount = approvedPanels?.length || 0;
-                // +1 pour compter le panel qu'on vient d'approuver (si pas encore dans la requête)
-                const totalApproved = approvedCount;
+                let approvedActionIds = new Set((v2ApprovedPanels || []).map(p => p.action_id));
+                
+                // Fallback: si aucun panel avec action_id, compter par step_name ou sans filtre
+                if (approvedActionIds.size === 0) {
+                    const { data: legacyPanels } = await supabase
+                        .from('client_form_panels')
+                        .select('id, step_name')
+                        .eq('prospect_id', prospect.id)
+                        .eq('project_type', panel.projectType)
+                        .eq('status', 'approved');
+                    
+                    const matching = (legacyPanels || []).filter(p => 
+                        !p.step_name || p.step_name === currentStepName || p.step_name === moduleId
+                    );
+                    // Assigner séquentiellement
+                    matching.forEach((_, idx) => {
+                        if (idx < v2Actions.length) approvedActionIds.add(`v2-${moduleId}-action-${idx}`);
+                    });
+                }
+                
+                const totalApproved = approvedActionIds.size;
                 allActionsCompleted = totalApproved >= v2Actions.length;
                 
-                logger.debug('[V2] Multi-actions check', {
+                logger.debug('[V2] Multi-actions check (by action_id)', {
                     totalActions: v2Actions.length,
-                    approvedPanels: totalApproved,
+                    approvedActionIds: [...approvedActionIds],
                     allCompleted: allActionsCompleted,
                 });
                 
