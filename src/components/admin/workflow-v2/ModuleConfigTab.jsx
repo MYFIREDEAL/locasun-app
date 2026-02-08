@@ -1393,6 +1393,17 @@ const ModuleConfigTab = ({
               }
             }
             
+            // 🔍 DEBUG: Log détaillé pour vérifier l'isolation des actions en DB
+            if (dbConfig.actions?.length > 1) {
+              dbConfig.actions.forEach((a, i) => {
+                console.log(`[V2 Config Tab] DB Action ${i}:`, {
+                  formIds: a.actionConfig?.allowedFormIds,
+                  requiredFields: a.actionConfig?.requiredFields,
+                  target: a.actionConfig?.targetAudience,
+                  type: a.actionConfig?.actionType,
+                });
+              });
+            }
             console.log('[V2 Config Tab] Loaded config from Supabase:', { moduleId, projectType, hasActionConfig: !!dbConfig.actionConfig, actionsCount: dbConfig.actions?.length || 0 });
           }
         } catch (err) {
@@ -1461,6 +1472,12 @@ const ModuleConfigTab = ({
     // Charger la nouvelle action
     const target = actions[index];
     if (target) {
+      console.log(`[V2 Config Tab] switchToAction(${index}):`, {
+        targetFormIds: target.actionConfig?.allowedFormIds,
+        targetReqFields: target.actionConfig?.requiredFields,
+        leavingFormIds: actionConfig?.allowedFormIds,
+        leavingReqFields: actionConfig?.requiredFields,
+      });
       setConfig(JSON.parse(JSON.stringify(target.config)));
       setActionConfig(JSON.parse(JSON.stringify(target.actionConfig)));
       setActiveActionIndex(index);
