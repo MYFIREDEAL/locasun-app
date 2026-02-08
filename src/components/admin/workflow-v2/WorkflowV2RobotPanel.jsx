@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
 
 // V2 libs
 import { buildActionOrder, formatActionOrderSummary } from '@/lib/actionOrderV2';
@@ -110,7 +111,7 @@ const WorkflowV2RobotPanel = ({
   // ─────────────────────────────────────────────────────────────────────────
   
   // Résoudre les actions[] depuis la config persistée
-  const resolvedActions = useMemo(() => {
+  const configActions = useMemo(() => {
     if (!moduleConfig) return [];
     if (moduleConfig.actions && moduleConfig.actions.length > 0) {
       return moduleConfig.actions;
@@ -122,16 +123,59 @@ const WorkflowV2RobotPanel = ({
     return [];
   }, [moduleConfig]);
 
-  // Index de l'action courante (première non-validée)
+  // 🔥 Interroger Supabase pour connaître le vrai statut (formulaires approuvés)
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  
+  useEffect(() => {
+    if (!isOpen || !prospectId || !moduleName || configActions.length <= 1) {
+      setApprovedCount(0);
+      return;
+    }
+    
+    const fetchApprovedCount = async () => {
+      setLoadingStatus(true);
+      try {
+        const { data, error } = await supabase
+          .from('client_form_panels')
+          .select('id')
+          .eq('prospect_id', prospectId)
+          .eq('step_name', moduleName)
+          .eq('status', 'approved');
+        
+        if (!error && data) {
+          setApprovedCount(data.length);
+          console.log('[V2 Robot] Approved panels count:', data.length, 'for step:', moduleName);
+        }
+      } catch (err) {
+        console.error('[V2 Robot] Error fetching approved count:', err);
+      } finally {
+        setLoadingStatus(false);
+      }
+    };
+    
+    fetchApprovedCount();
+  }, [isOpen, prospectId, moduleName, configActions.length]);
+
+  // Enrichir les actions avec le vrai statut basé sur les formulaires approuvés
+  const resolvedActions = useMemo(() => {
+    return configActions.map((action, idx) => ({
+      ...action,
+      // Les N premières actions (jusqu'à approvedCount) sont validées
+      realStatus: idx < approvedCount ? 'validated' : 'pending',
+    }));
+  }, [configActions, approvedCount]);
+
+  // Index de l'action courante (première non-validée selon le vrai statut)
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
   
-  // Trouver la première action pending au mount
+  // Trouver la première action pending au mount / quand les données changent
   useEffect(() => {
-    if (isOpen && resolvedActions.length > 0) {
-      const pendingIndex = resolvedActions.findIndex(a => a.status !== 'validated');
+    if (isOpen && resolvedActions.length > 0 && !loadingStatus) {
+      const pendingIndex = resolvedActions.findIndex(a => a.realStatus !== 'validated');
       setCurrentActionIndex(pendingIndex >= 0 ? pendingIndex : resolvedActions.length - 1);
     }
-  }, [isOpen, resolvedActions]);
+  }, [isOpen, resolvedActions, loadingStatus]);
 
   const currentAction = resolvedActions[currentActionIndex] || null;
   const totalActions = resolvedActions.length;
@@ -369,7 +413,7 @@ const WorkflowV2RobotPanel = ({
             <div className="flex items-center gap-2 flex-wrap">
               {resolvedActions.map((action, idx) => {
                 const isActive = idx === currentActionIndex;
-                const isValidated = action.status === 'validated';
+                const isValidated = action.realStatus === 'validated';
                 const isPending = !isValidated;
                 return (
                   <React.Fragment key={idx}>
