@@ -1648,9 +1648,12 @@ const ModuleConfigTab = ({
   const updateActionConfigField = (field, value) => {
     setActionConfig(prev => {
       const updated = { ...prev, [field]: value };
-      // Persister en mémoire via moduleAIConfig
-      updateModuleActionConfig(moduleId, updated);
-      console.log('[V2 Config Tab] ActionConfig updated:', { field, value, moduleId });
+      // Persister en mémoire via moduleAIConfig UNIQUEMENT si 1 seule action
+      // En multi-actions, actions[] est la source de vérité (sync via useEffect)
+      if (actions.length <= 1) {
+        updateModuleActionConfig(moduleId, updated);
+      }
+      console.log('[V2 Config Tab] ActionConfig updated:', { field, value, moduleId, actionIndex: activeActionIndex });
       return updated;
     });
   };
@@ -1760,18 +1763,18 @@ const ModuleConfigTab = ({
                     </div>
                   )}
                   
-                  {/* Card action */}
+                  {/* Card action — toujours cliquable en mode config */}
                   <div
-                    onClick={() => !blocked && switchToAction(index)}
+                    onClick={() => switchToAction(index)}
                     className={cn(
-                      "group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-shrink-0 min-w-[200px] max-w-[280px]",
+                      "group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-shrink-0 min-w-[200px] max-w-[280px] cursor-pointer",
                       isActive
                         ? "bg-blue-50 border-blue-500 shadow-md shadow-blue-100"
                         : isValidated
-                          ? "bg-emerald-50 border-emerald-300 cursor-pointer hover:shadow-sm"
+                          ? "bg-emerald-50 border-emerald-300 hover:shadow-sm"
                           : blocked
-                            ? "bg-gray-50/50 border-gray-200 opacity-50 cursor-not-allowed"
-                            : "bg-white border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm"
+                            ? "bg-gray-50/80 border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                            : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
                     )}
                   >
                     {/* Pastille numérotée */}
@@ -1781,14 +1784,10 @@ const ModuleConfigTab = ({
                         ? "bg-blue-600 text-white shadow-sm"
                         : isValidated
                           ? "bg-emerald-500 text-white"
-                          : blocked
-                            ? "bg-gray-200 text-gray-400"
-                            : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
+                          : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
                     )}>
                       {isValidated ? (
                         <Check className="h-4 w-4" />
-                      ) : blocked ? (
-                        <span className="text-xs">🔒</span>
                       ) : (
                         stepNumber
                       )}
