@@ -1435,24 +1435,11 @@ const ModuleConfigTab = ({
     }
   }, [config, actions.length]); // Se déclenche quand config change OU quand actions est vidé (changement de module)
   
-  // ✅ MULTI-ACTIONS: Sync config/actionConfig → actions[activeActionIndex] (quand l'utilisateur édite)
-  useEffect(() => {
-    // Guard: ne PAS sync pendant un switchToAction/handleAddAction (race condition activeActionIndex)
-    if (isSwitchingActionRef.current) return;
-    if (actions.length > 0 && config) {
-      setActions(prev => {
-        const updated = [...prev];
-        if (updated[activeActionIndex]) {
-          updated[activeActionIndex] = {
-            ...updated[activeActionIndex], // Conserver order + status
-            config: JSON.parse(JSON.stringify(config)),
-            actionConfig: JSON.parse(JSON.stringify(actionConfig)),
-          };
-        }
-        return updated;
-      });
-    }
-  }, [config, actionConfig]);
+  // ❌ SUPPRIMÉ: Le sync automatique causait des corruptions de données
+  // Le sync est maintenant fait MANUELLEMENT dans:
+  // - switchToAction (avant de changer d'action)
+  // - handleSaveToDB (avant de sauvegarder)
+  // - handleAddAction (avant d'ajouter)
   
   // ✅ MULTI-ACTIONS: Quand on change d'onglet, charger l'action correspondante
   const switchToAction = (index) => {

@@ -253,6 +253,17 @@ const WorkflowV2RobotPanel = ({
       return;
     }
 
+    // 🔍 DEBUG: Vérifier que actionConfig contient UNIQUEMENT les formIds de l'action courante
+    console.log('[V2 Robot] handleSimulate DEBUG:', {
+      currentActionIndex,
+      actionConfigFormIds: actionConfig.allowedFormIds,
+      currentActionFull: currentAction,
+      allActions: resolvedActions.map((a, i) => ({
+        index: i,
+        formIds: a.actionConfig?.allowedFormIds,
+      })),
+    });
+
     try {
       // Normaliser targetAudience en prenant la première valeur
       const firstTarget = Array.isArray(actionConfig.targetAudience)

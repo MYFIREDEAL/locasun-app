@@ -177,6 +177,8 @@ export function usePresenceCheck(enabled = false) {
       // 4. Envoyer le message système
       // Colonnes valides: prospect_id, project_type, sender, text, organization_id
       // Contrainte sender: only 'client', 'admin', 'pro'
+      // Astuce: on reste sur sender='admin' pour respecter la contrainte, mais on marque
+      // clairement le message comme "presence_check" pour l'ignorer dans les relances.
       const { error: messageError } = await supabase
         .from('chat_messages')
         .insert({
@@ -184,6 +186,11 @@ export function usePresenceCheck(enabled = false) {
           project_type: projectType,
           sender: 'admin',
           text: PRESENCE_MESSAGE,
+          metadata: {
+            type: 'presence_check',
+            automated: true,
+            panel_id: panelId,
+          },
         });
       
       if (messageError) {
@@ -213,7 +220,7 @@ export function usePresenceCheck(enabled = false) {
   /**
    * Démarre un timer pour un panel donné
    */
-  const startTimer = useCallback((prospectId, projectType, panelId) => {
+  const startTimer = useCallback((prospectId, projectType, panelId, delayMs = PRESENCE_CHECK_DELAY_MS) => {
     // Annuler timer existant si présent
     if (timersRef.current.has(panelId)) {
       clearTimeout(timersRef.current.get(panelId));
@@ -224,12 +231,12 @@ export function usePresenceCheck(enabled = false) {
       return;
     }
     
-    logger.debug('[PresenceCheck] Timer démarré', { panelId, delayMs: PRESENCE_CHECK_DELAY_MS });
+  logger.debug('[PresenceCheck] Timer démarré', { panelId, delayMs });
     
     const timerId = setTimeout(() => {
       sendPresenceMessage(prospectId, projectType, panelId);
       timersRef.current.delete(panelId);
-    }, PRESENCE_CHECK_DELAY_MS);
+    }, delayMs);
     
     timersRef.current.set(panelId, timerId);
   }, [sendPresenceMessage]);
@@ -277,8 +284,16 @@ export function usePresenceCheck(enabled = false) {
           
           // ─────────────────────────────────────────────────────────────────
           // CAS 1 : Message ADMIN/PRO → Démarrer timer SI client a déjà interagi
+          // ⚠️ Ignorer les messages de présence automatiques pour éviter les boucles
           // ─────────────────────────────────────────────────────────────────
           if (message.sender === 'admin' || message.sender === 'pro') {
+            if (message.metadata?.type === 'presence_check' || message.text === PRESENCE_MESSAGE) {
+              logger.debug('[PresenceCheck] Ignore message présence auto', {
+                prospectId: message.prospect_id,
+                projectType: message.project_type,
+              });
+              return;
+            }
             // Vérifier si le client a déjà envoyé au moins 1 message
             const { data: clientMessages, error: clientError } = await supabase
               .from('chat_messages')
@@ -317,16 +332,11 @@ export function usePresenceCheck(enabled = false) {
             
             // Pour chaque panel : démarrer/redémarrer timer
             for (const panel of panels) {
-              // Reset le flag si déjà envoyé (nouveau message admin = nouveau cycle)
+              // Ne pas relancer si un message présence a déjà été envoyé pour ce panel
               if (panel.presence_message_sent) {
-                await supabase
-                  .from('client_form_panels')
-                  .update({ presence_message_sent: false })
-                  .eq('panel_id', panel.panel_id);
-                
-                processedPanelsRef.current.delete(panel.panel_id);
+                logger.debug('[PresenceCheck] Panel déjà notifié, pas de nouveau timer', { panelId: panel.panel_id });
+                continue;
               }
-              
               // Démarrer timer
               startTimer(
                 panel.prospect_id,
@@ -363,7 +373,7 @@ export function usePresenceCheck(enabled = false) {
             return;
           }
           
-          // Pour chaque panel : annuler timer + reset flag + redémarrer timer
+          // Pour chaque panel : annuler timer + reset flag (le prochain message admin relancera)
           for (const panel of panels) {
             // Annuler le timer existant (client a répondu)
             cancelTimer(panel.panel_id);
@@ -376,13 +386,6 @@ export function usePresenceCheck(enabled = false) {
               .from('client_form_panels')
               .update({ presence_message_sent: false })
               .eq('panel_id', panel.panel_id);
-            
-            // Redémarrer un nouveau timer (nouvelle période de silence)
-            startTimer(
-              panel.prospect_id,
-              panel.project_type,
-              panel.panel_id
-            );
             
             logger.debug('[PresenceCheck] Timer reset après réponse client', { panelId: panel.panel_id });
           }
@@ -403,7 +406,7 @@ export function usePresenceCheck(enabled = false) {
           schema: 'public',
           table: 'client_form_panels',
         },
-        (payload) => {
+        async (payload) => {
           const panel = payload.new;
           
           // Ignorer si pas pending
@@ -413,12 +416,42 @@ export function usePresenceCheck(enabled = false) {
           
           logger.debug('[PresenceCheck] Nouveau panel détecté', { panelId: panel.panel_id });
           
-          // Démarrer le timer pour ce panel
-          startTimer(
-            panel.prospect_id,
-            panel.project_type,
-            panel.panel_id
-          );
+          // Récupérer le dernier message pour savoir qui doit répondre
+          const { data: lastMessages, error: lastError } = await supabase
+            .from('chat_messages')
+            .select('sender, created_at')
+            .eq('prospect_id', panel.prospect_id)
+            .eq('project_type', panel.project_type)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (lastError || !lastMessages || lastMessages.length === 0) {
+            logger.debug('[PresenceCheck] Panel créé sans historique, pas de timer', { panelId: panel.panel_id });
+            return;
+          }
+
+          const lastMessage = lastMessages[0];
+          if (lastMessage.sender === 'client') {
+            logger.debug('[PresenceCheck] Dernier message client, on attend un message admin avant timer', { panelId: panel.panel_id });
+            return;
+          }
+
+          // Démarrer le timer basé sur le dernier message admin/pro
+          const lastMessageAt = new Date(lastMessage.created_at);
+          const now = new Date();
+          const silenceMs = now.getTime() - lastMessageAt.getTime();
+          const remainingMs = Math.max(PRESENCE_CHECK_DELAY_MS - silenceMs, 0);
+
+          if (remainingMs === 0) {
+            sendPresenceMessage(panel.prospect_id, panel.project_type, panel.panel_id);
+          } else {
+            startTimer(
+              panel.prospect_id,
+              panel.project_type,
+              panel.panel_id,
+              remainingMs
+            );
+          }
         }
       )
       .on(
@@ -447,7 +480,7 @@ export function usePresenceCheck(enabled = false) {
     const initExistingPanels = async () => {
       const { data: panels, error } = await supabase
         .from('client_form_panels')
-        .select('panel_id, prospect_id, project_type, created_at, presence_message_sent')
+  .select('panel_id, prospect_id, project_type, presence_message_sent')
         .eq('status', 'pending')
         .eq('presence_message_sent', false);
       
@@ -459,49 +492,40 @@ export function usePresenceCheck(enabled = false) {
       logger.info(`[PresenceCheck] ${panels.length} panels pending à surveiller`);
       
       for (const panel of panels) {
-        // Calculer le temps écoulé depuis création
-        const createdAt = new Date(panel.created_at);
+        // On agit seulement si le dernier message est admin/pro (on attend une réponse client)
+        const { data: lastMessages } = await supabase
+          .from('chat_messages')
+          .select('sender, created_at')
+          .eq('prospect_id', panel.prospect_id)
+          .eq('project_type', panel.project_type)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!lastMessages || lastMessages.length === 0) {
+          logger.debug('[PresenceCheck] Panel pending sans messages, skip timer', { panelId: panel.panel_id });
+          continue;
+        }
+
+        const lastMessage = lastMessages[0];
+        if (lastMessage.sender !== 'admin' && lastMessage.sender !== 'pro') {
+          logger.debug('[PresenceCheck] Dernier message côté client, pas de timer', { panelId: panel.panel_id });
+          continue;
+        }
+
+        const lastMessageAt = new Date(lastMessage.created_at);
         const now = new Date();
-        const elapsedMs = now.getTime() - createdAt.getTime();
-        
-        // Si délai déjà dépassé → envoyer immédiatement (si dans fenêtre horaire)
-        if (elapsedMs >= PRESENCE_CHECK_DELAY_MS) {
-          // Vérifier s'il y a eu activité récente
-          const { data: recentMessages } = await supabase
-            .from('chat_messages')
-            .select('created_at')
-            .eq('prospect_id', panel.prospect_id)
-            .eq('project_type', panel.project_type)
-            .eq('sender', 'client')
-            .order('created_at', { ascending: false })
-            .limit(1);
-          
-          if (recentMessages && recentMessages.length > 0) {
-            const lastMessageAt = new Date(recentMessages[0].created_at);
-            const silenceMs = now.getTime() - lastMessageAt.getTime();
-            
-            if (silenceMs >= PRESENCE_CHECK_DELAY_MS) {
-              // Silence suffisant → envoyer message
-              sendPresenceMessage(panel.prospect_id, panel.project_type, panel.panel_id);
-            } else {
-              // Activité récente → timer pour le temps restant
-              const remainingMs = PRESENCE_CHECK_DELAY_MS - silenceMs;
-              const timerId = setTimeout(() => {
-                sendPresenceMessage(panel.prospect_id, panel.project_type, panel.panel_id);
-              }, remainingMs);
-              timersRef.current.set(panel.panel_id, timerId);
-            }
-          } else {
-            // Pas de message client → envoyer maintenant
-            sendPresenceMessage(panel.prospect_id, panel.project_type, panel.panel_id);
-          }
+        const silenceMs = now.getTime() - lastMessageAt.getTime();
+        const remainingMs = Math.max(PRESENCE_CHECK_DELAY_MS - silenceMs, 0);
+
+        if (remainingMs === 0) {
+          sendPresenceMessage(panel.prospect_id, panel.project_type, panel.panel_id);
         } else {
-          // Délai pas encore atteint → démarrer timer pour le temps restant
-          const remainingMs = PRESENCE_CHECK_DELAY_MS - elapsedMs;
-          const timerId = setTimeout(() => {
-            sendPresenceMessage(panel.prospect_id, panel.project_type, panel.panel_id);
-          }, remainingMs);
-          timersRef.current.set(panel.panel_id, timerId);
+          startTimer(
+            panel.prospect_id,
+            panel.project_type,
+            panel.panel_id,
+            remainingMs
+          );
         }
       }
     };

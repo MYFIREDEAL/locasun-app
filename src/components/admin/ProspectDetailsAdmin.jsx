@@ -66,6 +66,95 @@ const statusConfig = {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// Helpers sous-étapes (même logique qu'une étape V1, mais imbriquée)
+// ─────────────────────────────────────────────────────────────
+const normalizeSubSteps = (step) => {
+  if (!step || !Array.isArray(step.subSteps) || step.subSteps.length === 0) return step;
+  const normalized = { ...step, subSteps: step.subSteps.map(s => ({
+    ...s,
+    status: s.status || STATUS_PENDING,
+  })) };
+
+  // Si aucune sous-étape en cours, activer la première pending
+  const hasCurrent = normalized.subSteps.some(s => s.status === STATUS_CURRENT);
+  if (!hasCurrent) {
+    const firstPending = normalized.subSteps.findIndex(s => s.status === STATUS_PENDING);
+    if (firstPending !== -1) {
+      normalized.subSteps = normalized.subSteps.map((s, idx) => ({
+        ...s,
+        status: idx === firstPending ? STATUS_CURRENT : s.status,
+      }));
+      // L'étape parente reste en cours tant que tout n'est pas complété
+      normalized.status = normalized.status === STATUS_COMPLETED ? STATUS_CURRENT : normalized.status;
+    }
+  }
+  return normalized;
+};
+
+// Génère des sous-étapes à partir de la config V2 (actions) si aucune sous-étape n'est présente
+const deriveSubStepsFromTemplate = (step, projectType, v2Templates) => {
+  if (!step) return step;
+
+  const moduleId = step.name
+    ? step.name.toLowerCase().replace(/[_\s]/g, '-').replace(/[^a-z0-9-]/g, '')
+    : null;
+
+  const tplKey = moduleId ? `${projectType}:${moduleId}` : null;
+  const tpl = tplKey && v2Templates ? v2Templates[tplKey] : null;
+  const actions = tpl?.configJson?.actions;
+
+  if (!actions || actions.length === 0) return step;
+
+  // Si des sous-étapes existent déjà, on met à jour leurs noms à partir des objectifs
+  if (Array.isArray(step.subSteps) && step.subSteps.length > 0) {
+    const updatedSubSteps = step.subSteps.map((subStep, idx) => {
+      const action = actions[idx];
+      const objectiveName = action?.config?.objective?.trim();
+      const derivedName = objectiveName
+        || action?.title
+        || action?.label;
+      return {
+        ...subStep,
+        name: derivedName || subStep.name || `Action ${idx + 1}`,
+      };
+    });
+    return { ...step, subSteps: updatedSubSteps };
+  }
+
+  // Sinon, on génère les sous-étapes à partir des actions
+  const baseStatus = step.status || STATUS_PENDING;
+
+  const subSteps = actions.map((action, idx) => ({
+    id: action.id || `v2-${moduleId}-action-${idx}`,
+    name: (action.config?.objective && action.config.objective.trim())
+      || action.title
+      || action.label
+      || `Action ${idx + 1}`,
+    status: baseStatus === STATUS_COMPLETED
+      ? STATUS_COMPLETED
+      : (idx === 0 && baseStatus === STATUS_CURRENT ? STATUS_CURRENT : STATUS_PENDING),
+  }));
+
+  return {
+    ...step,
+    subSteps,
+    status: baseStatus,
+  };
+};
+
+const areAllSubStepsCompleted = (step) => {
+  if (!step?.subSteps || step.subSteps.length === 0) return true;
+  return step.subSteps.every(s => s.status === STATUS_COMPLETED);
+};
+
+const getActiveSubStepIndex = (step) => {
+  if (!step?.subSteps || step.subSteps.length === 0) return -1;
+  const currentIdx = step.subSteps.findIndex(s => s.status === STATUS_CURRENT);
+  if (currentIdx !== -1) return currentIdx;
+  return step.subSteps.findIndex(s => s.status === STATUS_PENDING);
+};
+
 const ChatForm = ({ form, prospectId, onFormSubmit }) => {
     const [formData, setFormData] = useState({});
 
@@ -1030,7 +1119,13 @@ const ProjectTimeline = ({
                       <h3 className={`font-medium ${config.text}`}>
                         {step.name}
                       </h3>
-                      <div className="relative" data-step-status-container>
+                      <div className="flex items-center gap-3">
+                        {step.subSteps && step.subSteps.length > 0 && (
+                          <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-1">
+                            {step.subSteps.filter(s => s.status === STATUS_COMPLETED).length}/{step.subSteps.length} sous-étapes
+                          </span>
+                        )}
+                        <div className="relative" data-step-status-container>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1087,7 +1182,29 @@ const ProjectTimeline = ({
                           </button>
                         </div>
                       </div>
+                      </div>
                     </div>
+
+                    {/* Sous-étapes (même logique qu'une étape V1) */}
+                    {step.subSteps && step.subSteps.length > 0 && (
+                      <div className="mt-3 space-y-2 border border-gray-100 rounded-lg p-3 bg-gray-50">
+                        {step.subSteps.map((sub, subIdx) => {
+                          const subConfig = statusConfig[sub.status] || statusConfig[STATUS_PENDING];
+                          return (
+                            <div key={sub.id || subIdx} className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`w-2.5 h-2.5 rounded-full ${sub.status === STATUS_COMPLETED ? 'bg-green-500' : sub.status === STATUS_CURRENT ? 'bg-blue-500' : 'bg-gray-300'}`}></span>
+                                <span className="text-sm font-medium text-gray-800 truncate max-w-[220px]">{sub.name}</span>
+                              </div>
+                              <span className={`text-[11px] px-2 py-1 rounded-full ${subConfig.badge}`}>{subConfig.label}</span>
+                            </div>
+                          );
+                        })}
+                        {/* Bouton d'ajout de sous-étape supprimé (lecture seule) */}
+                      </div>
+                    )}
+
+                    {/* Aucun bouton d'ajout si pas de sous-étapes (lecture seule) */}
                     
                     {/* 🔥 CHECKLIST: Afficher sous l'étape en cours si action sans client */}
                     {step.status === STATUS_CURRENT && index === currentStepIndex && currentStepConfig?.actions && (
@@ -2633,7 +2750,9 @@ const ProspectDetailsAdmin = ({
     // 🔥 FIX: Utiliser UNIQUEMENT supabaseSteps (real-time)
     // Ne JAMAIS fallback sur getProjectSteps qui utilise un state global vide
     if (supabaseSteps[activeProjectTag]) {
-      return supabaseSteps[activeProjectTag];
+      return supabaseSteps[activeProjectTag]
+        .map(step => deriveSubStepsFromTemplate(step, activeProjectTag, v2Templates))
+        .map(normalizeSubSteps);
     }
     
     // Si pas de steps Supabase, retourner template avec première étape en in_progress
@@ -2641,11 +2760,13 @@ const ProspectDetailsAdmin = ({
     if (templateSteps && templateSteps.length > 0) {
       const initialSteps = JSON.parse(JSON.stringify(templateSteps));
       initialSteps[0].status = 'in_progress';
-      return initialSteps;
+      return initialSteps
+        .map(step => deriveSubStepsFromTemplate(step, activeProjectTag, v2Templates))
+        .map(normalizeSubSteps);
     }
     
     return [];
-  }, [activeProjectTag, supabaseSteps, projectsData]);
+  }, [activeProjectTag, supabaseSteps, projectsData, v2Templates]);
 
   const currentStepIndex = projectSteps.findIndex(step => step.status === STATUS_CURRENT);
   const currentStep = projectSteps[currentStepIndex] || projectSteps.find(s => s.status === STATUS_PENDING) || projectSteps[0];
@@ -3005,6 +3126,50 @@ const ProspectDetailsAdmin = ({
   const handleUpdateStatus = async (clickedIndex, newStatus) => {
     // Capturer l'étape avant modification pour l'historique
     const previousStep = projectSteps[clickedIndex];
+
+    // Garde-fou sous-étapes : impossible de compléter l'étape si des sous-étapes restent
+    if (newStatus === STATUS_COMPLETED && previousStep?.subSteps?.length > 0) {
+      const allDone = areAllSubStepsCompleted(previousStep);
+      if (!allDone) {
+        toast({
+          title: 'Sous-étapes en cours',
+          description: 'Vous devez valider chaque sous-étape avant de terminer cette étape.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Remettre en cours une étape avec sous-étapes → réinitialiser la première en cours
+    if (newStatus === STATUS_CURRENT && previousStep?.subSteps?.length > 0) {
+      const newSteps = JSON.parse(JSON.stringify(projectSteps));
+      const step = newSteps[clickedIndex];
+      step.status = STATUS_CURRENT;
+      step.subSteps = step.subSteps.map((s, idx) => ({
+        ...s,
+        status: idx === 0 ? STATUS_CURRENT : STATUS_PENDING,
+      }));
+
+      await updateSupabaseSteps(activeProjectTag, newSteps);
+
+      if (addHistoryEvent) {
+        await addHistoryEvent({
+          event_type: "pipeline",
+          title: "Étape relancée",
+          description: `Sous-étapes réinitialisées pour « ${step.name} »`,
+          metadata: {
+            step_id: step?.id || null,
+            step_name: step?.name || null,
+            previous_status: previousStep?.status || null,
+            new_status: STATUS_CURRENT,
+            project_type: activeProjectTag,
+          },
+          createdBy: supabaseUserId,
+          createdByName: activeAdminUser?.name || activeAdminUser?.email,
+        });
+      }
+      return;
+    }
     
     if (newStatus === STATUS_COMPLETED) {
       // Compléter et passer à l'étape suivante

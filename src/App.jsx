@@ -1481,9 +1481,66 @@ function App() {
     }
 
     const newSteps = JSON.parse(JSON.stringify(currentSteps));
+    const currentStep = newSteps[currentStepIndex];
+
+    // ─────────────────────────────────────────────────────────────
+    // SOUS-ÉTAPES : progression interne avant de passer à l'étape suivante
+    // ─────────────────────────────────────────────────────────────
+    if (currentStep?.subSteps && Array.isArray(currentStep.subSteps) && currentStep.subSteps.length > 0) {
+      // Trouver la sous-étape active (in_progress) ou la première pending
+      let activeSubIndex = currentStep.subSteps.findIndex(s => s.status === 'in_progress');
+      if (activeSubIndex === -1) {
+        activeSubIndex = currentStep.subSteps.findIndex(s => s.status === 'pending');
+        if (activeSubIndex !== -1) {
+          currentStep.subSteps[activeSubIndex].status = 'in_progress';
+        }
+      }
+
+      if (activeSubIndex !== -1) {
+        // Marquer la sous-étape courante comme complétée
+        currentStep.subSteps[activeSubIndex].status = 'completed';
+
+        // Activer la suivante si elle existe
+        const nextSub = currentStep.subSteps.findIndex(s => s.status === 'pending');
+        if (nextSub !== -1) {
+          currentStep.subSteps[nextSub].status = 'in_progress';
+          currentStep.status = 'in_progress';
+          newSteps[currentStepIndex] = currentStep;
+
+          logger.debug('Substep completed, staying in same step', {
+            completedSub: activeSubIndex,
+            nextSub,
+            stepName: currentStep.name,
+          });
+
+          await updateProjectSteps(prospectId, projectType, newSteps);
+          return; // Ne pas passer à l'étape suivante tant que des sous-étapes restent
+        }
+      }
+
+      // Si toutes les sous-étapes sont complétées, on peut compléter l'étape principale
+      const allSubStepsCompleted = currentStep.subSteps.every(s => s.status === 'completed');
+      if (!allSubStepsCompleted) {
+        logger.warn('Sous-étapes incomplètes détectées alors que aucune active trouvée', {
+          stepName: currentStep.name,
+          subSteps: currentStep.subSteps,
+        });
+        currentStep.status = 'in_progress';
+        newSteps[currentStepIndex] = currentStep;
+        await updateProjectSteps(prospectId, projectType, newSteps);
+        return;
+      }
+
+      // Toutes les sous-étapes sont terminées, on peut clore l'étape
+      currentStep.status = 'completed';
+      newSteps[currentStepIndex] = currentStep;
+    } else {
+      // Pas de sous-étapes : comportement legacy
+      currentStep.status = 'completed';
+      newSteps[currentStepIndex] = currentStep;
+    }
     
     const completedStepName = newSteps[currentStepIndex].name;
-    newSteps[currentStepIndex].status = 'completed';
     
     let nextStepName = null;
     if (currentStepIndex + 1 < newSteps.length) {
