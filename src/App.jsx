@@ -529,10 +529,12 @@ function App() {
   }, [supabasePrompts, promptsLoading, authLoading]);
 
   // 🔥 Système de création automatique de tâches (écoute les changements d'étape)
-  useAutoCreateTasks(supabasePrompts);
+  // ⚠️ Ne s'active que côté admin (les clients n'ont pas les droits RLS pour insérer dans appointments)
+  useAutoCreateTasks(supabasePrompts, !authLoading && adminReady);
   
   // 🔥 Système de création automatique de tâches de vérification (écoute les soumissions client)
-  useAutoVerificationTasks(supabasePrompts);
+  // ⚠️ Ne s'active que côté admin (les clients n'ont pas les droits RLS pour insérer dans appointments)
+  useAutoVerificationTasks(supabasePrompts, !authLoading && adminReady);
   
   // 🔥 Système de surveillance relances formulaires (crée tâche au seuil atteint)
   useFormReminderWatcher(!authLoading && adminReady);

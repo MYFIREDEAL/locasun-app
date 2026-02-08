@@ -7,8 +7,11 @@ import { toast } from '@/components/ui/use-toast';
  * Hook pour créer automatiquement des tâches quand une étape devient "in_progress"
  * Basé sur la configuration des prompts (managementMode: "manual" + createTask: true)
  */
-export function useAutoCreateTasks(prompts) {
+export function useAutoCreateTasks(prompts, enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     if (!prompts || Object.keys(prompts).length === 0) {
       return;
     }
@@ -137,7 +140,7 @@ export function useAutoCreateTasks(prompts) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [prompts]);
+  }, [prompts, enabled]);
 }
 
 /**

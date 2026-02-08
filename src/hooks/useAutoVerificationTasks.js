@@ -7,8 +7,11 @@ import { toast } from '@/components/ui/use-toast';
  * Hook pour créer automatiquement des tâches de vérification
  * quand un client soumet un formulaire/document avec verificationMode='human'
  */
-export function useAutoVerificationTasks(prompts) {
+export function useAutoVerificationTasks(prompts, enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     if (!prompts || Object.keys(prompts).length === 0) {
       return;
     }
@@ -50,7 +53,7 @@ export function useAutoVerificationTasks(prompts) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [prompts]);
+  }, [prompts, enabled]);
 }
 
 /**
