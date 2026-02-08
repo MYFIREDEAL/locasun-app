@@ -462,6 +462,18 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     });
     
     if (usedPrompt) {
+        // 🔥 MULTI-ACTIONS V2: Ne pas auto-compléter s'il reste des actions
+        const v2ConfigActions = currentModuleConfig?.actions;
+        if (v2ConfigActions && v2ConfigActions.length > 1) {
+            logger.info('[V2] Multi-actions detected in handleFormSubmit, skipping auto-complete');
+            toast({
+                title: "✅ Formulaire reçu",
+                description: "Il reste d'autres actions à compléter pour cette étape.",
+                className: "bg-blue-500 text-white"
+            });
+            return;
+        }
+        
         completeStepAndProceed(prospectId, projectType, currentStepIndex);
         toast({
             title: "Étape terminée !",
@@ -1600,17 +1612,58 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             // Priorité: Supabase > In-memory
             const effectiveCompletionTrigger = v2ActionConfig?.completionTrigger || memoryActionConfig?.completionTrigger;
             
+            // 🔥 MULTI-ACTIONS V2: Vérifier s'il reste d'autres actions à exécuter
+            const v2Actions = v2Template?.configJson?.actions;
+            const hasMultiActions = v2Actions && v2Actions.length > 1;
+            let allActionsCompleted = true;
+            
+            if (hasMultiActions) {
+                // Compter combien de formulaires approuvés existent pour ce prospect + étape
+                const { data: approvedPanels } = await supabase
+                    .from('client_form_panels')
+                    .select('id')
+                    .eq('prospect_id', prospect.id)
+                    .eq('project_type', panel.projectType)
+                    .eq('step_name', currentStepName)
+                    .eq('status', 'approved');
+                
+                const approvedCount = approvedPanels?.length || 0;
+                // +1 pour compter le panel qu'on vient d'approuver (si pas encore dans la requête)
+                const totalApproved = approvedCount;
+                allActionsCompleted = totalApproved >= v2Actions.length;
+                
+                logger.debug('[V2] Multi-actions check', {
+                    totalActions: v2Actions.length,
+                    approvedPanels: totalApproved,
+                    allCompleted: allActionsCompleted,
+                });
+                
+                if (!allActionsCompleted) {
+                    logger.info('[V2] Multi-actions: still pending actions, NOT completing step', {
+                        remaining: v2Actions.length - totalApproved,
+                    });
+                    toast({
+                        title: '✅ Action validée',
+                        description: `Action ${totalApproved}/${v2Actions.length} — il reste ${v2Actions.length - totalApproved} action(s) avant de terminer l'étape.`,
+                        className: 'bg-blue-500 text-white',
+                    });
+                }
+            }
+            
             logger.debug('[V2] Checking completionTrigger for form approval', {
                 stepName: currentStepName,
                 moduleId,
                 v2TemplateFound: !!v2Template,
                 completionTrigger: effectiveCompletionTrigger,
                 currentStepIdx,
+                hasMultiActions,
+                allActionsCompleted,
             });
 
             // V2: Si completionTrigger === 'form_approved' OU aucune config explicite
             // Comportement par défaut: valider un formulaire = passer à l'étape suivante
-            const shouldCompleteStep = effectiveCompletionTrigger === 'form_approved' || !effectiveCompletionTrigger;
+            // 🔥 MAIS: si multi-actions et toutes pas terminées → bloquer
+            const shouldCompleteStep = (effectiveCompletionTrigger === 'form_approved' || !effectiveCompletionTrigger) && allActionsCompleted;
             
             if (shouldCompleteStep && currentSteps) {
                 logger.info('[V2] Form approved → completing step', {
