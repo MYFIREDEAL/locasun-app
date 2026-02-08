@@ -1329,6 +1329,7 @@ const ModuleConfigTab = ({
   // ✅ MULTI-ACTIONS: Liste d'actions et index actif
   const [actions, setActions] = useState([]); // Array d'objets { config, actionConfig }
   const [activeActionIndex, setActiveActionIndex] = useState(0);
+  const isSwitchingActionRef = useRef(false); // Guard: empêche le sync useEffect pendant switchToAction/handleAddAction
   
   // ✅ Calculer si config complète (PHASE 3)
   const configValidation = useMemo(() => {
@@ -1425,6 +1426,8 @@ const ModuleConfigTab = ({
   
   // ✅ MULTI-ACTIONS: Sync config/actionConfig → actions[activeActionIndex] (quand l'utilisateur édite)
   useEffect(() => {
+    // Guard: ne PAS sync pendant un switchToAction/handleAddAction (race condition activeActionIndex)
+    if (isSwitchingActionRef.current) return;
     if (actions.length > 0 && config) {
       setActions(prev => {
         const updated = [...prev];
@@ -1443,6 +1446,8 @@ const ModuleConfigTab = ({
   // ✅ MULTI-ACTIONS: Quand on change d'onglet, charger l'action correspondante
   const switchToAction = (index) => {
     if (index === activeActionIndex || index < 0 || index >= actions.length) return;
+    // 🔒 Activer le guard pour empêcher le sync useEffect de corrompre les données
+    isSwitchingActionRef.current = true;
     // Sauvegarder l'action courante dans actions[]
     setActions(prev => {
       const updated = [...prev];
@@ -1459,13 +1464,21 @@ const ModuleConfigTab = ({
       setConfig(JSON.parse(JSON.stringify(target.config)));
       setActionConfig(JSON.parse(JSON.stringify(target.actionConfig)));
       setActiveActionIndex(index);
+      // 🔓 Désactiver le guard après le cycle de rendu React
+      setTimeout(() => {
+        isSwitchingActionRef.current = false;
+      }, 0);
       // Scroll vers le haut pour voir le contenu de l'action
       setTimeout(() => scrollToTop(), 100);
+    } else {
+      isSwitchingActionRef.current = false;
     }
   };
   
   // ✅ MULTI-ACTIONS: Ajouter une action (duplication profonde de l'action courante)
   const handleAddAction = () => {
+    // 🔒 Activer le guard pour empêcher le sync useEffect de corrompre les données
+    isSwitchingActionRef.current = true;
     // Sauvegarder l'action courante d'abord
     const currentAction = {
       ...actions[activeActionIndex], // Conserver order + status existants
@@ -1494,6 +1507,11 @@ const ModuleConfigTab = ({
     setConfig(JSON.parse(JSON.stringify(newAction.config)));
     setActionConfig(JSON.parse(JSON.stringify(newAction.actionConfig)));
     
+    // 🔓 Désactiver le guard après le cycle de rendu React
+    setTimeout(() => {
+      isSwitchingActionRef.current = false;
+    }, 0);
+    
     // Scroll vers le haut pour voir les onglets
     setTimeout(() => scrollToTop(), 100);
     
@@ -1515,6 +1533,9 @@ const ModuleConfigTab = ({
   const handleDeleteAction = (index) => {
     if (actions.length <= 1) return; // Impossible de supprimer la dernière action
     
+    // 🔒 Activer le guard pour empêcher le sync useEffect de corrompre les données
+    isSwitchingActionRef.current = true;
+    
     const updated = actions.filter((_, i) => i !== index).map((action, i) => ({
       ...action,
       order: i + 1, // Réindexer
@@ -1532,6 +1553,11 @@ const ModuleConfigTab = ({
       setConfig(JSON.parse(JSON.stringify(target.config)));
       setActionConfig(JSON.parse(JSON.stringify(target.actionConfig)));
     }
+    
+    // 🔓 Désactiver le guard après le cycle de rendu React
+    setTimeout(() => {
+      isSwitchingActionRef.current = false;
+    }, 0);
     
     toast({
       title: `🗑️ Action supprimée`,

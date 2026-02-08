@@ -102,10 +102,11 @@ export const WORKFLOW_V2_CONFIG = {
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isVercelPreview = hostname.includes('vercel.app') || hostname.includes('preview');
     const isGitHubPagesPreview = hostname.includes('github.io');
+    const isEvatime = hostname.includes('evatime.fr');
     const isDev = import.meta.env?.DEV === true;
     
-    // Activer en preview/dev, désactiver en production
-    const enabled = isLocalhost || isVercelPreview || isGitHubPagesPreview || isDev;
+    // Activer en preview/dev et evatime, désactiver en production externe
+    const enabled = isLocalhost || isVercelPreview || isGitHubPagesPreview || isEvatime || isDev;
     
     if (enabled) {
       console.log('[V2 Config] 🚀 EXECUTION_FROM_V2 = ON (preview/dev mode)');
