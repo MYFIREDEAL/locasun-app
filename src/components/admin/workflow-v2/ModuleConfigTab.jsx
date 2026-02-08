@@ -42,6 +42,7 @@ import {
   Check,
   X,
   Plus,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -1346,6 +1347,11 @@ const ModuleConfigTab = ({
       // Charger aussi l'actionConfig V2
       const loadedActionConfig = getModuleActionConfig(moduleId);
       setActionConfig(loadedActionConfig);
+      
+      // ✅ FIX: Reset multi-actions quand on change de module
+      // L'init useEffect recréera actions[0] avec la config du nouveau module
+      setActions([]);
+      setActiveActionIndex(0);
     }
   }, [moduleId]);
   
@@ -1415,7 +1421,7 @@ const ModuleConfigTab = ({
       }]);
       setActiveActionIndex(0);
     }
-  }, [config !== null]); // Se déclenche une seule fois quand config passe de null à non-null
+  }, [config, actions.length]); // Se déclenche quand config change OU quand actions est vidé (changement de module)
   
   // ✅ MULTI-ACTIONS: Sync config/actionConfig → actions[activeActionIndex] (quand l'utilisateur édite)
   useEffect(() => {
@@ -1453,6 +1459,8 @@ const ModuleConfigTab = ({
       setConfig(JSON.parse(JSON.stringify(target.config)));
       setActionConfig(JSON.parse(JSON.stringify(target.actionConfig)));
       setActiveActionIndex(index);
+      // Scroll vers le haut pour voir le contenu de l'action
+      setTimeout(() => scrollToTop(), 100);
     }
   };
   
@@ -1486,6 +1494,9 @@ const ModuleConfigTab = ({
     setConfig(JSON.parse(JSON.stringify(newAction.config)));
     setActionConfig(JSON.parse(JSON.stringify(newAction.actionConfig)));
     
+    // Scroll vers le haut pour voir les onglets
+    setTimeout(() => scrollToTop(), 100);
+    
     toast({
       title: `➕ Action ${newOrder} ajoutée`,
       description: `Ordre : ${newOrder} — En attente de validation de l'action ${newOrder - 1}`,
@@ -1500,6 +1511,46 @@ const ModuleConfigTab = ({
     return previousAction?.status !== 'validated';
   };
   
+  // ✅ MULTI-ACTIONS: Supprimer une action
+  const handleDeleteAction = (index) => {
+    if (actions.length <= 1) return; // Impossible de supprimer la dernière action
+    
+    const updated = actions.filter((_, i) => i !== index).map((action, i) => ({
+      ...action,
+      order: i + 1, // Réindexer
+    }));
+    
+    setActions(updated);
+    
+    // Déterminer le nouvel index actif
+    const newIndex = index >= updated.length ? updated.length - 1 : index;
+    setActiveActionIndex(newIndex);
+    
+    // Charger l'action au nouvel index
+    const target = updated[newIndex];
+    if (target) {
+      setConfig(JSON.parse(JSON.stringify(target.config)));
+      setActionConfig(JSON.parse(JSON.stringify(target.actionConfig)));
+    }
+    
+    toast({
+      title: `🗑️ Action supprimée`,
+      description: `${updated.length} action(s) restante(s)`,
+      duration: 3000,
+    });
+  };
+  
+  // ✅ MULTI-ACTIONS: Résumé court d'une action
+  const getActionSummary = (action) => {
+    const ac = action.actionConfig || {};
+    const targetMap = { CLIENT: '👤 Client', COMMERCIAL: '💼 Commercial', PARTENAIRE: '🤝 Partenaire' };
+    const typeMap = { FORM: '📝 Formulaire', SIGNATURE: '✍️ Signature' };
+    const target = targetMap[ac.targetAudience] || '—';
+    const type = typeMap[ac.actionType] || '⚙️ Non défini';
+    const mode = ac.managementMode === 'AI' ? '🤖 IA' : '👨 Humain';
+    return { target, type, mode };
+  };
+
   // Update field
   const updateField = (field, value) => {
     setConfig(prev => ({ ...prev, [field]: value }));
@@ -1612,6 +1663,12 @@ const ModuleConfigTab = ({
     });
   };
   
+  // ✅ MULTI-ACTIONS: Ref pour scroll to top
+  const configTopRef = useRef(null);
+  const scrollToTop = () => {
+    configTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  
   if (!config) {
     return (
       <div className="p-6 text-center text-gray-400">
@@ -1622,7 +1679,7 @@ const ModuleConfigTab = ({
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={configTopRef}>
       
       {/* ─────────────────────────────────────────────────────────────────
           HEADER + WARNING
@@ -1672,32 +1729,109 @@ const ModuleConfigTab = ({
       </div>
       
       {/* ─────────────────────────────────────────────────────────────────
-          ONGLETS MULTI-ACTIONS
+          ONGLETS MULTI-ACTIONS — Timeline horizontale
       ───────────────────────────────────────────────────────────────── */}
       {actions.length > 1 && (
-        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
-          {actions.map((action, index) => {
-            const blocked = isActionBlocked(index);
-            const statusIcon = action.status === 'validated' ? '✅' : blocked ? '🔒' : '⏳';
-            return (
-              <button
-                key={index}
-                type="button"
-                onClick={() => switchToAction(index)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                  activeActionIndex === index
-                    ? "bg-white text-blue-700 shadow-sm border border-blue-200"
-                    : blocked
-                      ? "text-gray-400 cursor-not-allowed bg-gray-50"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                )}
-              >
-                <span className="text-xs">{statusIcon}</span>
-                Action {index + 1}
-              </button>
-            );
-          })}
+        <div className="sticky top-0 z-20 -mx-6 px-6 py-4 bg-gradient-to-b from-white to-gray-50/80 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+          <div className="flex items-center gap-0 overflow-x-auto pb-1">
+            {actions.map((action, index) => {
+              const blocked = isActionBlocked(index);
+              const isActive = activeActionIndex === index;
+              const isValidated = action.status === 'validated';
+              const stepNumber = index + 1;
+              
+              return (
+                <React.Fragment key={index}>
+                  {/* Connecteur entre actions */}
+                  {index > 0 && (
+                    <div className="flex items-center px-1 flex-shrink-0">
+                      <div className={cn(
+                        "w-6 h-0.5 rounded-full",
+                        isValidated || actions[index - 1]?.status === 'validated'
+                          ? "bg-emerald-300"
+                          : "bg-gray-200"
+                      )} />
+                      <ChevronRight className={cn(
+                        "h-4 w-4 -ml-1 flex-shrink-0",
+                        isValidated || actions[index - 1]?.status === 'validated'
+                          ? "text-emerald-400"
+                          : "text-gray-300"
+                      )} />
+                    </div>
+                  )}
+                  
+                  {/* Card action */}
+                  <div
+                    onClick={() => !blocked && switchToAction(index)}
+                    className={cn(
+                      "group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-shrink-0 min-w-[200px] max-w-[280px]",
+                      isActive
+                        ? "bg-blue-50 border-blue-500 shadow-md shadow-blue-100"
+                        : isValidated
+                          ? "bg-emerald-50 border-emerald-300 cursor-pointer hover:shadow-sm"
+                          : blocked
+                            ? "bg-gray-50/50 border-gray-200 opacity-50 cursor-not-allowed"
+                            : "bg-white border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm"
+                    )}
+                  >
+                    {/* Pastille numérotée */}
+                    <div className={cn(
+                      "flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold flex-shrink-0 transition-all",
+                      isActive
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : isValidated
+                          ? "bg-emerald-500 text-white"
+                          : blocked
+                            ? "bg-gray-200 text-gray-400"
+                            : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
+                    )}>
+                      {isValidated ? (
+                        <Check className="h-4 w-4" />
+                      ) : blocked ? (
+                        <span className="text-xs">🔒</span>
+                      ) : (
+                        stepNumber
+                      )}
+                    </div>
+                    
+                    {/* Texte */}
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        "text-sm font-semibold leading-tight",
+                        isActive ? "text-blue-800" : isValidated ? "text-emerald-700" : "text-gray-700"
+                      )}>
+                        Action {stepNumber}
+                      </p>
+                      <p className={cn(
+                        "text-xs mt-0.5 truncate",
+                        isActive ? "text-blue-500" : "text-gray-400"
+                      )}>
+                        {action.config?.objective?.slice(0, 40) || 'Pas d\'objectif'}
+                        {action.config?.objective?.length > 40 ? '…' : ''}
+                      </p>
+                    </div>
+                    
+                    {/* Bouton supprimer — visible au hover */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAction(index);
+                      }}
+                      className={cn(
+                        "absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 shadow-sm transition-all",
+                        "opacity-0 group-hover:opacity-100",
+                        "border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                      )}
+                      title="Supprimer cette action"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
       )}
       
