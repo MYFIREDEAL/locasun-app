@@ -91,11 +91,12 @@ export function useSupabaseWorkflowModuleTemplates(organizationId, projectType =
 
       if (fetchError) throw fetchError;
 
-      // Transformer en objet indexé par moduleId
+      // Transformer en objet indexé par projectType:moduleId (clé composite unique)
       const templatesObject = {};
       (data || []).forEach((record) => {
         const transformed = transformFromDB(record);
-        templatesObject[transformed.moduleId] = transformed;
+        const key = `${transformed.projectType}:${transformed.moduleId}`;
+        templatesObject[key] = transformed;
       });
 
       setTemplates(templatesObject);
@@ -208,10 +209,11 @@ export function useSupabaseWorkflowModuleTemplates(organizationId, projectType =
 
       const transformed = transformFromDB(data);
 
-      // Mettre à jour le cache local
+      // Mettre à jour le cache local (clé composite projectType:moduleId)
+      const cacheKey = `${effectiveProjectType}:${moduleId}`;
       setTemplates((prev) => ({
         ...prev,
-        [moduleId]: transformed,
+        [cacheKey]: transformed,
       }));
 
       logger.info('[WorkflowModuleTemplates] Saved template', { 
@@ -261,10 +263,11 @@ export function useSupabaseWorkflowModuleTemplates(organizationId, projectType =
 
       if (deleteError) throw deleteError;
 
-      // Retirer du cache local
+      // Retirer du cache local (clé composite)
+      const cacheKey = `${effectiveProjectType}:${moduleId}`;
       setTemplates((prev) => {
         const updated = { ...prev };
-        delete updated[moduleId];
+        delete updated[cacheKey];
         return updated;
       });
 
@@ -287,21 +290,27 @@ export function useSupabaseWorkflowModuleTemplates(organizationId, projectType =
 
   /**
    * Vérifie si un module a une config persistée
+   * @param {string} targetProjectType - Type de projet
    * @param {string} moduleId - ID du module
    * @returns {boolean}
    */
-  const hasPersistedConfig = useCallback((moduleId) => {
-    return moduleId in templates;
-  }, [templates]);
+  const hasPersistedConfig = useCallback((targetProjectType, moduleId) => {
+    const effectivePT = targetProjectType || projectType;
+    const key = `${effectivePT}:${moduleId}`;
+    return key in templates;
+  }, [templates, projectType]);
 
   /**
    * Récupère la config persistée d'un module (depuis le cache)
+   * @param {string} targetProjectType - Type de projet
    * @param {string} moduleId - ID du module
    * @returns {Object|null}
    */
-  const getPersistedConfig = useCallback((moduleId) => {
-    return templates[moduleId]?.configJson || null;
-  }, [templates]);
+  const getPersistedConfig = useCallback((targetProjectType, moduleId) => {
+    const effectivePT = targetProjectType || projectType;
+    const key = `${effectivePT}:${moduleId}`;
+    return templates[key]?.configJson || null;
+  }, [templates, projectType]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // HELPER: Liste brute des templates (pour cockpit)

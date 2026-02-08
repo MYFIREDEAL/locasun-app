@@ -231,10 +231,10 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // 🔥 V2: Récupérer la config pour le module courant
   const currentModuleConfig = useMemo(() => {
     if (!v2Templates || !currentModuleId) return null;
-    // v2Templates est indexé par moduleId
-    const template = v2Templates[currentModuleId];
+    // v2Templates est indexé par projectType:moduleId (clé composite)
+    const template = v2Templates[`${projectType}:${currentModuleId}`];
     return template?.configJson || null;
-  }, [v2Templates, currentModuleId]);
+  }, [v2Templates, currentModuleId, projectType]);
   
   // 🔥 V2: Transformer les formulaires pour le panneau
   const v2AvailableForms = useMemo(() => {
@@ -1603,7 +1603,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             
             // Chercher la config V2 depuis Supabase (v2Templates passé en closure)
             // Note: v2Templates est accessible via le contexte parent
-            const v2Template = moduleId && v2Templates ? v2Templates[moduleId] : null;
+            const v2Template = moduleId && v2Templates ? v2Templates[`${projectType}:${moduleId}`] : null;
             const v2ActionConfig = v2Template?.configJson?.actionConfig;
             
             // Fallback: utiliser config in-memory

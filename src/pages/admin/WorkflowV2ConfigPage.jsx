@@ -101,7 +101,9 @@ const WorkflowV2ConfigPage = () => {
     const result = Object.values(templateOps.templates).map(t => 
       `${t.projectType}:${t.moduleId}`
     );
-    console.log('[V2 ConfigPage] configuredModules:', result, 'selectedProjectType:', selectedProjectType);
+    if (result.length > 0) {
+      console.log('[V2 ConfigPage] configuredModules:', JSON.stringify(result), 'looking for:', `${selectedProjectType}:inscription`);
+    }
     return result;
   }, [templateOps.templates]);
 

@@ -1691,6 +1691,14 @@ const ModuleConfigTab = ({
   const updateActionConfigField = (field, value) => {
     setActionConfig(prev => {
       const updated = { ...prev, [field]: value };
+      
+      // 🔥 ISOLATION: Quand le formulaire change, VIDER les champs requis
+      // Chaque formulaire a ses propres champs — on ne mélange jamais
+      if (field === 'allowedFormIds') {
+        updated.requiredFields = [];
+        console.log('[V2 Config Tab] Form changed → requiredFields CLEARED');
+      }
+      
       // Persister en mémoire via moduleAIConfig UNIQUEMENT si 1 seule action
       // En multi-actions, actions[] est la source de vérité (sync via useEffect)
       if (actions.length <= 1) {

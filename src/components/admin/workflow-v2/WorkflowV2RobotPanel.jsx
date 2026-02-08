@@ -470,43 +470,18 @@ const WorkflowV2RobotPanel = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           
-          {/* Multi-actions timeline */}
+          {/* Multi-actions: indicateur discret — PAS de sélection manuelle */}
+          {/* L'utilisateur traite UNE action à la fois: la première non-validée */}
           {isMultiAction && hasValidConfig && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {resolvedActions.map((action, idx) => {
-                const isActive = idx === currentActionIndex;
-                const isValidated = action.realStatus === 'validated';
-                const isPending = !isValidated;
-                return (
-                  <React.Fragment key={idx}>
-                    {idx > 0 && (
-                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                    )}
-                    <button
-                      onClick={() => {
-                        setCurrentActionIndex(idx);
-                        setGeneratedOrder(null);
-                        setExecutionResult(null);
-                      }}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
-                        isActive && "bg-blue-100 border-blue-300 text-blue-700",
-                        !isActive && isValidated && "bg-green-50 border-green-200 text-green-600",
-                        !isActive && isPending && "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100",
-                      )}
-                    >
-                      {isValidated ? (
-                        <CheckCircle className="h-3.5 w-3.5" />
-                      ) : (
-                        <span className="w-4 h-4 rounded-full bg-current opacity-30 flex items-center justify-center text-[10px] text-white font-bold">
-                          {idx + 1}
-                        </span>
-                      )}
-                      Action {idx + 1}
-                    </button>
-                  </React.Fragment>
-                );
-              })}
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
+              <span className="text-xs text-blue-600 font-medium">
+                📋 Étape {currentActionIndex + 1} sur {totalActions}
+              </span>
+              {currentActionIndex > 0 && (
+                <span className="text-xs text-green-600">
+                  ({currentActionIndex} terminée{currentActionIndex > 1 ? 's' : ''})
+                </span>
+              )}
             </div>
           )}
 
