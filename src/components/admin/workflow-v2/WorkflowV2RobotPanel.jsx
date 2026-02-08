@@ -379,12 +379,33 @@ const WorkflowV2RobotPanel = ({
   // AUTO-SIMULATE on open if config exists
   // ─────────────────────────────────────────────────────────────────────────
   
+  // 🔥 FIX: Track previous action index to detect changes
+  const prevActionIndexRef = React.useRef(currentActionIndex);
+  
   useEffect(() => {
-    if (isOpen && hasValidConfig && !generatedOrder) {
-      handleSimulate();
+    const actionIndexChanged = prevActionIndexRef.current !== currentActionIndex;
+    prevActionIndexRef.current = currentActionIndex;
+    
+    // Reset order quand on change d'action (évite d'exécuter le formulaire de l'ancienne action)
+    if (actionIndexChanged) {
+      setGeneratedOrder(null);
+      setExecutionResult(null);
+    }
+    
+    // 🔥 FIX: Ne PAS auto-simuler tant que les status DB ne sont pas chargés
+    // (sinon on simule Action 1 au lieu de la bonne action courante)
+    if (isOpen && hasValidConfig && !loadingStatus) {
+      // Auto-simulate si pas d'order ou si l'action a changé
+      if (!generatedOrder || actionIndexChanged) {
+        // Petit délai pour laisser le state se stabiliser après le reset
+        const timer = setTimeout(() => {
+          handleSimulate();
+        }, actionIndexChanged ? 50 : 0);
+        return () => clearTimeout(timer);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, hasValidConfig]);
+  }, [isOpen, hasValidConfig, loadingStatus, currentActionIndex]);
 
   // Reset on close
   useEffect(() => {
