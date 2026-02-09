@@ -293,6 +293,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true); // 🔥 État de chargement auth
   const [adminReady, setAdminReady] = useState(false); // 🔥 Flag pour activer les hooks Supabase
   const [session, setSession] = useState(null); // 🔥 Session Supabase
+  const [unlinkedInOrg, setUnlinkedInOrg] = useState(false); // 🔥 Multi-tenant: compte non lié à l'orga du hostname
   // ❌ SUPPRIMÉ : const [clientFormPanels, setClientFormPanels] = useState([]);
   const hasHydratedGlobalPipelineSteps = useRef(false);
 
@@ -735,42 +736,38 @@ function App() {
         return;
       }
 
-      // 🔥 CLIENT - Charger le prospect depuis Supabase
-      // Étape 1 : Chercher par user_id
-      let { data: prospect } = await supabase
-        .from("prospects")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
+      // 🔥 CLIENT - Charger le prospect depuis Supabase (scopé à l'orga du hostname)
+      // Étape 1 : Chercher par user_id + organization_id (aucun fallback cross-tenant)
+      let prospect = null;
 
-      // Étape 2 : Si pas trouvé par user_id, chercher par email et associer
-      // ⚠️ Prendre le prospect le plus récent si plusieurs ont le même email (multi-org)
-      if (!prospect) {
-        const email = session?.user?.email;
-        if (email) {
-          const { data: byEmail } = await supabase
-            .from("prospects")
-            .select("*")
-            .eq("email", email)
-            .order('created_at', { ascending: false }) // 🔥 Le plus récent d'abord
-            .limit(1)
-            .maybeSingle();
+      if (organizationId) {
+        const { data: prospectByUser } = await supabase
+          .from("prospects")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("organization_id", organizationId)
+          .maybeSingle();
 
-          if (byEmail) {
-            logger.debug('Prospect found by email, linking user_id', { userId });
-            await supabase
-              .from("prospects")
-              .update({ user_id: userId })
-              .eq("id", byEmail.id);
-            
-            prospect = { ...byEmail, user_id: userId };
-          } else {
-            // Si aucun prospect trouvé, ne rien faire
-            // L'admin doit créer le prospect manuellement
-            logger.debug('No prospect found for this user');
-          }
-        }
+        prospect = prospectByUser || null;
+      } else {
+        logger.warn('OrganizationId manquant lors du chargement prospect client');
       }
+
+      // Aucun prospect lié dans cette organisation : ne pas lier par email (multi-tenant)
+      if (!prospect) {
+        logger.debug('No prospect linked in this organization for user', { userId, organizationId });
+        setUnlinkedInOrg(true);
+        setCurrentUser(null);
+        // 🔥 Ne pas changer d'organisation ni rediriger
+        setTimeout(() => {
+          setAuthLoading(false);
+          isLoadingAuthRef.current = false;
+        }, 0);
+        return;
+      }
+
+      // Prospect trouvé dans l'orga courante : reset flag
+      setUnlinkedInOrg(false);
 
       if (prospect) {
         // 🔥 PR-5: Vérifier si l'organisation est suspendue
@@ -1844,6 +1841,13 @@ function App() {
         <meta property="og:title" content={getPageTitle()} />
         <meta property="og:description" content={getPageDescription()} />
       </Helmet>
+
+      {unlinkedInOrg && !authLoading && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 text-sm flex items-center gap-2">
+          <span className="font-semibold">Compte non rattaché à cette organisation.</span>
+          <span>Demandez une invitation.</span>
+        </div>
+      )}
       
       {/* 🔥 PR-6: Suspense pour les composants lazy-loaded */}
       <Suspense fallback={
