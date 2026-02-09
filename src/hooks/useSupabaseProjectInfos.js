@@ -13,8 +13,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export const useSupabaseProjectInfos = () => {
+  const { organizationId } = useOrganization();
   // État local : structure { [prospectId]: { [projectType]: { amount, status } } }
   const [projectInfos, setProjectInfos] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -61,13 +63,19 @@ export const useSupabaseProjectInfos = () => {
   useEffect(() => {
     const fetchProjectInfos = async () => {
       try {
+        if (!organizationId) {
+          setProjectInfos({});
+          setIsLoading(false);
+          return;
+        }
+
         setIsLoading(true);
         setError(null);
 
-        const { data, error: fetchError } = await supabase
-          .from('project_infos')
-          .select('prospect_id, project_type, data')
-          .order('created_at', { ascending: false });
+        // 🔥 MULTI-ORG: Lecture via RPC (plus de .from('project_infos') en lecture)
+        const { data, error: fetchError } = await supabase.rpc('get_project_infos_for_org', {
+          p_organization_id: organizationId,
+        });
 
         if (fetchError) {
           logger.error('Erreur chargement project_infos:', { error: fetchError.message });
@@ -88,7 +96,7 @@ export const useSupabaseProjectInfos = () => {
     };
 
     fetchProjectInfos();
-  }, [transformSupabaseToLocal]);
+  }, [transformSupabaseToLocal, organizationId]);
 
   /**
    * Écoute les changements en temps réel sur la table project_infos

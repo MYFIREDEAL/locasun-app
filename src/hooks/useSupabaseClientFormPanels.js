@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { logger } from '@/lib/logger';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 /**
  * Hook pour gérer les formulaires envoyés aux clients via Supabase
  * Table: client_form_panels
  */
 export function useSupabaseClientFormPanels(prospectId = null) {
+  const { organizationId } = useOrganization();
   const [formPanels, setFormPanels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,6 +48,14 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       setLoading(false);
       return;
     }
+
+    // 🔥 MULTI-ORG: Toujours exiger organizationId pour les lectures via RPC
+    // (le backend est multi-org, plus de .from('client_form_panels') en lecture)
+    if (!organizationId) {
+      setFormPanels([]);
+      setLoading(false);
+      return;
+    }
     
     const fetchFormPanels = async () => {
       try {
@@ -64,26 +74,20 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           return;
         }
         
-        // 🔥 Si prospectId === null, charger TOUS les formulaires (pour admin)
-        let query = supabase
-          .from('client_form_panels')
-          .select('*');
-        
-        if (prospectId) {
-          query = query.eq('prospect_id', prospectId);
-          logger.debug('Filter applied', { prospectId });
-        } else {
-          logger.debug('No filter (admin mode)');
-        }
-        
-        const { data, error } = await query.order('created_at', { ascending: false });
+        // 🔥 MULTI-ORG: Lecture via RPC
+        // - prospectId truthy => client mode (filtré par prospect)
+        // - prospectId falsy (null) => admin mode (tous les panels de l'org)
+        const { data, error } = await supabase.rpc('get_client_form_panels_for_org', {
+          p_organization_id: organizationId,
+          p_prospect_id: prospectId || null,
+        });
 
         if (error) {
           logger.error('Supabase SELECT error:', error.message);
           throw error;
         }
 
-        logger.debug('Form panels loaded', { raw: data?.length || 0 });
+  logger.debug('Form panels loaded', { raw: data?.length || 0, organizationId, prospectId });
         const transformed = Array.isArray(data) ? data.map(transformFromDB) : [];
         logger.debug('Form panels transformed', { count: transformed.length });
         setFormPanels(transformed);
@@ -145,7 +149,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [prospectId]);
+  }, [prospectId, organizationId]);
 
   // Mettre à jour un formulaire
   const updateFormPanel = async (panelId, updates) => {

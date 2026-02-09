@@ -95,16 +95,15 @@ export function useSupabaseGlobalPipeline(organizationId = null) {
       setLoading(true);
       setError(null);
 
-      // 🔥 MULTI-TENANT: Filtrer par organization_id OU null (global)
-      const { data, error: fetchError } = await supabase
-        .from('global_pipeline_steps')
-        .select('*')
-        .or(`organization_id.eq.${organizationId},organization_id.is.null`)
-        .order('position', { ascending: true });
+      // 🔥 MULTI-ORG: Lecture via RPC (plus de .from('global_pipeline_steps'))
+      const { data, error: fetchError } = await supabase.rpc('get_global_pipeline_steps_for_org', {
+        p_organization_id: organizationId,
+      });
 
       if (fetchError) throw fetchError;
 
-      setGlobalPipelineSteps(data || []);
+      const sorted = Array.isArray(data) ? [...data].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) : [];
+      setGlobalPipelineSteps(sorted);
     } catch (err) {
       logger.error('❌ Erreur fetch global pipeline steps:', err);
       setError(err.message);

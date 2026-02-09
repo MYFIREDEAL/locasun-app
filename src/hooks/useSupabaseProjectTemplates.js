@@ -119,26 +119,15 @@ export function useSupabaseProjectTemplates({ organizationId = null, enabled = t
       setLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('project_templates')
-        .select('*')
-        .order('type', { ascending: true });
-
-      // 🔥 MULTI-TENANT: Filtrer par organization_id
-      if (orgId) {
-        // Templates globaux (NULL) OU templates de cette org
-        query = query.or(`organization_id.is.null,organization_id.eq.${orgId}`);
-      } else {
-        // Pas d'org = uniquement templates globaux
-        query = query.is('organization_id', null);
-      }
-
-      const { data, error: fetchError } = await query;
+      // 🔥 MULTI-ORG: Lecture via RPC (plus de .from('project_templates') en lecture)
+      const { data, error: fetchError } = await supabase.rpc('get_project_templates_for_org', {
+        p_organization_id: orgId,
+      });
 
       if (fetchError) throw fetchError;
 
       // ✅ TRANSFORMER snake_case → camelCase pour compatibilité avec l'app
-      const transformedData = (data || []).map(template => ({
+      const transformedData = (Array.isArray(data) ? data : []).map(template => ({
         ...template,
         clientTitle: template.client_title,
         isPublic: template.is_public,
@@ -147,6 +136,8 @@ export function useSupabaseProjectTemplates({ organizationId = null, enabled = t
         ctaText: template.cta_text
       }));
 
+      // Conserver l'ancien comportement: ordre par type
+      transformedData.sort((a, b) => (a.type || '').localeCompare(b.type || ''));
       setProjectTemplates(transformedData);
     } catch (err) {
       logger.error('Erreur fetch project templates:', { error: err.message });

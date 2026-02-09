@@ -44,11 +44,10 @@ export function useSupabasePrompts({ organizationId = null, enabled = true } = {
     const fetchPrompts = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('prompts')
-          .select('*')
-          .eq('organization_id', organizationId)  // 🔥 Filtrer par org !
-          .order('created_at', { ascending: false });
+        // 🔥 MULTI-ORG: Lecture via RPC (plus de .from('prompts') en lecture)
+        const { data, error } = await supabase.rpc('get_prompts_for_org', {
+          p_organization_id: organizationId,
+        });
 
         if (error) throw error;
 
@@ -213,11 +212,10 @@ export function useSupabasePrompts({ organizationId = null, enabled = true } = {
     if (!organizationId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
+      // 🔥 MULTI-ORG: Lecture via RPC (plus de .from('prompts') en lecture)
+      const { data, error } = await supabase.rpc('get_prompts_for_org', {
+        p_organization_id: organizationId,
+      });
 
       if (error) throw error;
 
