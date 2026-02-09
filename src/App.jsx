@@ -1886,21 +1886,10 @@ function App() {
       </Helmet>
 
       {unlinkedInOrg && !authLoading && (
-        (
-          console.log('[DEBUG ORG]', {
-            hostname: window.location.hostname,
-            organizationIdFromContext: organizationId,
-            sessionUserId: session?.user?.id ?? null,
-            prospectFound: Boolean(currentUser),
-            unlinkedInOrg,
-          }),
-          (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 text-sm flex items-center gap-2">
-              <span className="font-semibold">Compte non rattaché à cette organisation.</span>
-              <span>Demandez une invitation.</span>
-            </div>
-          )
-        )
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 text-sm flex items-center gap-2">
+          <span className="font-semibold">Compte non rattaché à cette organisation.</span>
+          <span>Demandez une invitation.</span>
+        </div>
       )}
       
       {/* 🔥 PR-6: Suspense pour les composants lazy-loaded */}
