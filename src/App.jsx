@@ -869,6 +869,7 @@ function App() {
 
     if (isPublicRoute) {
       setActiveAdminUser(null);
+      setUnlinkedInOrg(false);
       // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
       setTimeout(() => {
         setAuthLoading(false);
