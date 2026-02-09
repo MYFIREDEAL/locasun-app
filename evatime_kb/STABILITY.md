@@ -51,6 +51,49 @@ Aucune exception.
 
 ---
 
+## ⚠️ RÈGLE ABSOLUE — RLS CLIENT
+
+❌ INTERDIT ABSOLU
+
+Créer une policy `SELECT` sur une table métier (`prospects`, `project_steps_status`, etc.)
+avec :
+- `TO public`
+- mélangeant logique client + admin
+- dépendant de fonctions type `get_my_organization_id()`
+
+➡️ Cela peut BLOQUER des policies client pourtant correctes.
+
+---
+
+✅ RÈGLE OBLIGATOIRE
+
+Les policies `SELECT` doivent être **séparées par rôle** :
+
+### Client
+```sql
+TO authenticated
+USING (user_id = auth.uid())
+```
+
+### Admin
+
+```sql
+TO authenticated
+USING (role + organization logic)
+```
+
+---
+
+🧠 PRINCIPE
+
+* ❌ Jamais de `SELECT TO public` pour des données métier
+* ❌ Jamais de policy “fourre-tout”
+* ✅ Une policy = un rôle = une intention claire
+
+Toute violation = bug silencieux garanti.
+
+---
+
 ## 4️⃣ RÈGLE ABSOLUE — useEffect
 
 * Les dépendances doivent être complètes
