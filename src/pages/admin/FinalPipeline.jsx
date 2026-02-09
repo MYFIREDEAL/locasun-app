@@ -625,13 +625,16 @@ const FinalPipeline = () => {
       if (newProspectData.sendInvitation && createdProspect.email) {
         try {
           const redirectUrl = `${window.location.origin}/dashboard`;
-          console.log('[handleAddProspect] 📧 Sending magic link to:', createdProspect.email.trim(), 'redirect:', redirectUrl);
+          console.log('[handleAddProspect] 📧 Sending magic link to:', createdProspect.email.trim(), 'redirect:', redirectUrl, 'org:', organizationId);
           
           const { error: magicLinkError } = await supabase.auth.signInWithOtp({
             email: createdProspect.email.trim(),
             options: {
               shouldCreateUser: true,
               emailRedirectTo: redirectUrl,
+              data: {
+                organization_id: organizationId, // 🔥 Multi-tenant: passer l'org_id pour le trigger
+              }
             }
           });
 

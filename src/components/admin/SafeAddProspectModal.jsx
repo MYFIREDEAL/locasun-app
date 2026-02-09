@@ -285,12 +285,15 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
                 <Checkbox
                   id="sendInvitation"
                   checked={sendInvitation}
-                  onCheckedChange={(checked) => setSendInvitation(checked)}
+                  onCheckedChange={(checked) => {
+                    console.log('[SafeAddProspectModal] sendInvitation changed to:', checked);
+                    setSendInvitation(Boolean(checked));
+                  }}
                   disabled={!formData.email || formData.email.trim() === ''}
                 />
                 <Label 
                   htmlFor="sendInvitation" 
-                  className={`font-normal ${!formData.email || formData.email.trim() === '' ? 'text-gray-400' : ''}`}
+                  className={`font-normal cursor-pointer ${!formData.email || formData.email.trim() === '' ? 'text-gray-400' : ''}`}
                 >
                   Envoyer une invitation au client
                   {(!formData.email || formData.email.trim() === '') && (
