@@ -560,7 +560,9 @@ const FinalPipeline = () => {
         name: newProspectData.name,
         email: newProspectData.email,
         status: firstStepId,
-        ownerId: activeAdminUser?.user_id
+        ownerId: activeAdminUser?.user_id,
+        sendInvitation: newProspectData.sendInvitation, // 🔍 DEBUG
+        allData: newProspectData // 🔍 DEBUG - voir toutes les données
       });
       
       // PR-4.1: Appel direct, erreurs non masquées

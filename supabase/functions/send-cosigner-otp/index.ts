@@ -34,6 +34,27 @@ serve(async (req) => {
       )
     }
 
+    // 🔥 Récupérer l'organization_id via la signature_procedure
+    let orgBrandName = 'EVATIME'
+    const { data: procedure } = await supabaseClient
+      .from('signature_procedures')
+      .select('organization_id')
+      .eq('id', tokenData.signature_procedure_id)
+      .single()
+    
+    if (procedure?.organization_id) {
+      const { data: orgSettings } = await supabaseClient
+        .from('organization_settings')
+        .select('display_name, brand_name')
+        .eq('organization_id', procedure.organization_id)
+        .single()
+      
+      if (orgSettings) {
+        orgBrandName = orgSettings.display_name || orgSettings.brand_name || 'EVATIME'
+        console.log('🏢 Org brand name:', orgBrandName)
+      }
+    }
+
     // Vérifier expiration du token
     if (new Date(tokenData.expires_at) < new Date()) {
       return new Response(
@@ -105,9 +126,9 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'EVATIME <noreply@evatime.fr>',
+          from: `${orgBrandName} <noreply@evatime.fr>`,
           to: [tokenData.signer_email],
-          subject: 'Code de vérification - Signature de document',
+          subject: `Code de vérification - ${orgBrandName}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2563eb;">Code de vérification</h2>

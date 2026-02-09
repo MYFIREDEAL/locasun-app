@@ -41,6 +41,21 @@ serve(async (req) => {
       )
     }
 
+    // 🔥 Récupérer le branding de l'organisation (multi-tenant)
+    let orgBrandName = 'EVATIME'
+    if (procedure.organization_id) {
+      const { data: orgSettings } = await supabaseClient
+        .from('organization_settings')
+        .select('display_name, brand_name')
+        .eq('organization_id', procedure.organization_id)
+        .single()
+      
+      if (orgSettings) {
+        orgBrandName = orgSettings.display_name || orgSettings.brand_name || 'EVATIME'
+        console.error('🏢 Org brand name:', orgBrandName)
+      }
+    }
+
     // Vérifier que tous les signataires ont signé
     if (procedure.status !== 'completed') {
       return new Response(
@@ -346,19 +361,26 @@ serve(async (req) => {
           </div>
         `
 
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: 'LOCASUN <noreply@locasun.fr>',
-            to: [signer.email],
-            subject: '✓ Document signé - Confirmation',
-            html: emailHtml,
-          }),
-        }).catch(err => console.error('Erreur envoi email confirmation:', err))
+        console.error(`📧 Envoi email à ${signer.email}...`)
+        try {
+          const emailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${resendApiKey}`,
+            },
+            body: JSON.stringify({
+              from: `${orgBrandName} <noreply@evatime.fr>`,
+              to: [signer.email],
+              subject: `✓ Document signé - ${orgBrandName}`,
+              html: emailHtml,
+            }),
+          })
+          const emailResult = await emailResponse.json()
+          console.error(`📧 Email result for ${signer.email}:`, JSON.stringify(emailResult))
+        } catch (err) {
+          console.error(`❌ Erreur envoi email à ${signer.email}:`, err)
+        }
       }
     }
 

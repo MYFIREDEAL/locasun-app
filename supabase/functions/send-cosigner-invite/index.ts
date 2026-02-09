@@ -26,7 +26,7 @@ serve(async (req) => {
     // Récupérer la procédure
     const { data: procedure, error: procError } = await supabaseClient
       .from('signature_procedures')
-      .select('id, signers, prospect_id')
+      .select('id, signers, prospect_id, organization_id')
       .eq('id', signature_procedure_id)
       .single()
 
@@ -38,6 +38,21 @@ serve(async (req) => {
         JSON.stringify({ error: 'Procédure non trouvée' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // 🔥 Récupérer le branding de l'organisation (multi-tenant)
+    let orgBrandName = 'EVATIME'
+    if (procedure.organization_id) {
+      const { data: orgSettings } = await supabaseClient
+        .from('organization_settings')
+        .select('display_name, brand_name')
+        .eq('organization_id', procedure.organization_id)
+        .single()
+      
+      if (orgSettings) {
+        orgBrandName = orgSettings.display_name || orgSettings.brand_name || 'EVATIME'
+        console.log('🏢 Org brand name:', orgBrandName)
+      }
     }
 
     // Récupérer les cosigners pending
@@ -118,9 +133,9 @@ serve(async (req) => {
             'Authorization': `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: 'EVATIME <noreply@evatime.fr>',
+            from: `${orgBrandName} <noreply@evatime.fr>`,
             to: [cosigner.email],
-            subject: 'Invitation à signer un document',
+            subject: `Invitation à signer un document - ${orgBrandName}`,
             html: emailHtml,
           }),
         })
