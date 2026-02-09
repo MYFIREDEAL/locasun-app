@@ -37,7 +37,7 @@ export const useBranding = (organizationId) => {
           .from('organization_settings')
           .select('display_name, logo_url, primary_color, secondary_color')
           .eq('organization_id', organizationId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           logger.warn('[useBranding] Erreur lors du chargement (table organization_settings peut ne pas exister):', error);
