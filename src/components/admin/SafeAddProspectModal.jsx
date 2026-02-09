@@ -178,11 +178,18 @@ const SafeAddProspectModal = ({ open, onOpenChange, onAddProspect }) => {
     }
 
     // 🔥 Ne pas générer d'ID temporaire, Supabase le fera
+    const sendInvitationFinal = sendInvitation && formData.email && formData.email.trim() !== '';
+    console.log('[SafeAddProspectModal] 🔍 Submit check:', {
+      sendInvitationCheckbox: sendInvitation,
+      email: formData.email,
+      sendInvitationFinal
+    });
+    
     const newProspect = {
       ...formData,
       tags: formData.tags,
       hasAppointment: false,
-      sendInvitation: sendInvitation && formData.email && formData.email.trim() !== '', // Demande d'invitation explicite
+      sendInvitation: sendInvitationFinal, // Demande d'invitation explicite
       // ownerId sera défini dans le handler parent (FinalPipeline ou CompleteOriginalContacts)
     };
 
