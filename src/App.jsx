@@ -668,6 +668,10 @@ function App() {
   const isLoadingAuthRef = useRef(false);
 
   async function loadAuthUser(userId) {
+    // 🔥 MULTI-TENANT GUARD:
+    // Ne jamais faire le lookup client tant que l'orga (hostname) n'est pas résolue.
+    // Sinon, on peut poser à tort unlinkedInOrg=true (faux négatif transitoire).
+    // Admin lookup reste OK sans organizationId.
     if (isLoadingAuthRef.current) return;
     isLoadingAuthRef.current = true;
 
@@ -737,21 +741,32 @@ function App() {
       }
 
       // 🔥 CLIENT - Charger le prospect depuis Supabase (scopé à l'orga du hostname)
+      // ⚠️ IMPORTANT: Ne pas exécuter ce lookup si l'orga n'est pas prête.
+      // On retournera "authLoading=false" sans poser unlinkedInOrg.
+      if (!organizationReady || !organizationId) {
+        logger.debug('Client lookup skipped: organization context not ready', {
+          userId,
+          organizationReady,
+          organizationId,
+        });
+        setTimeout(() => {
+          setAuthLoading(false);
+          isLoadingAuthRef.current = false;
+        }, 0);
+        return;
+      }
+
       // Étape 1 : Chercher par user_id + organization_id (aucun fallback cross-tenant)
       let prospect = null;
 
-      if (organizationId) {
-        const { data: prospectByUser } = await supabase
-          .from("prospects")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("organization_id", organizationId)
-          .maybeSingle();
+      const { data: prospectByUser } = await supabase
+        .from("prospects")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("organization_id", organizationId)
+        .maybeSingle();
 
-        prospect = prospectByUser || null;
-      } else {
-        logger.warn('OrganizationId manquant lors du chargement prospect client');
-      }
+      prospect = prospectByUser || null;
 
       // Aucun prospect lié dans cette organisation : ne pas lier par email (multi-tenant)
       if (!prospect) {
@@ -864,12 +879,17 @@ function App() {
     if (!session) {
       setActiveAdminUser(null);
       setCurrentUser(null);
+      setUnlinkedInOrg(false);
       // 🔥 FIX React Error #310: Attendre un tick pour batch state updates
       setTimeout(() => {
         setAuthLoading(false);
       }, 0);
       return;
     }
+
+    // 🔥 IMPORTANT: Réinitialiser l'état "non rattaché" pendant les transitions
+    // (ex: org en cours de résolution / changement) pour éviter un flash UI.
+    setUnlinkedInOrg(false);
 
     setAuthLoading(true); // 🔥 Mettre loading AVANT de charger
     loadAuthUser(session.user.id);
@@ -882,6 +902,28 @@ function App() {
       }, 1000);
     }
   }, [session]);
+
+  // 🔥 MULTI-TENANT: Relancer le chargement utilisateur dès que l'orga devient prête.
+  // Cas: session déjà établie (Magic Link), mais organizationId pas encore résolue.
+  // Sans ça, on peut rester sans currentUser et afficher "non rattaché" à tort.
+  useEffect(() => {
+    if (!session) return;
+    if (!organizationReady || !organizationId) return;
+
+    // Éviter de relancer si un admin est déjà chargé (les routes admin n'ont pas besoin de ce gating)
+    if (activeAdminUser) return;
+
+    // Si on n'a pas encore de client chargé et qu'on n'est pas déjà en train de charger,
+    // relancer le lookup maintenant que l'orga est stable.
+    if (!currentUser && !isLoadingAuthRef.current) {
+      logger.debug('Organization ready - triggering deferred user load', {
+        organizationId,
+        userId: session.user?.id,
+      });
+      setAuthLoading(true);
+      loadAuthUser(session.user.id);
+    }
+  }, [organizationReady, organizationId, session, activeAdminUser, currentUser]);
 
   // 🔥 REAL-TIME POUR LE CLIENT : Écouter les mises à jour du prospect du client connecté
   useEffect(() => {
