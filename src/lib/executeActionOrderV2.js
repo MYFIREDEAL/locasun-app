@@ -401,6 +401,11 @@ async function executeSignatureAction(order, context) {
   logV2('✅ PDF généré via V1', { fileId, fileName: pdfResult.fileData.file_name });
   
   // 5. Créer une procédure de signature PENDING (schéma Supabase existant)
+  // 🔥 FIX: Générer access_token et expires_at pour que le lien fonctionne
+  const accessToken = crypto.randomUUID();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // Expire dans 7 jours
+  
   const { data: procedure, error: procedureError } = await supabase
     .from('signature_procedures')
     .insert({
@@ -408,6 +413,11 @@ async function executeSignatureAction(order, context) {
       project_type: projectType || 'general',
       file_id: fileId,  // ✅ Utilise le fileId du PDF généré (ou placeholder)
       status: 'pending',
+      // 🔥 FIX: Ajouter les champs manquants
+      access_token: accessToken,
+      access_token_expires_at: expiresAt.toISOString(),
+      signer_name: signerName,
+      signer_email: signerEmail,
       signers: [
         {
           name: signerName,
@@ -415,6 +425,7 @@ async function executeSignatureAction(order, context) {
           role: 'signer',
           status: 'pending',
           signed_at: null,
+          access_token: accessToken, // 🔥 Token dans le tableau aussi
         }
       ],
       form_data: formData,
