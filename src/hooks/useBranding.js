@@ -33,11 +33,9 @@ export const useBranding = (organizationId) => {
 
         logger.info('[useBranding] Chargement branding pour organization:', organizationId);
 
-        const { data, error } = await supabase
-          .from('organization_settings')
-          .select('display_name, logo_url, primary_color, secondary_color')
-          .eq('organization_id', organizationId)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('get_organization_settings_for_org', {
+          p_organization_id: organizationId,
+        });
 
         if (error) {
           logger.warn('[useBranding] Erreur lors du chargement (table organization_settings peut ne pas exister):', error);
@@ -46,18 +44,20 @@ export const useBranding = (organizationId) => {
           return;
         }
 
-        if (!data) {
+        const settings = data || null;
+
+        if (!settings) {
           logger.info('[useBranding] Aucun paramètre de branding trouvé, utilisation des valeurs par défaut');
           setBrandingLoading(false);
           return;
         }
 
-        logger.info('[useBranding] Branding chargé:', data);
+        logger.info('[useBranding] Branding chargé:', settings);
 
-        setBrandName(data.display_name);
-        setLogoUrl(data.logo_url);
-        setPrimaryColor(data.primary_color);
-        setSecondaryColor(data.secondary_color);
+        setBrandName(settings.display_name);
+        setLogoUrl(settings.logo_url);
+        setPrimaryColor(settings.primary_color);
+        setSecondaryColor(settings.secondary_color);
         setBrandingLoading(false);
       } catch (err) {
         logger.warn('[useBranding] Exception lors du chargement, fallback vers valeurs par défaut:', err);
