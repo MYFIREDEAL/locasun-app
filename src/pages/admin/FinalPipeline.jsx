@@ -616,9 +616,16 @@ const FinalPipeline = () => {
       }
 
       // 🔥 PR-4.2: Envoyer invitation client si demandé
+      console.log('[handleAddProspect] 🔍 sendInvitation check:', {
+        sendInvitation: newProspectData.sendInvitation,
+        email: createdProspect.email,
+        willSend: newProspectData.sendInvitation && createdProspect.email
+      });
+      
       if (newProspectData.sendInvitation && createdProspect.email) {
         try {
           const redirectUrl = `${window.location.origin}/dashboard`;
+          console.log('[handleAddProspect] 📧 Sending magic link to:', createdProspect.email.trim(), 'redirect:', redirectUrl);
           
           const { error: magicLinkError } = await supabase.auth.signInWithOtp({
             email: createdProspect.email.trim(),
@@ -629,14 +636,14 @@ const FinalPipeline = () => {
           });
 
           if (magicLinkError) {
-            console.error('[handleAddProspect] invitation error', magicLinkError);
+            console.error('[handleAddProspect] ❌ invitation error', magicLinkError);
             toast({
               title: "Prospect créé",
               description: `⚠️ Invitation non envoyée: ${magicLinkError.message}`,
               variant: "warning",
             });
           } else {
-            console.log('[handleAddProspect] invitation sent to', createdProspect.email);
+            console.log('[handleAddProspect] ✅ invitation sent to', createdProspect.email);
             toast({
               title: "✅ Prospect créé",
               description: `Invitation envoyée à ${createdProspect.email}`,
@@ -644,7 +651,7 @@ const FinalPipeline = () => {
             });
           }
         } catch (inviteErr) {
-          console.error('[handleAddProspect] invitation exception', inviteErr);
+          console.error('[handleAddProspect] 💥 invitation exception', inviteErr);
           // Ne pas bloquer la création, juste avertir
           toast({
             title: "Prospect créé",
@@ -652,6 +659,10 @@ const FinalPipeline = () => {
             variant: "warning",
           });
         }
+      } else {
+        console.log('[handleAddProspect] ⏭️ Skipping invitation:', {
+          reason: !newProspectData.sendInvitation ? 'sendInvitation=false' : 'no email'
+        });
       }
 
       setIsAddModalOpen(false);

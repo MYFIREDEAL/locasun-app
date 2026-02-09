@@ -4,7 +4,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
 import { logger } from '@/lib/logger';
-import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, FileText, Download, Edit, Save, X, Building, User, Send, Paperclip, Bot, Tag, GripVertical, Hash, Calendar, Check, Users, Trash2, Plus, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MessageCircle, MapPin, FileText, Download, Edit, Save, X, Building, User, Send, Paperclip, Bot, Tag, GripVertical, Hash, Calendar, Check, Users, Trash2, Plus, ExternalLink, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -3323,7 +3323,7 @@ const ProspectDetailsAdmin = ({
       .filter(project => project.isPublic && !currentTags.includes(project.type));
   };
 
-  const handleActionClick = (action) => {
+  const handleActionClick = async (action) => {
     switch (action) {
       case 'Appel':
         // 🔥 FIX: Utiliser editableProspect
@@ -3355,6 +3355,52 @@ const ProspectDetailsAdmin = ({
           } else {
             window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
           }
+        }
+        break;
+      case 'Invitation':
+        // 🔥 Envoyer/Renvoyer magic link au prospect
+        if (!editableProspect.email) {
+          toast({
+            title: "Email manquant",
+            description: "Ce prospect n'a pas d'email.",
+            variant: "destructive",
+          });
+          return;
+        }
+        try {
+          const redirectUrl = `${window.location.origin}/dashboard`;
+          console.log('[handleActionClick] 📧 Sending magic link to:', editableProspect.email);
+          
+          const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+            email: editableProspect.email.trim(),
+            options: {
+              shouldCreateUser: true,
+              emailRedirectTo: redirectUrl,
+            }
+          });
+
+          if (magicLinkError) {
+            console.error('[handleActionClick] ❌ Magic link error:', magicLinkError);
+            toast({
+              title: "❌ Erreur envoi invitation",
+              description: magicLinkError.message,
+              variant: "destructive",
+            });
+          } else {
+            console.log('[handleActionClick] ✅ Magic link sent to:', editableProspect.email);
+            toast({
+              title: "✅ Invitation envoyée",
+              description: `Magic link envoyé à ${editableProspect.email}`,
+              className: "bg-green-500 text-white",
+            });
+          }
+        } catch (err) {
+          console.error('[handleActionClick] 💥 Exception:', err);
+          toast({
+            title: "❌ Erreur",
+            description: err.message,
+            variant: "destructive",
+          });
         }
         break;
       default:
@@ -3535,11 +3581,16 @@ const ProspectDetailsAdmin = ({
             }, {
               icon: MapPin,
               label: 'GPS'
+            }, {
+              icon: UserPlus,
+              label: 'Invitation',
+              highlight: !editableProspect.userId // 🔥 Mettre en évidence si pas encore invité
             }].map(({
               icon: Icon,
-              label
-            }) => <button key={label} onClick={() => handleActionClick(label)} className="flex flex-col items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors group">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100">
+              label,
+              highlight
+            }) => <button key={label} onClick={() => handleActionClick(label)} className={`flex flex-col items-center space-x-1 transition-colors group ${highlight ? 'text-orange-600 hover:text-orange-700' : 'text-gray-600 hover:text-blue-600'}`}>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${highlight ? 'bg-orange-100 group-hover:bg-orange-200' : 'bg-gray-100 group-hover:bg-blue-100'}`}>
                         <Icon className="h-6 w-6" />
                       </div>
                       <span className="text-xs font-medium">{label}</span>
