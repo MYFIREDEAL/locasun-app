@@ -3,7 +3,7 @@
 > **À LIRE AVANT DE TOUCHER AU CODE**
 > Ce document explique **comment penser EVATIME**, pas comment coder.
 
-> 📍 *Ce guide décrit la philosophie d'EVATIME. La logique réelle du système est documentée dans `EVATIME_CONTEXT_PACK.md`.*
+> 📍 *Ce guide décrit la philosophie d'EVATIME. La EVATIME_CONTEXT_PACK.mdlogique réelle du système est documentée dans ``.*
 
 ---
 

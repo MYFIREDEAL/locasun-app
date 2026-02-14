@@ -71,10 +71,17 @@ const statusConfig = {
 // ─────────────────────────────────────────────────────────────
 const normalizeSubSteps = (step) => {
   if (!step || !Array.isArray(step.subSteps) || step.subSteps.length === 0) return step;
+  
   const normalized = { ...step, subSteps: step.subSteps.map(s => ({
     ...s,
     status: s.status || STATUS_PENDING,
   })) };
+
+  // 🔥 FIX BUG 1: Ne normaliser les sous-étapes QUE si l'étape parente est "in_progress"
+  // Si l'étape est "pending", les sous-étapes restent "pending"
+  if (step.status !== STATUS_CURRENT) {
+    return normalized;
+  }
 
   // Si aucune sous-étape en cours, activer la première pending
   const hasCurrent = normalized.subSteps.some(s => s.status === STATUS_CURRENT);
@@ -85,10 +92,9 @@ const normalizeSubSteps = (step) => {
         ...s,
         status: idx === firstPending ? STATUS_CURRENT : s.status,
       }));
-      // L'étape parente reste en cours tant que tout n'est pas complété
-      normalized.status = normalized.status === STATUS_COMPLETED ? STATUS_CURRENT : normalized.status;
     }
   }
+  
   return normalized;
 };
 
@@ -125,6 +131,10 @@ const deriveSubStepsFromTemplate = (step, projectType, v2Templates) => {
   // Sinon, on génère les sous-étapes à partir des actions
   const baseStatus = step.status || STATUS_PENDING;
 
+  // 🔥 FIX BUG 1: Les sous-étapes doivent hériter du statut de l'étape parente
+  // Si l'étape est "in_progress" → première sous-étape en "in_progress"
+  // Si l'étape est "pending" → TOUTES les sous-étapes en "pending"
+  // Si l'étape est "completed" → TOUTES les sous-étapes en "completed"
   const subSteps = actions.map((action, idx) => ({
     id: action.id || `v2-${moduleId}-action-${idx}`,
     name: (action.config?.objective && action.config.objective.trim())
@@ -133,7 +143,9 @@ const deriveSubStepsFromTemplate = (step, projectType, v2Templates) => {
       || `Action ${idx + 1}`,
     status: baseStatus === STATUS_COMPLETED
       ? STATUS_COMPLETED
-      : (idx === 0 && baseStatus === STATUS_CURRENT ? STATUS_CURRENT : STATUS_PENDING),
+      : baseStatus === STATUS_CURRENT && idx === 0
+        ? STATUS_CURRENT
+        : STATUS_PENDING,
   }));
 
   return {
@@ -1803,7 +1815,50 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             // 🔥 MAIS: si multi-actions et toutes pas terminées → bloquer
             const shouldCompleteStep = (effectiveCompletionTrigger === 'form_approved' || !effectiveCompletionTrigger) && allActionsCompleted;
             
-            if (shouldCompleteStep && currentSteps) {
+            // 🔥 FIX BUG 2: Mettre à jour la sous-étape correspondante AVANT de compléter l'étape
+            // Trouver l'index de la sous-étape à partir de panel.action_id
+            let updatedStepsForCompletion = currentSteps; // Par défaut, utiliser les steps actuels
+            
+            if (currentSteps && currentSteps[currentStepIdx]?.subSteps?.length > 0 && panel.action_id) {
+                const currentStep = currentSteps[currentStepIdx];
+                const subStepIndex = currentStep.subSteps.findIndex(sub => sub.id === panel.action_id);
+                
+                if (subStepIndex !== -1) {
+                    logger.debug('[V2] Updating substep for approved action', {
+                        actionId: panel.action_id,
+                        subStepIndex,
+                        subStepName: currentStep.subSteps[subStepIndex].name,
+                        allActionsCompleted,
+                    });
+                    
+                    // Marquer la sous-étape comme complétée
+                    const updatedSteps = JSON.parse(JSON.stringify(currentSteps));
+                    updatedSteps[currentStepIdx].subSteps[subStepIndex].status = STATUS_COMPLETED;
+                    
+                    // Si ce n'est pas la dernière action, activer la suivante
+                    if (!allActionsCompleted) {
+                        const nextPendingIndex = updatedSteps[currentStepIdx].subSteps.findIndex(
+                            (sub, idx) => idx > subStepIndex && sub.status === STATUS_PENDING
+                        );
+                        if (nextPendingIndex !== -1) {
+                            updatedSteps[currentStepIdx].subSteps[nextPendingIndex].status = STATUS_CURRENT;
+                        }
+                    }
+                    
+                    // Sauvegarder les steps mis à jour
+                    await updateSupabaseSteps(panel.projectType, updatedSteps);
+                    
+                    // 🔥 IMPORTANT: Utiliser les steps mis à jour pour completeStepAndProceed
+                    updatedStepsForCompletion = updatedSteps;
+                    
+                    logger.info('[V2] Substep updated successfully', {
+                        completedSubStep: subStepIndex,
+                        nextActivated: !allActionsCompleted,
+                    });
+                }
+            }
+            
+            if (shouldCompleteStep && updatedStepsForCompletion) {
                 logger.info('[V2] Form approved → completing step', {
                     prospectId: prospect.id,
                     projectType: panel.projectType,
@@ -1816,7 +1871,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                     prospect.id,
                     panel.projectType,
                     currentStepIdx,
-                    currentSteps
+                    updatedStepsForCompletion
                 );
                 
                 toast({
