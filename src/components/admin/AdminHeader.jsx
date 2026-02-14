@@ -168,15 +168,8 @@ const allNavItems = [
             <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <div className="flex items-center space-x-4">
-                  <Link to="/admin" className="flex items-center space-x-3">
-                    {logoUrl ? (
-                      <img src={logoUrl} alt={brandName || 'Logo'} className="h-10 w-auto object-contain" />
-                    ) : (
-                      <div className="w-10 h-10 gradient-blue rounded-xl flex items-center justify-center shadow-card">
-                        <span className="text-white font-bold text-lg">{brandName ? brandName.charAt(0).toUpperCase() : 'A'}</span>
-                      </div>
-                    )}
-                    <span className="hidden sm:block text-2xl font-bold text-gray-900">{brandName || 'Admin'} <span className="font-light text-blue-600">Pro</span></span>
+                  <Link to="/admin" className="flex items-center">
+                    <span className="text-2xl font-bold text-gray-900">{brandName || 'Admin'} <span className="font-light text-blue-600">Pro</span></span>
                   </Link>
                 </div>
 
