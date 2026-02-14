@@ -1349,10 +1349,22 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
     // ✅ Filtrer les formulaires pour ce prospect et ce projet
     const relevantPanels = useMemo(() => {
         if (!clientFormPanels) return [];
-        return clientFormPanels.filter(panel => 
+        
+        const filtered = clientFormPanels.filter(panel => 
             panel.prospectId === prospect.id && 
             panel.projectType === projectType
         ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        // 🔥 DEBUG: Log pour identifier le problème
+        logger.debug('[ProspectForms] Filtering panels', {
+            totalPanels: clientFormPanels.length,
+            prospectId: prospect.id,
+            projectType,
+            filteredCount: filtered.length,
+            samplePanel: clientFormPanels[0],
+        });
+        
+        return filtered;
     }, [clientFormPanels, prospect.id, projectType]);
 
     // 🔥 AUTO-COMPLETE: Surveiller les nouveaux formulaires soumis et déclencher l'étape suivante
