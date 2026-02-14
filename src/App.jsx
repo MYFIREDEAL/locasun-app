@@ -587,8 +587,9 @@ function App() {
   }, [projectTemplates]);
   
   // 🔥 MULTI-TENANT: Exposer le logo pour le contexte
-  // Priorité : organization_settings.logo_url (via logoUrl du contexte) > company_settings.logo_url (fallback)
-  const companyLogo = logoUrl || companySettings?.logo_url || '';
+  // ⚠️ NE JAMAIS utiliser company_settings.logo_url en fallback (singleton partagé entre orgs)
+  // Priorité UNIQUE : organization_settings.logo_url (via logoUrl du contexte)
+  const companyLogo = logoUrl || '';
   const setCompanyLogo = updateLogo;
   
   // 🔥 PHASE 2: Double lecture form_contact_config

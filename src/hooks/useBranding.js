@@ -17,12 +17,13 @@ export const useBranding = (organizationId) => {
 
   useEffect(() => {
     if (!organizationId) {
-      logger.info('[useBranding] Pas d\'organizationId, utilisation des paramètres par défaut');
-      // 🔥 DEBUG: Ne pas reset les valeurs si on avait déjà un branding
-      // Cela évite le flash quand organizationId devient temporairement null
-      if (!brandName && !logoUrl) {
-        setBrandingLoading(false);
-      }
+      logger.info('[useBranding] Pas d\'organizationId, réinitialisation du branding');
+      // 🔥 FIX MULTI-TENANT: Reset complet quand organizationId devient null
+      setBrandName(null);
+      setLogoUrl(null);
+      setPrimaryColor(null);
+      setSecondaryColor(null);
+      setBrandingLoading(false);
       return;
     }
 
@@ -30,6 +31,12 @@ export const useBranding = (organizationId) => {
       try {
         setBrandingLoading(true);
         setBrandingError(null);
+        
+        // 🔥 FIX MULTI-TENANT: Reset immédiat avant de charger la nouvelle org
+        setBrandName(null);
+        setLogoUrl(null);
+        setPrimaryColor(null);
+        setSecondaryColor(null);
 
         logger.info('[useBranding] Chargement branding pour organization:', organizationId);
 
