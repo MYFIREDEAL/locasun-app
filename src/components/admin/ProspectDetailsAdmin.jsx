@@ -1833,15 +1833,36 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                     
                     // Marquer la sous-étape comme complétée
                     const updatedSteps = JSON.parse(JSON.stringify(currentSteps));
+                    
+                    // 🔥 FIX: D'abord, réinitialiser TOUTES les sous-étapes qui sont "in_progress"
+                    // pour éviter d'avoir plusieurs sous-étapes en cours en même temps
+                    updatedSteps[currentStepIdx].subSteps.forEach((sub, idx) => {
+                        if (sub.status === STATUS_CURRENT && idx !== subStepIndex) {
+                            sub.status = STATUS_COMPLETED; // Si elle était en cours, la marquer complétée
+                        }
+                    });
+                    
+                    // Maintenant marquer celle qu'on vient de valider comme complétée
                     updatedSteps[currentStepIdx].subSteps[subStepIndex].status = STATUS_COMPLETED;
                     
                     // Si ce n'est pas la dernière action, activer la suivante
                     if (!allActionsCompleted) {
-                        const nextPendingIndex = updatedSteps[currentStepIdx].subSteps.findIndex(
-                            (sub, idx) => idx > subStepIndex && sub.status === STATUS_PENDING
-                        );
+                        // Chercher la prochaine sous-étape pending APRÈS celle qu'on vient de compléter
+                        let nextPendingIndex = -1;
+                        for (let i = subStepIndex + 1; i < updatedSteps[currentStepIdx].subSteps.length; i++) {
+                            if (updatedSteps[currentStepIdx].subSteps[i].status === STATUS_PENDING) {
+                                nextPendingIndex = i;
+                                break;
+                            }
+                        }
+                        
                         if (nextPendingIndex !== -1) {
                             updatedSteps[currentStepIdx].subSteps[nextPendingIndex].status = STATUS_CURRENT;
+                            logger.debug('[V2] Activated next substep', {
+                                completedIndex: subStepIndex,
+                                nextIndex: nextPendingIndex,
+                                nextName: updatedSteps[currentStepIdx].subSteps[nextPendingIndex].name,
+                            });
                         }
                     }
                     
