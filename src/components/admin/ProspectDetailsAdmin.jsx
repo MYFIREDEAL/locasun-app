@@ -1334,8 +1334,8 @@ const ProjectTimeline = ({
 const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUpdate }) => {
     // 🔥 PR-3: Récupérer appointments depuis AppContext (source unique)
     const { forms, prompts, completeStepAndProceed, activeAdminUser, appointments, updateAppointment } = useAppContext();
-    // ✅ CORRECTION: Charger depuis Supabase avec prospectId=null pour voir TOUS les panels (admin)
-    const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(null);
+    // 🔥 FIX: Passer prospect.id pour que le RPC filtre correctement (le RPC exige p_prospect_id)
+    const { formPanels: clientFormPanels = [], loading, updateFormPanel } = useSupabaseClientFormPanels(prospect.id);
     // 🆕 Hook pour envoyer des messages dans le chat
     const { sendMessage } = useSupabaseChatMessages(prospect.id, projectType);
     const [editingPanelId, setEditingPanelId] = useState(null);
