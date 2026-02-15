@@ -98,7 +98,7 @@ serve(async (req) => {
       organizationId = organization.id
       console.log(`[Platform] Organization created: ${organizationId}`)
 
-      // 2️⃣ Créer organization_settings
+      // 2️⃣ Créer organization_settings avec form_contact_config par défaut
       const { error: settingsError } = await supabaseAdmin
         .from('organization_settings')
         .insert({
@@ -107,6 +107,13 @@ serve(async (req) => {
           logo_url: null,
           primary_color: '#3b82f6',
           secondary_color: '#1e40af',
+          form_contact_config: [
+            { id: 'name', name: 'Nom*', type: 'text', placeholder: 'Jean Dupont', required: true },
+            { id: 'companyName', name: 'Société', type: 'text', placeholder: 'Nom de la société (optionnel)', required: false },
+            { id: 'email', name: 'Email*', type: 'email', placeholder: 'jean.dupont@email.com', required: true },
+            { id: 'phone', name: 'Téléphone', type: 'number', placeholder: '06 12 34 56 78', required: false },
+            { id: 'address', name: 'Adresse', type: 'text', placeholder: '1 Rue de la Paix, 75004 Paris', required: false }
+          ],
         })
 
       if (settingsError) {
