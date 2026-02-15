@@ -32,6 +32,10 @@ const LandingPageConfigPage = () => {
 
   const config = getLandingConfig();
 
+  // Valeurs avec fallback pour l'affichage (comme sur la landing publique)
+  const displayHeroTitle = config.hero_title || `Bienvenue chez ${brandName || 'votre entreprise'}`;
+  const displayHeroSubtitle = config.hero_subtitle || "Suivez l'avancement de votre projet en temps réel";
+
   const handleFieldSave = async (field, value) => {
     const success = await updateLandingField(field, value);
     if (success) {
@@ -158,9 +162,9 @@ const LandingPageConfigPage = () => {
               {/* Hero Title - EDITABLE */}
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
                 <InlineEditable
-                  value={config.hero_title}
+                  value={displayHeroTitle}
                   onSave={(value) => handleFieldSave('hero_title', value)}
-                  placeholder="Titre principal de votre landing page..."
+                  placeholder={`Bienvenue chez ${brandName || 'votre entreprise'}`}
                   className="text-4xl md:text-5xl font-bold"
                   inputClassName="text-3xl font-bold text-center"
                 />
@@ -169,9 +173,9 @@ const LandingPageConfigPage = () => {
               {/* Hero Subtitle - EDITABLE */}
               <p className="text-xl md:text-2xl text-gray-600 italic">
                 <InlineEditable
-                  value={config.hero_subtitle}
+                  value={displayHeroSubtitle}
                   onSave={(value) => handleFieldSave('hero_subtitle', value)}
-                  placeholder="Sous-titre accrocheur..."
+                  placeholder="Suivez l'avancement de votre projet en temps réel"
                   className="text-xl md:text-2xl text-gray-600 italic"
                   inputClassName="text-xl italic text-center"
                 />
