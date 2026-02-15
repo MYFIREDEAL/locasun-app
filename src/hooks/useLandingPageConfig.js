@@ -30,39 +30,39 @@ export const useLandingPageConfig = (organizationId) => {
   // Flag pour éviter les toasts lors des mises à jour locales
   const isLocalUpdate = useRef(false);
 
-  // Valeurs par défaut inspirées de locasun.io
+  // Valeurs par défaut génériques pour toutes les organisations
   const getDefaultConfig = () => ({
-    hero_title: 'Gagnez 35% sur votre électricité, garantis entre 5 et 10 ans ⚡',
-    hero_subtitle: 'grâce à une centrale solaire à côté de chez vous 🚀',
+    hero_title: '', // Vide = utilisera "Bienvenue chez {displayName}" dans landing.jsx
+    hero_subtitle: 'Suivez l\'avancement de votre projet en temps réel',
     hero_cta_text: 'Je démarre mon projet',
-    hero_cta_link: '/client-access', // Toujours création de compte
-    show_how_it_works: true, // Toggle pour afficher/masquer la section "Comment ça marche"
+    hero_cta_link: '/inscription',
+    show_how_it_works: true,
     how_it_works_title: 'Comment ça marche ?',
-    how_it_works_subtitle: 'Un système simple et transparent qui permet de consommer l\'électricité produite par une centrale solaire locale, avec des économies garanties.',
+    how_it_works_subtitle: '',
     blocks: getDefaultBlocks()
   });
 
   const getDefaultBlocks = () => [
     {
       id: 1,
-      icon: '☀️',
-      title: 'Producteur',
-      description: 'Centrale solaire photovoltaïque qui produit de l\'électricité verte.',
-      tag: '⚡ Production locale d\'énergie renouvelable'
+      icon: '1',
+      title: 'Étude',
+      description: 'Analyse de votre projet',
+      tag: ''
     },
     {
       id: 2,
-      icon: '🤝',
-      title: 'PMO',
-      description: 'Association qui gère et répartit l\'énergie de manière équitable.',
-      tag: '📋 Gestion transparente et bénéfique pour tous'
+      icon: '2',
+      title: 'Installation',
+      description: 'Réalisation des travaux',
+      tag: ''
     },
     {
       id: 3,
-      icon: '🚀',
-      title: 'Consommateurs',
-      description: 'Particuliers et entreprises qui bénéficient d\'une électricité moins chère.',
-      tag: '💰 Jusqu\'à 40% d\'économies sur la facture'
+      icon: '3',
+      title: 'Suivi',
+      description: 'Accompagnement continu',
+      tag: ''
     }
   ];
 
