@@ -475,6 +475,48 @@ const CompleteOriginalContacts = () => {
         }
       }
 
+      // 🔥 ENVOI MAGIC LINK si demandé
+      if (newProspectData.sendInvitation && createdProspect.email) {
+        try {
+          const redirectUrl = `${window.location.origin}/dashboard`;
+          logger.info('[Contacts] Envoi Magic Link', { email: createdProspect.email, org: organizationId });
+          
+          const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+            email: createdProspect.email.trim(),
+            options: {
+              shouldCreateUser: true,
+              emailRedirectTo: redirectUrl,
+              data: {
+                organization_id: organizationId,
+              }
+            }
+          });
+
+          if (magicLinkError) {
+            logger.error('[Contacts] Erreur Magic Link', magicLinkError);
+            toast({
+              title: "Contact créé",
+              description: `⚠️ Invitation non envoyée: ${magicLinkError.message}`,
+              variant: "warning",
+            });
+          } else {
+            logger.info('[Contacts] Magic Link envoyé', { email: createdProspect.email });
+            toast({
+              title: "✅ Contact créé",
+              description: `Invitation envoyée à ${createdProspect.email}`,
+              className: "bg-green-500 text-white",
+            });
+          }
+        } catch (inviteErr) {
+          logger.error('[Contacts] Exception Magic Link', inviteErr);
+          toast({
+            title: "Contact créé",
+            description: `⚠️ Erreur envoi invitation: ${inviteErr.message}`,
+            variant: "warning",
+          });
+        }
+      }
+
       setAddModalOpen(false);
     } catch (error) {
       toast({
