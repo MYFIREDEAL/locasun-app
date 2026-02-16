@@ -192,26 +192,9 @@ const RegistrationPage = () => {
         throw magicLinkError;
       }
 
-      // 🔥 ÉTAPE 4: Initialiser les étapes de chaque projet avec étape 1 en "in_progress"
-      for (const projectType of finalProjects) {
-        // 🔥 MULTI-TENANT: Utiliser projectTemplates (array) au lieu de projectsData (object)
-        const template = projectTemplates.find(t => t.type === projectType);
-        const defaultSteps = template?.steps;
-        if (defaultSteps && defaultSteps.length > 0) {
-          const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
-          initialSteps[0].status = 'in_progress'; // Première étape en cours
-          
-          // Sauvegarder dans project_steps_status
-          await supabase
-            .from('project_steps_status')
-            .upsert({
-              prospect_id: prospectId,
-              project_type: projectType,
-              steps: initialSteps,
-              organization_id: organizationId, // 🔥 AJOUT: requis par RLS
-            });
-        }
-      }
+      // ✅ NOTE: Les étapes projet (project_steps_status) sont automatiquement initialisées 
+      // par le trigger PostgreSQL 'trigger_init_project_steps_on_tags_changed' 
+      // quand la RPC 'create_affiliated_prospect' crée le prospect avec tags[]
 
       sessionStorage.removeItem('affiliateUser');
 

@@ -443,37 +443,8 @@ const CompleteOriginalContacts = () => {
         ownerId: activeAdminUser?.user_id // ✅ FIX: user_id (pas id) pour FK vers auth.users
       });
 
-      // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
-      if (createdProspect && newProspectData.tags && newProspectData.tags.length > 0) {
-        for (const projectType of newProspectData.tags) {
-          const defaultSteps = projectsData[projectType]?.steps;
-          if (defaultSteps && defaultSteps.length > 0) {
-            try {
-              const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
-              initialSteps[0].status = 'in_progress'; // Première étape active
-              
-              const { error: stepsError } = await supabase
-                .from('project_steps_status')
-                .upsert({
-                  prospect_id: createdProspect.id,
-                  project_type: projectType,
-                  steps: initialSteps,
-                  updated_at: new Date().toISOString()
-                }, {
-                  onConflict: 'prospect_id,project_type'
-                });
-              
-              if (stepsError) {
-                logger.error('Erreur initialisation steps', { projectType, error: stepsError });
-              } else {
-                logger.debug('Steps initialized for project', { projectType, prospectId: createdProspect.id });
-              }
-            } catch (err) {
-              logger.error('Erreur initialisation steps', { projectType, error: err });
-            }
-          }
-        }
-      }
+      // ✅ NOTE: Les étapes projet (project_steps_status) sont automatiquement initialisées 
+      // par le trigger PostgreSQL 'trigger_init_project_steps_on_tags_changed' quand tags[] est assigné
 
       // 🔥 ENVOI MAGIC LINK si demandé
       if (newProspectData.sendInvitation && createdProspect.email) {
