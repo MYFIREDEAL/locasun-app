@@ -20,7 +20,6 @@ import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 // 🔥 PR-3: useSupabaseProspects supprimé - données centralisées dans AppContext
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -98,9 +97,6 @@ const FinalPipeline = () => {
   // 🔥 HOOKS DÉPLACÉS ICI (avant les early returns)
   const { users: supabaseUsers, loading: usersLoading } = useUsers();
   const { authUserId } = useSupabaseUser();
-  
-  // 🔥 Hook pour charger les project_templates depuis Supabase (custom projects)
-  const { getTemplateByType } = useSupabaseProjectTemplates({ organizationId });
   
   // 🔥 PR-3: addProspect récupéré depuis AppContext (source unique)
   const addSupabaseProspectDirect = contextData?.addProspect;
@@ -583,48 +579,9 @@ const FinalPipeline = () => {
         throw new Error('Prospect non créé - résultat vide');
       }
 
-      // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
-      if (createdProspect && newProspectData.tags && newProspectData.tags.length > 0) {
-        for (const projectType of newProspectData.tags) {
-          // 🔥 FIX: Charger depuis project_templates Supabase au lieu de projectsData hardcodé
-          const template = await getTemplateByType(projectType);
-          const defaultSteps = template?.steps || projectsData[projectType]?.steps; // Fallback sur projectsData si template pas trouvé
-          
-          if (defaultSteps && defaultSteps.length > 0) {
-            try {
-              const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
-              initialSteps[0].status = 'in_progress'; // Première étape active
-              
-              // 🔥 VALIDATION: organization_id requis par RLS
-              if (!organizationId) {
-                throw new Error('Organization ID manquant - Impossible de créer les steps projet');
-              }
-              
-              const { error: stepsError } = await supabase
-                .from('project_steps_status')
-                .upsert({
-                  prospect_id: createdProspect.id,
-                  project_type: projectType,
-                  steps: initialSteps,
-                  organization_id: organizationId, // ✅ Ajouté pour multi-tenant RLS
-                  updated_at: new Date().toISOString()
-                }, {
-                  onConflict: 'prospect_id,project_type'
-                });
-              
-              if (stepsError) {
-                logger.error('Erreur initialisation steps', { projectType, error: stepsError });
-              } else {
-                logger.debug('Steps initialized for project', { projectType, prospectId: createdProspect.id });
-              }
-            } catch (err) {
-              logger.error('Erreur initialisation steps', { projectType, error: err });
-            }
-          }
-        }
-      }
-
       // 🔥 PR-4.2: Envoyer invitation client si demandé
+      // ✅ NOTE: Les étapes projet (project_steps_status) sont automatiquement initialisées 
+      // par le trigger PostgreSQL 'trigger_init_project_steps_on_tags_changed' quand tags[] est assigné
       console.log('[handleAddProspect] 🔍 sendInvitation check:', {
         sendInvitation: newProspectData.sendInvitation,
         email: createdProspect.email,

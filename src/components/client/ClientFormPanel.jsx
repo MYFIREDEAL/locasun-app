@@ -366,8 +366,9 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       relatedMessageTimestamp: messageTimestamp,
     });
 
+    // ⚠️ Warning si pas de prompts (normal pour nouvelles orgs, non bloquant)
     if (!prompts || Object.keys(prompts).length === 0) {
-      logger.error('❌ [ClientFormPanel] AUCUN PROMPT CHARGÉ !');
+      logger.warn('⚠️ [ClientFormPanel] Aucun prompt configuré pour cette organisation (normal pour nouvelles orgs)');
     }
 
     const relatedPrompt = promptId

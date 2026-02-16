@@ -815,6 +815,8 @@ function App() {
           tags: prospect.tags || [],
           userId: prospect.user_id,
           ownerId: prospect.owner_id,
+          organizationId: prospect.organization_id, // 🔥 FIX: Ajouter organization_id pour multi-tenant
+          organization_id: prospect.organization_id, // 🔥 FIX: Garder snake_case pour compatibilité
           status: prospect.status,
           hasAppointment: prospect.has_appointment,
           affiliateName: prospect.affiliate_name,

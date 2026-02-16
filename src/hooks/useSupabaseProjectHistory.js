@@ -90,8 +90,9 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
     async ({ event_type, title, description, metadata, createdBy, createdByName }) => {
       if (!projectType || !event_type) return;
 
+      // 🔥 VALIDATION: organization_id requis pour multi-tenant
       if (!activeAdminUser?.organization_id) {
-        console.error('❌ [useSupabaseProjectHistory] organization_id manquant pour addHistoryEvent');
+        logger.error('❌ [useSupabaseProjectHistory] organization_id manquant pour addHistoryEvent');
         throw new Error('organization_id manquant pour addHistoryEvent');
       }
 
@@ -139,6 +140,7 @@ export function useSupabaseProjectHistory({ projectType, prospectId, enabled = t
         return { success: false, error: 'Paramètres manquants' };
       }
 
+      // 🔥 VALIDATION: organization_id requis pour multi-tenant
       if (!activeAdminUser?.organization_id) {
         logger.error('❌ [useSupabaseProjectHistory] organization_id manquant pour addProjectEvent');
         return { success: false, error: 'organization_id manquant' };
