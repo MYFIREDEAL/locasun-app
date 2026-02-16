@@ -1742,10 +1742,24 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
               ? currentStepName.toLowerCase().replace(/[_\s]/g, '-').replace(/[^a-z0-9-]/g, '')
               : null;
             
+            // 🔥 FIX: Utiliser panel.projectType (pas la prop projectType) pour la clé de lookup
+            const templateKey = `${panel.projectType}:${moduleId}`;
+            
             // Chercher la config V2 depuis Supabase (v2Templates passé en closure)
             // Note: v2Templates est accessible via le contexte parent
-            const v2Template = moduleId && v2Templates ? v2Templates[`${projectType}:${moduleId}`] : null;
+            const v2Template = moduleId && v2Templates ? v2Templates[templateKey] : null;
             const v2ActionConfig = v2Template?.configJson?.actionConfig;
+            
+            // 🔥 DEBUG: Log pour identifier le problème de lookup
+            logger.debug('[V2] Template lookup', {
+                panelProjectType: panel.projectType,
+                propProjectType: projectType,
+                currentStepName,
+                moduleId,
+                templateKey,
+                v2TemplatesKeys: v2Templates ? Object.keys(v2Templates) : [],
+                templateFound: !!v2Template,
+            });
             
             // Fallback: utiliser config in-memory
             const memoryActionConfig = currentStepName ? getModuleActionConfig(currentStepName) : null;
