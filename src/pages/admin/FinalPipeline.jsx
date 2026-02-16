@@ -20,6 +20,7 @@ import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 // 🔥 PR-3: useSupabaseProspects supprimé - données centralisées dans AppContext
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 
 const COLUMN_COLORS = [
   'bg-gray-100',
@@ -97,6 +98,9 @@ const FinalPipeline = () => {
   // 🔥 HOOKS DÉPLACÉS ICI (avant les early returns)
   const { users: supabaseUsers, loading: usersLoading } = useUsers();
   const { authUserId } = useSupabaseUser();
+  
+  // 🔥 Hook pour charger les project_templates depuis Supabase (custom projects)
+  const { getTemplateByType } = useSupabaseProjectTemplates({ organizationId });
   
   // 🔥 PR-3: addProspect récupéré depuis AppContext (source unique)
   const addSupabaseProspectDirect = contextData?.addProspect;
@@ -582,7 +586,10 @@ const FinalPipeline = () => {
       // 🔥 INITIALISER LES ÉTAPES DE CHAQUE PROJET avec première étape "in_progress"
       if (createdProspect && newProspectData.tags && newProspectData.tags.length > 0) {
         for (const projectType of newProspectData.tags) {
-          const defaultSteps = projectsData[projectType]?.steps;
+          // 🔥 FIX: Charger depuis project_templates Supabase au lieu de projectsData hardcodé
+          const template = await getTemplateByType(projectType);
+          const defaultSteps = template?.steps || projectsData[projectType]?.steps; // Fallback sur projectsData si template pas trouvé
+          
           if (defaultSteps && defaultSteps.length > 0) {
             try {
               const initialSteps = JSON.parse(JSON.stringify(defaultSteps));
