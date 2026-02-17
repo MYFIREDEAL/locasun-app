@@ -102,7 +102,7 @@ serve(async (req) => {
 
       organizationId = organization.id
 
-      // 2️⃣ SETTINGS avec form_contact_config par défaut
+      // 2️⃣ SETTINGS avec form_contact_config + client_notification_config par défaut
       await supabaseAdmin.from("organization_settings").insert({
         organization_id: organizationId,
         display_name: companyName,
@@ -115,6 +115,15 @@ serve(async (req) => {
           { id: "email", name: "Email*", type: "email", placeholder: "jean.dupont@email.com", required: true },
           { id: "phone", name: "Téléphone", type: "number", placeholder: "06 12 34 56 78", required: false },
           { id: "address", name: "Adresse", type: "text", placeholder: "1 Rue de la Paix, 75004 Paris", required: false }
+        ],
+        // 🔥 FIX BUG #1: Config notifications client activées par défaut
+        client_notification_config: [
+          { type: "new_message", enabled: true, label: "Nouveau message", icon: "💬" },
+          { type: "form_sent", enabled: true, label: "Formulaire à remplir", icon: "📝" },
+          { type: "signature_required", enabled: true, label: "Signature requise", icon: "✍️" },
+          { type: "document_uploaded", enabled: true, label: "Nouveau document", icon: "📄" },
+          { type: "project_update", enabled: true, label: "Mise à jour projet", icon: "🔄" },
+          { type: "appointment_scheduled", enabled: true, label: "Nouveau RDV", icon: "📅" }
         ],
       })
 
@@ -149,6 +158,50 @@ serve(async (req) => {
         role: "Global Admin",
         organization_id: organizationId,
       })
+
+      // 6️⃣ 🔥 FIX BUG #3: COPIER PROJECT TEMPLATES AVEC CLOISONNEMENT ORG
+      const { data: globalTemplates } = await supabaseAdmin
+        .from("project_templates")
+        .select("*")
+        .is("organization_id", null) // Templates globaux sans org
+        .eq("is_public", true)
+
+      if (globalTemplates && globalTemplates.length > 0) {
+        for (const template of globalTemplates) {
+          await supabaseAdmin.from("project_templates").insert({
+            type: template.type,
+            title: template.title,
+            client_title: template.client_title,
+            icon: template.icon,
+            color: template.color,
+            image_url: template.image_url,
+            client_description: template.client_description,
+            cta_text: template.cta_text,
+            is_public: true,
+            steps: template.steps, // Copie JSONB
+            organization_id: organizationId, // 🔥 CLOISONNEMENT
+          })
+        }
+      }
+
+      // 7️⃣ 🔥 AMÉLIORATION: CRÉER 5 COLONNES PIPELINE STANDARDS
+      const defaultPipelineSteps = [
+        { label: "MARKET", color: "bg-blue-100", position: 0 },
+        { label: "ETUDE", color: "bg-yellow-100", position: 1 },
+        { label: "OFFRE", color: "bg-green-100", position: 2 },
+        { label: "CLIENT", color: "bg-purple-100", position: 3 },
+        { label: "CLIENT ACTIF", color: "bg-teal-100", position: 4 },
+      ]
+
+      for (const step of defaultPipelineSteps) {
+        await supabaseAdmin.from("global_pipeline_steps").insert({
+          organization_id: organizationId,
+          step_id: `org-${organizationId}-step-${step.position}`,
+          label: step.label,
+          color: step.color,
+          position: step.position,
+        })
+      }
 
       // ✅ SUCCESS
       return new Response(
