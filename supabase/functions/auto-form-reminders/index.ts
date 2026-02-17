@@ -106,14 +106,37 @@ async function createTaskForCommercial(
   formName,
   ownerId
 ) {
-  // Récupérer infos prospect
+  // Récupérer infos prospect + organization_id
   const { data: prospect, error: prospectError } = await supabase
     .from('prospects')
-    .select('name, email')
+    .select('name, email, organization_id')
     .eq('id', prospectId)
     .single();
 
   if (prospectError) throw prospectError;
+
+  // 🔥 FIX BUG #2: Guard owner_id valide, fallback vers Global Admin de l'org
+  let validOwnerId = ownerId;
+
+  if (!validOwnerId) {
+    console.log(`[auto-form-reminders] owner_id NULL, recherche fallback Global Admin pour org ${prospect.organization_id}`);
+    
+    const { data: fallbackAdmin, error: adminError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('organization_id', prospect.organization_id)
+      .eq('role', 'Global Admin')
+      .limit(1)
+      .single();
+
+    if (!adminError && fallbackAdmin) {
+      validOwnerId = fallbackAdmin.id;
+      console.log(`[auto-form-reminders] Fallback Admin trouvé: ${validOwnerId}`);
+    } else {
+      console.error(`[auto-form-reminders] Aucun admin disponible pour org ${prospect.organization_id}`);
+      throw new Error('Aucun admin disponible pour assigner la tâche');
+    }
+  }
 
   // Calculer scheduledAt (prochain créneau autorisé)
   const scheduledAt = getNextAuthorizedSlot();
@@ -127,8 +150,8 @@ async function createTaskForCommercial(
     } relances automatiques.\n\n📧 ${prospect.email}\n\nAction requise : Contacter le client pour débloquer la situation.`,
     status: 'pending',
     priority: 'high',
-    created_by: ownerId,
-    assigned_to: ownerId,
+    created_by: validOwnerId,
+    assigned_to: validOwnerId,
     scheduled_at: scheduledAt,
     metadata: {
       type: 'form_reminder_escalation',
