@@ -42,14 +42,15 @@ import { logger } from '@/lib/logger';
 /**
  * Hook pour reset automatique des relances quand le client répond
  * 
+ * @param {string} organizationId - ID de l'organisation
  * @param {boolean} enabled - Activer/désactiver le hook
  * @returns {void}
  * 
  * @example
  * // Dans App.jsx
- * useReminderReset(true);
+ * useReminderReset(organizationId, true);
  */
-export function useReminderReset(enabled = false) {
+export function useReminderReset(organizationId, enabled = true) {
   // Set des messages déjà traités (évite double-traitement)
   const processedMessagesRef = useRef(new Set());
   
@@ -149,22 +150,23 @@ export function useReminderReset(enabled = false) {
   // ─────────────────────────────────────────────────────────────────────────
   
   useEffect(() => {
-    if (!enabled) {
-      logger.debug('[ReminderReset] Hook désactivé');
+    if (!enabled || !organizationId) {
+      logger.debug('[ReminderReset] Hook désactivé ou pas d\'organizationId');
       return;
     }
     
-    logger.info('🔔 [ReminderReset] Activation surveillance messages client');
+    logger.info('🔔 [ReminderReset] Activation surveillance messages client', { organizationId });
     
     // Écoute des nouveaux messages chat
     const channel = supabase
-      .channel('reminder-reset-chat')
+      .channel(`reminder-reset-chat-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
+          filter: `organization_id=eq.${organizationId}`,
         },
         async (payload) => {
           const message = payload.new;
@@ -192,7 +194,7 @@ export function useReminderReset(enabled = false) {
       logger.debug('[ReminderReset] Nettoyage');
       supabase.removeChannel(channel);
     };
-  }, [enabled, resetRemindersForProspect]);
+  }, [enabled, organizationId, resetRemindersForProspect]);
 }
 
 export default useReminderReset;

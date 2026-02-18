@@ -552,7 +552,8 @@ function App() {
   usePresenceCheck(organizationId, !authLoading && adminReady);
   
   // 🔥 Système de reset des relances quand le client répond
-  useReminderReset(!authLoading && adminReady);
+  // 🔥 MULTI-TENANT: Filtré par organization_id
+  useReminderReset(organizationId, !authLoading && adminReady);
 
   // 🔥 Charger les notifications admin depuis Supabase avec real-time
   // 🔥 FIX: Activer quand adminReady ET qu'on a un activeAdminUser
