@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/App';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import ModulesNavBar from '@/components/admin/ModulesNavBar';
 import useSupabasePartners from '@/hooks/useSupabasePartners';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,8 @@ const PartnerDetailPage = () => {
   const { partnerId } = useParams();
   const navigate = useNavigate();
   const { activeAdminUser } = useAppContext();
-  const { togglePartnerActive, getPartnerWithMissions } = useSupabasePartners();
+  const { organizationId } = useOrganization();
+  const { togglePartnerActive, getPartnerWithMissions } = useSupabasePartners(organizationId);
   
   const [partner, setPartner] = useState(null);
   const [missions, setMissions] = useState([]);

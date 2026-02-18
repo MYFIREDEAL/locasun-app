@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
  * - RLS filtre automatiquement par organization_id
  * - Seuls Global Admin et Manager peuvent voir les partenaires
  */
-export const useSupabasePartners = () => {
+export const useSupabasePartners = (organizationId, enabled = true) => {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -164,12 +164,19 @@ export const useSupabasePartners = () => {
 
   // Real-time subscription
   useEffect(() => {
+    if (!enabled || !organizationId) return;
+
     fetchPartners();
 
     const channel = supabase
-      .channel('partners-changes')
+      .channel(`partners-${organizationId}`)
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'partners' }, 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'partners',
+          filter: `organization_id=eq.${organizationId}`
+        }, 
         () => {
           fetchPartners();
         }
@@ -179,7 +186,7 @@ export const useSupabasePartners = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchPartners]);
+  }, [fetchPartners, enabled, organizationId]);
 
   return {
     partners,

@@ -46,7 +46,7 @@ const PartnersListPage = () => {
   const navigate = useNavigate();
   const { activeAdminUser } = useAppContext();
   const { organizationId } = useOrganization();
-  const { partners, loading, error, refetch } = useSupabasePartners();
+  const { partners, loading, error, refetch } = useSupabasePartners(organizationId);
   const [searchQuery, setSearchQuery] = useState('');
   
   // État pour la modal d'invitation
