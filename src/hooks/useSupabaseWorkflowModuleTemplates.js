@@ -209,6 +209,35 @@ export function useSupabaseWorkflowModuleTemplates(organizationId, projectType =
 
       const transformed = transformFromDB(data);
 
+      // 🔥 FIX MULTI-TENANT: Créer/mettre à jour un prompt pour rétro-compatibilité
+      // (useAutoVerificationTasks vérifie la présence de prompts)
+      try {
+        const promptId = `prompt-wfv2-${effectiveProjectType}`;
+        const promptRecord = {
+          prompt_id: promptId,
+          name: effectiveProjectType.toUpperCase(),
+          tone: configJson.tone || 'professional',
+          project_id: effectiveProjectType,
+          organization_id: organizationId,
+          steps_config: {}, // Vide car V2 gère les actions différemment
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        await supabase
+          .from('prompts')
+          .upsert(promptRecord, {
+            onConflict: 'prompt_id',
+          });
+
+        logger.debug('[WorkflowModuleTemplates] Prompt créé/mis à jour', { promptId });
+      } catch (promptError) {
+        // Non bloquant : si ça échoue, la config V2 est quand même sauvegardée
+        logger.warn('[WorkflowModuleTemplates] Erreur création prompt (non bloquant)', { 
+          error: promptError.message 
+        });
+      }
+
       // Mettre à jour le cache local (clé composite projectType:moduleId)
       const cacheKey = `${effectiveProjectType}:${moduleId}`;
       setTemplates((prev) => ({
