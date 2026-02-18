@@ -163,24 +163,21 @@ export async function executeActionOrder(order, context = {}) {
       }
 
       // Récupérer config depuis workflow_module_templates
-      // ⚠️ IMPORTANT: module_id en DB contient le format complet "project_type:module_name"
-      const fullModuleId = `${order.projectType}:${order.moduleId}`;
-      
+      // ⚠️ module_id en DB = juste le nom (ex: "inscription"), PAS "project_type:name"
       const { data: templateData, error: templateError } = await supabase
         .from('workflow_module_templates')
-        .select('config')
+        .select('config_json')
         .eq('organization_id', prospectData.organization_id)
         .eq('project_type', order.projectType)
-        .eq('module_id', fullModuleId)
+        .eq('module_id', order.moduleId)
         .single();
 
-      if (templateError || !templateData?.config) {
+      if (templateError || !templateData?.config_json) {
         logV2('⚠️ executeActionOrder PARTENAIRE - Config module non trouvée', { 
           error: templateError?.message,
           organizationId: prospectData.organization_id,
           projectType: order.projectType,
           moduleId: order.moduleId,
-          fullModuleId,
         });
         
         toast({
@@ -198,7 +195,7 @@ export async function executeActionOrder(order, context = {}) {
       }
 
       // Extraire actionConfig
-      const actionConfig = templateData.config?.actionConfig || {};
+      const actionConfig = templateData.config_json?.actionConfig || {};
 
       // Validation partnerId
       if (!actionConfig.partnerId) {
