@@ -4,12 +4,16 @@ import { supabase } from '../lib/supabase';
 /**
  * Hook pour charger TOUS les project_steps_status
  * Utilisé dans le pipeline pour afficher les étapes correctes sur les cartes
+ * @param {string} organizationId - ID de l'organisation pour filtrage multi-tenant
+ * @param {boolean} enabled - Activer/désactiver le hook
  */
-export function useSupabaseAllProjectSteps() {
+export function useSupabaseAllProjectSteps(organizationId, enabled = true) {
   const [allProjectSteps, setAllProjectSteps] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!enabled || !organizationId) return;
+
     const fetchAllSteps = async () => {
       try {
         const { data, error } = await supabase
@@ -37,11 +41,12 @@ export function useSupabaseAllProjectSteps() {
 
     // Real-time listener pour les changements
     const channel = supabase
-      .channel('all-project-steps')
+      .channel(`all-project-steps-${organizationId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'project_steps_status'
+        table: 'project_steps_status',
+        filter: `organization_id=eq.${organizationId}`
       }, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           const key = `${payload.new.prospect_id}-${payload.new.project_type}`;
@@ -62,7 +67,7 @@ export function useSupabaseAllProjectSteps() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [enabled, organizationId]);
 
   return { allProjectSteps, loading };
 }

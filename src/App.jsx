@@ -471,7 +471,8 @@ function App() {
   } = useSupabaseGlobalPipeline(organizationReady ? organizationId : null);
 
   // 🔥 Précharger TOUS les project steps au niveau App pour éviter race conditions
-  const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps();
+  // 🔥 MULTI-TENANT: Passer organizationId pour filtrer par org
+  const { allProjectSteps, loading: allStepsLoading } = useSupabaseAllProjectSteps(organizationId);
 
   // 🔥 Synchroniser allProjectSteps (Supabase) avec projectStepsStatus (state local)
   useEffect(() => {
