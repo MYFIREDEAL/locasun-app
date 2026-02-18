@@ -6,10 +6,13 @@ import { toast } from '@/components/ui/use-toast';
 /**
  * Hook pour créer automatiquement des tâches quand une étape devient "in_progress"
  * Basé sur la configuration des prompts (managementMode: "manual" + createTask: true)
+ * @param {string} organizationId - ID de l'organisation pour filtrage multi-tenant
+ * @param {Object} prompts - Configuration des prompts
+ * @param {boolean} enabled - Activer/désactiver le hook
  */
-export function useAutoCreateTasks(prompts, enabled = true) {
+export function useAutoCreateTasks(organizationId, prompts, enabled = true) {
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !organizationId) {
       return;
     }
     if (!prompts || Object.keys(prompts).length === 0) {
@@ -20,13 +23,14 @@ export function useAutoCreateTasks(prompts, enabled = true) {
 
     // Écouter les changements dans project_steps_status
     const channel = supabase
-      .channel('auto-create-tasks')
+      .channel(`auto-create-tasks-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'project_steps_status'
+          table: 'project_steps_status',
+          filter: `organization_id=eq.${organizationId}`
         },
         async (payload) => {
           try {
@@ -140,7 +144,7 @@ export function useAutoCreateTasks(prompts, enabled = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [prompts, enabled]);
+  }, [prompts, enabled, organizationId]);
 }
 
 /**

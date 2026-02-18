@@ -533,7 +533,8 @@ function App() {
 
   // 🔥 Système de création automatique de tâches (écoute les changements d'étape)
   // ⚠️ Ne s'active que côté admin (les clients n'ont pas les droits RLS pour insérer dans appointments)
-  useAutoCreateTasks(supabasePrompts, !authLoading && adminReady);
+  // 🔥 MULTI-TENANT: Filtré par organization_id
+  useAutoCreateTasks(organizationId, supabasePrompts, !authLoading && adminReady);
   
   // 🔥 Système de création automatique de tâches de vérification (écoute les soumissions client)
   // ⚠️ Ne s'active que côté admin (les clients n'ont pas les droits RLS pour insérer dans appointments)
