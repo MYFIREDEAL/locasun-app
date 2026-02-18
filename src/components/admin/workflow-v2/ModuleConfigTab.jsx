@@ -49,6 +49,11 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { supabase } from '@/lib/supabase';
+import useSupabasePartners from '@/hooks/useSupabasePartners';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // ✅ Import config V2 (pas de V1)
 import { 
@@ -1315,8 +1320,13 @@ const ModuleConfigTab = ({
     saveTemplate, 
     isPersisted = false, 
     isSaving = false,
-    loading: templateLoading = false 
+    loading: templateLoading = false,
+    organizationId = null 
   } = templateOps;
+  
+  // ✅ Hook partenaires
+  const { partners = [] } = useSupabasePartners(organizationId);
+  
   // State local pour édition
   const [config, setConfig] = useState(null);
   const [originalConfig, setOriginalConfig] = useState(null);
@@ -2014,6 +2024,57 @@ const ModuleConfigTab = ({
                 </p>
               </div>
             </>
+          )}
+          
+          {/* 🧡 PARTENAIRE (si targetAudience = PARTENAIRE) */}
+          {actionConfig.targetAudience === 'PARTENAIRE' && (
+            <div className="space-y-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              {/* Dropdown partenaire */}
+              <div>
+                <Label className="text-sm font-medium">Partenaire destinataire</Label>
+                <Select 
+                  value={actionConfig.partnerId || ''} 
+                  onValueChange={(value) => updateActionConfigField('partnerId', value)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Sélectionner un partenaire..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {partners.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.company_name || p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Textarea instructions */}
+              <div>
+                <Label className="text-sm font-medium">Instructions pour le partenaire</Label>
+                <Textarea 
+                  value={actionConfig.instructions || ''}
+                  onChange={(e) => updateActionConfigField('instructions', e.target.value)}
+                  placeholder="Décrivez la mission..."
+                  className="mt-1 min-h-[100px]"
+                />
+              </div>
+              
+              {/* Checkbox bloquante */}
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="is-blocking"
+                  checked={actionConfig.isBlocking !== false}
+                  onCheckedChange={(checked) => updateActionConfigField('isBlocking', checked)}
+                />
+                <Label 
+                  htmlFor="is-blocking" 
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Mission bloquante (workflow bloqué tant que mission non complétée)
+                </Label>
+              </div>
+            </div>
           )}
           
           {/* 5️⃣ MODES (Gestion + Vérification) */}
