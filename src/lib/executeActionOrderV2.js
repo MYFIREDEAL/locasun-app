@@ -163,11 +163,11 @@ export async function executeActionOrder(order, context = {}) {
       }
 
       // Récupérer config depuis workflow_module_templates
-      // ⚠️ module_id en DB = juste le nom (ex: "inscription"), PAS "project_type:name"
+      // ⚠️ Colonnes DB: org_id (pas organization_id), module_id, config_json
       const { data: templateData, error: templateError } = await supabase
         .from('workflow_module_templates')
         .select('config_json')
-        .eq('organization_id', prospectData.organization_id)
+        .eq('org_id', prospectData.organization_id)
         .eq('project_type', order.projectType)
         .eq('module_id', order.moduleId)
         .single();
