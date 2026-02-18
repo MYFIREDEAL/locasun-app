@@ -545,7 +545,8 @@ function App() {
   });
   
   // 🔥 Système de surveillance relances formulaires (crée tâche au seuil atteint)
-  useFormReminderWatcher(!authLoading && adminReady);
+  // 🔥 MULTI-TENANT: Filtré par organization_id
+  useFormReminderWatcher(organizationId, !authLoading && adminReady);
   
   // 🔥 Système de message "Vous êtes toujours là ?" après 45 min de silence client
   // 🔥 MULTI-TENANT: Filtré par organization_id

@@ -21,28 +21,30 @@ import { logger } from '@/lib/logger';
  * 
  * ⚠️ À activer dans App.jsx une fois le système de relances en place
  * 
+ * @param {string} organizationId - ID de l'organisation
  * @param {boolean} enabled - Activer le watcher
  */
-export function useFormReminderWatcher(enabled = false) {
+export function useFormReminderWatcher(organizationId, enabled = true) {
   const processedRef = useRef(new Set());
 
   useEffect(() => {
-    if (!enabled) {
-      logger.debug('[FormReminderWatcher] Désactivé');
+    if (!enabled || !organizationId) {
+      logger.debug('[FormReminderWatcher] Désactivé ou pas d\'organizationId');
       return;
     }
 
-    logger.info('🔔 [FormReminderWatcher] Activation du watcher');
+    logger.info('🔔 [FormReminderWatcher] Activation du watcher', { organizationId });
 
     // Écouter les mises à jour sur client_form_panels
     const channel = supabase
-      .channel('form-reminder-watcher')
+      .channel(`form-reminder-watcher-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'client_form_panels',
+          filter: `organization_id=eq.${organizationId}`,
         },
         async (payload) => {
           try {
@@ -150,5 +152,5 @@ export function useFormReminderWatcher(enabled = false) {
       supabase.removeChannel(channel);
       logger.debug('[FormReminderWatcher] Channel fermé');
     };
-  }, [enabled]);
+  }, [enabled, organizationId]);
 }
