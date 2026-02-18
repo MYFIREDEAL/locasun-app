@@ -14,9 +14,10 @@ import { logger } from '@/lib/logger';
  * - ✅ deleteUser() - Supprimer utilisateur + réassigner ses prospects
  * - ✅ Real-time subscription automatique
  * 
- * @param {Object} activeAdminUser - Utilisateur admin actif (pour récupérer organization_id)
+ * @param {string} organizationId - ID de l'organisation pour filtrage multi-tenant
+ * @param {boolean} enabled - Activer/désactiver le hook
  */
-export const useSupabaseUsersCRUD = (activeAdminUser) => {
+export const useSupabaseUsersCRUD = (organizationId, enabled = true) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,14 +53,17 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
 
   // 🔥 REAL-TIME : Écouter les changements en temps réel
   useEffect(() => {
+    if (!enabled || !organizationId) return;
+
     const channel = supabase
-      .channel('users-crud-changes')
+      .channel(`users-crud-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*', // INSERT, UPDATE, DELETE
           schema: 'public',
-          table: 'users'
+          table: 'users',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -93,7 +97,7 @@ export const useSupabaseUsersCRUD = (activeAdminUser) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [enabled, organizationId]);
 
   /**
    * ✅ AJOUTER UN UTILISATEUR

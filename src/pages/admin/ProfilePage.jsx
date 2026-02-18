@@ -1920,7 +1920,7 @@ const ProfilePage = () => {
     addUser,
     updateUser,
     deleteUser: deleteUserSupabase
-  } = useSupabaseUsersCRUD(activeAdminUser);
+  } = useSupabaseUsersCRUD(organizationId);
 
   // Transformer le array Supabase en objet compatible avec le code existant
   // { user_id: { id, user_id, name, email, ... } }
