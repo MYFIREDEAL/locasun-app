@@ -134,6 +134,34 @@ async function handleFormSubmission(formPanel, prompts) {
     return;
   }
 
+  // 🔥 FIX: Guard owner_id valide, fallback vers Global Admin de l'org
+  let validOwnerId = prospect.owner_id;
+
+  if (!validOwnerId) {
+    logger.warn(`⚠️ owner_id NULL pour ${prospect.name}, recherche fallback Global Admin`);
+    
+    const { data: fallbackAdmin, error: adminError } = await supabase
+      .from('users')
+      .select('user_id')
+      .eq('organization_id', prospect.organization_id)
+      .eq('role', 'Global Admin')
+      .limit(1)
+      .single();
+
+    if (!adminError && fallbackAdmin) {
+      validOwnerId = fallbackAdmin.user_id;
+      logger.info(`✅ Fallback Admin trouvé: ${validOwnerId}`);
+    } else {
+      logger.error(`❌ Aucun admin disponible pour org ${prospect.organization_id}`);
+      toast({
+        title: 'Erreur',
+        description: 'Aucun admin disponible pour assigner la tâche.',
+        variant: 'destructive',
+      });
+      return;
+    }
+  }
+
   // Créer la tâche de vérification
   const taskTitle = `Vérifier le formulaire de ${prospect.name}`;
   const now = new Date();
@@ -142,7 +170,7 @@ async function handleFormSubmission(formPanel, prompts) {
   const taskData = {
     type: 'task',
     title: taskTitle,
-    assigned_user_id: prospect.owner_id,
+    assigned_user_id: validOwnerId,
     contact_id: prospect_id,
     project_id: project_type,
     step: stepName,
