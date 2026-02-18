@@ -118,14 +118,15 @@ function getDelayUntilNextAllowedWindow() {
 /**
  * Hook pour surveiller l'activité client et envoyer "Vous êtes toujours là ?"
  * 
+ * @param {string} organizationId - ID de l'organisation pour filtrage multi-tenant
  * @param {boolean} enabled - Activer/désactiver le hook
  * @returns {void}
  * 
  * @example
  * // Dans App.jsx
- * usePresenceCheck(true);
+ * usePresenceCheck(organizationId, true);
  */
-export function usePresenceCheck(enabled = false) {
+export function usePresenceCheck(organizationId, enabled = false) {
   // Map des timers actifs par panel_id
   const timersRef = useRef(new Map());
   
@@ -257,7 +258,7 @@ export function usePresenceCheck(enabled = false) {
   // ─────────────────────────────────────────────────────────────────────────
   
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !organizationId) {
       logger.debug('[PresenceCheck] Hook désactivé');
       return;
     }
@@ -271,13 +272,14 @@ export function usePresenceCheck(enabled = false) {
     // ───────────────────────────────────────────────────────────────────────
     
     const chatChannel = supabase
-      .channel('presence-check-chat')
+      .channel(`presence-check-chat-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
+          filter: `organization_id=eq.${organizationId}`
         },
         async (payload) => {
           const message = payload.new;
@@ -398,13 +400,14 @@ export function usePresenceCheck(enabled = false) {
     // ───────────────────────────────────────────────────────────────────────
     
     const panelChannel = supabase
-      .channel('presence-check-panels')
+      .channel(`presence-check-panels-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'client_form_panels',
+          filter: `organization_id=eq.${organizationId}`
         },
         async (payload) => {
           const panel = payload.new;
@@ -460,6 +463,7 @@ export function usePresenceCheck(enabled = false) {
           event: 'UPDATE',
           schema: 'public',
           table: 'client_form_panels',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => {
           const panel = payload.new;
@@ -549,7 +553,7 @@ export function usePresenceCheck(enabled = false) {
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(panelChannel);
     };
-  }, [enabled, startTimer, cancelTimer, sendPresenceMessage]);
+  }, [enabled, organizationId, startTimer, cancelTimer, sendPresenceMessage]);
 }
 
 export default usePresenceCheck;

@@ -548,7 +548,8 @@ function App() {
   useFormReminderWatcher(!authLoading && adminReady);
   
   // 🔥 Système de message "Vous êtes toujours là ?" après 45 min de silence client
-  usePresenceCheck(!authLoading && adminReady);
+  // 🔥 MULTI-TENANT: Filtré par organization_id
+  usePresenceCheck(organizationId, !authLoading && adminReady);
   
   // 🔥 Système de reset des relances quand le client répond
   useReminderReset(!authLoading && adminReady);
