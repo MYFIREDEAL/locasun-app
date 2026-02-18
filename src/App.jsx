@@ -535,7 +535,11 @@ function App() {
   
   // 🔥 Système de création automatique de tâches de vérification (écoute les soumissions client)
   // ⚠️ Ne s'active que côté admin (les clients n'ont pas les droits RLS pour insérer dans appointments)
-  useAutoVerificationTasks(supabasePrompts, !authLoading && adminReady);
+  // 🔥 MULTI-TENANT: Filtré par organization_id
+  useAutoVerificationTasks(supabasePrompts, { 
+    organizationId, 
+    enabled: !authLoading && adminReady && organizationReady 
+  });
   
   // 🔥 Système de surveillance relances formulaires (crée tâche au seuil atteint)
   useFormReminderWatcher(!authLoading && adminReady);

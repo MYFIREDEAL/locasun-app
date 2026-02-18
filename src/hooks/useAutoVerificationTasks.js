@@ -6,27 +6,37 @@ import { toast } from '@/components/ui/use-toast';
 /**
  * Hook pour créer automatiquement des tâches de vérification
  * quand un client soumet un formulaire/document avec verificationMode='human'
+ * @param {Object} prompts - Les prompts Charly AI
+ * @param {Object} options - Options du hook
+ * @param {string} options.organizationId - ID de l'organisation (requis pour multi-tenant)
+ * @param {boolean} options.enabled - Active/désactive le hook
  */
-export function useAutoVerificationTasks(prompts, enabled = true) {
+export function useAutoVerificationTasks(prompts, { organizationId = null, enabled = true } = {}) {
   useEffect(() => {
     if (!enabled) {
+      return;
+    }
+    if (!organizationId) {
+      logger.warn('⚠️ useAutoVerificationTasks: Pas d\'organization_id fourni');
       return;
     }
     if (!prompts || Object.keys(prompts).length === 0) {
       return;
     }
 
-    logger.debug('🔔 useAutoVerificationTasks: Setting up subscription');
+    logger.debug('🔔 useAutoVerificationTasks: Setting up subscription', { organizationId });
 
     // Écouter les soumissions de formulaires par les clients
+    // 🔥 MULTI-TENANT: Filtré par organization_id !
     const channel = supabase
-      .channel('auto-verification-tasks')
+      .channel(`auto-verification-tasks-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'client_form_panels'
+          table: 'client_form_panels',
+          filter: `organization_id=eq.${organizationId}`  // 🔥 FILTRE MULTI-TENANT !
         },
         async (payload) => {
           try {
@@ -53,7 +63,7 @@ export function useAutoVerificationTasks(prompts, enabled = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [prompts, enabled]);
+  }, [prompts, organizationId, enabled]);
 }
 
 /**
