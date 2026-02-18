@@ -307,36 +307,36 @@ USING (
 DO $$
 DECLARE
   tables_updated TEXT[] := ARRAY['appointments', 'chat_messages', 'notifications', 'calls', 'client_form_panels'];
-  table_name TEXT;
+  v_table_name TEXT;
   col_exists BOOLEAN;
-  trigger_name TEXT;
+  v_trigger_name TEXT;
   trigger_exists BOOLEAN;
 BEGIN
   RAISE NOTICE '═══════════════════════════════════════════════════════';
   RAISE NOTICE '🔍 VÉRIFICATION MULTI-TENANT';
   RAISE NOTICE '═══════════════════════════════════════════════════════';
   
-  FOREACH table_name IN ARRAY tables_updated
+  FOREACH v_table_name IN ARRAY tables_updated
   LOOP
     -- Vérifier colonne organization_id
     SELECT EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public'
-        AND table_name = table_name
-        AND column_name = 'organization_id'
+      SELECT 1 FROM information_schema.columns c
+      WHERE c.table_schema = 'public'
+        AND c.table_name = v_table_name
+        AND c.column_name = 'organization_id'
     ) INTO col_exists;
 
     -- Vérifier trigger
-    trigger_name := 'trigger_auto_fill_' || table_name || '_organization_id';
+    v_trigger_name := 'trigger_auto_fill_' || v_table_name || '_organization_id';
     SELECT EXISTS (
       SELECT 1 FROM pg_trigger t
-      JOIN pg_class c ON c.oid = t.tgrelid
-      WHERE t.tgname = trigger_name
-        AND c.relname = table_name
+      JOIN pg_class cl ON cl.oid = t.tgrelid
+      WHERE t.tgname = v_trigger_name
+        AND cl.relname = v_table_name
     ) INTO trigger_exists;
 
     RAISE NOTICE '📋 % → organization_id: % | trigger: %', 
-      table_name, 
+      v_table_name, 
       CASE WHEN col_exists THEN '✅' ELSE '❌' END,
       CASE WHEN trigger_exists THEN '✅' ELSE '❌' END;
   END LOOP;

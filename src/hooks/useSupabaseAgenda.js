@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { toast } from '@/components/ui/use-toast';
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import { appointmentToCamel, appointmentToSnake, transformArray } from '@/lib/transforms';
 
 /**
@@ -15,12 +14,11 @@ import { appointmentToCamel, appointmentToSnake, transformArray } from '@/lib/tr
  * - type: "call" → Appels affichés dans la sidebar uniquement
  * - type: "task" → Tâches affichées dans la sidebar uniquement
  */
-export const useSupabaseAgenda = (activeAdminUser) => {
+export const useSupabaseAgenda = (activeAdminUser, organizationId) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [realtimeChannel, setRealtimeChannel] = useState(null);
-  const { organizationId } = useOrganization();
 
   // 🔥 Hook pour journaliser les activités dans project_history
   // UTILISER addProjectEvent qui accepte projectType et prospectId en paramètres
@@ -90,17 +88,18 @@ export const useSupabaseAgenda = (activeAdminUser) => {
 
   // ==================== REAL-TIME SYNC ====================
   useEffect(() => {
-    if (!activeAdminUser) return;
+    if (!activeAdminUser || !organizationId) return;
 
     // Créer un canal unique pour l'agenda
     const channel = supabase
-      .channel('agenda-changes')
+      .channel(`agenda-changes-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'appointments'
+          table: 'appointments',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -134,7 +133,7 @@ export const useSupabaseAgenda = (activeAdminUser) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeAdminUser]);
+  }, [activeAdminUser, organizationId]);
 
   // ==================== APPOINTMENTS ====================
 

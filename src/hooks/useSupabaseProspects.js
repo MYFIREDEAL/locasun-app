@@ -2,21 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
-import { useOrganization } from '@/contexts/OrganizationContext';
 import { prospectToCamel, prospectToSnake, transformArray } from '@/lib/transforms';
 
 /**
  * Hook personnalisé pour gérer les prospects via Supabase
  * PR-4: Utilise transforms centralisés pour la conversion snake_case ↔ camelCase
+ * 🔥 MULTI-TENANT: Reçoit organizationId en paramètre pour filtrage real-time
  */
-export const useSupabaseProspects = (activeAdminUser) => {
+export const useSupabaseProspects = (activeAdminUser, organizationId) => {
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(0); // 🔥 PR-8: Total pour pagination
   const [hasMore, setHasMore] = useState(true); // 🔥 PR-8: Indicateur pagination
   const channelRef = useRef(null); // 🔥 Stocker le channel pour broadcast manuel
-  const { organizationId } = useOrganization(); // 🔥 AJOUT
+  const isMounted = useRef(true); // 🔥 Éviter les updates après unmount
 
   // 🔥 PR-8: Limite par page (default élevé pour rétrocompatibilité)
   const PAGE_SIZE = 500;
@@ -99,19 +99,26 @@ export const useSupabaseProspects = (activeAdminUser) => {
   }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
 
   // 🔥 REAL-TIME : Écouter les changements en temps réel
+  // 🔥 MULTI-TENANT: Filtré par organization_id !
   useEffect(() => {
-    if (!activeAdminUser) return;
+    if (!activeAdminUser || !organizationId) return;
+
+    // 🔥 Marqueur pour éviter les updates après unmount
+    isMounted.current = true;
 
     const channel = supabase
-      .channel(`prospects-changes-${Math.random().toString(36).slice(2)}`)
+      .channel(`prospects-changes-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*', // INSERT, UPDATE, DELETE
           schema: 'public',
-          table: 'prospects'
+          table: 'prospects',
+          filter: `organization_id=eq.${organizationId}` // 🔥 FILTRE MULTI-TENANT !
         },
         (payload) => {
+          if (!isMounted.current) return;
+
           if (payload.eventType === 'INSERT') {
             // 🔥 PR-4: Utiliser transform centralisé
             const newProspect = prospectToCamel(payload.new);
@@ -126,6 +133,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
             logger.info('🔄 [useSupabaseProspects] Real-time UPDATE received', {
               prospectId: payload.new.id,
               name: payload.new.name,
+              organizationId: payload.new.organization_id,
               hasFormData: !!payload.new.form_data,
               formDataKeys: payload.new.form_data ? Object.keys(payload.new.form_data) : []
             });
@@ -154,6 +162,7 @@ export const useSupabaseProspects = (activeAdminUser) => {
         }
       )
       .on('broadcast', { event: 'prospect-updated' }, (payload) => {
+        if (!isMounted.current) return;
         // 🔥 Écouter les broadcasts manuels (quand un client modifie son profil)
         logger.debug('Broadcast manual UPDATE received', { id: payload.payload?.id });
         setProspects(prev => prev.map(p => p.id === payload.payload.id ? payload.payload : p));
@@ -165,10 +174,11 @@ export const useSupabaseProspects = (activeAdminUser) => {
 
     // Cleanup : se désabonner quand le composant unmount
     return () => {
+      isMounted.current = false;
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [activeAdminUser?.id]); // ✅ Utiliser l'ID au lieu de l'objet complet
+  }, [activeAdminUser?.id, organizationId]); // ✅ Dépend de organizationId
 
   // 🔥 CANAL GLOBAL pour broadcasts (fonctionne pour admins ET clients)
   useEffect(() => {
