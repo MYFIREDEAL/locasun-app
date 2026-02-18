@@ -369,7 +369,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
  * Exécute l'action "Associée au partenaire"
  * Crée automatiquement une mission pour le partenaire assigné
  */
-async function executePartnerTaskAction({ action, prospectId, projectType }) {
+export async function executePartnerTaskAction({ action, prospectId, projectType }) {
   try {
     if (!action.partnerId) {
       logger.warn('Action partner_task sans partnerId', { prospectId, projectType });

@@ -26,6 +26,7 @@ import { supabase } from '@/lib/supabase';
 import { isExecutionFromV2Enabled, logV2 } from '@/lib/workflowV2Config';
 import { toast } from '@/components/ui/use-toast';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
+import { executePartnerTaskAction } from '@/hooks/useWorkflowExecutor';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -129,6 +130,128 @@ export async function executeActionOrder(order, context = {}) {
   try {
     let result;
     
+    // ───────────────────────────────────────────────────────────────────────
+    // 🤝 CAS SPÉCIAL: Actions PARTENAIRE
+    // ───────────────────────────────────────────────────────────────────────
+    if (order.target === 'PARTENAIRE') {
+      logV2('🤝 executeActionOrder PARTENAIRE - Récupération config', { 
+        orderId: order.id,
+        moduleId: order.moduleId, 
+        projectType: order.projectType,
+        prospectId: order.prospectId,
+      });
+
+      // Récupérer organizationId depuis le prospect
+      const { data: prospectData, error: prospectError } = await supabase
+        .from('prospects')
+        .select('organization_id')
+        .eq('id', order.prospectId)
+        .single();
+
+      if (prospectError || !prospectData?.organization_id) {
+        logV2('❌ executeActionOrder PARTENAIRE - Prospect non trouvé', { 
+          error: prospectError?.message,
+          prospectId: order.prospectId,
+        });
+        
+        return {
+          success: false,
+          status: 'error',
+          message: 'Impossible de récupérer les données du prospect',
+          data: { orderId: order.id, error: prospectError?.message },
+        };
+      }
+
+      // Récupérer config depuis workflow_module_templates
+      const { data: templateData, error: templateError } = await supabase
+        .from('workflow_module_templates')
+        .select('config')
+        .eq('organization_id', prospectData.organization_id)
+        .eq('project_type', order.projectType)
+        .eq('module_id', order.moduleId)
+        .single();
+
+      if (templateError || !templateData?.config) {
+        logV2('⚠️ executeActionOrder PARTENAIRE - Config module non trouvée', { 
+          error: templateError?.message,
+          organizationId: prospectData.organization_id,
+          projectType: order.projectType,
+          moduleId: order.moduleId,
+        });
+        
+        toast({
+          title: "⚠️ Configuration manquante",
+          description: "Module non configuré pour ce type de projet",
+          variant: "destructive",
+        });
+        
+        return {
+          success: false,
+          status: 'error',
+          message: 'Configuration module introuvable',
+          data: { orderId: order.id, moduleId: order.moduleId },
+        };
+      }
+
+      // Extraire actionConfig
+      const actionConfig = templateData.config?.actionConfig || {};
+
+      // Validation partnerId
+      if (!actionConfig.partnerId) {
+        logV2('⚠️ executeActionOrder PARTENAIRE - partnerId manquant', { 
+          orderId: order.id,
+          moduleId: order.moduleId,
+          actionConfig,
+        });
+        
+        toast({
+          title: "⚠️ Configuration incomplète",
+          description: "Aucun partenaire sélectionné pour cette action",
+          variant: "destructive",
+        });
+        
+        return {
+          success: false,
+          status: 'error',
+          message: 'partnerId manquant dans actionConfig',
+          data: { orderId: order.id, moduleId: order.moduleId },
+        };
+      }
+
+      // Bridge V2 → V1: Appeler moteur existant
+      await executePartnerTaskAction({
+        action: {
+          type: 'partner_task',
+          partnerId: actionConfig.partnerId,
+          partnerInstructions: actionConfig.instructions || '',
+          isBlocking: actionConfig.isBlocking !== false,
+        },
+        prospectId: order.prospectId,
+        projectType: order.projectType,
+      });
+
+      logV2('✅ executeActionOrder PARTENAIRE - Mission créée', { 
+        orderId: order.id,
+        moduleId: order.moduleId, 
+        partnerId: actionConfig.partnerId,
+        isBlocking: actionConfig.isBlocking,
+      });
+      
+      return {
+        success: true,
+        status: 'executed',
+        message: 'Mission partenaire créée avec succès',
+        data: { 
+          orderId: order.id, 
+          partnerId: actionConfig.partnerId,
+          isBlocking: actionConfig.isBlocking !== false,
+        },
+      };
+    }
+    
+    // ───────────────────────────────────────────────────────────────────────
+    // SWITCH NORMAL: FORM / SIGNATURE
+    // ───────────────────────────────────────────────────────────────────────
     switch (order.actionType) {
       case 'FORM':
         result = await executeFormAction(order, context);
