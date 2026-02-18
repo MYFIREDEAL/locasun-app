@@ -358,12 +358,13 @@ function App() {
   const { users: supabaseUsers } = useUsers();
   
   // 🔥 ÉTAPE PRO : Charger les prospects depuis Supabase avec le hook qui utilise la RPC
+  // 🔥 MULTI-TENANT: Passer organizationId pour filtrage real-time
   const { 
     prospects: supabaseProspects,
     addProspect: addProspectSupabase, // 🔥 PR-4.1: Récupérer addProspect du hook
     updateProspect: updateProspectSupabase,
     loading: prospectsLoading 
-  } = useSupabaseProspects(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
+  } = useSupabaseProspects(authLoading ? null : activeAdminUser, organizationId); // ✅ + organizationId
   
   // 🔥 PR-3: SOURCE UNIQUE AGENDA - Appeler useSupabaseAgenda UNE SEULE FOIS ici
   const {
@@ -382,7 +383,7 @@ function App() {
     updateTask: updateTaskSupabase,
     deleteTask: deleteTaskSupabase,
     refresh: refreshAgenda,
-  } = useSupabaseAgenda(authLoading ? null : activeAdminUser); // ✅ Ne charger que si auth ready
+  } = useSupabaseAgenda(authLoading ? null : activeAdminUser, organizationId); // 🔥 MULTI-TENANT: Passer organizationId
   
   // Synchroniser prospects dans le state pour compatibilité avec le code existant
   useEffect(() => {
@@ -573,11 +574,12 @@ function App() {
     !authLoading && !!currentUser
   );
 
+  // 🔥 MULTI-TENANT: Passer organizationId pour filtrer par org
   const {
     projectInfos: supabaseProjectInfos,
     getProjectInfo: getSupabaseProjectInfo,
     updateProjectInfo: updateSupabaseProjectInfo
-  } = useSupabaseProjectInfos();
+  } = useSupabaseProjectInfos(organizationId);
 
   // Convertir projectTemplates en format compatible avec le code existant
   // Format attendu : { ACC: {...}, Centrale: {...}, etc. }

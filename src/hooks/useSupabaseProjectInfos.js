@@ -7,16 +7,16 @@
  * 
  * ⚠️ Les autres champs (ribFile, documents, notes, etc.) sont ignorés pour l'instant
  * 
+ * @param {string} organizationId - ID de l'organisation pour filtrage multi-tenant
+ * @param {boolean} enabled - Activer/désactiver le hook
  * @returns {Object} { projectInfos, getProjectInfo, updateProjectInfo, isLoading, error }
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-import { useOrganization } from '@/contexts/OrganizationContext';
 
-export const useSupabaseProjectInfos = () => {
-  const { organizationId } = useOrganization();
+export const useSupabaseProjectInfos = (organizationId, enabled = true) => {
   // État local : structure { [prospectId]: { [projectType]: { amount, status } } }
   const [projectInfos, setProjectInfos] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -102,14 +102,17 @@ export const useSupabaseProjectInfos = () => {
    * Écoute les changements en temps réel sur la table project_infos
    */
   useEffect(() => {
+    if (!enabled || !organizationId) return;
+
     const channel = supabase
-      .channel('project_infos-changes')
+      .channel(`project-infos-${organizationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'project_infos'
+          table: 'project_infos',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => {
           logger.debug('Real-time project_infos', { eventType: payload.eventType });
@@ -163,7 +166,7 @@ export const useSupabaseProjectInfos = () => {
       logger.debug('Cleaning up real-time channel project_infos');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [enabled, organizationId]);
 
   /**
    * Récupère les infos d'un projet spécifique
