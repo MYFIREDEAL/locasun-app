@@ -46,7 +46,6 @@ RETURNS TABLE (
   step_name TEXT,
   filled_by_role TEXT, -- 🔥 AJOUT: Pour filtrer client vs partner
   last_submitted_at TIMESTAMPTZ,
-  rejection_reason TEXT,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ,
   organization_id UUID
@@ -67,7 +66,6 @@ BEGIN
     cfp.step_name,
     cfp.filled_by_role, -- 🔥 AJOUT (DEFAULT 'client' en DB donc compatible existant)
     cfp.last_submitted_at,
-    cfp.rejection_reason,
     cfp.created_at,
     cfp.updated_at,
     cfp.organization_id

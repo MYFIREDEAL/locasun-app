@@ -183,6 +183,9 @@ const PartnerMissionDetailPage = () => {
         return;
       }
 
+      // Debug: Tracer form_data avant soumission
+      console.log("SUBMIT FORM DATA:", draft);
+
       // 1. Charger les données actuelles du prospect
       const { data: prospectData } = await supabase
         .from('prospects')
@@ -190,7 +193,7 @@ const PartnerMissionDetailPage = () => {
         .eq('id', prospectId)
         .single();
 
-      // 2. Mettre à jour form_data
+      // 2. Mettre à jour form_data dans prospects
       const updatedFormData = {
         ...(prospectData?.form_data || {}),
         [projectType]: {
@@ -204,8 +207,9 @@ const PartnerMissionDetailPage = () => {
         .update({ form_data: updatedFormData })
         .eq('id', prospectId);
 
-      // 3. Mettre à jour le statut du panel
+      // 3. Mettre à jour le panel avec form_data + statut
       await updateFormPanel(panelId, { 
+        form_data: draft,
         status: 'submitted',
         lastSubmittedAt: new Date().toISOString() 
       });
