@@ -388,13 +388,6 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
       .eq('id', prospectId)
       .single();
 
-    // 🔍 DEBUG: Logger les données du prospect récupérées
-    console.log('🔍 [executePartnerTaskAction] Données prospect récupérées:', {
-      prospectId,
-      prospectData,
-      prospectError,
-    });
-
     if (prospectError || !prospectData) {
       logger.error('Erreur récupération prospect pour mission partenaire', { 
         error: prospectError?.message 
@@ -419,32 +412,24 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
     }
 
     // 3. Créer la mission
-    const missionData = {
-      organization_id: prospectData.organization_id,
-      partner_id: action.partnerId,
-      prospect_id: prospectId,
-      project_type: projectType,
-      title: `Mission pour ${prospectData.name || 'Client'}`,
-      description: action.partnerInstructions || null,
-      status: 'pending',
-      is_blocking: action.isBlocking !== false,
-      client_name: prospectData.name || null,
-      email: prospectData.email || null,
-      phone: prospectData.phone || null,
-      address: prospectData.address || null,
-    };
-
-    // 🔍 DEBUG: Logger les données avant INSERT
-    console.log('🔍 [executePartnerTaskAction] Données mission à insérer:', missionData);
-
     const { data: mission, error: missionError } = await supabase
       .from('missions')
-      .insert(missionData)
+      .insert({
+        organization_id: prospectData.organization_id,
+        partner_id: action.partnerId,
+        prospect_id: prospectId,
+        project_type: projectType,
+        title: `Mission pour ${prospectData.name || 'Client'}`,
+        description: action.partnerInstructions || null,
+        status: 'pending',
+        is_blocking: action.isBlocking !== false,
+        client_name: prospectData.name || null,
+        email: prospectData.email || null,
+        phone: prospectData.phone || null,
+        address: prospectData.address || null,
+      })
       .select()
       .single();
-
-    // 🔍 DEBUG: Logger le résultat de l'INSERT
-    console.log('🔍 [executePartnerTaskAction] Mission créée:', { mission, missionError });
 
     if (missionError) {
       logger.error('Erreur création mission partenaire', { error: missionError.message });
