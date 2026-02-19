@@ -76,13 +76,18 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           return;
         }
         
-        // 🔥 MULTI-ORG: Lecture via RPC
-        // - prospectId truthy => client mode (filtré par prospect)
-        // - prospectId falsy (null) => admin mode (tous les panels de l'org)
-        const { data, error } = await supabase.rpc('get_client_form_panels_for_org_v2', {
-          p_organization_id: organizationId,
-          p_prospect_id: prospectId || null,
-        });
+        // 🔥 LECTURE DIRECTE (plus de RPC - évite les problèmes de cache PostgREST)
+        let query = supabase
+          .from('client_form_panels')
+          .select('*')
+          .eq('organization_id', organizationId);
+        
+        // Si prospectId fourni, filtrer par prospect (mode client)
+        if (prospectId) {
+          query = query.eq('prospect_id', prospectId);
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) {
           logger.error('Supabase SELECT error:', error.message);
