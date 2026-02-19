@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
-import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
 
 /**
  * /partner/missions/:missionId
@@ -27,24 +26,10 @@ const PartnerMissionDetailPage = () => {
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   
-  // 🔥 AJOUT: Charger les formulaires pour partenaire
+  // 🔥 Formulaires pour partenaire (chargés directement, pas via hook)
   const [formSchemas, setFormSchemas] = useState({});
   const [formDrafts, setFormDrafts] = useState({});
-  
-  // Charger form_panels du prospect (filtered by filled_by_role='partner')
-  const { formPanels: clientFormPanels, updateFormPanel } = useSupabaseClientFormPanels(
-    mission?.prospect_id || null,
-    { organizationId: mission?.organization_id, enabled: !!mission }
-  );
-  
-  // Filtrer les formulaires pour PARTENAIRE
-  const partnerForms = useMemo(() => {
-    if (!mission?.form_ids) return [];
-    return clientFormPanels.filter(panel => 
-      panel.filledByRole === 'partner' &&
-      mission.form_ids.includes(panel.formId)
-    );
-  }, [clientFormPanels, mission]);
+  const [partnerForms, setPartnerForms] = useState([]); // Panels à remplir
 
   useEffect(() => {
     let mounted = true;
@@ -122,6 +107,33 @@ const PartnerMissionDetailPage = () => {
             formsData.forEach(form => { schemas[form.form_id] = form; });
             setFormSchemas(schemas);
           }
+
+          // 🔥 Charger les panels directement (pas via hook car partenaire n'a pas OrganizationContext)
+          const { data: panelsData, error: panelsError } = await supabase
+            .from('client_form_panels')
+            .select('*')
+            .eq('prospect_id', missionData.prospect_id)
+            .eq('filled_by_role', 'partner')
+            .in('form_id', missionData.form_ids);
+
+          if (panelsError) {
+            logger.error('Erreur chargement panels partenaire', { error: panelsError.message });
+          } else if (panelsData && mounted) {
+            // Transformer en format camelCase
+            const transformedPanels = panelsData.map(p => ({
+              id: p.id,
+              panelId: p.panel_id,
+              prospectId: p.prospect_id,
+              projectType: p.project_type,
+              formId: p.form_id,
+              status: p.status,
+              filledByRole: p.filled_by_role,
+              formData: p.form_data || {},
+              lastSubmittedAt: p.last_submitted_at,
+            }));
+            setPartnerForms(transformedPanels);
+            logger.debug('Panels partenaire chargés', { count: transformedPanels.length });
+          }
         }
 
         // Préparer questions si présentes (champ JSON dans partner_notes? ou questions)
@@ -186,22 +198,29 @@ const PartnerMissionDetailPage = () => {
       // Debug: Tracer form_data avant soumission
       console.log("SUBMIT FORM DATA:", draft);
 
-      // 🔥 NOTE: Le partenaire ne peut PAS update prospects.form_data (RLS bloque)
-      // Les données sont stockées dans client_form_panels.form_data uniquement
-      // L'admin doit lire depuis le panel, pas depuis le prospect
+      // 🔥 UPDATE DIRECT (pas via hook car partenaire n'a pas OrganizationContext)
+      const { error: updateError } = await supabase
+        .from('client_form_panels')
+        .update({
+          form_data: draft,
+          status: 'submitted',
+          last_submitted_at: new Date().toISOString()
+        })
+        .eq('panel_id', panelId);
 
-      // Mettre à jour le panel avec formData (camelCase) + statut
-      const result = await updateFormPanel(panelId, { 
-        formData: draft, // 🔥 camelCase → mappé en form_data par le hook
-        status: 'submitted',
-        lastSubmittedAt: new Date().toISOString() 
-      });
-
-      console.log("UPDATE PANEL RESULT:", result);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur update panel');
+      if (updateError) {
+        console.error("UPDATE PANEL ERROR:", updateError);
+        throw new Error(updateError.message || 'Erreur update panel');
       }
+
+      console.log("UPDATE PANEL SUCCESS");
+
+      // Mettre à jour l'état local
+      setPartnerForms(prev => prev.map(p => 
+        p.panelId === panelId 
+          ? { ...p, status: 'submitted', formData: draft }
+          : p
+      ));
 
       toast({ 
         title: '✅ Formulaire envoyé', 
