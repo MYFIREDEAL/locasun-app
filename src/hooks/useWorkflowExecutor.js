@@ -427,6 +427,7 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
         email: prospectData.email || null,
         phone: prospectData.phone || null,
         address: prospectData.address || null,
+        form_ids: action.formIds || [], // 🔥 AJOUTER: IDs des formulaires associés
       })
       .select()
       .single();

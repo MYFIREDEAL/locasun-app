@@ -226,16 +226,50 @@ export async function executeActionOrder(order, context = {}) {
           partnerId: actionConfig.partnerId,
           partnerInstructions: actionConfig.instructions || '',
           isBlocking: actionConfig.isBlocking !== false,
+          formIds: order.formIds || [], // 🔥 AJOUTER formIds pour stockage dans mission
         },
         prospectId: order.prospectId,
         projectType: order.projectType,
       });
+
+      // 🔥 SI actionType=FORM → Créer les form_panels pour le partenaire
+      if (order.actionType === 'FORM' && order.formIds?.length > 0) {
+        logV2('📋 executeActionOrder PARTENAIRE - Création form_panels', {
+          formIds: order.formIds,
+          prospectId: order.prospectId,
+        });
+
+        for (const formId of order.formIds) {
+          const panelId = `panel-partner-${order.prospectId}-${order.projectType}-${formId}-${Date.now()}`;
+          
+          const { error: panelError } = await supabase
+            .from('client_form_panels')
+            .insert({
+              panel_id: panelId,
+              prospect_id: order.prospectId, // Le client (pas le partenaire)
+              project_type: order.projectType,
+              form_id: formId,
+              prompt_id: order.promptId || null,
+              current_step_index: order.currentStepIndex || 0,
+              status: 'pending',
+              verification_mode: order.verificationMode || 'human',
+              organization_id: prospectData.organization_id,
+            });
+
+          if (panelError) {
+            logV2('⚠️ Erreur création form_panel', { formId, error: panelError.message });
+          } else {
+            logV2('✅ Form_panel créé', { formId, panelId });
+          }
+        }
+      }
 
       logV2('✅ executeActionOrder PARTENAIRE - Mission créée', { 
         orderId: order.id,
         moduleId: order.moduleId, 
         partnerId: actionConfig.partnerId,
         isBlocking: actionConfig.isBlocking,
+        formIdsCount: order.formIds?.length || 0,
       });
       
       return {
@@ -246,6 +280,7 @@ export async function executeActionOrder(order, context = {}) {
           orderId: order.id, 
           partnerId: actionConfig.partnerId,
           isBlocking: actionConfig.isBlocking !== false,
+          formIdsCreated: order.formIds?.length || 0,
         },
       };
     }
