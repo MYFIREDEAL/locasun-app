@@ -161,6 +161,39 @@ http://localhost:5173/admin/workflow-v2-config
 - `READ_ONLY: true` → Aucune écriture DB depuis V2
 - `EXECUTION_FROM_V2: false` → Bouton "Exécuter" désactivé (simulation uniquement)
 
+### 🆕 Fonctionnalités Partenaires (19 fév 2026)
+
+#### ✅ Ce qui fonctionne maintenant
+| Fonctionnalité | Statut | Détail |
+|----------------|--------|--------|
+| **Création mission partenaire** | ✅ | Workflow V2 → target PARTENAIRE → Mission créée |
+| **Envoi formulaire au partenaire** | ✅ | Mission avec `form_ids` → Partenaire voit formulaire |
+| **Remplissage formulaire** | ✅ | Partenaire remplit → `form_data` sauvegardé dans `client_form_panels` |
+| **Visualisation admin** | ✅ | Admin voit réponses dans "Formulaires soumis" |
+| **Validation/Refus** | ✅ | Admin peut Approuver ou Refuser le formulaire |
+
+#### Flow complet Partenaire + Formulaire
+```
+1. Admin config Workflow V2 → Module X → Target: PARTENAIRE + Formulaire
+2. Workflow V1 crée mission + client_form_panel (filled_by_role='partner')
+3. Partenaire ouvre mission → voit formulaire → remplit → soumet
+4. form_data sauvegardé dans client_form_panels.form_data
+5. Admin voit dans ProspectDetailsAdmin → Section "Formulaires soumis"
+6. Admin valide ou refuse
+```
+
+#### Fichiers clés Partenaires
+| Fichier | Rôle |
+|---------|------|
+| `src/pages/partner/PartnerMissionDetailPage.jsx` | Page partenaire avec formulaires |
+| `src/hooks/useSupabaseClientFormPanels.js` | Hook lecture/écriture panels (lecture directe `.from()`) |
+| `src/components/admin/ProspectDetailsAdmin.jsx` | Admin voit `panel.formData` si `filledByRole='partner'` |
+
+#### Colonnes importantes `client_form_panels`
+- `filled_by_role` : `'client'` ou `'partner'` (qui a rempli)
+- `form_data` : JSONB avec les réponses du formulaire
+- `status` : `'pending'`, `'submitted'`, `'approved'`, `'rejected'`
+
 ## 🔔 Système de Relances Automatiques
 
 ### Architecture
