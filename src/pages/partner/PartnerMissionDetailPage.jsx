@@ -186,33 +186,22 @@ const PartnerMissionDetailPage = () => {
       // Debug: Tracer form_data avant soumission
       console.log("SUBMIT FORM DATA:", draft);
 
-      // 1. Charger les données actuelles du prospect
-      const { data: prospectData } = await supabase
-        .from('prospects')
-        .select('form_data')
-        .eq('id', prospectId)
-        .maybeSingle(); // 🔥 FIX: maybeSingle() au lieu de single() pour éviter PGRST116
+      // 🔥 NOTE: Le partenaire ne peut PAS update prospects.form_data (RLS bloque)
+      // Les données sont stockées dans client_form_panels.form_data uniquement
+      // L'admin doit lire depuis le panel, pas depuis le prospect
 
-      // 2. Mettre à jour form_data dans prospects
-      const updatedFormData = {
-        ...(prospectData?.form_data || {}),
-        [projectType]: {
-          ...((prospectData?.form_data || {})[projectType] || {}),
-          [formId]: draft
-        }
-      };
-
-      await supabase
-        .from('prospects')
-        .update({ form_data: updatedFormData })
-        .eq('id', prospectId);
-
-      // 3. Mettre à jour le panel avec formData (camelCase) + statut
-      await updateFormPanel(panelId, { 
-        formData: draft, // 🔥 FIX: camelCase (sera mappé en form_data par le hook)
+      // Mettre à jour le panel avec formData (camelCase) + statut
+      const result = await updateFormPanel(panelId, { 
+        formData: draft, // 🔥 camelCase → mappé en form_data par le hook
         status: 'submitted',
         lastSubmittedAt: new Date().toISOString() 
       });
+
+      console.log("UPDATE PANEL RESULT:", result);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur update panel');
+      }
 
       toast({ 
         title: '✅ Formulaire envoyé', 

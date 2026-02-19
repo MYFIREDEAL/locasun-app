@@ -2157,12 +2157,19 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             <div className="space-y-4">
                 {relevantPanels.map(panel => {
                     const formDefinition = forms[panel.formId];
-                    // 🔥 FIX: prospect est maintenant editableProspect passé en prop
-                    const fullFormData = prospect.form_data || prospect.formData || {};
                     
-                    // 🔥 FIX: Accéder à la structure correcte projectType > formId > fields
-                    const projectFormData = fullFormData[panel.projectType] || {};
-                    const formData = projectFormData[panel.formId] || {};
+                    // 🔥 FIX: Pour les formulaires PARTENAIRE, lire form_data depuis le panel
+                    // Car le partenaire ne peut pas UPDATE prospects.form_data (RLS)
+                    let formData = {};
+                    if (panel.filledByRole === 'partner' && panel.formData) {
+                        // Formulaire partenaire → données dans panel.formData
+                        formData = panel.formData;
+                    } else {
+                        // Formulaire client → données dans prospect.form_data
+                        const fullFormData = prospect.form_data || prospect.formData || {};
+                        const projectFormData = fullFormData[panel.projectType] || {};
+                        formData = projectFormData[panel.formId] || {};
+                    }
                     
                     if (!formDefinition) return null;
 
