@@ -1899,7 +1899,7 @@ function App() {
         <meta property="og:description" content={getPageDescription()} />
       </Helmet>
 
-      {unlinkedInOrg && !authLoading && (
+      {unlinkedInOrg && !authLoading && !location.pathname.startsWith('/partner') && (
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 text-sm flex items-center gap-2">
           <span className="font-semibold">Compte non rattaché à cette organisation.</span>
           <span>Demandez une invitation.</span>
