@@ -191,7 +191,7 @@ const PartnerMissionDetailPage = () => {
         .from('prospects')
         .select('form_data')
         .eq('id', prospectId)
-        .single();
+        .maybeSingle(); // 🔥 FIX: maybeSingle() au lieu de single() pour éviter PGRST116
 
       // 2. Mettre à jour form_data dans prospects
       const updatedFormData = {
@@ -257,12 +257,10 @@ const PartnerMissionDetailPage = () => {
         updates.completed_at = new Date().toISOString();
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('missions')
         .update(updates)
-        .eq('id', mission.id)
-        .select()
-        .single();
+        .eq('id', mission.id);
 
       if (error) throw error;
 
