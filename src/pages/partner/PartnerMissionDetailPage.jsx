@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin, Mail } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels';
 
 /**
  * /partner/missions/:missionId
@@ -24,6 +26,25 @@ const PartnerMissionDetailPage = () => {
   const [responses, setResponses] = useState({});
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // 🔥 AJOUT: Charger les formulaires pour partenaire
+  const [formSchemas, setFormSchemas] = useState({});
+  const [formDrafts, setFormDrafts] = useState({});
+  
+  // Charger form_panels du prospect (filtered by filled_by_role='partner')
+  const { formPanels: clientFormPanels, updateFormPanel } = useSupabaseClientFormPanels(
+    mission?.prospect_id || null,
+    { organizationId: mission?.organization_id, enabled: !!mission }
+  );
+  
+  // Filtrer les formulaires pour PARTENAIRE
+  const partnerForms = useMemo(() => {
+    if (!mission?.form_ids) return [];
+    return clientFormPanels.filter(panel => 
+      panel.filledByRole === 'partner' &&
+      mission.form_ids.includes(panel.formId)
+    );
+  }, [clientFormPanels, mission]);
 
   useEffect(() => {
     let mounted = true;
@@ -89,6 +110,20 @@ const PartnerMissionDetailPage = () => {
 
         if (mounted) setClient(prospectData || null);
 
+        // 🔥 AJOUT: Charger les schémas des formulaires
+        if (missionData.form_ids?.length > 0) {
+          const { data: formsData } = await supabase
+            .from('forms')
+            .select('*')
+            .in('form_id', missionData.form_ids);
+          
+          if (formsData && mounted) {
+            const schemas = {};
+            formsData.forEach(form => { schemas[form.form_id] = form; });
+            setFormSchemas(schemas);
+          }
+        }
+
         // Préparer questions si présentes (champ JSON dans partner_notes? ou questions)
         // On tente de récupérer `questions` si la colonne existe, sinon on ignore
         const qs = missionData.questions || missionData.payload || null;
@@ -118,6 +153,76 @@ const PartnerMissionDetailPage = () => {
 
   const handleAnswerChange = (key, value) => {
     setResponses(prev => ({ ...prev, [key]: value }));
+  };
+
+  // 🔥 AJOUT: Gestion des formulaires
+  const handleFormFieldChange = (panelId, fieldId, value) => {
+    setFormDrafts(prev => ({
+      ...prev,
+      [panelId]: {
+        ...(prev[panelId] || {}),
+        [fieldId]: value,
+      },
+    }));
+  };
+
+  const handleSubmitForm = async (panel) => {
+    try {
+      const { panelId, prospectId, projectType, formId } = panel;
+      const formDef = formSchemas[formId];
+      const draft = formDrafts[panelId] || {};
+
+      // Valider que tous les champs requis sont remplis
+      const missingFields = formDef?.fields?.filter(f => f.required && !draft[f.id]);
+      if (missingFields?.length > 0) {
+        toast({ 
+          title: 'Champs manquants', 
+          description: 'Veuillez remplir tous les champs requis',
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      // 1. Charger les données actuelles du prospect
+      const { data: prospectData } = await supabase
+        .from('prospects')
+        .select('form_data')
+        .eq('id', prospectId)
+        .single();
+
+      // 2. Mettre à jour form_data
+      const updatedFormData = {
+        ...(prospectData?.form_data || {}),
+        [projectType]: {
+          ...((prospectData?.form_data || {})[projectType] || {}),
+          [formId]: draft
+        }
+      };
+
+      await supabase
+        .from('prospects')
+        .update({ form_data: updatedFormData })
+        .eq('id', prospectId);
+
+      // 3. Mettre à jour le statut du panel
+      await updateFormPanel(panelId, { 
+        status: 'submitted',
+        lastSubmittedAt: new Date().toISOString() 
+      });
+
+      toast({ 
+        title: '✅ Formulaire envoyé', 
+        description: 'En attente de validation par l\'admin' 
+      });
+
+    } catch (err) {
+      logger.error('Erreur soumission formulaire partenaire', { err: err.message });
+      toast({ 
+        title: 'Erreur', 
+        description: 'Impossible d\'envoyer le formulaire',
+        variant: 'destructive' 
+      });
+    }
   };
 
   const saveResult = async (newStatus) => {
@@ -263,6 +368,148 @@ const PartnerMissionDetailPage = () => {
           <div className="mt-2 font-medium text-gray-900">Instruction</div>
           <p className="text-sm text-gray-600 mt-2">{mission.description || '—'}</p>
         </section>
+
+        {/* 🔥 AJOUT: Formulaires à remplir par le partenaire */}
+        {partnerForms.length > 0 && (
+          <section className="bg-white rounded-xl p-4 shadow-sm border mb-4">
+            <Label className="text-xs text-gray-500">FORMULAIRES À REMPLIR</Label>
+            <div className="mt-4 space-y-6">
+              {partnerForms.map((panel) => {
+                const formDef = formSchemas[panel.formId];
+                const draft = formDrafts[panel.panelId] || {};
+                const isSubmitted = panel.status === 'submitted';
+                const isApproved = panel.status === 'approved';
+                const isRejected = panel.status === 'rejected';
+
+                return (
+                  <div key={panel.panelId} className="border-t pt-4 first:border-t-0 first:pt-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900">
+                        {formDef?.title || 'Formulaire'}
+                      </h3>
+                      {isApproved && (
+                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">
+                          ✅ Validé
+                        </span>
+                      )}
+                      {isSubmitted && !isApproved && (
+                        <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                          ⏳ En attente
+                        </span>
+                      )}
+                      {isRejected && (
+                        <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">
+                          ❌ Refusé
+                        </span>
+                      )}
+                    </div>
+
+                    {formDef?.description && (
+                      <p className="text-sm text-gray-600 mb-4">{formDef.description}</p>
+                    )}
+
+                    {/* Champs du formulaire */}
+                    {!isApproved && (
+                      <div className="space-y-4">
+                        {formDef?.fields?.map((field) => (
+                          <div key={field.id}>
+                            <Label className="mb-2 block">
+                              {field.label}
+                              {field.required && <span className="text-red-500 ml-1">*</span>}
+                            </Label>
+                            
+                            {field.type === 'text' && (
+                              <Input
+                                type="text"
+                                value={draft[field.id] || ''}
+                                onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
+                                placeholder={field.placeholder || ''}
+                                disabled={isSubmitted}
+                              />
+                            )}
+
+                            {field.type === 'textarea' && (
+                              <textarea
+                                value={draft[field.id] || ''}
+                                onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
+                                placeholder={field.placeholder || ''}
+                                disabled={isSubmitted}
+                                className="w-full px-3 py-2 border rounded min-h-[80px]"
+                              />
+                            )}
+
+                            {field.type === 'select' && (
+                              <select
+                                value={draft[field.id] || ''}
+                                onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
+                                disabled={isSubmitted}
+                                className="w-full px-3 py-2 border rounded"
+                              >
+                                <option value="">-- Sélectionner --</option>
+                                {field.options?.map((opt) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            )}
+
+                            {field.type === 'number' && (
+                              <Input
+                                type="number"
+                                value={draft[field.id] || ''}
+                                onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
+                                placeholder={field.placeholder || ''}
+                                disabled={isSubmitted}
+                              />
+                            )}
+
+                            {field.type === 'date' && (
+                              <Input
+                                type="date"
+                                value={draft[field.id] || ''}
+                                onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
+                                disabled={isSubmitted}
+                              />
+                            )}
+
+                            {field.type === 'checkbox' && (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={draft[field.id] || false}
+                                  onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.checked)}
+                                  disabled={isSubmitted}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm">{field.placeholder}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {!isSubmitted && (
+                          <Button
+                            onClick={() => handleSubmitForm(panel)}
+                            className="w-full mt-4"
+                          >
+                            Envoyer le formulaire
+                          </Button>
+                        )}
+
+                        {isRejected && panel.rejectionReason && (
+                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                            <p className="text-sm text-red-800">
+                              <strong>Raison du refus :</strong> {panel.rejectionReason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Questions block (if any) */}
         {(mission.questions || mission.payload) ? (
