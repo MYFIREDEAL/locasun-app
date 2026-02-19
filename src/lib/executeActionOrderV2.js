@@ -240,6 +240,25 @@ export async function executeActionOrder(order, context = {}) {
         });
 
         for (const formId of order.formIds) {
+          // 🔥 FIX: Vérifier si un panel actif existe déjà (évite duplication)
+          const { data: existingPanel } = await supabase
+            .from('client_form_panels')
+            .select('id, panel_id, status')
+            .eq('prospect_id', order.prospectId)
+            .eq('form_id', formId)
+            .eq('project_type', order.projectType)
+            .in('status', ['pending', 'submitted'])
+            .maybeSingle();
+
+          if (existingPanel) {
+            logV2('⏭️ Panel déjà existant pour ce formulaire, skip création', {
+              formId,
+              existingPanelId: existingPanel.panel_id,
+              status: existingPanel.status,
+            });
+            continue; // Ne pas recréer
+          }
+
           const panelId = `panel-partner-${order.prospectId}-${order.projectType}-${formId}-${Date.now()}`;
           
           const { error: panelError } = await supabase
@@ -356,10 +375,31 @@ async function executeFormAction(order, context) {
   logV2('📋 executeFormAction', { prospectId, formIds, target });
   
   const createdPanels = [];
+  const skippedPanels = [];
   const errors = [];
   
   for (const formId of formIds) {
     try {
+      // 🔥 FIX: Vérifier si un panel actif existe déjà (évite duplication)
+      const { data: existingPanel } = await supabase
+        .from('client_form_panels')
+        .select('id, panel_id, status')
+        .eq('prospect_id', prospectId)
+        .eq('form_id', formId)
+        .eq('project_type', projectType || 'general')
+        .in('status', ['pending', 'submitted'])
+        .maybeSingle();
+
+      if (existingPanel) {
+        logV2('⏭️ Panel déjà existant pour ce formulaire, skip création', {
+          formId,
+          existingPanelId: existingPanel.panel_id,
+          status: existingPanel.status,
+        });
+        skippedPanels.push({ formId, existingPanelId: existingPanel.panel_id });
+        continue; // Ne pas recréer
+      }
+
       // Générer un panel_id unique (format V1 compatible)
       const panelId = `panel-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       
