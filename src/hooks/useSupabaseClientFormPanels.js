@@ -79,7 +79,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
         // 🔥 MULTI-ORG: Lecture via RPC
         // - prospectId truthy => client mode (filtré par prospect)
         // - prospectId falsy (null) => admin mode (tous les panels de l'org)
-        const { data, error } = await supabase.rpc('get_client_form_panels_for_org', {
+        const { data, error } = await supabase.rpc('get_client_form_panels_for_org_v2', {
           p_organization_id: organizationId,
           p_prospect_id: prospectId || null,
         });
@@ -89,9 +89,24 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           throw error;
         }
 
-  logger.debug('Form panels loaded', { raw: data?.length || 0, organizationId, prospectId });
+        // 🔥 DEBUG TEMPORAIRE: Utiliser console.log car logger.debug est désactivé
+        console.log('[useSupabaseClientFormPanels] RPC result:', { 
+          raw: data?.length || 0, 
+          organizationId, 
+          prospectId,
+          firstPanel: data?.[0] ? { 
+            id: data[0].id,
+            panel_id: data[0].panel_id,
+            prospect_id: data[0].prospect_id,
+            form_id: data[0].form_id,
+            status: data[0].status,
+            filled_by_role: data[0].filled_by_role,
+            form_data: data[0].form_data,
+          } : null,
+        });
+        
         const transformed = Array.isArray(data) ? data.map(transformFromDB) : [];
-        logger.debug('Form panels transformed', { count: transformed.length });
+        console.log('[useSupabaseClientFormPanels] Transformed:', { count: transformed.length });
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
