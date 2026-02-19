@@ -207,9 +207,9 @@ const PartnerMissionDetailPage = () => {
         .update({ form_data: updatedFormData })
         .eq('id', prospectId);
 
-      // 3. Mettre à jour le panel avec form_data + statut
+      // 3. Mettre à jour le panel avec formData (camelCase) + statut
       await updateFormPanel(panelId, { 
-        form_data: draft,
+        formData: draft, // 🔥 FIX: camelCase (sera mappé en form_data par le hook)
         status: 'submitted',
         lastSubmittedAt: new Date().toISOString() 
       });

@@ -159,6 +159,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.userOverride !== undefined) dbUpdates.user_override = updates.userOverride;
       if (updates.lastSubmittedAt !== undefined) dbUpdates.last_submitted_at = updates.lastSubmittedAt;
+      if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 AJOUT: Mapping camelCase → snake_case
 
       const { data, error } = await supabase
         .from('client_form_panels')
