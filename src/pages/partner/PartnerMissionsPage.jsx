@@ -62,7 +62,16 @@ const PartnerMissionsPage = () => {
         // Récupérer les missions pour ce partenaire
         const { data: missionsData, error: missionsError } = await supabase
           .from('missions')
-          .select('id, title, description, status, is_blocking, prospect_id, created_at, client_name, email, phone')
+          .select(`
+            id, 
+            title, 
+            description, 
+            status, 
+            is_blocking, 
+            prospect_id, 
+            created_at,
+            prospects!inner(name, email, phone)
+          `)
           .eq('partner_id', partnerData.id)
           .order('created_at', { ascending: false });
 
@@ -117,7 +126,7 @@ const PartnerMissionsPage = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="text-sm text-gray-500">Client</div>
-                    <div className="font-semibold text-gray-900 mt-1">{m.client_name || m.title || 'Client'}</div>
+                    <div className="font-semibold text-gray-900 mt-1">{m.prospects?.name || m.title || 'Client'}</div>
                     <p className="text-sm text-gray-600 mt-2 line-clamp-2">{m.description || '—'}</p>
                   </div>
                   <div className="ml-3 flex flex-col items-end space-y-2">
