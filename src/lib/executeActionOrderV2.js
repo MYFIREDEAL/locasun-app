@@ -254,12 +254,13 @@ export async function executeActionOrder(order, context = {}) {
               status: 'pending',
               verification_mode: order.verificationMode || 'human',
               organization_id: prospectData.organization_id,
+              filled_by_role: 'partner', // 🔥 Marqué comme à remplir par PARTENAIRE
             });
 
           if (panelError) {
             logV2('⚠️ Erreur création form_panel', { formId, error: panelError.message });
           } else {
-            logV2('✅ Form_panel créé', { formId, panelId });
+            logV2('✅ Form_panel créé pour PARTENAIRE', { formId, panelId });
           }
         }
       }

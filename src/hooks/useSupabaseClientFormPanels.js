@@ -25,6 +25,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     status: dbPanel.status,
     userOverride: dbPanel.user_override,
     stepName: dbPanel.step_name, // 🔥 AJOUT: Nom de l'étape du pipeline
+    filledByRole: dbPanel.filled_by_role || 'client', // 🔥 AJOUT: Qui remplit (client/partner)
     lastSubmittedAt: dbPanel.last_submitted_at ? new Date(dbPanel.last_submitted_at).getTime() : null,
     createdAt: new Date(dbPanel.created_at).getTime(),
     updatedAt: new Date(dbPanel.updated_at).getTime(),

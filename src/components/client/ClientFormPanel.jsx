@@ -50,6 +50,8 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       .filter(panel => {
         if (panel.prospectId !== currentUser.id) return false;
         if (projectType && panel.projectType !== projectType) return false;
+        // 🔥 FILTRER: Ne montrer QUE les formulaires à remplir par le CLIENT
+        if (panel.filledByRole === 'partner') return false;
         return true;
       })
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
