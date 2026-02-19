@@ -423,6 +423,10 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
         description: action.partnerInstructions || null,
         status: 'pending',
         is_blocking: action.isBlocking !== false,
+        client_name: prospectData.name || null,
+        email: prospectData.email || null,
+        phone: prospectData.phone || null,
+        address: prospectData.address || null,
       })
       .select()
       .single();

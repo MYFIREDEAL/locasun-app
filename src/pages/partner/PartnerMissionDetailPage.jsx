@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin } from 'lucide-react';
+import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin, Mail } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
@@ -167,6 +167,49 @@ const PartnerMissionDetailPage = () => {
     }
   };
 
+  const handleActionClick = (action) => {
+    const clientData = {
+      name: mission?.client_name || mission?.title?.replace('Mission pour ', '') || client?.name || '—',
+      phone: mission?.phone || client?.phone,
+      email: mission?.email || client?.email,
+      address: mission?.address || client?.address,
+    };
+
+    switch (action) {
+      case 'Appel':
+        if (clientData.phone) window.location.href = `tel:${clientData.phone}`;
+        break;
+      case 'Mail':
+        if (clientData.email) window.location.href = `mailto:${clientData.email}`;
+        break;
+      case 'WhatsApp':
+        if (clientData.phone) {
+          const phoneNumber = clientData.phone.replace(/[^0-9]/g, '');
+          window.open(`https://wa.me/${phoneNumber}`, '_blank');
+        } else {
+          toast({
+            title: 'Numéro manquant',
+            description: "Ce client n'a pas de numéro de téléphone.",
+            variant: 'destructive',
+          });
+        }
+        break;
+      case 'GPS':
+        if (clientData.address) {
+          const encodedAddress = encodeURIComponent(clientData.address);
+          const isAppleDevice = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+          if (isAppleDevice) {
+            window.location.href = `maps://?q=${encodedAddress}`;
+          } else {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
+          }
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 p-4">
@@ -190,29 +233,27 @@ const PartnerMissionDetailPage = () => {
           </div>
         </header>
 
-        {/* Client block */}
+        {/* Client block - Actions rapides style ProspectDetailsAdmin */}
         <section className="bg-white rounded-xl p-4 shadow-sm border mb-4">
-          <Label className="text-xs text-gray-500">CLIENT</Label>
-          <div className="mt-2">
-            <div className="font-medium text-gray-900">{client?.name || '—'}</div>
-            <div className="text-sm text-gray-600">{client?.phone || client?.email || ''}</div>
-          </div>
-          <div className="flex gap-2 mt-3">
-            {client?.phone && (
-              <a href={`tel:${client.phone}`} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm">
-                <Phone className="w-4 h-4" /> Appeler
-              </a>
-            )}
-            {client?.phone && (
-              <a href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm">
-                <MessageCircle className="w-4 h-4" /> WhatsApp
-              </a>
-            )}
-            {client?.address && (
-              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm">
-                <MapPin className="w-4 h-4" /> Itinéraire
-              </a>
-            )}
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h2>
+          <div className="flex flex-wrap justify-between gap-2 text-center">
+            {[
+              { icon: Phone, label: 'Appel' },
+              { icon: Mail, label: 'Mail' },
+              { icon: MessageCircle, label: 'WhatsApp' },
+              { icon: MapPin, label: 'GPS' },
+            ].map(({ icon: Icon, label }) => (
+              <button
+                key={label}
+                onClick={() => handleActionClick(label)}
+                className="flex flex-col items-center space-x-1 transition-colors group text-gray-600 hover:text-blue-600"
+              >
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100 group-hover:bg-blue-100">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className="text-xs font-medium">{label}</span>
+              </button>
+            ))}
           </div>
         </section>
 
