@@ -381,10 +381,10 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
       return;
     }
 
-    // 1. Récupérer les données du prospect (nom, organization_id)
+    // 1. Récupérer les données du prospect (nom, email, phone, address, organization_id)
     const { data: prospectData, error: prospectError } = await supabase
       .from('prospects')
-      .select('name, organization_id')
+      .select('name, email, phone, address, organization_id')
       .eq('id', prospectId)
       .single();
 
