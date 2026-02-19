@@ -161,16 +161,14 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       if (updates.lastSubmittedAt !== undefined) dbUpdates.last_submitted_at = updates.lastSubmittedAt;
       if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 AJOUT: Mapping camelCase → snake_case
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('client_form_panels')
         .update(dbUpdates)
-        .eq('panel_id', panelId)
-        .select()
-        .single();
+        .eq('panel_id', panelId);
 
       if (error) throw error;
 
-      return { success: true, data: transformFromDB(data) };
+      return { success: true };
     } catch (err) {
       logger.error('❌ Erreur mise à jour form panel:', err);
       return { success: false, error: err.message };
