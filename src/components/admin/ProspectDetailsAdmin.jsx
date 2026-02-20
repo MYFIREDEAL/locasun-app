@@ -280,7 +280,7 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
     );
 };
 
-const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminUser }) => {
+const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminUser, initialChannel }) => {
   const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed, registerClientForm } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
@@ -312,7 +312,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   const [v2RobotPanelOpen, setV2RobotPanelOpen] = useState(false);
   
   // 🟠 Channel selector: admin peut répondre au client ou au partner
-  const [replyChannel, setReplyChannel] = useState('client');
+  // Si initialChannel='partner' (depuis notif partenaire), on ouvre directement l'onglet partenaire
+  const [replyChannel, setReplyChannel] = useState(initialChannel === 'partner' ? 'partner' : 'client');
   
   // 🔥 V2: Hook pour charger la config persistée
   const { organizationId } = useOrganization();
@@ -2947,6 +2948,7 @@ const ProspectDetailsAdmin = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const initialProject = searchParams.get('project') || prospect._selectedProjectType; // 🔥 Utiliser aussi _selectedProjectType depuis notification
   const notificationId = searchParams.get('notificationId');
+  const initialChannel = searchParams.get('channel'); // 🟠 Auto-switch onglet chat si notif partenaire
 
   const [activeProjectTag, setActiveProjectTag] = useState(initialProject || (prospect.tags && prospect.tags.length > 0 ? prospect.tags[0] : null));
   
@@ -3958,6 +3960,7 @@ const ProspectDetailsAdmin = ({
                   projectType={activeProjectTag} 
                   currentStepIndex={currentStepIndex !== -1 ? currentStepIndex : 0}
                   activeAdminUser={activeAdminUser}
+                  initialChannel={initialChannel}
                 />
               )}
             </ProjectCenterPanel>

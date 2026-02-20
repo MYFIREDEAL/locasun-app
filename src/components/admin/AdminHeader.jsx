@@ -91,7 +91,8 @@ const allNavItems = [
         });
         
         // Redirige vers la pipeline avec le prospect et projet pour ouvrir directement la fiche détaillée avec le chat
-        navigate(`/admin/pipeline?project=${group.projectType}&prospect=${group.prospectId}`);
+        const isPartner = group.projectName === '🟠 Message partenaire';
+        navigate(`/admin/pipeline?project=${group.projectType}&prospect=${group.prospectId}${isPartner ? '&channel=partner' : ''}`);
       };
 
       const handleUserSwitch = (userId) => {
