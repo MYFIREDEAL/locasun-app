@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
-import { Send, ArrowLeft, Loader2, MessageCircle, ChevronRight } from 'lucide-react';
+import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
+import { Send, ArrowLeft, Loader2, MessageCircle, ChevronRight, Plus, Camera, Image as ImageIcon, FileText, X, Download } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,10 +22,15 @@ import { fr } from 'date-fns/locale';
 // ─────────────────────────────────────────────
 const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
   const { messages, loading, sendMessage, markAsRead } = useSupabaseChatMessages(prospectId, projectType, 'partner');
+  const { uploadFile, uploading } = useSupabaseProjectFiles({ projectType, prospectId, enabled: true });
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const photoInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Auto-scroll en bas
   useEffect(() => {
@@ -37,7 +43,6 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
   const handleFocus = useCallback(() => {
     setTimeout(() => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      // Force visualViewport scroll on iOS
       inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 300);
   }, []);
@@ -50,6 +55,64 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
       markAsRead(unread);
     }
   }, [messages]);
+
+  // Fermer le menu quand on clique ailleurs
+  useEffect(() => {
+    if (!showAttachMenu) return;
+    const close = () => setShowAttachMenu(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showAttachMenu]);
+
+  // 📤 Upload et envoi d'un fichier/photo
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    
+    const maxSize = 10 * 1024 * 1024; // 10 MB
+    if (file.size > maxSize) {
+      toast({ title: '❌ Fichier trop volumineux', description: 'Maximum 10 MB.', variant: 'destructive' });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const uploadedFile = await uploadFile({
+        file,
+        uploadedBy: user?.id,
+        fieldLabel: 'chat-partner',
+      });
+
+      if (uploadedFile) {
+        const fileData = {
+          id: uploadedFile.id,
+          name: uploadedFile.file_name,
+          size: uploadedFile.file_size,
+          type: uploadedFile.file_type,
+          storagePath: uploadedFile.storage_path,
+        };
+
+        const isImage = file.type.startsWith('image/');
+        const result = await sendMessage({
+          sender: 'partner',
+          channel: 'partner',
+          text: isImage ? '📷 Photo' : `📎 ${file.name}`,
+          file: fileData,
+        });
+
+        if (result.success) {
+          toast({ title: '✅ Envoyé', description: file.name, className: 'bg-green-500 text-white' });
+        }
+      }
+    } catch (err) {
+      logger.error('PartnerChat: erreur upload fichier', { err: err.message });
+      toast({ title: 'Erreur', description: "Impossible d'envoyer le fichier.", variant: 'destructive' });
+    } finally {
+      setSending(false);
+      setShowAttachMenu(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || sending) return;
@@ -72,6 +135,42 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
       setSending(false);
     }
   };
+
+  // 🖼️ Ouvrir un fichier (signed URL)
+  const handleFileClick = async (file) => {
+    if (!file?.storagePath) return;
+    try {
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(file.storagePath, 3600);
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (err) {
+      toast({ title: 'Erreur', description: "Impossible d'ouvrir le fichier.", variant: 'destructive' });
+    }
+  };
+
+  // 🖼️ Obtenir URL signée pour preview image
+  const [imageUrls, setImageUrls] = useState({});
+  useEffect(() => {
+    const loadImageUrls = async () => {
+      const filesWithImages = messages.filter(m => m.file?.storagePath && m.file?.type?.startsWith('image/'));
+      const newUrls = {};
+      for (const msg of filesWithImages) {
+        if (imageUrls[msg.file.storagePath]) continue;
+        try {
+          const { data } = await supabase.storage
+            .from('project-files')
+            .createSignedUrl(msg.file.storagePath, 3600);
+          if (data?.signedUrl) newUrls[msg.file.storagePath] = data.signedUrl;
+        } catch (e) { /* ignore */ }
+      }
+      if (Object.keys(newUrls).length > 0) {
+        setImageUrls(prev => ({ ...prev, ...newUrls }));
+      }
+    };
+    if (messages.length > 0) loadImageUrls();
+  }, [messages]);
 
   return (
     <div 
@@ -106,6 +205,10 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
         ) : (
           messages.map((msg) => {
             const isPartner = msg.sender === 'partner';
+            const hasFile = msg.file?.storagePath;
+            const isImage = hasFile && msg.file?.type?.startsWith('image/');
+            const imgUrl = isImage ? imageUrls[msg.file.storagePath] : null;
+
             return (
               <div
                 key={msg.id}
@@ -117,16 +220,56 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
                   </div>
                 )}
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                  className={`max-w-[75%] rounded-2xl overflow-hidden ${
                     isPartner
                       ? 'bg-blue-600 text-white rounded-br-none'
                       : 'bg-gray-100 text-gray-900 rounded-bl-none'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                  <p className={`text-xs mt-1 ${isPartner ? 'text-blue-200' : 'text-gray-400'}`}>
-                    {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: fr })}
-                  </p>
+                  {/* 🖼️ Image preview */}
+                  {isImage && imgUrl && (
+                    <button onClick={() => handleFileClick(msg.file)} className="block w-full">
+                      <img 
+                        src={imgUrl} 
+                        alt={msg.file.name} 
+                        className="w-full max-h-52 object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+                  )}
+                  
+                  {/* 📎 Fichier (non-image) */}
+                  {hasFile && !isImage && (
+                    <button 
+                      onClick={() => handleFileClick(msg.file)} 
+                      className={`flex items-center gap-2 px-4 pt-3 pb-1 w-full text-left ${
+                        isPartner ? 'hover:bg-blue-700' : 'hover:bg-gray-200'
+                      } transition-colors`}
+                    >
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                        isPartner ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}>
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{msg.file.name}</p>
+                        <p className={`text-xs ${isPartner ? 'text-blue-200' : 'text-gray-400'}`}>
+                          {(msg.file.size / 1024).toFixed(0)} KB
+                        </p>
+                      </div>
+                      <Download className={`w-4 h-4 shrink-0 ${isPartner ? 'text-blue-200' : 'text-gray-400'}`} />
+                    </button>
+                  )}
+
+                  {/* Texte du message */}
+                  <div className="px-4 py-2.5">
+                    {(!hasFile || !isImage) && (
+                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                    )}
+                    <p className={`text-xs mt-1 ${isPartner ? 'text-blue-200' : 'text-gray-400'}`}>
+                      {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: fr })}
+                    </p>
+                  </div>
                 </div>
                 {isPartner && (
                   <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
@@ -142,34 +285,90 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
 
       {/* Input — sticky en bas */}
       <div className="px-3 pb-3 pt-2 border-t border-gray-100 bg-white shrink-0" ref={inputRef}>
-        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} autoComplete="off" className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
-          <input
-            type="text"
-            name="chat-message-input"
-            id="chat-message-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            onFocus={handleFocus}
-            enterKeyHint="send"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            data-form-type="other"
-            data-lpignore="true"
-            aria-autocomplete="none"
-            placeholder="Écrire au bureau..."
-            className="flex-1 bg-transparent text-base focus:outline-none"
-            style={{ fontSize: '16px' }}
-            disabled={sending}
-          />
+        {/* Menu pièces jointes */}
+        {showAttachMenu && (
+          <div className="flex gap-4 justify-center py-3 mb-2 bg-gray-50 rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-md">
+                <Camera className="w-6 h-6" />
+              </div>
+              <span className="text-xs text-gray-600 font-medium">Photo</span>
+            </button>
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white shadow-md">
+                <ImageIcon className="w-6 h-6" />
+              </div>
+              <span className="text-xs text-gray-600 font-medium">Galerie</span>
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-md">
+                <FileText className="w-6 h-6" />
+              </div>
+              <span className="text-xs text-gray-600 font-medium">Fichier</span>
+            </button>
+          </div>
+        )}
+
+        {/* Hidden file inputs */}
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+        <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+        <input ref={fileInputRef} type="file" accept="*/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
+
+        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} autoComplete="off" className="flex items-center gap-2">
+          {/* Bouton + */}
           <button
-            onClick={handleSend}
-            disabled={sending || !input.trim()}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowAttachMenu(!showAttachMenu); }}
+            disabled={sending || uploading}
+            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all ${
+              showAttachMenu 
+                ? 'bg-gray-900 text-white rotate-45' 
+                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+
+          {/* Input texte */}
+          <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
+            <input
+              type="text"
+              name="chat-message-input"
+              id="chat-message-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onFocus={handleFocus}
+              enterKeyHint="send"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              data-form-type="other"
+              data-lpignore="true"
+              aria-autocomplete="none"
+              placeholder="Écrire au bureau..."
+              className="flex-1 bg-transparent text-base focus:outline-none"
+              style={{ fontSize: '16px' }}
+              disabled={sending || uploading}
+            />
+          </div>
+
+          {/* Bouton envoyer */}
+          <button
+            type="submit"
+            disabled={(sending || uploading) || !input.trim()}
             className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 disabled:opacity-40 transition-opacity"
           >
-            {sending ? (
+            {(sending || uploading) ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />
