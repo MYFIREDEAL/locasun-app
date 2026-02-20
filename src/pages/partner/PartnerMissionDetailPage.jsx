@@ -113,6 +113,7 @@ const PartnerMissionDetailPage = () => {
             .from('client_form_panels')
             .select('*')
             .eq('prospect_id', missionData.prospect_id)
+            .eq('project_type', missionData.project_type) // 🔥 FIX: Filtrer par projet
             .eq('filled_by_role', 'partner')
             .in('form_id', missionData.form_ids);
 
