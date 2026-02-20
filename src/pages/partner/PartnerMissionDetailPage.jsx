@@ -2,11 +2,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin, Mail } from 'lucide-react';
+import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin, Mail, FileText, Upload, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
+import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 
 /**
  * /partner/missions/:missionId
@@ -30,6 +31,13 @@ const PartnerMissionDetailPage = () => {
   const [formSchemas, setFormSchemas] = useState({});
   const [formDrafts, setFormDrafts] = useState({});
   const [partnerForms, setPartnerForms] = useState([]); // Panels à remplir
+
+  // 🔥 Hook upload fichiers (activé seulement quand mission chargée)
+  const { uploadFile, uploading: fileUploading } = useSupabaseProjectFiles({
+    projectType: mission?.project_type || '',
+    prospectId: mission?.prospect_id || null,
+    enabled: !!mission,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -197,7 +205,7 @@ const PartnerMissionDetailPage = () => {
   const validateFormPanel = async (panel) => {
     const { panelId, formId } = panel;
     const formDef = formSchemas[formId];
-    const draft = formDrafts[panelId] || {};
+    const draft = { ...(formDrafts[panelId] || {}) };
 
     // Valider que tous les champs requis sont remplis
     const missingFields = formDef?.fields?.filter(f => f.required && !draft[f.id]);
@@ -207,6 +215,49 @@ const PartnerMissionDetailPage = () => {
         error: `Champs manquants dans "${formDef?.title || 'Formulaire'}"`,
         missingFields 
       };
+    }
+
+    // 🔥 UPLOAD FICHIERS: Uploader les File objects avant sauvegarde
+    try {
+      const fileFields = formDef?.fields?.filter(f => f.type === 'file') || [];
+      for (const field of fileFields) {
+        const fileValue = draft[field.id];
+        if (fileValue && fileValue instanceof File) {
+          // Vérifier taille (max 10 MB)
+          const maxSize = 10 * 1024 * 1024;
+          if (fileValue.size > maxSize) {
+            return { 
+              success: false, 
+              error: `${field.label}: Fichier trop volumineux (max 10 MB)` 
+            };
+          }
+
+          // Récupérer l'ID de l'utilisateur authentifié
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          const uploadedFile = await uploadFile({
+            file: fileValue,
+            uploadedBy: user?.id,
+            fieldLabel: field.label,
+          });
+
+          if (uploadedFile) {
+            // Remplacer le File par les métadonnées
+            draft[field.id] = {
+              id: uploadedFile.id,
+              name: uploadedFile.file_name,
+              size: uploadedFile.file_size,
+              type: uploadedFile.file_type,
+              storagePath: uploadedFile.storage_path,
+              fieldLabel: field.label,
+            };
+            logger.debug('✅ Fichier partenaire uploadé', { fieldId: field.id, fileName: uploadedFile.file_name });
+          }
+        }
+      }
+    } catch (uploadError) {
+      logger.error('❌ Erreur upload fichier partenaire', uploadError);
+      return { success: false, error: `Erreur upload: ${uploadError.message}` };
     }
 
     // 🔥 UPDATE DIRECT (pas via hook car partenaire n'a pas OrganizationContext)
@@ -223,6 +274,9 @@ const PartnerMissionDetailPage = () => {
       console.error("UPDATE PANEL ERROR:", updateError);
       return { success: false, error: updateError.message };
     }
+
+    // Mettre à jour le draft local avec les fichiers uploadés
+    setFormDrafts(prev => ({ ...prev, [panelId]: draft }));
 
     return { success: true };
   };
@@ -518,14 +572,22 @@ const PartnerMissionDetailPage = () => {
                       <div className="space-y-3">
                         {formDef?.fields?.map((field) => {
                           const value = panel.formData?.[field.id] || draft[field.id] || '';
+                          const isFileValue = field.type === 'file' && typeof value === 'object' && value.storagePath;
                           return (
                             <div key={field.id}>
                               <Label className="text-xs text-gray-500 uppercase">{field.label}</Label>
-                              <p className="text-sm text-gray-900 mt-1 px-3 py-2 bg-gray-50 rounded border">
-                                {field.type === 'checkbox' 
-                                  ? (value ? '✅ Oui' : '❌ Non')
-                                  : (value || '—')}
-                              </p>
+                              {isFileValue ? (
+                                <div className="flex items-center gap-2 mt-1 px-3 py-2 bg-blue-50 rounded border border-blue-200">
+                                  <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                  <span className="text-sm text-blue-900 truncate">{value.name}</span>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-900 mt-1 px-3 py-2 bg-gray-50 rounded border">
+                                  {field.type === 'checkbox' 
+                                    ? (value ? '✅ Oui' : '❌ Non')
+                                    : (value || '—')}
+                                </p>
+                              )}
                             </div>
                           );
                         })}
@@ -611,6 +673,65 @@ const PartnerMissionDetailPage = () => {
                                 <span className="text-sm">{field.placeholder}</span>
                               </div>
                             )}
+
+                            {field.type === 'file' && (() => {
+                              const fileValue = draft[field.id];
+                              const hasFile = fileValue instanceof File || (fileValue && typeof fileValue === 'object' && fileValue.storagePath);
+                              return (
+                                <div className="space-y-2">
+                                  {hasFile && (
+                                    <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                      <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-blue-900 truncate">
+                                          {fileValue instanceof File ? fileValue.name : fileValue.name}
+                                        </p>
+                                        <p className="text-xs text-blue-600">
+                                          {fileValue instanceof File
+                                            ? `${(fileValue.size / 1024).toFixed(1)} KB`
+                                            : fileValue.size ? `${(fileValue.size / 1024).toFixed(1)} KB` : ''}
+                                        </p>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleFormFieldChange(panel.panelId, field.id, null)}
+                                        className="p-1 hover:bg-red-100 rounded-full transition-colors"
+                                      >
+                                        <X className="h-4 w-4 text-red-600" />
+                                      </button>
+                                    </div>
+                                  )}
+                                  <label
+                                    htmlFor={`file-${panel.panelId}-${field.id}`}
+                                    className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                      hasFile
+                                        ? 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                                        : 'border-blue-300 bg-blue-50 hover:border-blue-400 hover:bg-blue-100'
+                                    }`}
+                                  >
+                                    <Upload className="h-5 w-5 text-blue-600" />
+                                    <span className="text-sm font-medium text-blue-900">
+                                      {hasFile ? 'Changer le fichier' : 'Choisir un fichier'}
+                                    </span>
+                                  </label>
+                                  <input
+                                    id={`file-${panel.panelId}-${field.id}`}
+                                    type="file"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleFormFieldChange(panel.panelId, field.id, file);
+                                      }
+                                    }}
+                                    className="hidden"
+                                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                  />
+                                  <p className="text-xs text-gray-500">
+                                    Formats: PDF, PNG, JPG, DOCX (max 10 MB)
+                                  </p>
+                                </div>
+                              );
+                            })()}
                           </div>
                         ))}
                       </div>
