@@ -54,9 +54,10 @@ const allNavItems = [
         const groups = {};
         
         unreadNotifications.forEach(notif => {
-          // Séparer notifs client et partenaire pour le même prospect+projet
+          // Séparer notifs client, partenaire et interne pour le même prospect+projet
           const isPartnerNotif = notif.projectName === '🟠 Message partenaire';
-          const key = `${notif.prospectId}-${notif.projectType}${isPartnerNotif ? '-partner' : ''}`;
+          const isInternalNotif = notif.projectName === '👥 Message interne';
+          const key = `${notif.prospectId}-${notif.projectType}${isPartnerNotif ? '-partner' : isInternalNotif ? '-internal' : ''}`;
           
           if (!groups[key]) {
             groups[key] = {
@@ -92,7 +93,9 @@ const allNavItems = [
         
         // Redirige vers la pipeline avec le prospect et projet pour ouvrir directement la fiche détaillée avec le chat
         const isPartner = group.projectName === '🟠 Message partenaire';
-        navigate(`/admin/pipeline?project=${group.projectType}&prospect=${group.prospectId}${isPartner ? '&channel=partner' : ''}`);
+        const isInternal = group.projectName === '👥 Message interne';
+        const channelParam = isPartner ? '&channel=partner' : isInternal ? '&channel=internal' : '';
+        navigate(`/admin/pipeline?project=${group.projectType}&prospect=${group.prospectId}${channelParam}`);
       };
 
       const handleUserSwitch = (userId) => {
@@ -218,7 +221,11 @@ const allNavItems = [
                         groupedNotifications.map((group, index) => (
                           <DropdownMenuItem key={`${group.prospectId}-${group.projectType}-${index}`} onClick={() => handleNotificationClick(group)} className="cursor-pointer">
                             <div className="flex items-start space-x-3 py-2 w-full">
-                              {group.projectName === '🟠 Message partenaire' ? (
+                              {group.projectName === '� Message interne' ? (
+                                <div className="bg-purple-100 rounded-full p-2">
+                                  <MessageSquare className="h-4 w-4 text-purple-600" />
+                                </div>
+                              ) : group.projectName === '�🟠 Message partenaire' ? (
                                 <div className="bg-orange-100 rounded-full p-2">
                                   <MessageSquare className="h-4 w-4 text-orange-600" />
                                 </div>
@@ -229,7 +236,11 @@ const allNavItems = [
                               )}
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-800">
-                                  {group.projectName === '🟠 Message partenaire'
+                                  {group.projectName === '👥 Message interne'
+                                    ? (group.totalCount > 1 
+                                        ? `👥 ${group.totalCount} messages internes · ${group.prospectName}`
+                                        : `👥 Message interne · ${group.prospectName}`)
+                                    : group.projectName === '🟠 Message partenaire'
                                     ? (group.totalCount > 1 
                                         ? `🟠 ${group.totalCount} messages partenaire · ${group.prospectName}`
                                         : `🟠 Message partenaire · ${group.prospectName}`)

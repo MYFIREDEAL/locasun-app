@@ -311,9 +311,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // 🔥 V2: State pour le panneau robot
   const [v2RobotPanelOpen, setV2RobotPanelOpen] = useState(false);
   
-  // 🟠 Channel selector: admin peut répondre au client ou au partner
-  // Si initialChannel='partner' (depuis notif partenaire), on ouvre directement l'onglet partenaire
-  const [replyChannel, setReplyChannel] = useState(initialChannel === 'partner' ? 'partner' : 'client');
+  // 🟠 Channel selector: admin peut répondre au client, partner ou interne
+  // Si initialChannel='partner' ou 'internal' (depuis notif), on ouvre directement le bon onglet
+  const [replyChannel, setReplyChannel] = useState(
+    initialChannel === 'partner' ? 'partner' : initialChannel === 'internal' ? 'internal' : 'client'
+  );
   
   // 🔥 V2: Hook pour charger la config persistée
   const { organizationId } = useOrganization();
@@ -476,6 +478,13 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         text: newMessage,
         file: fileData,
         channel: replyChannel,
+        ...(replyChannel === 'internal' && {
+          metadata: {
+            sender_id: activeAdminUser?.user_id || null,
+            sender_name: activeAdminUser?.name || 'Admin',
+            target_user_id: targetUserId || null,
+          }
+        }),
       };
 
       addChatMessage(prospectId, projectType, message);
@@ -903,11 +912,34 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // Compteurs par channel
   const clientMessages = messages.filter(m => !m.channel || m.channel === 'client');
   const partnerMessages = messages.filter(m => m.channel === 'partner');
-  const filteredMessages = replyChannel === 'partner' ? partnerMessages : clientMessages;
+  const internalMessages = messages.filter(m => m.channel === 'internal');
+  const filteredMessages = replyChannel === 'partner' ? partnerMessages 
+    : replyChannel === 'internal' ? internalMessages 
+    : clientMessages;
+
+  // 👥 Sélecteur de collègue pour messages internes (default = owner du prospect)
+  const [targetUserId, setTargetUserId] = useState(null);
+  const colleagueOptions = useMemo(() => {
+    return (supabaseUsers || [])
+      .filter(u => u.user_id !== activeAdminUser?.user_id) // Exclure soi-même
+      .map(u => ({ id: u.user_id, name: u.name || u.email }));
+  }, [supabaseUsers, activeAdminUser]);
+
+  // Initialiser le target sur l'owner du prospect (si différent de soi)
+  useEffect(() => {
+    if (!targetUserId && currentProspect?.ownerId) {
+      const ownerIsMe = currentProspect.ownerId === activeAdminUser?.user_id;
+      if (ownerIsMe && colleagueOptions.length > 0) {
+        setTargetUserId(colleagueOptions[0].id);
+      } else if (!ownerIsMe) {
+        setTargetUserId(currentProspect.ownerId);
+      }
+    }
+  }, [currentProspect?.ownerId, activeAdminUser?.user_id, colleagueOptions]);
 
   return (
     <div className="mt-6">
-      {/* 🔥 Onglets Client / Partenaire — bien visibles en haut */}
+      {/* 🔥 Onglets Client / Partenaire / Interne — bien visibles en haut */}
       <div className="flex mb-3 rounded-xl overflow-hidden border-2 border-gray-200">
         <button
           onClick={() => setReplyChannel('client')}
@@ -939,23 +971,79 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
             }`}>{partnerMessages.length}</span>
           )}
         </button>
+        <button
+          onClick={() => setReplyChannel('internal')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all ${
+            replyChannel === 'internal'
+              ? 'bg-purple-500 text-white shadow-inner'
+              : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          👥 Interne
+          {internalMessages.length > 0 && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              replyChannel === 'internal' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>{internalMessages.length}</span>
+          )}
+        </button>
       </div>
+
+      {/* 👥 Sélecteur de collègue (visible uniquement en mode Interne) */}
+      {replyChannel === 'internal' && (
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <span className="text-xs text-purple-600 font-semibold whitespace-nowrap">→ À :</span>
+          <select
+            value={targetUserId || ''}
+            onChange={(e) => setTargetUserId(e.target.value)}
+            className="flex-1 text-xs border border-purple-200 rounded-lg px-2 py-1.5 bg-purple-50 text-purple-800 font-medium focus:ring-1 focus:ring-purple-400 focus:outline-none"
+          >
+            {colleagueOptions.length === 0 && (
+              <option value="">Aucun collègue disponible</option>
+            )}
+            {colleagueOptions.map(u => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
         {filteredMessages.length === 0 && (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            {replyChannel === 'partner' ? '🟠 Aucun message partenaire' : '💬 Aucun message client'}
+            {replyChannel === 'partner' ? '🟠 Aucun message partenaire' 
+              : replyChannel === 'internal' ? '👥 Aucun message interne'
+              : '💬 Aucun message client'}
           </div>
         )}
         {filteredMessages.map((msg, index) => {
           const isAdmin = msg.sender === 'pro' || msg.sender === 'admin';
           const isPartner = msg.sender === 'partner';
           const isClient = msg.sender === 'client';
+          const isInternal = msg.channel === 'internal';
+          // Pour les messages internes: déterminer si c'est moi ou un collègue
+          const isMyInternalMsg = isInternal && msg.metadata?.sender_id === activeAdminUser?.user_id;
+          const isColleagueMsg = isInternal && !isMyInternalMsg;
+          // Position: mes messages à droite, messages des autres à gauche
+          const alignRight = isInternal ? isMyInternalMsg : isAdmin;
           return (
-          <div key={index} className={`flex items-end gap-2 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+          <div key={index} className={`flex items-end gap-2 ${alignRight ? 'justify-end' : 'justify-start'}`}>
             {isClient && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{currentProspect?.name.charAt(0) || '?'}</div>}
             {isPartner && <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center font-bold text-white text-xs">P</div>}
-            <div className={`max-w-xs lg:max-w-md rounded-2xl ${isAdmin ? 'bg-blue-500 text-white rounded-br-none p-2.5' : isPartner ? 'bg-orange-100 text-orange-900 rounded-bl-none p-3 border border-orange-200' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
+            {isColleagueMsg && <div className="w-8 h-8 rounded-full bg-purple-400 flex items-center justify-center font-bold text-white text-xs">{(msg.metadata?.sender_name || '?').charAt(0).toUpperCase()}</div>}
+            <div className={`max-w-xs lg:max-w-md rounded-2xl ${
+              isInternal 
+                ? (isMyInternalMsg 
+                    ? 'bg-purple-500 text-white rounded-br-none p-2.5' 
+                    : 'bg-purple-100 text-purple-900 rounded-bl-none p-3 border border-purple-200')
+                : isAdmin ? 'bg-blue-500 text-white rounded-br-none p-2.5' 
+                : isPartner ? 'bg-orange-100 text-orange-900 rounded-bl-none p-3 border border-orange-200' 
+                : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'
+            }`}>
+              {isInternal && msg.metadata?.sender_name && (
+                <span className={`inline-block text-xs font-bold mb-1 ${isMyInternalMsg ? 'text-purple-200' : 'text-purple-600'}`}>
+                  👥 {msg.metadata.sender_name}
+                </span>
+              )}
               {isPartner && (
                 <span className="inline-block text-xs font-bold text-orange-600 mb-1">🟠 Partenaire</span>
               )}
@@ -988,11 +1076,12 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                       />
                   </div>
               )}
-              <p className={`text-xs mt-1 ${isAdmin ? 'text-blue-200' : isPartner ? 'text-orange-400' : 'text-gray-500'}`}>
+              <p className={`text-xs mt-1 ${isInternal ? (isMyInternalMsg ? 'text-purple-200' : 'text-purple-400') : isAdmin ? 'text-blue-200' : isPartner ? 'text-orange-400' : 'text-gray-500'}`}>
                 {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: fr })}
               </p>
             </div>
-            {isAdmin && !msg.formId && <img src="https://horizons-cdn.hostinger.com/43725989-d002-4543-b65c-278701925e7e/4e3f809791e357819f31c585852d3a99.png" alt="Charly" className="w-8 h-8 rounded-full" />}
+            {isMyInternalMsg && <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white text-xs">{(activeAdminUser?.name || '?').charAt(0).toUpperCase()}</div>}
+            {isAdmin && !isInternal && !msg.formId && <img src="https://horizons-cdn.hostinger.com/43725989-d002-4543-b65c-278701925e7e/4e3f809791e357819f31c585852d3a99.png" alt="Charly" className="w-8 h-8 rounded-full" />}
           </div>
         );})}
         <div ref={chatEndRef} />
@@ -1006,8 +1095,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
       )}
       <div className="relative">
         <Input
-          placeholder={replyChannel === 'partner' ? '🟠 Écrire au partenaire...' : '💬 Écrire au client...'}
-          className={`pr-28 h-12 ${replyChannel === 'partner' ? 'border-orange-300 focus:ring-orange-400' : ''}`}
+          placeholder={replyChannel === 'internal' ? '👥 Écrire en interne...' : replyChannel === 'partner' ? '🟠 Écrire au partenaire...' : '💬 Écrire au client...'}
+          className={`pr-28 h-12 ${replyChannel === 'internal' ? 'border-purple-300 focus:ring-purple-400' : replyChannel === 'partner' ? 'border-orange-300 focus:ring-orange-400' : ''}`}
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}

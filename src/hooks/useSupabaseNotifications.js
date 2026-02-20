@@ -107,7 +107,7 @@ export function useSupabaseNotifications(userId, enabled = true) {
 
       logger.debug('Checking existing notification', { prospectId, projectType });
 
-      // Vérifier si notification existe déjà (non lue, hors partenaire)
+      // Vérifier si notification existe déjà (non lue, hors partenaire et interne)
       const { data: existing, error: selectError } = await supabase
         .from('notifications')
         .select('*')
@@ -115,6 +115,7 @@ export function useSupabaseNotifications(userId, enabled = true) {
         .eq('project_type', projectType)
         .eq('read', false)
         .neq('project_name', '🟠 Message partenaire')
+        .neq('project_name', '👥 Message interne')
         .maybeSingle()
 
       logger.debug('Existing notification check', { found: !!existing, error: !!selectError });

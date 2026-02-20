@@ -31,6 +31,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
     promptId: dbMessage.prompt_id,
     stepIndex: dbMessage.step_index,
     relatedMessageTimestamp: dbMessage.related_message_timestamp,
+    metadata: dbMessage.metadata || null,
     read: dbMessage.read,
     timestamp: dbMessage.created_at,
     createdAt: dbMessage.created_at,
@@ -166,6 +167,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
         step_index: messageData.stepIndex !== undefined ? messageData.stepIndex : null,
         related_message_timestamp: messageData.relatedMessageTimestamp || null,
         channel: messageData.channel || chatChannel || 'client',
+        metadata: messageData.metadata || null,
         read: false,
       };
 
