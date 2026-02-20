@@ -138,27 +138,32 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
       </div>
 
       {/* Input — sticky en bas */}
-      <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-white shrink-0" ref={inputRef}>
-        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
+      <div className="px-3 pb-3 pt-2 border-t border-gray-100 bg-white shrink-0" ref={inputRef}>
+        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             onFocus={handleFocus}
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
             placeholder="Écrire au bureau..."
-            className="flex-1 bg-transparent text-sm focus:outline-none"
+            className="flex-1 bg-transparent text-base focus:outline-none"
+            style={{ fontSize: '16px' }}
             disabled={sending}
           />
           <button
             onClick={handleSend}
             disabled={sending || !input.trim()}
-            className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white shrink-0 disabled:opacity-40 transition-opacity"
+            className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 disabled:opacity-40 transition-opacity"
           >
             {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5" />
             )}
           </button>
         </div>
