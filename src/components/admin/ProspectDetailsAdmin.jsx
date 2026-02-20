@@ -917,20 +917,55 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     : replyChannel === 'internal' ? internalMessages 
     : clientMessages;
 
-  // 👥 Sélecteur de collègue pour messages internes (default = owner du prospect)
+  // 👥 Sélecteur de collègue pour messages internes
+  // Ordre : 1) Owner du prospect  2) Manager du owner  3) Reste groupé par rôle
   const [targetUserId, setTargetUserId] = useState(null);
   const colleagueOptions = useMemo(() => {
-    return (supabaseUsers || [])
-      .filter(u => u.user_id !== activeAdminUser?.user_id) // Exclure soi-même
-      .map(u => ({ id: u.user_id, name: u.name || u.email }));
-  }, [supabaseUsers, activeAdminUser]);
+    const allColleagues = (supabaseUsers || [])
+      .filter(u => u.user_id !== activeAdminUser?.user_id); // Exclure soi-même
+
+    const ownerId = currentProspect?.ownerId;
+    const ownerUser = allColleagues.find(u => u.user_id === ownerId);
+    const managerOfOwner = ownerUser?.manager_id 
+      ? allColleagues.find(u => u.user_id === ownerUser.manager_id)
+      : null;
+
+    // IDs déjà placés en priorité (owner + son manager)
+    const priorityIds = new Set();
+    if (ownerUser) priorityIds.add(ownerUser.user_id);
+    if (managerOfOwner) priorityIds.add(managerOfOwner.user_id);
+
+    // Reste groupé par rôle
+    const roleOrder = { 'Global Admin': 0, 'Admin': 1, 'Manager': 2, 'Commercial': 3 };
+    const rest = allColleagues
+      .filter(u => !priorityIds.has(u.user_id))
+      .sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9));
+
+    // Construire la liste structurée
+    const result = [];
+    if (ownerUser) result.push({ ...ownerUser, tag: '👑 Owner' });
+    if (managerOfOwner) result.push({ ...managerOfOwner, tag: '👤 Manager' });
+
+    // Grouper le reste par rôle
+    let currentRole = null;
+    rest.forEach(u => {
+      if (u.role !== currentRole) {
+        currentRole = u.role;
+        result.push({ isSeparator: true, role: currentRole });
+      }
+      result.push(u);
+    });
+
+    return result;
+  }, [supabaseUsers, activeAdminUser, currentProspect?.ownerId]);
 
   // Initialiser le target sur l'owner du prospect (si différent de soi)
   useEffect(() => {
     if (!targetUserId && currentProspect?.ownerId) {
       const ownerIsMe = currentProspect.ownerId === activeAdminUser?.user_id;
-      if (ownerIsMe && colleagueOptions.length > 0) {
-        setTargetUserId(colleagueOptions[0].id);
+      const firstSelectable = colleagueOptions.find(o => !o.isSeparator);
+      if (ownerIsMe && firstSelectable) {
+        setTargetUserId(firstSelectable.user_id);
       } else if (!ownerIsMe) {
         setTargetUserId(currentProspect.ownerId);
       }
@@ -990,19 +1025,26 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
 
       {/* 👥 Sélecteur de collègue (visible uniquement en mode Interne) */}
       {replyChannel === 'internal' && (
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <span className="text-xs text-purple-600 font-semibold whitespace-nowrap">→ À :</span>
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <span className="text-sm text-purple-600 font-bold whitespace-nowrap">→ À :</span>
           <select
             value={targetUserId || ''}
             onChange={(e) => setTargetUserId(e.target.value)}
-            className="flex-1 text-xs border border-purple-200 rounded-lg px-2 py-1.5 bg-purple-50 text-purple-800 font-medium focus:ring-1 focus:ring-purple-400 focus:outline-none"
+            className="flex-1 text-sm border-2 border-purple-300 rounded-xl px-3 py-2.5 bg-purple-50 text-purple-900 font-semibold focus:ring-2 focus:ring-purple-400 focus:border-purple-400 focus:outline-none appearance-none cursor-pointer shadow-sm"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
           >
-            {colleagueOptions.length === 0 && (
+            {colleagueOptions.filter(o => !o.isSeparator).length === 0 && (
               <option value="">Aucun collègue disponible</option>
             )}
-            {colleagueOptions.map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
+            {colleagueOptions.map((item, idx) => 
+              item.isSeparator ? (
+                <optgroup key={`sep-${idx}`} label={`── ${item.role} ──`} />
+              ) : (
+                <option key={item.user_id} value={item.user_id}>
+                  {item.tag ? `${item.tag}  ·  ${item.name || item.email}` : (item.name || item.email)}
+                </option>
+              )
+            )}
           </select>
         </div>
       )}
