@@ -76,11 +76,12 @@ export function usePartnerUnreadCount() {
         }
 
         // 4. Compter les messages non lus pour chaque conversation
-        // On fait une requête globale puis on regroupe côté client
+        // 🟠 Multi-partenaire: filtrer par partner_id du partenaire connecté
         const { data: unreadMessages, error: unreadError } = await supabase
           .from('chat_messages')
           .select('id, prospect_id, project_type')
           .eq('channel', 'partner')
+          .eq('partner_id', partner.id)
           .neq('sender', 'partner')
           .eq('read', false)
           .in('prospect_id', uniqueProspectIds);
@@ -131,6 +132,9 @@ export function usePartnerUnreadCount() {
 
           // On ne s'intéresse qu'au channel 'partner'
           if (msg.channel !== 'partner') return;
+
+          // 🟠 Multi-partenaire: ne compter que les messages avec notre partner_id
+          if (msg.partner_id !== partnerIdRef.current) return;
 
           // Vérifier que c'est un prospect de nos missions
           if (!missionProspectIdsRef.current.includes(msg.prospect_id)) return;

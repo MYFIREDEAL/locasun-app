@@ -26,6 +26,7 @@ import { useSupabaseClientFormPanels } from '@/hooks/useSupabaseClientFormPanels
 import { useSupabaseProjectHistory } from '@/hooks/useSupabaseProjectHistory';
 // 🔥 PR-3: useSupabaseAgenda supprimé - données centralisées dans AppContext
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
+import { useSupabasePartners } from '@/hooks/useSupabasePartners';
 import { useWorkflowExecutor } from '@/hooks/useWorkflowExecutor';
 import { useWorkflowActionTrigger } from '@/hooks/useWorkflowActionTrigger';
 import { executeContractSignatureAction } from '@/lib/contractPdfGenerator';
@@ -316,9 +317,74 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   const [replyChannel, setReplyChannel] = useState(
     initialChannel === 'partner' ? 'partner' : initialChannel === 'internal' ? 'internal' : 'client'
   );
-  
-  // 🔥 V2: Hook pour charger la config persistée
+
+  // 🟠 Sélecteur de partenaire pour messages partner (isolation multi-partenaire)
+  const [selectedPartnerId, setSelectedPartnerId] = useState(null);
+  const [partnerMissions, setPartnerMissions] = useState([]);
   const { organizationId } = useOrganization();
+  const { partners: allPartners, loading: partnersLoading } = useSupabasePartners(
+    organizationId || activeAdminUser?.organization_id
+  );
+
+  // � Charger les missions de ce prospect/projectType pour lister les partenaires concernés
+  useEffect(() => {
+    if (!prospectId || !projectType) return;
+    const fetchPartnerMissions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('missions')
+          .select('id, partner_id, title, step_name, status, created_at')
+          .eq('prospect_id', prospectId)
+          .eq('project_type', projectType)
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          setPartnerMissions(data);
+        }
+      } catch (err) {
+        logger.error('❌ Error loading partner missions for chat', err);
+      }
+    };
+    fetchPartnerMissions();
+  }, [prospectId, projectType]);
+
+  // 🟠 Liste des partenaires ayant des missions sur ce prospect/projet
+  const partnerOptions = useMemo(() => {
+    if (!partnerMissions.length || !allPartners.length) return [];
+    // Dédupliquer par partner_id
+    const partnerIds = [...new Set(partnerMissions.map(m => m.partner_id).filter(Boolean))];
+    return partnerIds.map(pid => {
+      const partner = allPartners.find(p => p.id === pid);
+      const missions = partnerMissions.filter(m => m.partner_id === pid);
+      // Trouver si une mission est sur l'étape en cours (step actif)
+      const currentStepName = projectsData[projectType]?.steps?.[currentStepIndex]?.name;
+      const hasActiveStep = missions.some(m => 
+        m.step_name === currentStepName && (m.status === 'pending' || m.status === 'in_progress')
+      );
+      return {
+        id: pid,
+        name: partner?.companyName || partner?.name || partner?.email || 'Partenaire inconnu',
+        specialty: partner?.specialty || null,
+        missionsCount: missions.length,
+        hasActiveStep,
+        lastMission: missions[0], // La plus récente (déjà triée)
+      };
+    }).sort((a, b) => {
+      // Priorité : partenaire avec mission sur l'étape active en premier
+      if (a.hasActiveStep && !b.hasActiveStep) return -1;
+      if (!a.hasActiveStep && b.hasActiveStep) return 1;
+      return 0;
+    });
+  }, [partnerMissions, allPartners, projectsData, projectType, currentStepIndex]);
+
+  // 🟠 Pré-sélectionner le partenaire ayant une mission sur l'étape active
+  useEffect(() => {
+    if (!selectedPartnerId && partnerOptions.length > 0) {
+      const activePartner = partnerOptions.find(p => p.hasActiveStep);
+      setSelectedPartnerId(activePartner ? activePartner.id : partnerOptions[0].id);
+    }
+  }, [partnerOptions, selectedPartnerId]);
+
+  // 🔥 V2: Hook pour charger la config persistée
   const { templates: v2Templates, loading: v2TemplatesLoading } = useSupabaseWorkflowModuleTemplates(
     organizationId || activeAdminUser?.organization_id, 
     projectType
@@ -484,6 +550,10 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
             sender_name: activeAdminUser?.name || 'Admin',
             target_user_id: targetUserId || null,
           }
+        }),
+        // 🟠 Multi-partenaire: inclure le partner_id quand on envoie sur le canal partenaire
+        ...(replyChannel === 'partner' && selectedPartnerId && {
+          partnerId: selectedPartnerId,
         }),
       };
 
@@ -912,8 +982,12 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // Compteurs par channel
   const clientMessages = messages.filter(m => !m.channel || m.channel === 'client');
   const partnerMessages = messages.filter(m => m.channel === 'partner');
+  // 🟠 Filtrer les messages partenaire par le partenaire sélectionné (isolation multi-partenaire)
+  const filteredPartnerMessages = selectedPartnerId
+    ? partnerMessages.filter(m => m.partnerId === selectedPartnerId)
+    : partnerMessages;
   const internalMessages = messages.filter(m => m.channel === 'internal');
-  const filteredMessages = replyChannel === 'partner' ? partnerMessages 
+  const filteredMessages = replyChannel === 'partner' ? filteredPartnerMessages 
     : replyChannel === 'internal' ? internalMessages 
     : clientMessages;
 
@@ -1001,10 +1075,10 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           }`}
         >
           🟠 Partenaire
-          {partnerMessages.length > 0 && (
+          {filteredPartnerMessages.length > 0 && (
             <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
               replyChannel === 'partner' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>{partnerMessages.length}</span>
+            }`}>{filteredPartnerMessages.length}</span>
           )}
         </button>
         <button
@@ -1050,6 +1124,28 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         </div>
       )}
 
+      {/* 🟠 Sélecteur de partenaire (visible uniquement en mode Partenaire) */}
+      {replyChannel === 'partner' && (
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <span className="text-sm text-orange-600 font-bold whitespace-nowrap">🟠 À :</span>
+          <select
+            value={selectedPartnerId || ''}
+            onChange={(e) => setSelectedPartnerId(e.target.value)}
+            className="flex-1 text-sm border-2 border-orange-300 rounded-xl px-3 py-2.5 bg-orange-50 text-orange-900 font-semibold focus:ring-2 focus:ring-orange-400 focus:border-orange-400 focus:outline-none appearance-none cursor-pointer shadow-sm"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ea580c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+          >
+            {partnerOptions.length === 0 && (
+              <option value="">Aucun partenaire sur ce projet</option>
+            )}
+            {partnerOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.hasActiveStep ? '⚡ ' : ''}{p.name}{p.specialty ? ` · ${p.specialty}` : ''} ({p.missionsCount} mission{p.missionsCount > 1 ? 's' : ''})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
         {filteredMessages.length === 0 && (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -1071,7 +1167,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           return (
           <div key={index} className={`flex items-end gap-2 ${alignRight ? 'justify-end' : 'justify-start'}`}>
             {isClient && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{currentProspect?.name.charAt(0) || '?'}</div>}
-            {isPartner && <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center font-bold text-white text-xs">P</div>}
+            {isPartner && (() => {
+              const partnerInfo = partnerOptions.find(p => p.id === msg.partnerId);
+              const initial = partnerInfo ? partnerInfo.name.charAt(0).toUpperCase() : 'P';
+              return <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center font-bold text-white text-xs" title={partnerInfo?.name || 'Partenaire'}>{initial}</div>;
+            })()}
             {isColleagueMsg && <div className="w-8 h-8 rounded-full bg-purple-400 flex items-center justify-center font-bold text-white text-xs">{(msg.metadata?.sender_name || '?').charAt(0).toUpperCase()}</div>}
             <div className={`max-w-xs lg:max-w-md rounded-2xl ${
               isInternal 
@@ -1088,7 +1188,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                 </span>
               )}
               {isPartner && (
-                <span className="inline-block text-xs font-bold text-orange-600 mb-1">🟠 Partenaire</span>
+                <span className="inline-block text-xs font-bold text-orange-600 mb-1">
+                  🟠 {partnerOptions.find(p => p.id === msg.partnerId)?.name || 'Partenaire'}
+                </span>
               )}
               {msg.channel === 'partner' && isAdmin && (
                 <span className="inline-block text-xs font-bold text-orange-300 mb-1">→ Partenaire</span>

@@ -20,8 +20,9 @@ import { fr } from 'date-fns/locale';
 // ─────────────────────────────────────────────
 // Sous-composant: Vue Chat pour une conversation
 // ─────────────────────────────────────────────
-const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
-  const { messages, loading, sendMessage, markAsRead } = useSupabaseChatMessages(prospectId, projectType, 'partner');
+const ChatView = ({ prospectId, projectType, prospectName, partnerId, onBack }) => {
+  // 🟠 Multi-partenaire: passer partnerId au hook pour isolation automatique
+  const { messages, loading, sendMessage, markAsRead } = useSupabaseChatMessages(prospectId, projectType, 'partner', partnerId);
   const { uploadFile, uploading } = useSupabaseProjectFiles({ projectType, prospectId, enabled: true });
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -99,6 +100,7 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
           channel: 'partner',
           text: isImage ? '📷 Photo' : `📎 ${file.name}`,
           file: fileData,
+          partnerId: partnerId,
         });
 
         if (result.success) {
@@ -122,6 +124,7 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
         sender: 'partner',
         channel: 'partner',
         text: input.trim(),
+        partnerId: partnerId,
       });
       if (result.success) {
         setInput('');
@@ -389,6 +392,8 @@ const PartnerCharlyPage = () => {
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  // 🟠 Multi-partenaire: stocker le partner_id du partenaire connecté
+  const [currentPartnerId, setCurrentPartnerId] = useState(null);
 
   // 🔥 Si on arrive depuis "Signaler un problème", ouvrir directement le chat
   useEffect(() => {
@@ -426,6 +431,9 @@ const PartnerCharlyPage = () => {
           return;
         }
 
+        // 🟠 Multi-partenaire: stocker le partner_id
+        setCurrentPartnerId(partnerData.id);
+
         // 3. Charger les missions (pending + in_progress = conversations actives)
         const { data: missionsData, error: missionsError } = await supabase
           .from('missions')
@@ -459,14 +467,17 @@ const PartnerCharlyPage = () => {
         // 5. Pour chaque conversation, compter les messages non lus (envoyés par admin)
         const convosWithUnread = await Promise.all(
           uniqueConvos.map(async (convo) => {
-            const { count, error: countError } = await supabase
+            let query = supabase
               .from('chat_messages')
               .select('id', { count: 'exact', head: true })
               .eq('prospect_id', convo.prospectId)
               .eq('project_type', convo.projectType)
               .eq('channel', 'partner')
+              .eq('partner_id', partnerData.id)
               .neq('sender', 'partner')
               .eq('read', false);
+
+            const { count, error: countError } = await query;
 
             return {
               ...convo,
@@ -495,6 +506,7 @@ const PartnerCharlyPage = () => {
         prospectId={selectedConversation.prospectId}
         projectType={selectedConversation.projectType}
         prospectName={selectedConversation.prospectName}
+        partnerId={currentPartnerId}
         onBack={() => setSelectedConversation(null)}
       />
     );

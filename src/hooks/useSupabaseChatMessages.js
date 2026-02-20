@@ -13,8 +13,12 @@ import logger from '../lib/logger';
  *   - 'client'  → Messages client ↔ admin (vue client)
  *   - 'partner' → Messages partner ↔ admin (vue partner)
  *   - null       → Tous les canaux (vue admin)
+ * @param {string|null} partnerId - UUID du partenaire (pour isolation multi-partenaire en channel='partner')
+ *   - Côté partenaire: auto-renseigné depuis partners.user_id = auth.uid()
+ *   - Côté admin: sélectionné via dropdown dans l'onglet Partenaire
+ *   - null → pas de filtrage par partenaire (tous les messages partner)
  */
-export function useSupabaseChatMessages(prospectId = null, projectType = null, chatChannel = null) {
+export function useSupabaseChatMessages(prospectId = null, projectType = null, chatChannel = null, partnerId = null) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,6 +28,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
     id: dbMessage.id,
     sender: dbMessage.sender,
     channel: dbMessage.channel,
+    partnerId: dbMessage.partner_id || null,
     text: dbMessage.text,
     file: dbMessage.file,
     formId: dbMessage.form_id,
@@ -59,6 +64,11 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
           query = query.eq('channel', chatChannel);
         }
 
+        // 🟠 Filtrer par partner_id pour isolation multi-partenaire
+        if (partnerId && chatChannel === 'partner') {
+          query = query.eq('partner_id', partnerId);
+        }
+
         const { data, error: fetchError } = await query.order('created_at', { ascending: true });
 
         if (fetchError) throw fetchError;
@@ -78,8 +88,9 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
 
     // Real-time subscription
     const channelSuffix = chatChannel ? `-${chatChannel}` : '-all';
+    const partnerSuffix = partnerId ? `-p${partnerId.slice(0,8)}` : '';
     const realtimeChannel = supabase
-      .channel(`chat-${prospectId}-${projectType}${channelSuffix}-${Math.random().toString(36).slice(2)}`)
+      .channel(`chat-${prospectId}-${projectType}${channelSuffix}${partnerSuffix}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -96,6 +107,11 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
 
           // Filtrer par channel si spécifié
           if (chatChannel && payload.new && payload.new.channel !== chatChannel) {
+            return;
+          }
+
+          // 🟠 Filtrer par partner_id pour isolation multi-partenaire
+          if (partnerId && chatChannel === 'partner' && payload.new && payload.new.partner_id !== partnerId) {
             return;
           }
 
@@ -125,7 +141,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
     return () => {
       supabase.removeChannel(realtimeChannel);
     };
-  }, [prospectId, projectType, chatChannel]);
+  }, [prospectId, projectType, chatChannel, partnerId]);
 
   // Envoyer un message
   const sendMessage = async (messageData) => {
@@ -168,6 +184,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
         related_message_timestamp: messageData.relatedMessageTimestamp || null,
         channel: messageData.channel || chatChannel || 'client',
         metadata: messageData.metadata || null,
+        partner_id: messageData.partnerId || partnerId || null,
         read: false,
       };
 

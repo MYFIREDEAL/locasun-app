@@ -1290,6 +1290,8 @@ function App() {
         step_index: message.stepIndex !== undefined ? message.stepIndex : null,
         related_message_timestamp: message.relatedMessageTimestamp || null,
         channel: message.channel || 'client',
+        metadata: message.metadata || null,
+        partner_id: message.partnerId || null,
         read: false,
       };
 
