@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { usePartnerUnreadCount } from '@/hooks/usePartnerUnreadCount';
 import { Loader2, LayoutGrid, Users, MessageSquare, Clock } from 'lucide-react';
 
 /**
@@ -118,6 +119,7 @@ const tabs = [
 const PartnerShell = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { totalUnread } = usePartnerUnreadCount();
 
   // Déterminer l'onglet actif (match le début du path)
   const activeTab = tabs.find(t => location.pathname.startsWith(t.path))?.path || '/partner/missions';
@@ -134,17 +136,25 @@ const PartnerShell = () => {
         <div className="max-w-lg mx-auto flex justify-around items-center h-16 px-2">
           {tabs.map(({ path, label, icon: Icon }) => {
             const isActive = activeTab === path;
+            const showBadge = path === '/partner/charly' && totalUnread > 0;
             return (
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors ${
+                className={`relative flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors ${
                   isActive 
                     ? 'text-blue-600' 
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 1.5} />
+                <div className="relative">
+                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 1.5} />
+                  {showBadge && (
+                    <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse shadow-sm">
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </span>
+                  )}
+                </div>
                 <span className={`text-[10px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {label}
                 </span>
