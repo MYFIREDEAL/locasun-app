@@ -1289,6 +1289,7 @@ function App() {
         prompt_id: message.promptId || null,
         step_index: message.stepIndex !== undefined ? message.stepIndex : null,
         related_message_timestamp: message.relatedMessageTimestamp || null,
+        channel: message.channel || 'client',
         read: false,
       };
 

@@ -58,7 +58,8 @@ const AppointmentCard = ({ appointment, onClick }) => {
 const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const { addChatMessage, currentUser, forms } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
-  const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
+  // 🔒 channel='client' → ne voit que les messages client ↔ admin (pas partner)
+  const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType, 'client');
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
   // 🔥 MULTI-TENANT: Utilise organization_id du currentUser (prospect)
   const { uploadFile, uploading } = useSupabaseProjectFiles({ 
@@ -441,7 +442,8 @@ const ProjectDetails = ({ project, onBack }) => {
     markClientNotificationAsRead,
   } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
-  const { messages, loading: messagesLoading } = useSupabaseChatMessages(currentUser?.id, project.type);
+  // 🔒 channel='client' → ne voit que les messages client ↔ admin (pas partner)
+  const { messages, loading: messagesLoading } = useSupabaseChatMessages(currentUser?.id, project.type, 'client');
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const [progress, setProgress] = useState(0);

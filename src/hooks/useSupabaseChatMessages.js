@@ -5,9 +5,16 @@ import logger from '../lib/logger';
 /**
  * Hook pour gérer les messages chat via Supabase
  * Table: chat_messages
- * Real-time bidirectionnel admin ↔ client
+ * Real-time bidirectionnel admin ↔ client / admin ↔ partner
+ * 
+ * @param {string} prospectId - UUID du prospect
+ * @param {string} projectType - Type de projet (ACC, Centrale, etc.)
+ * @param {string|null} chatChannel - Canal de chat: 'client' | 'partner' | 'internal' | null (tous)
+ *   - 'client'  → Messages client ↔ admin (vue client)
+ *   - 'partner' → Messages partner ↔ admin (vue partner)
+ *   - null       → Tous les canaux (vue admin)
  */
-export function useSupabaseChatMessages(prospectId = null, projectType = null) {
+export function useSupabaseChatMessages(prospectId = null, projectType = null, chatChannel = null) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,6 +23,7 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
   const transformFromDB = (dbMessage) => ({
     id: dbMessage.id,
     sender: dbMessage.sender,
+    channel: dbMessage.channel,
     text: dbMessage.text,
     file: dbMessage.file,
     formId: dbMessage.form_id,
@@ -38,14 +46,21 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
     const fetchMessages = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        let query = supabase
           .from('chat_messages')
           .select('*')
           .eq('prospect_id', prospectId)
-          .eq('project_type', projectType)
-          .order('created_at', { ascending: true });
+          .eq('project_type', projectType);
 
-        if (error) throw error;
+        // Filtrer par channel si spécifié (client/partner ne voient que leur canal)
+        // Si null (admin), on récupère TOUT
+        if (chatChannel) {
+          query = query.eq('channel', chatChannel);
+        }
+
+        const { data, error: fetchError } = await query.order('created_at', { ascending: true });
+
+        if (fetchError) throw fetchError;
 
         const transformed = (data || []).map(transformFromDB);
         setMessages(transformed);
@@ -61,8 +76,9 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
     fetchMessages();
 
     // Real-time subscription
-    const channel = supabase
-      .channel(`chat-${prospectId}-${projectType}-${Math.random().toString(36).slice(2)}`)
+    const channelSuffix = chatChannel ? `-${chatChannel}` : '-all';
+    const realtimeChannel = supabase
+      .channel(`chat-${prospectId}-${projectType}${channelSuffix}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -74,6 +90,11 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
         (payload) => {
           // Filtrer par project_type (le filter Supabase ne supporte qu'un seul filtre)
           if (payload.new && payload.new.project_type !== projectType) {
+            return;
+          }
+
+          // Filtrer par channel si spécifié
+          if (chatChannel && payload.new && payload.new.channel !== chatChannel) {
             return;
           }
 
@@ -101,9 +122,9 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(realtimeChannel);
     };
-  }, [prospectId, projectType]);
+  }, [prospectId, projectType, chatChannel]);
 
   // Envoyer un message
   const sendMessage = async (messageData) => {
@@ -144,16 +165,17 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
         prompt_id: messageData.promptId || null,
         step_index: messageData.stepIndex !== undefined ? messageData.stepIndex : null,
         related_message_timestamp: messageData.relatedMessageTimestamp || null,
+        channel: messageData.channel || chatChannel || 'client',
         read: false,
       };
 
-      const { data, error } = await supabase
+      const { data, error: insertError } = await supabase
         .from('chat_messages')
         .insert([dbPayload])
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       return { success: true, data: transformFromDB(data) };
     } catch (err) {
@@ -165,12 +187,12 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null) {
   // Marquer des messages comme lus
   const markAsRead = async (messageIds) => {
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('chat_messages')
         .update({ read: true })
         .in('id', messageIds);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       return { success: true };
     } catch (err) {

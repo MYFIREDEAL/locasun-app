@@ -187,6 +187,7 @@ export function usePresenceCheck(organizationId, enabled = false) {
           project_type: projectType,
           sender: 'admin',
           text: PRESENCE_MESSAGE,
+          channel: 'client',
           metadata: {
             type: 'presence_check',
             automated: true,

@@ -311,6 +311,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // 🔥 V2: State pour le panneau robot
   const [v2RobotPanelOpen, setV2RobotPanelOpen] = useState(false);
   
+  // 🟠 Channel selector: admin peut répondre au client ou au partner
+  const [replyChannel, setReplyChannel] = useState('client');
+  
   // 🔥 V2: Hook pour charger la config persistée
   const { organizationId } = useOrganization();
   const { templates: v2Templates, loading: v2TemplatesLoading } = useSupabaseWorkflowModuleTemplates(
@@ -471,6 +474,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         sender: 'pro',
         text: newMessage,
         file: fileData,
+        channel: replyChannel,
       };
 
       addChatMessage(prospectId, projectType, message);
@@ -849,6 +853,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                     sender: 'pro',
                     text: `<a href="${signatureUrl}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: underline;">👉 Signer mon contrat</a>`,
                     organization_id: activeAdminUser?.organization_id, // ✅ Depuis activeAdminUser
+                    channel: 'client',
                   });
                 
                 logger.debug('Lien de signature envoyé dans le chat');
@@ -897,12 +902,23 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   return (
     <div className="mt-6">
       <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
-        {messages.map((msg, index) => (
-          <div key={index} className={`flex items-end gap-2 ${msg.sender === 'pro' ? 'justify-end' : 'justify-start'}`}>
-            {msg.sender === 'client' && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{currentProspect?.name.charAt(0) || '?'}</div>}
-            <div className={`max-w-xs lg:max-w-md rounded-2xl ${msg.sender === 'pro' ? 'bg-blue-500 text-white rounded-br-none p-2.5' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
+        {messages.map((msg, index) => {
+          const isAdmin = msg.sender === 'pro' || msg.sender === 'admin';
+          const isPartner = msg.sender === 'partner';
+          const isClient = msg.sender === 'client';
+          return (
+          <div key={index} className={`flex items-end gap-2 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+            {isClient && <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">{currentProspect?.name.charAt(0) || '?'}</div>}
+            {isPartner && <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center font-bold text-white text-xs">P</div>}
+            <div className={`max-w-xs lg:max-w-md rounded-2xl ${isAdmin ? 'bg-blue-500 text-white rounded-br-none p-2.5' : isPartner ? 'bg-orange-100 text-orange-900 rounded-bl-none p-3 border border-orange-200' : 'bg-gray-200 text-gray-800 rounded-bl-none p-3'}`}>
+              {isPartner && (
+                <span className="inline-block text-xs font-bold text-orange-600 mb-1">🟠 Partenaire</span>
+              )}
+              {msg.channel === 'partner' && isAdmin && (
+                <span className="inline-block text-xs font-bold text-orange-300 mb-1">→ Partenaire</span>
+              )}
               {msg.text && (
-                msg.sender === 'pro' && msg.text.includes('<a ') ? (
+                isAdmin && msg.text.includes('<a ') ? (
                   <p className="text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: msg.text }} />
                 ) : (
                   <p className="text-xs leading-relaxed">{msg.text}</p>
@@ -927,13 +943,13 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
                       />
                   </div>
               )}
-              <p className={`text-xs mt-1 ${msg.sender === 'pro' ? 'text-blue-200' : 'text-gray-500'}`}>
+              <p className={`text-xs mt-1 ${isAdmin ? 'text-blue-200' : isPartner ? 'text-orange-400' : 'text-gray-500'}`}>
                 {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: fr })}
               </p>
             </div>
-            {msg.sender === 'pro' && !msg.formId && <img src="https://horizons-cdn.hostinger.com/43725989-d002-4543-b65c-278701925e7e/4e3f809791e357819f31c585852d3a99.png" alt="Charly" className="w-8 h-8 rounded-full" />}
+            {isAdmin && !msg.formId && <img src="https://horizons-cdn.hostinger.com/43725989-d002-4543-b65c-278701925e7e/4e3f809791e357819f31c585852d3a99.png" alt="Charly" className="w-8 h-8 rounded-full" />}
           </div>
-        ))}
+        );})}
         <div ref={chatEndRef} />
       </div>
       {attachedFile && (
@@ -944,8 +960,31 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         </div>
       )}
       <div className="relative">
+        {/* 🟠 Sélecteur de channel: Client ou Partenaire */}
+        <div className="flex items-center gap-1 mb-1">
+          <button
+            onClick={() => setReplyChannel('client')}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              replyChannel === 'client' 
+                ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300' 
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            💬 Client
+          </button>
+          <button
+            onClick={() => setReplyChannel('partner')}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              replyChannel === 'partner' 
+                ? 'bg-orange-100 text-orange-700 ring-1 ring-orange-300' 
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            🟠 Partenaire
+          </button>
+        </div>
         <Input
-          placeholder="Écrire au client..."
+          placeholder={replyChannel === 'partner' ? 'Écrire au partenaire...' : 'Écrire au client...'}
           className="pr-28 h-12"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}

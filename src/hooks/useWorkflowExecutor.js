@@ -334,6 +334,7 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
           sender: 'pro',
           text: `📝 <strong>Votre contrat est prêt à signer</strong><br><br><a href="${signatureUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.3s;">✍️ Signer mon contrat</a><br><br><small style="color: #6b7280;">Lien valide jusqu'au ${expiresAt.toLocaleDateString('fr-FR')}</small>`,
           organization_id: prospectData.organization_id,
+          channel: 'client',
         });
 
       if (chatError) {

@@ -713,6 +713,7 @@ async function sendChatMessage({ prospectId, projectType, message, organizationI
         text: message,
         read: false,
         organization_id: organizationId || null,
+        channel: 'client',
       });
     
     if (error) {
