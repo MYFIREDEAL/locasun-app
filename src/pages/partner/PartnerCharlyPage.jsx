@@ -139,9 +139,11 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
 
       {/* Input — sticky en bas */}
       <div className="px-3 pb-3 pt-2 border-t border-gray-100 bg-white shrink-0" ref={inputRef}>
-        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
+        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} autoComplete="off" className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
           <input
             type="text"
+            name="chat-message-input"
+            id="chat-message-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -149,7 +151,11 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
             enterKeyHint="send"
             autoComplete="off"
             autoCorrect="off"
+            autoCapitalize="off"
             spellCheck="false"
+            data-form-type="other"
+            data-lpignore="true"
+            aria-autocomplete="none"
             placeholder="Écrire au bureau..."
             className="flex-1 bg-transparent text-base focus:outline-none"
             style={{ fontSize: '16px' }}
@@ -166,7 +172,7 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
               <Send className="w-5 h-5" />
             )}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
