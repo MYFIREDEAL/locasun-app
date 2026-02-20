@@ -178,62 +178,108 @@ const PartnerMissionDetailPage = () => {
     }));
   };
 
-  const handleSubmitForm = async (panel) => {
+  // 🔥 Validation d'un formulaire individuel (utilisé par handleValidateMission)
+  const validateFormPanel = async (panel) => {
+    const { panelId, formId } = panel;
+    const formDef = formSchemas[formId];
+    const draft = formDrafts[panelId] || {};
+
+    // Valider que tous les champs requis sont remplis
+    const missingFields = formDef?.fields?.filter(f => f.required && !draft[f.id]);
+    if (missingFields?.length > 0) {
+      return { 
+        success: false, 
+        error: `Champs manquants dans "${formDef?.title || 'Formulaire'}"`,
+        missingFields 
+      };
+    }
+
+    // 🔥 UPDATE DIRECT (pas via hook car partenaire n'a pas OrganizationContext)
+    const { error: updateError } = await supabase
+      .from('client_form_panels')
+      .update({
+        form_data: draft,
+        status: 'submitted',
+        last_submitted_at: new Date().toISOString()
+      })
+      .eq('panel_id', panelId);
+
+    if (updateError) {
+      console.error("UPDATE PANEL ERROR:", updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    return { success: true };
+  };
+
+  // 🔥 NOUVEAU: Fonction unifiée pour valider mission + tous les formulaires
+  const handleValidateMission = async () => {
     try {
-      const { panelId, prospectId, projectType, formId } = panel;
-      const formDef = formSchemas[formId];
-      const draft = formDrafts[panelId] || {};
+      setSaving(true);
 
-      // Valider que tous les champs requis sont remplis
-      const missingFields = formDef?.fields?.filter(f => f.required && !draft[f.id]);
-      if (missingFields?.length > 0) {
-        toast({ 
-          title: 'Champs manquants', 
-          description: 'Veuillez remplir tous les champs requis',
-          variant: 'destructive' 
-        });
-        return;
+      // 1. Vérifier et soumettre tous les formulaires pending
+      const pendingForms = partnerForms.filter(p => p.status === 'pending' || p.status === 'rejected');
+      
+      if (pendingForms.length > 0) {
+        for (const panel of pendingForms) {
+          const result = await validateFormPanel(panel);
+          if (!result.success) {
+            toast({ 
+              title: 'Formulaire incomplet', 
+              description: result.error,
+              variant: 'destructive' 
+            });
+            setSaving(false);
+            return;
+          }
+        }
+        
+        // Mettre à jour l'état local des formulaires
+        setPartnerForms(prev => prev.map(p => ({
+          ...p,
+          status: pendingForms.some(pf => pf.panelId === p.panelId) ? 'submitted' : p.status,
+          formData: formDrafts[p.panelId] || p.formData
+        })));
       }
 
-      // Debug: Tracer form_data avant soumission
-      console.log("SUBMIT FORM DATA:", draft);
+      // 2. Préparer les notes partenaire
+      const payload = {
+        responses,
+        comment: comment || null,
+        updated_at: new Date().toISOString(),
+        forms_submitted: partnerForms.length,
+      };
 
-      // 🔥 UPDATE DIRECT (pas via hook car partenaire n'a pas OrganizationContext)
-      const { error: updateError } = await supabase
-        .from('client_form_panels')
+      // 3. Marquer la mission comme complétée
+      const { error } = await supabase
+        .from('missions')
         .update({
-          form_data: draft,
-          status: 'submitted',
-          last_submitted_at: new Date().toISOString()
+          status: 'completed',
+          partner_notes: JSON.stringify(payload),
+          updated_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
         })
-        .eq('panel_id', panelId);
+        .eq('id', mission.id);
 
-      if (updateError) {
-        console.error("UPDATE PANEL ERROR:", updateError);
-        throw new Error(updateError.message || 'Erreur update panel');
-      }
-
-      console.log("UPDATE PANEL SUCCESS");
-
-      // Mettre à jour l'état local
-      setPartnerForms(prev => prev.map(p => 
-        p.panelId === panelId 
-          ? { ...p, status: 'submitted', formData: draft }
-          : p
-      ));
+      if (error) throw error;
 
       toast({ 
-        title: '✅ Formulaire envoyé', 
-        description: 'En attente de validation par l\'admin' 
+        title: '✅ Mission validée', 
+        description: 'Formulaires envoyés et mission terminée. En attente de validation admin.',
+        className: 'bg-green-500 text-white' 
       });
-
+      
+      navigate('/partner/missions');
+      
     } catch (err) {
-      logger.error('Erreur soumission formulaire partenaire', { err: err.message });
+      logger.error('PartnerMissionDetail handleValidateMission error', { err: err.message });
       toast({ 
         title: 'Erreur', 
-        description: 'Impossible d\'envoyer le formulaire',
+        description: "Impossible de valider la mission.",
         variant: 'destructive' 
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -496,13 +542,11 @@ const PartnerMissionDetailPage = () => {
                           </div>
                         ))}
 
-                        {!isSubmitted && (
-                          <Button
-                            onClick={() => handleSubmitForm(panel)}
-                            className="w-full mt-4"
-                          >
-                            Envoyer le formulaire
-                          </Button>
+                        {/* 🔥 SUPPRIMÉ: Bouton individuel - La soumission se fait via "VALIDER LA MISSION" */}
+                        {isSubmitted && (
+                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-center">
+                            <p className="text-sm text-blue-700">✅ Formulaire prêt à être envoyé avec la mission</p>
+                          </div>
                         )}
 
                         {isRejected && panel.rejectionReason && (
@@ -551,8 +595,10 @@ const PartnerMissionDetailPage = () => {
         </section>
 
         <div className="flex gap-3">
-          <Button variant="ghost" onClick={() => saveResult('blocked')} className="flex-1 border">IMPOSSIBLE À RÉALISER</Button>
-          <Button onClick={() => saveResult('completed')} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white">VALIDER LA MISSION</Button>
+          <Button variant="ghost" onClick={() => saveResult('blocked')} disabled={saving} className="flex-1 border">IMPOSSIBLE À RÉALISER</Button>
+          <Button onClick={handleValidateMission} disabled={saving} className="flex-1 bg-orange-600 hover:bg-orange-700 text-white">
+            {saving ? 'Envoi en cours...' : 'VALIDER LA MISSION'}
+          </Button>
         </div>
 
       </div>
