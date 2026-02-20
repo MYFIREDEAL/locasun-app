@@ -147,18 +147,18 @@ const PartnerProofsPage = () => {
                 {/* Header accordéon — toujours visible */}
                 <button
                   onClick={() => toggleSection(section.key)}
-                  className="w-full flex items-center justify-between px-4 py-3.5 active:bg-gray-200/60 transition-colors"
+                  className="w-full flex items-center justify-between px-5 py-5 active:bg-gray-200/60 transition-colors"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${section.dotColor}`} />
-                    <span className="text-sm font-semibold text-gray-900">{section.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className={`w-3 h-3 rounded-full ${section.dotColor}`} />
+                    <span className="text-base font-semibold text-gray-900">{section.label}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${section.badgeBg} ${section.badgeText}`}>
+                  <div className="flex items-center gap-2.5">
+                    <span className={`text-sm font-bold px-2.5 py-1 rounded-full ${section.badgeBg} ${section.badgeText}`}>
                       {section.count}
                     </span>
                     <ChevronDown
-                      className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                      className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                     />
                   </div>
                 </button>
