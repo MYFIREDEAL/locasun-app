@@ -284,7 +284,7 @@ const PartnerMissionDetailPage = () => {
         className: 'bg-green-500 text-white' 
       });
       
-      navigate('/partner/missions');
+      navigate('/partner/preuves');
       
     } catch (err) {
       logger.error('PartnerMissionDetail handleValidateMission error', { err: err.message });
@@ -350,7 +350,7 @@ const PartnerMissionDetailPage = () => {
       }
 
       toast({ title: '✅ Enregistré', description: 'Votre réponse a été sauvegardée.', className: 'bg-green-500 text-white' });
-      navigate('/partner/missions');
+      navigate('/partner/preuves');
     } catch (err) {
       logger.error('PartnerMissionDetail save error', { err: err.message });
       toast({ title: 'Erreur', description: "Impossible d'enregistrer la mission.", variant: 'destructive' });
