@@ -2403,10 +2403,27 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                     className: 'bg-red-500 text-white',
                 });
             } else {
-                // 🔥 PARTENAIRE: Pas de chat, juste un toast
+                // 🔥 PARTENAIRE: Remettre la mission en 'pending' → retourne dans onglet Missions
+                if (panel.formId) {
+                    const { data: linkedMissions } = await supabase
+                        .from('missions')
+                        .select('id, form_ids')
+                        .eq('prospect_id', prospect.id)
+                        .eq('status', 'submitted');
+                    
+                    const targetMission = linkedMissions?.find(m => m.form_ids?.includes(panel.formId));
+                    if (targetMission) {
+                        await supabase
+                            .from('missions')
+                            .update({ status: 'pending' })
+                            .eq('id', targetMission.id);
+                        logger.info('✅ Mission remise en pending (admin a refusé)', { missionId: targetMission.id });
+                    }
+                }
+
                 toast({
                     title: '❌ Formulaire rejeté',
-                    description: 'Le partenaire verra la raison du refus sur sa mission.',
+                    description: 'La mission est revenue dans l\'onglet Missions du partenaire.',
                     className: 'bg-red-500 text-white',
                 });
             }
