@@ -1734,7 +1734,9 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             // 🔥 V2: Vérifier completionTrigger depuis config V2 (Supabase ou in-memory)
             // ═══════════════════════════════════════════════════════════════════
             const currentSteps = supabaseSteps?.[panel.projectType];
-            const currentStepIdx = currentSteps?.findIndex(s => s.status === 'in_progress') ?? panel.currentStepIndex;
+            // 🔥 FIX: findIndex retourne -1 si pas trouvé, ?? ne catchera pas -1
+            const foundIdx = currentSteps?.findIndex(s => s.status === 'in_progress');
+            const currentStepIdx = (foundIdx != null && foundIdx >= 0) ? foundIdx : (panel.currentStepIndex || 0);
             const currentStepName = currentSteps?.[currentStepIdx]?.name;
             
             // Normaliser le moduleId comme dans ModuleConfigTab
@@ -1959,33 +1961,41 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 }
             }
 
-            // 🆕 ENVOYER MESSAGE AUTO dans le chat
-            const approvalMessage = action?.approvalMessage || 'Merci ! Votre formulaire a été validé.';
+            // 🆕 ENVOYER MESSAGE AUTO dans le chat (UNIQUEMENT pour formulaires CLIENT, pas partenaire)
+            const isPartnerForm = panel.filledByRole === 'partner';
             
-            // 🔥 Vérifier qu'un message identique n'a pas déjà été envoyé récemment (< 2 secondes)
-            const { data: recentMessages } = await supabase
-                .from('chat_messages')
-                .select('*')
-                .eq('prospect_id', prospect.id)
-                .eq('project_type', panel.projectType)
-                .eq('sender', 'admin')
-                .eq('text', approvalMessage)
-                .gte('created_at', new Date(Date.now() - 2000).toISOString())
-                .limit(1);
-            
-            if (!recentMessages || recentMessages.length === 0) {
-                await sendMessage({
-                    sender: 'admin',
-                    text: approvalMessage,
-                    relatedMessageTimestamp: new Date().toISOString()
-                });
+            if (!isPartnerForm) {
+                const approvalMessage = action?.approvalMessage || 'Merci ! Votre formulaire a été validé.';
+                
+                // 🔥 Vérifier qu'un message identique n'a pas déjà été envoyé récemment (< 2 secondes)
+                const { data: recentMessages } = await supabase
+                    .from('chat_messages')
+                    .select('*')
+                    .eq('prospect_id', prospect.id)
+                    .eq('project_type', panel.projectType)
+                    .eq('sender', 'admin')
+                    .eq('text', approvalMessage)
+                    .gte('created_at', new Date(Date.now() - 2000).toISOString())
+                    .limit(1);
+                
+                if (!recentMessages || recentMessages.length === 0) {
+                    await sendMessage({
+                        sender: 'admin',
+                        text: approvalMessage,
+                        relatedMessageTimestamp: new Date().toISOString()
+                    });
+                } else {
+                    logger.debug('Message de validation déjà envoyé récemment, skip');
+                }
             } else {
-                logger.debug('Message de validation déjà envoyé récemment, skip');
+                logger.debug('Formulaire partenaire validé — pas de message chat au client');
             }
 
             toast({
                 title: '✅ Formulaire validé',
-                description: 'Un message a été envoyé au client.',
+                description: isPartnerForm 
+                    ? 'Le formulaire partenaire a été validé.' 
+                    : 'Un message a été envoyé au client.',
                 className: 'bg-green-500 text-white',
             });
         } catch (error) {
@@ -2224,7 +2234,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                 <div className="space-y-2">
                                     <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                                         <p className="text-sm text-green-700">
-                                            ✅ Client a soumis ce formulaire
+                                            ✅ {panel.filledByRole === 'partner' ? 'Partenaire' : 'Client'} a soumis ce formulaire
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
