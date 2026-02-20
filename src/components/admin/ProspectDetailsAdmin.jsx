@@ -2189,14 +2189,21 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                     
                     if (!formDefinition) return null;
 
+                    // 🔥 FIX: Fallback pour step_name - déduire depuis supabaseSteps si absent
+                    const displayStepName = panel.stepName 
+                        || supabaseSteps?.[panel.projectType]?.[panel.currentStepIndex]?.name
+                        || null;
+
                     return (
                         <div key={panel.panelId} className="border border-gray-200 rounded-xl p-4 space-y-3">
                             <div className="flex items-start justify-between">
                                 <div>
                                     <h3 className="font-semibold text-gray-900">{formDefinition.name}</h3>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Étape : {panel.stepName || 'Non spécifiée'}
-                                    </p>
+                                    {displayStepName && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Étape : {displayStepName}
+                                        </p>
+                                    )}
                                 </div>
                                 <span
                                     className={`text-xs px-2 py-1 rounded-full ${

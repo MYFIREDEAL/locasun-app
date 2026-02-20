@@ -274,6 +274,8 @@ export async function executeActionOrder(order, context = {}) {
               verification_mode: order.verificationMode || 'human',
               organization_id: prospectData.organization_id,
               filled_by_role: 'partner', // 🔥 Marqué comme à remplir par PARTENAIRE
+              step_name: order.moduleName || order.moduleId || null, // 🔥 FIX: Nom de l'étape
+              action_id: order.actionId || null, // 🔥 FIX: ID action V2
             });
 
           if (panelError) {
