@@ -54,7 +54,9 @@ const allNavItems = [
         const groups = {};
         
         unreadNotifications.forEach(notif => {
-          const key = `${notif.prospectId}-${notif.projectType}`;
+          // Séparer notifs client et partenaire pour le même prospect+projet
+          const isPartnerNotif = notif.projectName === '🟠 Message partenaire';
+          const key = `${notif.prospectId}-${notif.projectType}${isPartnerNotif ? '-partner' : ''}`;
           
           if (!groups[key]) {
             groups[key] = {
@@ -215,18 +217,28 @@ const allNavItems = [
                         groupedNotifications.map((group, index) => (
                           <DropdownMenuItem key={`${group.prospectId}-${group.projectType}-${index}`} onClick={() => handleNotificationClick(group)} className="cursor-pointer">
                             <div className="flex items-start space-x-3 py-2 w-full">
-                              <div className="bg-blue-100 rounded-full p-2">
-                                <MessageSquare className="h-4 w-4 text-blue-600" />
-                              </div>
+                              {group.projectName === '🟠 Message partenaire' ? (
+                                <div className="bg-orange-100 rounded-full p-2">
+                                  <MessageSquare className="h-4 w-4 text-orange-600" />
+                                </div>
+                              ) : (
+                                <div className="bg-blue-100 rounded-full p-2">
+                                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                                </div>
+                              )}
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-800">
-                                  {group.totalCount > 1 
-                                    ? `${group.totalCount} nouveaux messages de ${group.prospectName}`
-                                    : `Nouveau message de ${group.prospectName}`
+                                  {group.projectName === '🟠 Message partenaire'
+                                    ? (group.totalCount > 1 
+                                        ? `🟠 ${group.totalCount} messages partenaire · ${group.prospectName}`
+                                        : `🟠 Message partenaire · ${group.prospectName}`)
+                                    : (group.totalCount > 1 
+                                        ? `${group.totalCount} nouveaux messages de ${group.prospectName}`
+                                        : `Nouveau message de ${group.prospectName}`)
                                   }
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  Projet: {group.projectName}
+                                  Projet: {group.projectType}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">
                                   {new Date(group.latestTimestamp).toLocaleTimeString('fr-FR', { 
