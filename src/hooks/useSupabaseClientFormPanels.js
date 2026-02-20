@@ -27,6 +27,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     stepName: dbPanel.step_name, // 🔥 AJOUT: Nom de l'étape du pipeline
     filledByRole: dbPanel.filled_by_role || 'client', // 🔥 AJOUT: Qui remplit (client/partner)
     formData: dbPanel.form_data || {}, // 🔥 AJOUT: Données du formulaire (pour partenaire)
+    rejectionReason: dbPanel.rejection_reason || null, // 🔥 AJOUT: Raison du refus (pour partenaire)
     lastSubmittedAt: dbPanel.last_submitted_at ? new Date(dbPanel.last_submitted_at).getTime() : null,
     createdAt: new Date(dbPanel.created_at).getTime(),
     updatedAt: new Date(dbPanel.updated_at).getTime(),
@@ -181,6 +182,7 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       if (updates.userOverride !== undefined) dbUpdates.user_override = updates.userOverride;
       if (updates.lastSubmittedAt !== undefined) dbUpdates.last_submitted_at = updates.lastSubmittedAt;
       if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 AJOUT: Mapping camelCase → snake_case
+      if (updates.rejectionReason !== undefined) dbUpdates.rejection_reason = updates.rejectionReason; // 🔥 AJOUT: Raison du refus
 
       const { error } = await supabase
         .from('client_form_panels')

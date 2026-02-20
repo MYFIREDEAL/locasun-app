@@ -129,6 +129,7 @@ const PartnerMissionDetailPage = () => {
               status: p.status,
               filledByRole: p.filled_by_role,
               formData: p.form_data || {},
+              rejectionReason: p.rejection_reason || null, // 🔥 AJOUT: Raison du refus
               lastSubmittedAt: p.last_submitted_at,
             }));
             setPartnerForms(transformedPanels);
@@ -464,6 +465,19 @@ const PartnerMissionDetailPage = () => {
                       <p className="text-sm text-gray-600 mb-4">{formDef.description}</p>
                     )}
 
+                    {/* 🔥 RAISON DU REFUS: Afficher en évidence si refusé */}
+                    {isRejected && panel.rejectionReason && (
+                      <div className="mb-4 p-4 bg-red-50 border border-red-300 rounded-lg">
+                        <p className="text-sm font-semibold text-red-800 mb-1">❌ Formulaire refusé</p>
+                        <p className="text-sm text-red-700">
+                          <strong>Raison :</strong> {panel.rejectionReason}
+                        </p>
+                        <p className="text-xs text-red-600 mt-2">
+                          Veuillez corriger et soumettre à nouveau.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Champs du formulaire */}
                     {!isApproved && (
                       <div className="space-y-4">
@@ -546,14 +560,6 @@ const PartnerMissionDetailPage = () => {
                         {isSubmitted && (
                           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-center">
                             <p className="text-sm text-blue-700">✅ Formulaire prêt à être envoyé avec la mission</p>
-                          </div>
-                        )}
-
-                        {isRejected && panel.rejectionReason && (
-                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
-                            <p className="text-sm text-red-800">
-                              <strong>Raison du refus :</strong> {panel.rejectionReason}
-                            </p>
                           </div>
                         )}
                       </div>

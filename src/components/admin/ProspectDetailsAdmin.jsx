@@ -2008,8 +2008,14 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             // ❌ SUPPRIMÉ: Aucune suppression de fichiers au rejet
             // Les fichiers ne sont supprimés QUE lors du remplacement par le client
             
-            // Mettre à jour le statut du panel
-            await updateFormPanel(panel.panelId, { status: 'rejected' });
+            // 🔥 PARTENAIRE vs CLIENT: Déterminer le comportement selon qui a rempli
+            const isPartnerForm = panel.filledByRole === 'partner';
+            
+            // Mettre à jour le statut du panel + raison (pour partenaire)
+            await updateFormPanel(panel.panelId, { 
+                status: 'rejected',
+                rejectionReason: isPartnerForm ? customReason : null // Sauvegarder raison seulement pour partenaire
+            });
 
             // 🔥 Récupérer l'action pour vérifier verificationMode
             const action = getActionForPanel(panel);
@@ -2017,7 +2023,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             
             logger.debug('🔍 Checking verification mode (reject)', {
                 verificationMode,
-                shouldSearchTask: verificationMode === 'human'
+                shouldSearchTask: verificationMode === 'human',
+                isPartnerForm,
             });
 
             // 🔥 NOUVEAU: Trouver et mettre à jour la tâche correspondante (UNIQUEMENT si verificationMode='human')
@@ -2118,21 +2125,30 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 });
             }
 
-            // 🆕 ENVOYER MESSAGE dans le chat
-            const rejectionMessage = action?.rejectionMessage || 'Oups !! Votre formulaire a été rejeté pour la raison suivante :';
-            const fullMessage = `${rejectionMessage}\n\n${customReason}`;
-            
-            await sendMessage({
-                sender: 'admin',
-                text: fullMessage,
-                relatedMessageTimestamp: new Date().toISOString()
-            });
+            // 🔥 CLIENT: Envoyer message dans le chat (PAS pour partenaire)
+            if (!isPartnerForm) {
+                const rejectionMessage = action?.rejectionMessage || 'Oups !! Votre formulaire a été rejeté pour la raison suivante :';
+                const fullMessage = `${rejectionMessage}\n\n${customReason}`;
+                
+                await sendMessage({
+                    sender: 'admin',
+                    text: fullMessage,
+                    relatedMessageTimestamp: new Date().toISOString()
+                });
 
-            toast({
-                title: '❌ Formulaire rejeté',
-                description: 'Un message a été envoyé au client.',
-                className: 'bg-red-500 text-white',
-            });
+                toast({
+                    title: '❌ Formulaire rejeté',
+                    description: 'Un message a été envoyé au client.',
+                    className: 'bg-red-500 text-white',
+                });
+            } else {
+                // 🔥 PARTENAIRE: Pas de chat, juste un toast
+                toast({
+                    title: '❌ Formulaire rejeté',
+                    description: 'Le partenaire verra la raison du refus sur sa mission.',
+                    className: 'bg-red-500 text-white',
+                });
+            }
             
             // Fermer la modal
             setRejectModalOpen(false);
