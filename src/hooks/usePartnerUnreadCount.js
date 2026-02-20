@@ -52,8 +52,7 @@ export function usePartnerUnreadCount() {
         const { data: missions, error: missionsError } = await supabase
           .from('missions')
           .select('prospect_id, project_type')
-          .eq('partner_id', partner.id)
-          .in('status', ['pending', 'in_progress']);
+          .eq('partner_id', partner.id);
 
         if (missionsError) throw missionsError;
 

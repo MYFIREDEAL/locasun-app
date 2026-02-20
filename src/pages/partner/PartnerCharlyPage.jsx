@@ -434,12 +434,11 @@ const PartnerCharlyPage = () => {
         // 🟠 Multi-partenaire: stocker le partner_id
         setCurrentPartnerId(partnerData.id);
 
-        // 3. Charger les missions (pending + in_progress = conversations actives)
+        // 3. Charger TOUTES les missions du partenaire (pour pouvoir continuer à discuter même après mission terminée)
         const { data: missionsData, error: missionsError } = await supabase
           .from('missions')
           .select('id, prospect_id, project_type, title, status, client_name, step_name, created_at')
           .eq('partner_id', partnerData.id)
-          .in('status', ['pending', 'in_progress'])
           .order('created_at', { ascending: false });
 
         if (missionsError) throw missionsError;
