@@ -218,9 +218,27 @@ export const useSupabaseUsersCRUD = (organizationId, enabled = true) => {
   const updateUser = async (userIdOrPk, updates) => {
     try {
       // 🔥 Détecter si c'est un UUID (string) ou un PK (integer)
+      // Les deux (id et user_id) sont des UUID, donc on essaie d'abord par id (PK), puis par user_id
       const isUUID = typeof userIdOrPk === 'string' && userIdOrPk.includes('-');
-      const idField = isUUID ? 'user_id' : 'id';
-      const idValue = userIdOrPk;
+      
+      // Tenter de trouver par id (PK) d'abord, puis par user_id
+      let idField = 'id';
+      let idValue = userIdOrPk;
+      
+      if (isUUID) {
+        // Vérifier si c'est un PK (id) ou un auth UUID (user_id)
+        const { data: checkUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', userIdOrPk)
+          .maybeSingle();
+        
+        if (checkUser) {
+          idField = 'id';
+        } else {
+          idField = 'user_id';
+        }
+      }
       
       logger.debug('updateUser called', { idField, idValue });
       
