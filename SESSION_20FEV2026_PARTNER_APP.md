@@ -4,6 +4,25 @@
 
 ---
 
+### 0. Sessions précédentes (contexte important)
+
+#### Chat Multi-Canal (client / partner / internal) ✅
+- Table `chat_messages` : colonne `channel` TEXT ('client', 'partner', 'internal')
+- Colonne `sender` TEXT ('client', 'admin', 'pro', 'partner')
+- Colonne `file` JSONB pour pièces jointes, `metadata` JSONB
+- **Isolation totale** : client ne voit que channel='client', partenaire que channel='partner'
+- **Notifications** fonctionnent pour tous les canaux
+
+#### Chat Interne avec Sélecteur de Collègue ✅
+- Onglet "Interne" dans le chat admin
+- Dropdown pour sélectionner un collègue (query `public.users`)
+- Messages filtrés par collègue sélectionné
+- **C'est le modèle à suivre** pour le chat partenaire multi-partenaire
+
+#### Corrections Manager / Rôles ✅
+- Fix bug où le rôle n'était pas correctement détecté
+- `users.manager_id` UUID REFERENCES `users(id)` — hiérarchie correcte
+
 ### 1. Architecture App Partenaire (Bottom Nav 4 onglets)
 - **MISSIONS** : Liste des missions `status='pending'`, triées par priorité
 - **CONTACTS** : Liste des prospects liés aux missions, clic → déplie infos + missions liées (1 mission = direct, 2+ = accordéon pour choisir)
@@ -35,14 +54,19 @@ Exécutées dans Supabase (fichier `add_partner_project_files_policies.sql`) :
 - `storage.objects` SELECT : Partenaire peut lire les fichiers du bucket
 
 ### 5. Chat Partenaire avec Pièces Jointes ✅
-- **Bouton +** (style WhatsApp) avec popup : 📷 Photo, 🖼️ Galerie, 📎 Fichier
+- **Bouton +** (style WhatsApp) avec popup : 📷 Photo (caméra), 🖼️ Galerie, 📎 Fichier
 - Upload via `useSupabaseProjectFiles` → fichiers aussi dans onglet Fichiers admin
-- **Preview images** dans les bulles de chat (signed URLs)
+- **Preview images** dans les bulles de chat (signed URLs via `createSignedUrl`)
 - **Téléchargement fichiers** : Lien cliquable avec icône
-- **Anti-zoom iOS** : `font-size: 16px`, `maximum-scale=1`
-- **Anti-AutoFill iOS** : `data-form-type="other"`, `autoComplete="off"`
-- **Layout fixe** : `fixed inset-0 bottom-16` + `dvh` pour clavier iOS/Android
-- **enterKeyHint="send"** pour clavier iOS
+- Hidden file inputs : camera (`capture="environment"`), gallery (`accept="image/*"`), file (`accept="*/*"`)
+
+### 6. UX Mobile iOS/Android ✅ (Corrections importantes)
+- **Anti-zoom iOS sur focus input** : `index.html` meta viewport `maximum-scale=1.0, user-scalable=no` + `font-size: 16px` sur tous les inputs
+- **Anti-AutoFill iOS "Préremplir le contact"** : `data-form-type="other"`, `autoComplete="off"`, `aria-autocomplete="none"`, `data-lpignore="true"`, `<form autoComplete="off">` wrapper
+- **Layout chat fixe avec clavier** : `fixed inset-0 bottom-16` + `height: calc(100dvh - 4rem)` — `dvh` = dynamic viewport height qui s'adapte quand le clavier iOS/Android s'ouvre
+- **enterKeyHint="send"** : Le clavier iOS affiche "Envoyer" au lieu de "Retour"
+- **Bouton envoyer** : Vert `bg-green-500`, plus gros `w-10 h-10`
+- **`onFocus` scroll** : Scroll automatique vers le bas quand l'input prend le focus
 
 ### 6. Bouton "Signaler un problème" ✅
 - Dans `PartnerMissionDetailPage` : Bouton orange ⚠️ au-dessus de IMPOSSIBLE/VALIDER
@@ -98,14 +122,22 @@ Le chat interne utilise un sélecteur de collègue. On fait pareil pour les part
 
 | Fichier | Changements |
 |---------|------------|
-| `src/pages/partner/PartnerMissionDetailPage.jsx` | Support champ fichier + bouton Signaler un problème + import AlertTriangle |
-| `src/pages/partner/PartnerCharlyPage.jsx` | useLocation + ouverture auto chat depuis state |
+| `src/pages/partner/PartnerMissionDetailPage.jsx` | Fix status 'submitted' (pas 'completed') + support champ fichier + bouton Signaler un problème |
+| `src/pages/partner/PartnerCharlyPage.jsx` | Bouton + WhatsApp (Photo/Galerie/Fichier) + useLocation pour ouverture auto |
 | `src/pages/partner/PartnerProofsPage.jsx` | Accordéons submitted/completed/blocked |
-| `src/pages/partner/PartnerMissionsPage.jsx` | Filtre status='pending' |
-| `src/components/admin/ProspectDetailsAdmin.jsx` | handleApprove/handleReject pour missions partenaire |
-| `add_partner_project_files_policies.sql` | 4 RLS policies (table + storage) |
-| `index.html` | Meta viewport anti-zoom iOS |
+| `src/pages/partner/PartnerMissionsPage.jsx` | Filtre status='pending' uniquement |
+| `src/components/admin/ProspectDetailsAdmin.jsx` | handleApprove → mission 'completed' + handleReject → mission 'pending' (retour MISSIONS) |
+| `add_partner_project_files_policies.sql` | 4 RLS policies (table + storage) pour partenaires |
+| `index.html` | Meta viewport `maximum-scale=1, user-scalable=no` anti-zoom iOS |
 
 ## 🔧 SQL exécutés dans Supabase Dashboard
-1. `ALTER TABLE missions DROP CONSTRAINT missions_status_check; ALTER TABLE missions ADD CONSTRAINT missions_status_check CHECK (status IN ('pending','in_progress','completed','blocked','cancelled','submitted'));` → Ajout status 'submitted'
+1. `ALTER TABLE missions DROP CONSTRAINT missions_status_check; ALTER TABLE missions ADD CONSTRAINT missions_status_check CHECK (status IN ('pending','in_progress','completed','blocked','cancelled','submitted'));` → Ajout status 'submitted' au CHECK
 2. `add_partner_project_files_policies.sql` → 4 policies RLS pour upload fichiers partenaire
+
+## ⚠️ Bugs corrigés dans cette session
+1. **Mission passait direct en 'completed'** au lieu de 'submitted' → Fix dans `PartnerMissionDetailPage.jsx`
+2. **DB CHECK constraint** n'avait pas 'submitted' → ALTER TABLE exécuté manuellement
+3. **Admin reject ne renvoyait pas la mission** dans MISSIONS → Fix handleReject → status 'pending'
+4. **Upload fichier partenaire bloqué RLS 42501** → 4 policies ajoutées
+5. **Zoom iOS** sur focus input chat → meta viewport + font-size 16px
+6. **AutoFill iOS "Préremplir le contact"** → data-form-type + autoComplete off
