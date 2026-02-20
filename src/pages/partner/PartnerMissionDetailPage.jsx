@@ -404,8 +404,8 @@ const PartnerMissionDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 p-4">
-        <Loader2 className="w-8 h-8 text-orange-600 animate-spin" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
       </div>
     );
   }
@@ -413,7 +413,7 @@ const PartnerMissionDetailPage = () => {
   if (!mission) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100 p-4 sm:p-6">
+    <div className="px-4 pt-4 pb-4">
       <div className="max-w-2xl mx-auto">
         <header className="mb-6 flex items-center gap-4">
           <Button variant="ghost" onClick={handleBack} className="p-2">

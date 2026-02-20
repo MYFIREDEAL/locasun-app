@@ -36,6 +36,9 @@ import PartnerLoginPage from '@/pages/partner/PartnerLoginPage';
 import PartnerHomePage from '@/pages/partner/PartnerHomePage';
 import PartnerMissionsPage from '@/pages/partner/PartnerMissionsPage';
 import PartnerMissionDetailPage from '@/pages/partner/PartnerMissionDetailPage';
+import PartnerContactsPage from '@/pages/partner/PartnerContactsPage';
+import PartnerCharlyPage from '@/pages/partner/PartnerCharlyPage';
+import PartnerProofsPage from '@/pages/partner/PartnerProofsPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
@@ -1945,6 +1948,9 @@ function App() {
           <Route index element={<PartnerMissionsPage />} />
           <Route path="missions" element={<PartnerMissionsPage />} />
           <Route path="missions/:missionId" element={<PartnerMissionDetailPage />} />
+          <Route path="contacts" element={<PartnerContactsPage />} />
+          <Route path="charly" element={<PartnerCharlyPage />} />
+          <Route path="preuves" element={<PartnerProofsPage />} />
         </Route>
         {/* Route wildcard pour les liens d'affiliation HomePage (doit être APRÈS les routes spécifiques) */}
         <Route path="/:slugUser" element={<HomePage />} />

@@ -1,20 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
+import { Loader2, Bell, ChevronRight } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 
 /**
  * /partner/missions
- * Mobile-first, EVATIME style list of missions for the current partner
- * - Fetch partner by auth.user.id
- * - Fetch missions for that partner
- * - Show cards: client name, short instruction, badges (is_blocking, status)
- * - Tap card -> /partner/missions/:missionId
+ * Mobile-first mission list grouped by priority
+ * 🔴 CRITIQUE = is_blocking
+ * 🟡 AUJOURD'HUI = créée aujourd'hui ou récente
+ * ⚪ AUTRES = le reste
  */
 const PartnerMissionsPage = () => {
   const navigate = useNavigate();
@@ -34,7 +30,6 @@ const PartnerMissionsPage = () => {
           return;
         }
 
-        // Récupérer le partenaire lié à cet user
         const { data: partnerData, error: partnerError } = await supabase
           .from('partners')
           .select('id, company_name, email, phone, active')
@@ -42,7 +37,6 @@ const PartnerMissionsPage = () => {
           .single();
 
         if (partnerError || !partnerData) {
-          // Not a partner – force logout
           logger.warn('PartnerMissionsPage: utilisateur non-partenaire', { userId: user.id });
           await supabase.auth.signOut();
           navigate('/partner/login');
@@ -59,11 +53,12 @@ const PartnerMissionsPage = () => {
         if (!mounted) return;
         setPartner(partnerData);
 
-        // Récupérer les missions pour ce partenaire
+        // Uniquement les missions pending (à faire)
         const { data: missionsData, error: missionsError } = await supabase
           .from('missions')
           .select('*')
           .eq('partner_id', partnerData.id)
+          .eq('status', 'pending')
           .order('created_at', { ascending: false });
 
         if (missionsError) throw missionsError;
@@ -79,61 +74,107 @@ const PartnerMissionsPage = () => {
     };
 
     load();
-
     return () => { mounted = false; };
   }, [navigate]);
 
+  // Grouper les missions par priorité
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const critical = missions.filter(m => m.is_blocking);
+  const todayMissions = missions.filter(m => {
+    if (m.is_blocking) return false;
+    const created = new Date(m.created_at);
+    created.setHours(0, 0, 0, 0);
+    return created.getTime() >= today.getTime();
+  });
+  const others = missions.filter(m => {
+    if (m.is_blocking) return false;
+    const created = new Date(m.created_at);
+    created.setHours(0, 0, 0, 0);
+    return created.getTime() < today.getTime();
+  });
+
+  // Nombre de missions pour la cloche
+  const totalPending = missions.length;
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 p-4">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-orange-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Chargement des demandes...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100 p-4 sm:p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Missions</h1>
-          <p className="text-sm text-gray-600 mt-1">Demandes en cours</p>
+  const renderGroup = (title, items, dotColor, barColor) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+          <span className="text-xs font-bold text-gray-400 tracking-widest">{title}</span>
         </div>
-
-        {missions.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
-            <p className="text-gray-500">Aucune mission pour le moment.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {missions.map(m => (
-              <article
+        <div className="space-y-3">
+          {items.map(m => {
+            const clientName = m.client_name || m.title?.replace('Mission pour ', '') || 'Client';
+            const desc = m.description || m.step_name || '—';
+            return (
+              <div
                 key={m.id}
-                className="bg-white rounded-xl shadow-sm border p-4 cursor-pointer"
+                className="flex items-center bg-gray-100/60 rounded-2xl overflow-hidden cursor-pointer active:bg-gray-200/60 transition-colors"
                 onClick={() => navigate(`/partner/missions/${m.id}`)}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm text-gray-500">Client</div>
-                    <div className="font-semibold text-gray-900 mt-1">{m.title || 'Client'}</div>
-                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{m.description || '—'}</p>
+                {/* Bande couleur gauche */}
+                <div className={`w-1.5 self-stretch ${barColor} rounded-l-2xl shrink-0`} />
+                <div className="flex-1 flex items-center gap-3 p-4 pl-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 truncate">{clientName}</div>
+                    <div className="text-sm text-gray-500 truncate mt-0.5">{desc}</div>
                   </div>
-                  <div className="ml-3 flex flex-col items-end space-y-2">
-                    {m.is_blocking && (
-                      <Badge className="bg-red-50 text-red-700 border-red-100">Bloquante</Badge>
-                    )}
-                    <Badge className={`mt-2 ${m.status === 'completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-700 border-gray-100'}`}>
-                      {m.status}
-                    </Badge>
-                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
                 </div>
-              </article>
-            ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="px-4 pt-6 pb-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Missions</h1>
+          <p className="text-sm text-gray-400 mt-1">Commandé par Charly</p>
+        </div>
+        {totalPending > 0 && (
+          <div className="relative mt-1">
+            <Bell className="w-6 h-6 text-gray-400" />
+            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {totalPending}
+            </span>
           </div>
         )}
       </div>
+
+      {/* Empty state */}
+      {missions.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Bell className="w-8 h-8 text-gray-300" />
+          </div>
+          <p className="text-gray-400 font-medium">Aucune mission en cours</p>
+          <p className="text-xs text-gray-300 mt-1">Vos nouvelles missions apparaîtront ici.</p>
+        </div>
+      ) : (
+        <>
+          {renderGroup('CRITIQUE', critical, 'bg-red-500', 'bg-red-500')}
+          {renderGroup("AUJOURD'HUI", todayMissions, 'bg-orange-400', 'bg-orange-400')}
+          {renderGroup('AUTRES', others, 'bg-gray-300', 'bg-gray-300')}
+        </>
+      )}
     </div>
   );
 };
