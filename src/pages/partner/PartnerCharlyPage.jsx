@@ -484,7 +484,7 @@ const PartnerCharlyPage = () => {
             // Récupérer le dernier message pour trier par activité récente
             const { data: lastMsg } = await supabase
               .from('chat_messages')
-              .select('created_at, content')
+              .select('created_at, text')
               .eq('prospect_id', convo.prospectId)
               .eq('project_type', convo.projectType)
               .eq('channel', 'partner')
@@ -497,7 +497,7 @@ const PartnerCharlyPage = () => {
               ...convo,
               unreadCount: countError ? 0 : (count || 0),
               lastMessageAt: lastMsg?.created_at || convo.createdAt || null,
-              lastMessagePreview: lastMsg?.content || null,
+              lastMessagePreview: lastMsg?.text || null,
             };
           })
         );
