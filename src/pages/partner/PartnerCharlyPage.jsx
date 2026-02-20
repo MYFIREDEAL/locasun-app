@@ -74,7 +74,10 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
   };
 
   return (
-    <div className="fixed inset-0 bottom-16 flex flex-col bg-white z-40">
+    <div 
+      className="fixed inset-0 bottom-16 flex flex-col bg-white z-40"
+      style={{ height: 'calc(100dvh - 4rem)', top: 0 }}
+    >
       {/* Header avec bouton retour */}
       <div className="px-4 pt-4 pb-3 flex items-center gap-3 border-b border-gray-200 shrink-0">
         <button onClick={onBack} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
