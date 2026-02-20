@@ -265,22 +265,21 @@ const PartnerMissionDetailPage = () => {
         forms_submitted: partnerForms.length,
       };
 
-      // 3. Marquer la mission comme complétée
+      // 3. Marquer la mission comme soumise (en attente de validation admin)
       const { error } = await supabase
         .from('missions')
         .update({
-          status: 'completed',
+          status: 'submitted',
           partner_notes: JSON.stringify(payload),
           updated_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
         })
         .eq('id', mission.id);
 
       if (error) throw error;
 
       toast({ 
-        title: '✅ Mission validée', 
-        description: 'Formulaires envoyés et mission terminée. En attente de validation admin.',
+        title: '✅ Mission soumise', 
+        description: 'Formulaires envoyés. En attente de validation admin.',
         className: 'bg-green-500 text-white' 
       });
       
