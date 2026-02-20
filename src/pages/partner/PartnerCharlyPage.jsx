@@ -502,10 +502,8 @@ const PartnerCharlyPage = () => {
           })
         );
 
-        // Trier par dernier message le plus récent en premier
+        // Trier par dernier message le plus récent en premier (style WhatsApp)
         convosWithUnread.sort((a, b) => {
-          if (a.unreadCount && !b.unreadCount) return -1;
-          if (!a.unreadCount && b.unreadCount) return 1;
           return new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0);
         });
 
