@@ -899,10 +899,54 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   };
 
 
+  // Compteurs par channel
+  const clientMessages = messages.filter(m => !m.channel || m.channel === 'client');
+  const partnerMessages = messages.filter(m => m.channel === 'partner');
+  const filteredMessages = replyChannel === 'partner' ? partnerMessages : clientMessages;
+
   return (
     <div className="mt-6">
+      {/* 🔥 Onglets Client / Partenaire — bien visibles en haut */}
+      <div className="flex mb-3 rounded-xl overflow-hidden border-2 border-gray-200">
+        <button
+          onClick={() => setReplyChannel('client')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all ${
+            replyChannel === 'client'
+              ? 'bg-blue-500 text-white shadow-inner'
+              : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          💬 Client
+          {clientMessages.length > 0 && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              replyChannel === 'client' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>{clientMessages.length}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setReplyChannel('partner')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all ${
+            replyChannel === 'partner'
+              ? 'bg-orange-500 text-white shadow-inner'
+              : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          🟠 Partenaire
+          {partnerMessages.length > 0 && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              replyChannel === 'partner' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-600'
+            }`}>{partnerMessages.length}</span>
+          )}
+        </button>
+      </div>
+
       <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
-        {messages.map((msg, index) => {
+        {filteredMessages.length === 0 && (
+          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+            {replyChannel === 'partner' ? '🟠 Aucun message partenaire' : '💬 Aucun message client'}
+          </div>
+        )}
+        {filteredMessages.map((msg, index) => {
           const isAdmin = msg.sender === 'pro' || msg.sender === 'admin';
           const isPartner = msg.sender === 'partner';
           const isClient = msg.sender === 'client';
@@ -960,32 +1004,9 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         </div>
       )}
       <div className="relative">
-        {/* 🟠 Sélecteur de channel: Client ou Partenaire */}
-        <div className="flex items-center gap-1 mb-1">
-          <button
-            onClick={() => setReplyChannel('client')}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-              replyChannel === 'client' 
-                ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300' 
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
-          >
-            💬 Client
-          </button>
-          <button
-            onClick={() => setReplyChannel('partner')}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-              replyChannel === 'partner' 
-                ? 'bg-orange-100 text-orange-700 ring-1 ring-orange-300' 
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
-          >
-            🟠 Partenaire
-          </button>
-        </div>
         <Input
-          placeholder={replyChannel === 'partner' ? 'Écrire au partenaire...' : 'Écrire au client...'}
-          className="pr-28 h-12"
+          placeholder={replyChannel === 'partner' ? '🟠 Écrire au partenaire...' : '💬 Écrire au client...'}
+          className={`pr-28 h-12 ${replyChannel === 'partner' ? 'border-orange-300 focus:ring-orange-400' : ''}`}
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
