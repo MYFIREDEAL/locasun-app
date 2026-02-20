@@ -922,7 +922,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   const [targetUserId, setTargetUserId] = useState(null);
   const colleagueOptions = useMemo(() => {
     const allColleagues = (supabaseUsers || [])
-      .filter(u => u.user_id !== activeAdminUser?.user_id); // Exclure soi-même
+      .filter(u => u.user_id !== activeAdminUser?.user_id) // Exclure soi-même
+      .filter(u => u.role !== 'Partner'); // Exclure les partenaires (pas des collègues admin)
 
     const ownerId = currentProspect?.ownerId;
     const ownerUser = allColleagues.find(u => u.user_id === ownerId);
