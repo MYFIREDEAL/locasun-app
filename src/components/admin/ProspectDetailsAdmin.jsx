@@ -2214,10 +2214,38 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 logger.debug('Formulaire partenaire validé — pas de message chat au client');
             }
 
+            // 🔥 PARTENAIRE: Mettre à jour le statut de la mission liée → 'completed'
+            if (isPartnerForm && panel.formId) {
+                const { data: linkedMissions, error: missionErr } = await supabase
+                    .from('missions')
+                    .select('id, form_ids, status')
+                    .eq('prospect_id', prospect.id)
+                    .eq('status', 'submitted');
+                
+                if (!missionErr && linkedMissions?.length > 0) {
+                    // Trouver la mission qui contient ce formId
+                    const targetMission = linkedMissions.find(m => 
+                        m.form_ids?.includes(panel.formId)
+                    );
+                    if (targetMission) {
+                        const { error: updateErr } = await supabase
+                            .from('missions')
+                            .update({ status: 'completed', completed_at: new Date().toISOString() })
+                            .eq('id', targetMission.id);
+                        
+                        if (updateErr) {
+                            logger.error('❌ Erreur mise à jour mission → completed', updateErr);
+                        } else {
+                            logger.info('✅ Mission passée en completed', { missionId: targetMission.id });
+                        }
+                    }
+                }
+            }
+
             toast({
                 title: '✅ Formulaire validé',
                 description: isPartnerForm 
-                    ? 'Le formulaire partenaire a été validé.' 
+                    ? 'Le formulaire partenaire a été validé. Mission marquée comme complétée.' 
                     : 'Un message a été envoyé au client.',
                 className: 'bg-green-500 text-white',
             });
@@ -2382,7 +2410,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                     className: 'bg-red-500 text-white',
                 });
             }
-            
+
             // Fermer la modal
             setRejectModalOpen(false);
             setRejectingPanel(null);
