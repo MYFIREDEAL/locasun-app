@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
-import { Send, ArrowLeft, Loader2, MessageCircle, ChevronRight, Plus, Camera, Image as ImageIcon, FileText, X, Download } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, MessageCircle, ChevronRight, Plus, Camera, Image as ImageIcon, FileText, X, Download, Search } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 import { formatDistanceToNow } from 'date-fns';
@@ -394,6 +394,9 @@ const PartnerCharlyPage = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   // 🟠 Multi-partenaire: stocker le partner_id du partenaire connecté
   const [currentPartnerId, setCurrentPartnerId] = useState(null);
+  // 🔍 Recherche + filtre récent
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   // 🔥 Si on arrive depuis "Signaler un problème", ouvrir directement le chat
   useEffect(() => {
@@ -459,14 +462,16 @@ const PartnerCharlyPage = () => {
               missionTitle: m.title,
               missionId: m.id,
               status: m.status,
+              createdAt: m.created_at,
             });
           }
         }
 
-        // 5. Pour chaque conversation, compter les messages non lus (envoyés par admin)
+        // 5. Pour chaque conversation, compter les non-lus + récupérer le dernier message
         const convosWithUnread = await Promise.all(
           uniqueConvos.map(async (convo) => {
-            let query = supabase
+            // Compter messages non lus
+            const { count, error: countError } = await supabase
               .from('chat_messages')
               .select('id', { count: 'exact', head: true })
               .eq('prospect_id', convo.prospectId)
@@ -476,14 +481,33 @@ const PartnerCharlyPage = () => {
               .neq('sender', 'partner')
               .eq('read', false);
 
-            const { count, error: countError } = await query;
+            // Récupérer le dernier message pour trier par activité récente
+            const { data: lastMsg } = await supabase
+              .from('chat_messages')
+              .select('created_at, content')
+              .eq('prospect_id', convo.prospectId)
+              .eq('project_type', convo.projectType)
+              .eq('channel', 'partner')
+              .eq('partner_id', partnerData.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
 
             return {
               ...convo,
               unreadCount: countError ? 0 : (count || 0),
+              lastMessageAt: lastMsg?.created_at || convo.createdAt || null,
+              lastMessagePreview: lastMsg?.content || null,
             };
           })
         );
+
+        // Trier par dernier message le plus récent en premier
+        convosWithUnread.sort((a, b) => {
+          if (a.unreadCount && !b.unreadCount) return -1;
+          if (!a.unreadCount && b.unreadCount) return 1;
+          return new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0);
+        });
 
         setConversations(convosWithUnread);
       } catch (err) {
@@ -497,6 +521,29 @@ const PartnerCharlyPage = () => {
     load();
     return () => { mounted = false; };
   }, [navigate, selectedConversation]);
+
+  // Filtrer les conversations : recherche + récent/tout
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const filteredConversations = conversations.filter((convo) => {
+    // Filtre recherche
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = convo.prospectName.toLowerCase().includes(q);
+      const matchType = convo.projectType.toLowerCase().includes(q);
+      const matchStep = (convo.stepName || '').toLowerCase().includes(q);
+      if (!matchName && !matchType && !matchStep) return false;
+    }
+    // Filtre récent (sauf si showAll)
+    if (!showAll) {
+      const hasUnread = convo.unreadCount > 0;
+      const lastActivity = convo.lastMessageAt ? new Date(convo.lastMessageAt) : null;
+      const isRecent = lastActivity && (Date.now() - lastActivity.getTime()) < SEVEN_DAYS_MS;
+      if (!hasUnread && !isRecent) return false;
+    }
+    return true;
+  });
+
+  const hiddenCount = conversations.length - filteredConversations.length;
 
   // Vue chat ouverte
   if (selectedConversation) {
@@ -525,6 +572,28 @@ const PartnerCharlyPage = () => {
         </div>
       </div>
 
+      {/* 🔍 Barre de recherche */}
+      <div className="px-4 pb-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un client, un projet..."
+            className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Liste conversations */}
       <div className="flex-1 px-4 py-2 overflow-y-auto">
         {loading ? (
@@ -534,40 +603,101 @@ const PartnerCharlyPage = () => {
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">
             <MessageCircle className="w-12 h-12 mb-3" />
-            <p className="text-sm font-medium">Aucune conversation active</p>
+            <p className="text-sm font-medium">Aucune conversation</p>
             <p className="text-xs mt-1">Les conversations apparaîtront ici quand vous aurez des missions.</p>
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+            <Search className="w-10 h-10 mb-3" />
+            <p className="text-sm font-medium">
+              {searchQuery ? 'Aucun résultat' : 'Aucune conversation récente'}
+            </p>
+            <p className="text-xs mt-1">
+              {searchQuery
+                ? `Rien trouvé pour "${searchQuery}"`
+                : `${hiddenCount} conversation${hiddenCount > 1 ? 's' : ''} plus ancienne${hiddenCount > 1 ? 's' : ''}`
+              }
+            </p>
+            {!showAll && !searchQuery && (
+              <button
+                onClick={() => setShowAll(true)}
+                className="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Voir toutes les conversations
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
-            {conversations.map((convo) => (
+            {filteredConversations.map((convo) => (
               <button
                 key={`${convo.prospectId}-${convo.projectType}`}
                 onClick={() => setSelectedConversation(convo)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all text-left"
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                  convo.unreadCount > 0
+                    ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
+                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                }`}
               >
                 {/* Avatar client */}
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm shrink-0">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                  convo.unreadCount > 0 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                }`}>
                   {convo.prospectName.charAt(0).toUpperCase()}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{convo.prospectName}</p>
+                    <p className={`text-sm truncate ${convo.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>
+                      {convo.prospectName}
+                    </p>
                     {convo.unreadCount > 0 && (
                       <span className="bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">
                         {convo.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
-                    {convo.projectType} {convo.stepName ? `· ${convo.stepName}` : ''}
-                  </p>
+                  {convo.lastMessagePreview ? (
+                    <p className={`text-xs truncate mt-0.5 ${convo.unreadCount > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
+                      {convo.lastMessagePreview.substring(0, 60)}{convo.lastMessagePreview.length > 60 ? '…' : ''}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {convo.projectType} {convo.stepName ? `· ${convo.stepName}` : ''}
+                    </p>
+                  )}
                 </div>
 
-                <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                {/* Timestamp */}
+                <div className="flex flex-col items-end shrink-0">
+                  {convo.lastMessageAt && (
+                    <span className="text-[10px] text-gray-400">
+                      {formatDistanceToNow(new Date(convo.lastMessageAt), { addSuffix: true, locale: fr })}
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-400 mt-1" />
+                </div>
               </button>
             ))}
+
+            {/* Bouton voir tout / voir récent */}
+            {!searchQuery && hiddenCount > 0 && !showAll && (
+              <button
+                onClick={() => setShowAll(true)}
+                className="w-full py-2.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors text-center"
+              >
+                + {hiddenCount} conversation{hiddenCount > 1 ? 's' : ''} plus ancienne{hiddenCount > 1 ? 's' : ''}
+              </button>
+            )}
+            {showAll && !searchQuery && (
+              <button
+                onClick={() => setShowAll(false)}
+                className="w-full py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors text-center"
+              >
+                Afficher uniquement les récentes
+              </button>
+            )}
           </div>
         )}
       </div>
