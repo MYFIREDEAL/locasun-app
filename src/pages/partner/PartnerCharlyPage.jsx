@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
@@ -24,6 +24,7 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const chatEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Auto-scroll en bas
   useEffect(() => {
@@ -31,6 +32,15 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     });
   }, [messages]);
+
+  // 🔥 iOS: Scroll to input when keyboard opens
+  const handleFocus = useCallback(() => {
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      // Force visualViewport scroll on iOS
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 300);
+  }, []);
 
   // Marquer les messages admin comme lus à l'ouverture
   useEffect(() => {
@@ -64,9 +74,9 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-[calc(100vh-5rem)]">
+    <div className="fixed inset-0 bottom-16 flex flex-col bg-white z-40">
       {/* Header avec bouton retour */}
-      <div className="px-4 pt-4 pb-3 flex items-center gap-3 border-b border-gray-200">
+      <div className="px-4 pt-4 pb-3 flex items-center gap-3 border-b border-gray-200 shrink-0">
         <button onClick={onBack} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
@@ -80,7 +90,7 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 px-4 py-4 overflow-y-auto">
+      <div className="flex-1 px-4 py-4 overflow-y-auto overscroll-contain">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -127,14 +137,15 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+      {/* Input — sticky en bas */}
+      <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-white shrink-0" ref={inputRef}>
         <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onFocus={handleFocus}
             placeholder="Écrire au bureau..."
             className="flex-1 bg-transparent text-sm focus:outline-none"
             disabled={sending}
