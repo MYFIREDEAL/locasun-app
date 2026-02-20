@@ -244,10 +244,10 @@ export const useSupabaseUsersCRUD = (organizationId, enabled = true) => {
           dbUpdates.manager_id = null;
           logger.debug('Manager set to null');
         } else {
-          // 🔥 FIX : manager_id doit être un UUID (user_id), pas un integer (id)
+          // 🔥 FIX : manager_id référence public.users(id), pas user_id
           const { data: managerData, error: managerError } = await supabase
             .from('users')
-            .select('user_id')
+            .select('id, user_id')
             .eq('name', updates.manager)
             .single();
           
@@ -258,8 +258,8 @@ export const useSupabaseUsersCRUD = (organizationId, enabled = true) => {
           }
           
           if (managerData) {
-            dbUpdates.manager_id = managerData.user_id;
-            logger.debug('manager_id assigned', { managerId: managerData.user_id });
+            dbUpdates.manager_id = managerData.id;  // 🔥 FK pointe vers users.id (PK), pas user_id
+            logger.debug('manager_id assigned', { managerId: managerData.id });
           }
         }
       }

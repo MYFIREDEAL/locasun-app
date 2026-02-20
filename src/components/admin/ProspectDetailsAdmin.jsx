@@ -928,7 +928,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     const ownerId = currentProspect?.ownerId;
     const ownerUser = allColleagues.find(u => u.user_id === ownerId);
     const managerOfOwner = ownerUser?.manager_id 
-      ? allColleagues.find(u => u.user_id === ownerUser.manager_id)
+      ? allColleagues.find(u => u.id === ownerUser.manager_id)  // manager_id référence users.id (PK)
       : null;
 
     // IDs déjà placés en priorité (owner + son manager)

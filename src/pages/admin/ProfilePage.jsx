@@ -1928,10 +1928,10 @@ const ProfilePage = () => {
     return supabaseUsers.reduce((acc, user) => {
       if (!user.user_id) return acc;
       
-      // 🔥 FIX : Trouver le NOM du manager à partir de manager_id (UUID)
+      // 🔥 FIX : manager_id référence users.id (PK), pas user_id
       let managerName = null;
       if (user.manager_id) {
-        const managerUser = supabaseUsers.find(u => u.user_id === user.manager_id);
+        const managerUser = supabaseUsers.find(u => u.id === user.manager_id);
         managerName = managerUser ? managerUser.name : user.manager_id; // Fallback sur UUID si nom pas trouvé
       }
       
