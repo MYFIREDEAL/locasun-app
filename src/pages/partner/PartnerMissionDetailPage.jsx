@@ -133,6 +133,19 @@ const PartnerMissionDetailPage = () => {
               lastSubmittedAt: p.last_submitted_at,
             }));
             setPartnerForms(transformedPanels);
+            
+            // 🔥 FIX: Pré-remplir formDrafts avec les données déjà soumises
+            const initialDrafts = {};
+            transformedPanels.forEach(p => {
+              if (p.formData && Object.keys(p.formData).length > 0) {
+                initialDrafts[p.panelId] = { ...p.formData };
+              }
+            });
+            if (Object.keys(initialDrafts).length > 0) {
+              setFormDrafts(initialDrafts);
+              logger.debug('Drafts pré-remplis depuis panels existants', { count: Object.keys(initialDrafts).length });
+            }
+            
             logger.debug('Panels partenaire chargés', { count: transformedPanels.length });
           }
         }
@@ -451,12 +464,17 @@ const PartnerMissionDetailPage = () => {
                       )}
                       {isSubmitted && !isApproved && (
                         <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
-                          ⏳ En attente
+                          📨 Envoyé
                         </span>
                       )}
                       {isRejected && (
                         <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">
                           ❌ Refusé
+                        </span>
+                      )}
+                      {panel.status === 'pending' && (
+                        <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700">
+                          ✏️ À remplir
                         </span>
                       )}
                     </div>
@@ -479,7 +497,37 @@ const PartnerMissionDetailPage = () => {
                     )}
 
                     {/* Champs du formulaire */}
-                    {!isApproved && (
+                    {/* Mode lecture seule : formulaire soumis ou approuvé → afficher les données */}
+                    {(isSubmitted || isApproved) && !isRejected && (
+                      <div className="space-y-3">
+                        {formDef?.fields?.map((field) => {
+                          const value = panel.formData?.[field.id] || draft[field.id] || '';
+                          return (
+                            <div key={field.id}>
+                              <Label className="text-xs text-gray-500 uppercase">{field.label}</Label>
+                              <p className="text-sm text-gray-900 mt-1 px-3 py-2 bg-gray-50 rounded border">
+                                {field.type === 'checkbox' 
+                                  ? (value ? '✅ Oui' : '❌ Non')
+                                  : (value || '—')}
+                              </p>
+                            </div>
+                          );
+                        })}
+                        {isSubmitted && (
+                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-center">
+                            <p className="text-sm text-blue-700">📨 Formulaire envoyé — En attente de validation admin</p>
+                          </div>
+                        )}
+                        {isApproved && (
+                          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-center">
+                            <p className="text-sm text-green-700">✅ Formulaire validé par l'admin</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Mode édition : pending ou rejected → champs éditables */}
+                    {(panel.status === 'pending' || isRejected) && (
                       <div className="space-y-4">
                         {formDef?.fields?.map((field) => (
                           <div key={field.id}>
@@ -494,7 +542,6 @@ const PartnerMissionDetailPage = () => {
                                 value={draft[field.id] || ''}
                                 onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
                                 placeholder={field.placeholder || ''}
-                                disabled={isSubmitted}
                               />
                             )}
 
@@ -503,7 +550,6 @@ const PartnerMissionDetailPage = () => {
                                 value={draft[field.id] || ''}
                                 onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
                                 placeholder={field.placeholder || ''}
-                                disabled={isSubmitted}
                                 className="w-full px-3 py-2 border rounded min-h-[80px]"
                               />
                             )}
@@ -512,7 +558,6 @@ const PartnerMissionDetailPage = () => {
                               <select
                                 value={draft[field.id] || ''}
                                 onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
-                                disabled={isSubmitted}
                                 className="w-full px-3 py-2 border rounded"
                               >
                                 <option value="">-- Sélectionner --</option>
@@ -528,7 +573,6 @@ const PartnerMissionDetailPage = () => {
                                 value={draft[field.id] || ''}
                                 onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
                                 placeholder={field.placeholder || ''}
-                                disabled={isSubmitted}
                               />
                             )}
 
@@ -537,7 +581,6 @@ const PartnerMissionDetailPage = () => {
                                 type="date"
                                 value={draft[field.id] || ''}
                                 onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.value)}
-                                disabled={isSubmitted}
                               />
                             )}
 
@@ -547,7 +590,6 @@ const PartnerMissionDetailPage = () => {
                                   type="checkbox"
                                   checked={draft[field.id] || false}
                                   onChange={(e) => handleFormFieldChange(panel.panelId, field.id, e.target.checked)}
-                                  disabled={isSubmitted}
                                   className="w-4 h-4"
                                 />
                                 <span className="text-sm">{field.placeholder}</span>
@@ -555,13 +597,6 @@ const PartnerMissionDetailPage = () => {
                             )}
                           </div>
                         ))}
-
-                        {/* 🔥 SUPPRIMÉ: Bouton individuel - La soumission se fait via "VALIDER LA MISSION" */}
-                        {isSubmitted && (
-                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-center">
-                            <p className="text-sm text-blue-700">✅ Formulaire prêt à être envoyé avec la mission</p>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
