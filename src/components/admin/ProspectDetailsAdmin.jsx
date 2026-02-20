@@ -1778,41 +1778,56 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 // Générer les action_id attendus pour chaque action
                 const expectedActionIds = v2Actions.map((_, idx) => `v2-${moduleId}-action-${idx}`);
                 
-                // Chercher par action_id exact (robuste, pas de faux positifs)
-                const { data: v2ApprovedPanels } = await supabase
+                // 🔥 FIX: Chercher TOUS les panels approved pour cette étape (avec ET sans action_id)
+                const { data: allApprovedPanels } = await supabase
                     .from('client_form_panels')
-                    .select('id, action_id')
+                    .select('id, action_id, step_name, form_id, filled_by_role')
                     .eq('prospect_id', prospect.id)
                     .eq('project_type', panel.projectType)
-                    .eq('status', 'approved')
-                    .in('action_id', expectedActionIds);
+                    .eq('status', 'approved');
                 
-                let approvedActionIds = new Set((v2ApprovedPanels || []).map(p => p.action_id));
+                let approvedActionIds = new Set();
                 
-                // Fallback: si aucun panel avec action_id, compter par step_name ou sans filtre
-                if (approvedActionIds.size === 0) {
-                    const { data: legacyPanels } = await supabase
-                        .from('client_form_panels')
-                        .select('id, step_name')
-                        .eq('prospect_id', prospect.id)
-                        .eq('project_type', panel.projectType)
-                        .eq('status', 'approved');
+                // Étape 1: Ajouter les panels avec action_id valide
+                (allApprovedPanels || []).forEach(p => {
+                    if (p.action_id && expectedActionIds.includes(p.action_id)) {
+                        approvedActionIds.add(p.action_id);
+                    }
+                });
+                
+                // Étape 2: Pour les panels SANS action_id mais de la même étape, 
+                // les assigner séquentiellement aux action_ids non encore couverts
+                const panelsWithoutActionId = (allApprovedPanels || []).filter(p => 
+                    !p.action_id && 
+                    (!p.step_name || p.step_name === currentStepName || p.step_name === moduleId)
+                );
+                
+                if (panelsWithoutActionId.length > 0) {
+                    // Trouver les action_ids pas encore couverts
+                    const uncoveredIds = expectedActionIds.filter(id => !approvedActionIds.has(id));
+                    panelsWithoutActionId.forEach((p, idx) => {
+                        if (idx < uncoveredIds.length) {
+                            approvedActionIds.add(uncoveredIds[idx]);
+                        }
+                    });
                     
-                    const matching = (legacyPanels || []).filter(p => 
-                        !p.step_name || p.step_name === currentStepName || p.step_name === moduleId
-                    );
-                    // Assigner séquentiellement
-                    matching.forEach((_, idx) => {
-                        if (idx < v2Actions.length) approvedActionIds.add(`v2-${moduleId}-action-${idx}`);
+                    logger.debug('[V2] Fallback: assigned panels without action_id', {
+                        panelsWithoutActionId: panelsWithoutActionId.length,
+                        uncoveredIds,
+                        afterAssignment: [...approvedActionIds],
                     });
                 }
                 
                 const totalApproved = approvedActionIds.size;
                 allActionsCompleted = totalApproved >= v2Actions.length;
                 
-                logger.debug('[V2] Multi-actions check (by action_id)', {
+                logger.debug('[V2] Multi-actions check', {
                     totalActions: v2Actions.length,
+                    expectedActionIds,
                     approvedActionIds: [...approvedActionIds],
+                    panelsTotal: (allApprovedPanels || []).length,
+                    panelsWithActionId: (allApprovedPanels || []).filter(p => p.action_id).length,
+                    panelsWithoutActionId: panelsWithoutActionId.length,
                     allCompleted: allActionsCompleted,
                 });
                 
@@ -1847,9 +1862,24 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             // Trouver l'index de la sous-étape à partir de panel.action_id
             let updatedStepsForCompletion = currentSteps; // Par défaut, utiliser les steps actuels
             
-            if (currentSteps && currentSteps[currentStepIdx]?.subSteps?.length > 0 && panel.action_id) {
+            if (currentSteps && currentSteps[currentStepIdx]?.subSteps?.length > 0) {
                 const currentStep = currentSteps[currentStepIdx];
-                const subStepIndex = currentStep.subSteps.findIndex(sub => sub.id === panel.action_id);
+                
+                // 🔥 FIX: Trouver la sous-étape par action_id OU par fallback (première in_progress)
+                let subStepIndex = -1;
+                
+                if (panel.action_id) {
+                    subStepIndex = currentStep.subSteps.findIndex(sub => sub.id === panel.action_id);
+                }
+                
+                // Fallback: si pas d'action_id ou pas trouvé, chercher la première sous-étape in_progress
+                if (subStepIndex === -1) {
+                    subStepIndex = currentStep.subSteps.findIndex(sub => sub.status === STATUS_CURRENT);
+                    logger.debug('[V2] Substep fallback: using first in_progress', {
+                        panelActionId: panel.action_id,
+                        fallbackIndex: subStepIndex,
+                    });
+                }
                 
                 if (subStepIndex !== -1) {
                     logger.debug('[V2] Updating substep for approved action', {
