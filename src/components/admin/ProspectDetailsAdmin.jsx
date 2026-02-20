@@ -2296,12 +2296,14 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                             {panel.status === 'rejected' && panel.rejectionReason && (
                                 <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-3">
                                     <p className="text-sm font-semibold text-red-800">
-                                        ⛔ {panel.rejectionReason.startsWith('Mission impossible') 
-                                            ? 'Mission déclarée impossible par le partenaire' 
-                                            : 'Formulaire rejeté'}
+                                        {panel.rejectionReason.startsWith('Mission impossible') 
+                                            ? '⛔ Mission déclarée impossible par le partenaire' 
+                                            : '❌ Formulaire rejeté'}
                                     </p>
                                     <p className="text-sm text-red-700 mt-1">
-                                        {panel.rejectionReason}
+                                        {panel.rejectionReason.startsWith('Mission impossible — ') 
+                                            ? panel.rejectionReason.replace('Mission impossible — ', '')
+                                            : panel.rejectionReason}
                                     </p>
                                 </div>
                             )}
