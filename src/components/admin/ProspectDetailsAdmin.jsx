@@ -347,42 +347,10 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     fetchPartnerMissions();
   }, [prospectId, projectType]);
 
-  // 🟠 Liste des partenaires ayant des missions sur ce prospect/projet
-  const partnerOptions = useMemo(() => {
-    if (!partnerMissions.length || !allPartners.length) return [];
-    // Dédupliquer par partner_id
-    const partnerIds = [...new Set(partnerMissions.map(m => m.partner_id).filter(Boolean))];
-    return partnerIds.map(pid => {
-      const partner = allPartners.find(p => p.id === pid);
-      const missions = partnerMissions.filter(m => m.partner_id === pid);
-      // Trouver si une mission est sur l'étape en cours (step actif)
-      const currentStepName = projectsData[projectType]?.steps?.[currentStepIndex]?.name;
-      const hasActiveStep = missions.some(m => 
-        m.step_name === currentStepName && (m.status === 'pending' || m.status === 'in_progress')
-      );
-      return {
-        id: pid,
-        name: partner?.companyName || partner?.name || partner?.email || 'Partenaire inconnu',
-        specialty: partner?.specialty || null,
-        missionsCount: missions.length,
-        hasActiveStep,
-        lastMission: missions[0], // La plus récente (déjà triée)
-      };
-    }).sort((a, b) => {
-      // Priorité : partenaire avec mission sur l'étape active en premier
-      if (a.hasActiveStep && !b.hasActiveStep) return -1;
-      if (!a.hasActiveStep && b.hasActiveStep) return 1;
-      return 0;
-    });
-  }, [partnerMissions, allPartners, projectsData, projectType, currentStepIndex]);
+  // 🟠 Liste des partenaires — DÉPLACÉ après v2Templates pour pouvoir fusionner les 2 sources
+  // (voir useMemo partnerOptions plus bas)
 
-  // 🟠 Pré-sélectionner le partenaire ayant une mission sur l'étape active
-  useEffect(() => {
-    if (!selectedPartnerId && partnerOptions.length > 0) {
-      const activePartner = partnerOptions.find(p => p.hasActiveStep);
-      setSelectedPartnerId(activePartner ? activePartner.id : partnerOptions[0].id);
-    }
-  }, [partnerOptions, selectedPartnerId]);
+  // 🟠 Pré-sélectionner le partenaire — DÉPLACÉ aussi (voir useEffect plus bas)
 
   // 🔥 V2: Hook pour charger la config persistée
   const { templates: v2Templates, loading: v2TemplatesLoading } = useSupabaseWorkflowModuleTemplates(
@@ -429,6 +397,75 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   
   // 🔥 Trouver le prospect pour afficher son nom dans le chat
   const currentProspect = prospects.find(p => p.id === prospectId);
+
+  // 🟠 Liste des partenaires : MISSIONS existantes + CONFIGURÉS dans Workflow V2
+  const partnerOptions = useMemo(() => {
+    if (!allPartners.length) return [];
+
+    // Source 1: Partenaires ayant des missions sur ce prospect/projet
+    const missionPartnerIds = [...new Set(partnerMissions.map(m => m.partner_id).filter(Boolean))];
+
+    // Source 2: Partenaires configurés dans les templates V2 (même si mission pas encore créée)
+    const v2PartnerIds = [];
+    if (v2Templates) {
+      Object.values(v2Templates).forEach(tpl => {
+        const pid = tpl.configJson?.actionConfig?.partnerId;
+        if (pid && tpl.configJson?.actionConfig?.targetAudience === 'PARTENAIRE') {
+          v2PartnerIds.push(pid);
+        }
+      });
+    }
+
+    // Fusionner et dédupliquer
+    const allPartnerIds = [...new Set([...missionPartnerIds, ...v2PartnerIds])];
+    if (allPartnerIds.length === 0) return [];
+
+    const currentStepName = projectsData[projectType]?.steps?.[currentStepIndex]?.name;
+
+    return allPartnerIds.map(pid => {
+      const partner = allPartners.find(p => p.id === pid);
+      const missions = partnerMissions.filter(m => m.partner_id === pid);
+      const hasMissions = missions.length > 0;
+      const isV2Only = !hasMissions && v2PartnerIds.includes(pid);
+      // Trouver si une mission est sur l'étape en cours (step actif)
+      const hasActiveStep = missions.some(m =>
+        m.step_name === currentStepName && (m.status === 'pending' || m.status === 'in_progress')
+      );
+      // Trouver si configuré V2 sur l'étape en cours
+      const isV2CurrentStep = v2Templates && Object.values(v2Templates).some(tpl => 
+        tpl.configJson?.actionConfig?.partnerId === pid &&
+        tpl.configJson?.actionConfig?.targetAudience === 'PARTENAIRE' &&
+        tpl.moduleId === (currentStepName || '').toLowerCase().replace(/[_\s]/g, '-').replace(/[^a-z0-9-]/g, '')
+      );
+      return {
+        id: pid,
+        name: partner?.companyName || partner?.name || partner?.email || 'Partenaire inconnu',
+        specialty: partner?.specialty || null,
+        missionsCount: missions.length,
+        hasActiveStep,
+        isV2Only,
+        isV2CurrentStep,
+        lastMission: missions[0] || null,
+      };
+    }).sort((a, b) => {
+      // Priorité : 1) mission étape active  2) config V2 étape courante  3) missions existantes  4) V2 seulement
+      if (a.hasActiveStep && !b.hasActiveStep) return -1;
+      if (!a.hasActiveStep && b.hasActiveStep) return 1;
+      if (a.isV2CurrentStep && !b.isV2CurrentStep) return -1;
+      if (!a.isV2CurrentStep && b.isV2CurrentStep) return 1;
+      if (a.missionsCount > 0 && b.missionsCount === 0) return -1;
+      if (a.missionsCount === 0 && b.missionsCount > 0) return 1;
+      return 0;
+    });
+  }, [partnerMissions, allPartners, projectsData, projectType, currentStepIndex, v2Templates]);
+
+  // 🟠 Pré-sélectionner le partenaire ayant une mission sur l'étape active (ou config V2)
+  useEffect(() => {
+    if (!selectedPartnerId && partnerOptions.length > 0) {
+      const activePartner = partnerOptions.find(p => p.hasActiveStep || p.isV2CurrentStep);
+      setSelectedPartnerId(activePartner ? activePartner.id : partnerOptions[0].id);
+    }
+  }, [partnerOptions, selectedPartnerId]);
 
   const availablePrompts = useMemo(() => {
     return Object.values(prompts).filter(prompt => {
@@ -1139,7 +1176,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
             )}
             {partnerOptions.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.hasActiveStep ? '⚡ ' : ''}{p.name}{p.specialty ? ` · ${p.specialty}` : ''} ({p.missionsCount} mission{p.missionsCount > 1 ? 's' : ''})
+                {p.hasActiveStep ? '⚡ ' : p.isV2CurrentStep ? '🔜 ' : ''}{p.name}{p.specialty ? ` · ${p.specialty}` : ''}{p.missionsCount > 0 ? ` (${p.missionsCount} mission${p.missionsCount > 1 ? 's' : ''})` : ' (configuré V2)'}
               </option>
             ))}
           </select>
