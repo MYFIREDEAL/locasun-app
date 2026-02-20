@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
@@ -385,9 +385,20 @@ const ChatView = ({ prospectId, projectType, prospectName, onBack }) => {
 // ─────────────────────────────────────────────
 const PartnerCharlyPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
+
+  // 🔥 Si on arrive depuis "Signaler un problème", ouvrir directement le chat
+  useEffect(() => {
+    if (location.state?.openChat && !selectedConversation) {
+      const { prospectId, projectType, prospectName } = location.state.openChat;
+      setSelectedConversation({ prospectId, projectType, prospectName });
+      // Nettoyer le state pour éviter de re-ouvrir au retour
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   useEffect(() => {
     let mounted = true;

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin, Mail, FileText, Upload, X } from 'lucide-react';
+import { Loader2, ArrowLeft, Phone, MessageCircle, MapPin, Mail, FileText, Upload, X, AlertTriangle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
@@ -771,6 +771,23 @@ const PartnerMissionDetailPage = () => {
           <textarea value={comment} onChange={(e) => setComment(e.target.value)} className="w-full mt-2 px-3 py-2 border rounded min-h-[80px]" />
           <p className="text-xs text-gray-400 mt-2">Le commentaire devient requis si vous marquez la mission comme impossible.</p>
         </section>
+
+        {/* Signaler un problème → Chat Charly */}
+        <button
+          onClick={() => navigate('/partner/charly', {
+            state: {
+              openChat: {
+                prospectId: mission.prospect_id,
+                projectType: mission.project_type,
+                prospectName: client?.name || mission.client_name || 'Client',
+              }
+            }
+          })}
+          className="w-full flex items-center justify-center gap-2 py-3 mb-4 text-orange-600 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition-colors"
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span className="text-sm font-medium">Signaler un problème</span>
+        </button>
 
         <div className="flex gap-3">
           <Button variant="ghost" onClick={() => saveResult('blocked')} disabled={saving} className="flex-1 border">IMPOSSIBLE À RÉALISER</Button>
