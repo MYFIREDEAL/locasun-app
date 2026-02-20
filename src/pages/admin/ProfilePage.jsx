@@ -2756,7 +2756,7 @@ const ProfilePage = () => {
     setIsPromptCreatorOpen(true);
   };
   const usersArray = useMemo(() => Object.values(usersByAuthId), [usersByAuthId]);
-  const managers = useMemo(() => usersArray.filter(u => u.role === 'Manager' || u.role === 'Admin'), [usersArray]);
+  const managers = useMemo(() => usersArray.filter(u => u.role === 'Global Admin' || u.role === 'Manager' || u.role === 'Admin'), [usersArray]);
   const managerOptions = useMemo(() => [{
     value: 'none',
     label: 'Personne'
