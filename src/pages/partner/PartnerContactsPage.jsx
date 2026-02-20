@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Search, ChevronRight, ChevronDown, Loader2, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 /**
  * /partner/contacts
- * Annuaire — clic sur un contact → déplie ses missions + infos contact
+ * Annuaire :
+ *  - 1 mission → clic = navigation directe
+ *  - 2+ missions → clic = accordéon pour choisir
  */
 const PartnerContactsPage = () => {
   const navigate = useNavigate();
@@ -30,7 +32,6 @@ const PartnerContactsPage = () => {
 
         if (!partner) return;
 
-        // Charger toutes les missions du partenaire
         const { data: missionsData } = await supabase
           .from('missions')
           .select('*')
@@ -69,9 +70,17 @@ const PartnerContactsPage = () => {
     return (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q);
   });
 
-  // Missions d'un contact
-  const getMissionsForContact = (contactId) => {
-    return missions.filter(m => m.prospect_id === contactId);
+  const getMissionsForContact = (contactId) => missions.filter(m => m.prospect_id === contactId);
+
+  const handleContactClick = (contact) => {
+    const contactMissions = getMissionsForContact(contact.id);
+    if (contactMissions.length === 1) {
+      // 1 mission → direct
+      navigate(`/partner/missions/${contactMissions[0].id}`);
+    } else {
+      // 2+ missions → toggle accordéon
+      setOpenContactId(prev => prev === contact.id ? null : contact.id);
+    }
   };
 
   const statusLabel = (status) => {
@@ -119,77 +128,58 @@ const PartnerContactsPage = () => {
           filtered.map(contact => {
             const initial = (contact.name || '?')[0].toUpperCase();
             const subLabel = contact.email || contact.phone || '—';
-            const isOpen = openContactId === contact.id;
             const contactMissions = getMissionsForContact(contact.id);
+            const hasMultiple = contactMissions.length > 1;
+            const isOpen = openContactId === contact.id;
 
             return (
               <div key={contact.id} className="bg-gray-100/60 rounded-2xl overflow-hidden">
-                {/* Header contact — cliquable */}
-                <button
-                  onClick={() => setOpenContactId(isOpen ? null : contact.id)}
-                  className="w-full flex items-center gap-3 p-4 active:bg-gray-200/60 transition-colors"
+                {/* Header contact */}
+                <div
+                  onClick={() => handleContactClick(contact)}
+                  className="flex items-center gap-3 p-4 cursor-pointer active:bg-gray-200/60 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 shrink-0">
                     {initial}
                   </div>
-                  <div className="flex-1 min-w-0 text-left">
+                  <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-900 truncate">{contact.name || '—'}</div>
                     <div className="text-xs text-gray-400 uppercase tracking-wide truncate">{subLabel}</div>
                   </div>
-                  <ChevronDown
-                    className={`w-4 h-4 text-gray-300 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
+                  {hasMultiple && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">
+                      {contactMissions.length}
+                    </span>
+                  )}
+                  {hasMultiple ? (
+                    <ChevronDown className={`w-4 h-4 text-gray-300 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  )}
+                </div>
 
-                {/* Détail déplié */}
-                {isOpen && (
-                  <div className="px-4 pb-4 space-y-3">
-                    {/* Infos contact rapides */}
-                    <div className="flex flex-wrap gap-2">
-                      {contact.phone && (
-                        <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs bg-white rounded-full px-3 py-1.5 text-blue-600">
-                          <Phone className="w-3 h-3" /> {contact.phone}
-                        </a>
-                      )}
-                      {contact.email && (
-                        <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs bg-white rounded-full px-3 py-1.5 text-blue-600">
-                          <Mail className="w-3 h-3" /> {contact.email}
-                        </a>
-                      )}
-                      {contact.address && (
-                        <span className="flex items-center gap-1.5 text-xs bg-white rounded-full px-3 py-1.5 text-gray-500">
-                          <MapPin className="w-3 h-3" /> {contact.address}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Missions liées */}
-                    {contactMissions.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-2">Aucune mission pour ce contact.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Missions ({contactMissions.length})</p>
-                        {contactMissions.map(m => {
-                          const st = statusLabel(m.status);
-                          const desc = m.step_name || m.description || m.project_type || '—';
-                          return (
-                            <div
-                              key={m.id}
-                              className="flex items-center gap-3 bg-white rounded-xl p-3 cursor-pointer active:bg-gray-50 transition-colors"
-                              onClick={() => navigate(`/partner/missions/${m.id}`)}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">{desc}</div>
-                              </div>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.cls} shrink-0`}>
-                                {st.text}
-                              </span>
-                              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                {/* Accordéon missions (2+ seulement) */}
+                {hasMultiple && isOpen && (
+                  <div className="px-3 pb-3 space-y-2">
+                    {contactMissions.map(m => {
+                      const st = statusLabel(m.status);
+                      const desc = m.step_name || m.description || m.project_type || '—';
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center gap-3 bg-white rounded-xl p-3 cursor-pointer active:bg-gray-50 transition-colors"
+                          onClick={() => navigate(`/partner/missions/${m.id}`)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{desc}</div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.cls} shrink-0`}>
+                            {st.text}
+                          </span>
+                          <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
