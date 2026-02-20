@@ -333,6 +333,22 @@ const PartnerMissionDetailPage = () => {
 
       if (error) throw error;
 
+      // 🔥 Si "Impossible à réaliser", passer tous les formulaires en rejected avec la raison
+      if (newStatus === 'blocked' && partnerForms.length > 0) {
+        const panelIds = partnerForms.map(p => p.panelId);
+        const { error: panelError } = await supabase
+          .from('client_form_panels')
+          .update({
+            status: 'rejected',
+            rejection_reason: `Mission impossible — ${comment}`,
+          })
+          .in('panel_id', panelIds);
+        
+        if (panelError) {
+          logger.error('Erreur mise à jour panels après mission impossible', { error: panelError.message });
+        }
+      }
+
       toast({ title: '✅ Enregistré', description: 'Votre réponse a été sauvegardée.', className: 'bg-green-500 text-white' });
       navigate('/partner/missions');
     } catch (err) {

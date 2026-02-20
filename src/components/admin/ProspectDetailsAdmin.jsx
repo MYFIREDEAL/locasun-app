@@ -2292,6 +2292,20 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                 </div>
                             )}
 
+                            {/* 🔥 Bandeau mission impossible / formulaire rejeté */}
+                            {panel.status === 'rejected' && panel.rejectionReason && (
+                                <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-3">
+                                    <p className="text-sm font-semibold text-red-800">
+                                        ⛔ {panel.rejectionReason.startsWith('Mission impossible') 
+                                            ? 'Mission déclarée impossible par le partenaire' 
+                                            : 'Formulaire rejeté'}
+                                    </p>
+                                    <p className="text-sm text-red-700 mt-1">
+                                        {panel.rejectionReason}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="space-y-3 pt-2">
                                 {(formDefinition.fields || []).map(field => {
                                     // 🔥 Vérifier les conditions multiples d'affichage
