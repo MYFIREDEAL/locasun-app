@@ -425,7 +425,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     requestAnimationFrame(() => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     });
-  }, [messages]);
+  }, [messages, replyChannel]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachedFile) return;
