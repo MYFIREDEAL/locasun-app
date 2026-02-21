@@ -153,6 +153,10 @@ const PartnerMissionDetailPage = () => {
             if (Object.keys(initialDrafts).length > 0) {
               setFormDrafts(initialDrafts);
               logger.debug('Drafts pré-remplis depuis panels existants', { count: Object.keys(initialDrafts).length });
+              
+              // 💬 Pré-remplir le commentaire si déjà soumis
+              const existingComment = Object.values(initialDrafts).find(d => d.__partner_comment__)?.__partner_comment__;
+              if (existingComment) setComment(existingComment);
             }
             
             logger.debug('Panels partenaire chargés', { count: transformedPanels.length });
@@ -606,6 +610,13 @@ const PartnerMissionDetailPage = () => {
                         {isApproved && (
                           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-center">
                             <p className="text-sm text-green-700">✅ Formulaire validé par l'admin</p>
+                          </div>
+                        )}
+                        {/* 💬 Commentaire partenaire persisté */}
+                        {panel.formData?.__partner_comment__ && (
+                          <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                            <p className="text-xs font-semibold text-orange-700 mb-1">💬 Votre commentaire</p>
+                            <p className="text-sm text-orange-900">{panel.formData.__partner_comment__}</p>
                           </div>
                         )}
                       </div>
