@@ -18,6 +18,20 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    // 🔥 AUTO-RELOAD: Chunk obsolète après deploy → recharger automatiquement
+    if (error?.message?.includes('dynamically imported module') || 
+        error?.message?.includes('Failed to fetch') ||
+        error?.message?.includes('Loading chunk')) {
+      console.warn('🔄 Chunk obsolète détecté, rechargement auto...');
+      const lastReload = sessionStorage.getItem('__error_reload_ts');
+      const now = Date.now();
+      if (!lastReload || (now - parseInt(lastReload)) > 10000) {
+        sessionStorage.setItem('__error_reload_ts', now.toString());
+        window.location.reload();
+        return;
+      }
+    }
+
     // Logger l'erreur pour le debug
     console.error('🚨 ErrorBoundary caught an error:', error);
     console.error('Component stack:', errorInfo.componentStack);

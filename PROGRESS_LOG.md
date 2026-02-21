@@ -16,6 +16,16 @@ Chaque entrée contient :
 
 ---
 
+## 22 février 2026
+
+### ✅ Features
+- **Auto-reload chunk obsolète** : `ModuleBoundary.jsx` + `ErrorBoundary.jsx` détectent les erreurs "dynamically imported module" / "Failed to fetch" / "Loading chunk" et rechargent automatiquement la page (sessionStorage anti-boucle 10s). Plus de crash screen après un deploy.
+
+### 🐛 Bugs fixés
+- **Crash Charly AI "Failed to fetch dynamically imported module"** : Après deploy, les anciens hashes de chunks n'existent plus → auto-reload transparent au lieu d'écran d'erreur
+
+---
+
 ## 21 février 2026
 
 ### ✅ Features

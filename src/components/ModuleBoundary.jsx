@@ -43,6 +43,21 @@ class ModuleBoundary extends Component {
     const { name = 'Module' } = this.props;
     const { errorId } = this.state;
 
+    // 🔥 AUTO-RELOAD: Si c'est un problème de chunk obsolète après deploy, recharger la page
+    if (error?.message?.includes('dynamically imported module') || 
+        error?.message?.includes('Failed to fetch') ||
+        error?.message?.includes('Loading chunk')) {
+      logger.warn(`[ModuleBoundary] Chunk obsolète détecté dans "${name}", rechargement auto...`);
+      // Éviter boucle infinie : ne recharger qu'une seule fois
+      const lastReload = sessionStorage.getItem('__module_reload_ts');
+      const now = Date.now();
+      if (!lastReload || (now - parseInt(lastReload)) > 10000) {
+        sessionStorage.setItem('__module_reload_ts', now.toString());
+        window.location.reload();
+        return;
+      }
+    }
+
     // 🔥 Log structuré pour debug
     logger.error(`[ModuleBoundary] Crash dans "${name}"`, {
       errorId,
