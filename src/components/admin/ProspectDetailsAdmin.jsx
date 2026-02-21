@@ -2785,7 +2785,11 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                                             <Download className="h-3 w-3" />
                                                         </button>
                                                     ) : (
-                                                        fieldValue || <span className="text-gray-400 italic">Non renseigné</span>
+                                                        typeof fieldValue === 'object' && fieldValue !== null
+                                                            ? (fieldValue.name 
+                                                                ? <span className="flex items-center gap-1"><FileText className="h-4 w-4 text-gray-400" /> {fieldValue.name}</span>
+                                                                : <span className="text-gray-400 italic">Donnée non affichable</span>)
+                                                            : (fieldValue || <span className="text-gray-400 italic">Non renseigné</span>)
                                                     )}
                                                 </p>
                                             )}
@@ -2837,7 +2841,9 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                                                                         <Download className="h-3 w-3" />
                                                                                     </button>
                                                                                 ) : (
-                                                                                    repeatedFieldValue || <span className="text-gray-400 italic text-xs">Non renseigné</span>
+                                                                                    typeof repeatedFieldValue === 'object' && repeatedFieldValue !== null
+                                                                                        ? (repeatedFieldValue.name || <span className="text-gray-400 italic text-xs">Donnée non affichable</span>)
+                                                                                        : (repeatedFieldValue || <span className="text-gray-400 italic text-xs">Non renseigné</span>)
                                                                                 )}
                                                                             </p>
                                                                         </div>

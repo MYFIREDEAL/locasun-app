@@ -590,7 +590,9 @@ const PartnerMissionDetailPage = () => {
                                 <p className="text-sm text-gray-900 mt-1 px-3 py-2 bg-gray-50 rounded border">
                                   {field.type === 'checkbox' 
                                     ? (value ? '✅ Oui' : '❌ Non')
-                                    : (value || '—')}
+                                    : (typeof value === 'object' && value !== null
+                                        ? (value.name || '—')
+                                        : (value || '—'))}
                                 </p>
                               )}
                             </div>
