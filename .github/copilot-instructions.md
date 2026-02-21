@@ -3,6 +3,12 @@
 ## ⚡ PREMIÈRE CHOSE À FAIRE
 **Lis `PROGRESS_LOG.md`** à la racine du projet pour connaître l'état actuel de la progression (features faites, bugs fixés, prochains sujets).
 
+## 📝 MISE À JOUR DE LA PROGRESSION
+- **Quand l'utilisateur dit** "met à jour", "update progress", "on a bien avancé", ou en fin de session après du travail significatif → **mettre à jour `PROGRESS_LOG.md`** avec les features ajoutées, bugs fixés, migrations SQL exécutées, et prochains sujets.
+- **Proposer proactivement** de mettre à jour `PROGRESS_LOG.md` après 3+ features/fixes dans une même session.
+- **Format** : Ajouter une nouvelle section datée en haut du fichier (sous le header), avec les catégories ✅ Features, 🐛 Bugs fixés, 🗄️ Migrations SQL, 🔜 Prochains sujets.
+- **Commit** le fichier mis à jour avec le message `docs: update PROGRESS_LOG.md`.
+
 ## Overview
 React + Vite + Tailwind CSS + **Supabase** application for energy project management (solar, ACC, autonomy). Dual-user system: **Admins** (pipeline/CRM) and **Clients** (project tracking). Real-time sync with Supabase for prospects, appointments, and chat.
 
