@@ -2405,8 +2405,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
         try {
             const panel = rejectingPanel;
             
-            // ❌ SUPPRIMÉ: Aucune suppression de fichiers au rejet
-            // Les fichiers ne sont supprimés QUE lors du remplacement par le client
+            // ℹ️ Pas de suppression de fichiers au rejet : le rejet peut être pour un autre champ
+            // Les fichiers sont supprimés uniquement quand le partenaire/client les remplace
             
             // 🔥 PARTENAIRE vs CLIENT: Déterminer le comportement selon qui a rempli
             const isPartnerForm = panel.filledByRole === 'partner';

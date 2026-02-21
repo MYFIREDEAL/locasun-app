@@ -221,11 +221,32 @@ const PartnerMissionDetailPage = () => {
       };
     }
 
-    // 🔥 UPLOAD FICHIERS: Uploader les File objects avant sauvegarde
+    // 🔥 ÉTAPE 1: Fetch frais des données du panel DEPUIS la DB (même pattern que ClientFormPanel)
+    // Cela garantit qu'on a les métadonnées du fichier précédent même après rejet
+    let existingFormData = {};
+    try {
+      const { data: freshPanel, error: fetchErr } = await supabase
+        .from('client_form_panels')
+        .select('form_data')
+        .eq('panel_id', panelId)
+        .single();
+      
+      if (!fetchErr && freshPanel?.form_data) {
+        existingFormData = freshPanel.form_data;
+        logger.debug('📦 Données existantes du panel (fetch frais)', { 
+          panelId, 
+          fieldKeys: Object.keys(existingFormData).filter(k => k !== '__partner_comment__') 
+        });
+      }
+    } catch (fetchError) {
+      logger.warn('⚠️ Impossible de fetch les données existantes du panel', fetchError);
+      // Fallback sur panel.formData
+      existingFormData = panel.formData || {};
+    }
+
+    // 🔥 ÉTAPE 2: Uploader les File objects + supprimer les anciens si remplacement
     try {
       const fileFields = formDef?.fields?.filter(f => f.type === 'file') || [];
-      // Récupérer les données existantes du panel (pour supprimer l'ancien fichier si remplacement)
-      const existingFormData = panel.formData || {};
 
       for (const field of fileFields) {
         const fileValue = draft[field.id];
@@ -239,7 +260,7 @@ const PartnerMissionDetailPage = () => {
             };
           }
 
-          // 🔥 NETTOYAGE: Supprimer l'ancien fichier SI il existe pour CE champ
+          // 🔥 ÉTAPE 3: SUPPRESSION de l'ancien fichier SI il existe pour CE champ
           const existingFile = existingFormData[field.id];
           if (existingFile && typeof existingFile === 'object' && existingFile.id && existingFile.storagePath) {
             logger.debug('🔄 Remplacement fichier partenaire', {
@@ -290,7 +311,7 @@ const PartnerMissionDetailPage = () => {
             }
           }
 
-          // Récupérer l'ID de l'utilisateur authentifié
+          // 🔥 ÉTAPE 4: Récupérer l'ID de l'utilisateur authentifié + Upload
           const { data: { user } } = await supabase.auth.getUser();
           
           const uploadedFile = await uploadFile({
