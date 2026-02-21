@@ -145,6 +145,14 @@ const PartnerContactsPage = () => {
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-900 truncate">{contact.name || '—'}</div>
                     <div className="text-xs text-gray-400 uppercase tracking-wide truncate">{subLabel}</div>
+                    {!hasMultiple && contactMissions.length === 1 && (
+                      <div className="text-xs text-gray-500 mt-0.5 truncate">
+                        <span className="text-blue-600 font-semibold">{contactMissions[0].project_type}</span>
+                        {contactMissions[0].step_name && (
+                          <><span className="text-gray-400 mx-1">·</span>{contactMissions[0].step_name}</>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {hasMultiple && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">
@@ -163,7 +171,7 @@ const PartnerContactsPage = () => {
                   <div className="px-3 pb-3 space-y-2">
                     {contactMissions.map(m => {
                       const st = statusLabel(m.status);
-                      const desc = m.step_name || m.description || m.project_type || '—';
+                      const stepDesc = m.step_name || m.description || '—';
                       return (
                         <div
                           key={m.id}
@@ -171,7 +179,11 @@ const PartnerContactsPage = () => {
                           onClick={() => navigate(`/partner/missions/${m.id}`)}
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">{desc}</div>
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              <span className="text-blue-600 font-semibold">{m.project_type}</span>
+                              <span className="text-gray-400 mx-1">·</span>
+                              {stepDesc}
+                            </div>
                           </div>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.cls} shrink-0`}>
                             {st.text}
