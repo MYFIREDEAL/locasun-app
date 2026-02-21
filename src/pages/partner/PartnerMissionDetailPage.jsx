@@ -261,6 +261,11 @@ const PartnerMissionDetailPage = () => {
     }
 
     // 🔥 UPDATE DIRECT (pas via hook car partenaire n'a pas OrganizationContext)
+    // 💬 Injecter le commentaire optionnel du partenaire dans form_data
+    if (comment && comment.trim()) {
+      draft.__partner_comment__ = comment.trim();
+    }
+
     const { error: updateError } = await supabase
       .from('client_form_panels')
       .update({

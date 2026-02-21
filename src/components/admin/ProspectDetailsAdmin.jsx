@@ -2853,6 +2853,14 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                 })}
                             </div>
 
+                            {/* 💬 Commentaire optionnel du partenaire (après les champs) */}
+                            {panel.filledByRole === 'partner' && formData.__partner_comment__ && (
+                                <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 mt-2">
+                                    <p className="text-xs font-semibold text-orange-700 mb-1">💬 Commentaire du partenaire</p>
+                                    <p className="text-sm text-orange-900">{formData.__partner_comment__}</p>
+                                </div>
+                            )}
+
                             {/* Boutons d'action admin */}
                             <div className="flex items-center justify-end space-x-2 pt-2 border-t">
                                 {editingPanelId === panel.panelId ? (
