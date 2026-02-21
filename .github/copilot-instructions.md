@@ -1,5 +1,8 @@
 # Copilot Instructions for Locasun Supabase App
 
+## ⚡ PREMIÈRE CHOSE À FAIRE
+**Lis `PROGRESS_LOG.md`** à la racine du projet pour connaître l'état actuel de la progression (features faites, bugs fixés, prochains sujets).
+
 ## Overview
 React + Vite + Tailwind CSS + **Supabase** application for energy project management (solar, ACC, autonomy). Dual-user system: **Admins** (pipeline/CRM) and **Clients** (project tracking). Real-time sync with Supabase for prospects, appointments, and chat.
 

@@ -215,6 +215,7 @@ Tu travailles sur le projet EVATIME.
 
 Règles absolues :
 - Lis PROJECT_GUIDE.md
+- Lis PROGRESS_LOG.md (journal de progression — où on en est)
 - Applique la logique pipeline calculé, jamais édité
 - Respecte la séparation : vue / logique / automatisation
 - Les workflows pilotent tout
