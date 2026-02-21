@@ -224,6 +224,9 @@ const PartnerMissionDetailPage = () => {
     // 🔥 UPLOAD FICHIERS: Uploader les File objects avant sauvegarde
     try {
       const fileFields = formDef?.fields?.filter(f => f.type === 'file') || [];
+      // Récupérer les données existantes du panel (pour supprimer l'ancien fichier si remplacement)
+      const existingFormData = panel.formData || {};
+
       for (const field of fileFields) {
         const fileValue = draft[field.id];
         if (fileValue && fileValue instanceof File) {
@@ -234,6 +237,57 @@ const PartnerMissionDetailPage = () => {
               success: false, 
               error: `${field.label}: Fichier trop volumineux (max 10 MB)` 
             };
+          }
+
+          // 🔥 NETTOYAGE: Supprimer l'ancien fichier SI il existe pour CE champ
+          const existingFile = existingFormData[field.id];
+          if (existingFile && typeof existingFile === 'object' && existingFile.id && existingFile.storagePath) {
+            logger.debug('🔄 Remplacement fichier partenaire', {
+              fieldId: field.id,
+              fieldLabel: field.label,
+              oldFileName: existingFile.name,
+              oldFileId: existingFile.id,
+              newFileName: fileValue.name,
+            });
+
+            try {
+              // Vérifier que c'est bien un fichier de formulaire (field_label existe)
+              const { data: fileCheck, error: checkError } = await supabase
+                .from('project_files')
+                .select('field_label')
+                .eq('id', existingFile.id)
+                .single();
+
+              if (!checkError && fileCheck?.field_label) {
+                // Supprimer l'ancien fichier du Storage
+                const { error: storageError } = await supabase.storage
+                  .from('project-files')
+                  .remove([existingFile.storagePath]);
+
+                if (storageError) {
+                  logger.error('❌ Erreur suppression ancien fichier storage (partenaire)', storageError);
+                } else {
+                  logger.info('✅ Ancien fichier supprimé du storage (partenaire)', { storagePath: existingFile.storagePath });
+                }
+
+                // Supprimer l'ancien fichier de la table
+                const { error: dbError } = await supabase
+                  .from('project_files')
+                  .delete()
+                  .eq('id', existingFile.id);
+
+                if (dbError) {
+                  logger.error('❌ Erreur suppression ancien fichier DB (partenaire)', dbError);
+                } else {
+                  logger.info('✅ Ancien fichier supprimé de la DB (partenaire)', { fileId: existingFile.id });
+                }
+              } else {
+                logger.warn('⚠️ Ancien fichier sans field_label, suppression ignorée', { fileId: existingFile.id });
+              }
+            } catch (deleteError) {
+              logger.error('❌ Erreur lors de la suppression ancien fichier (partenaire)', deleteError);
+              // Continuer même si suppression échoue
+            }
           }
 
           // Récupérer l'ID de l'utilisateur authentifié
