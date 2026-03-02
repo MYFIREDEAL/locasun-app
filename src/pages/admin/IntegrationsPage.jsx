@@ -468,20 +468,28 @@ const IntegrationsPage = () => {
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">3</span>
-              <h2 className="text-lg font-semibold text-gray-900">Configurer la requête</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Remplir le module HTTP</h2>
             </div>
 
-            <div className="space-y-4 text-sm text-gray-700">
-              {/* Méthode */}
+            <p className="text-sm text-gray-500">Un panneau s'ouvre avec plusieurs champs. Remplissez-les dans l'ordre :</p>
+
+            <div className="space-y-3 text-sm text-gray-700">
+              {/* Authentication type */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="font-medium text-gray-800 mb-1">Méthode</p>
-                <p>Choisissez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">POST</code></p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Authentication type</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                </div>
+                <p>Laissez sur : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">No authentication</code></p>
               </div>
 
               {/* URL */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                <p className="font-medium text-gray-800">URL</p>
-                <p className="text-gray-500 text-xs">Copiez l'URL ci-dessous et collez-la dans le champ URL de Make :</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">URL</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                </div>
+                <p className="text-gray-500 text-xs">Copiez et collez cette URL :</p>
                 <div className="flex items-center gap-2">
                   <Input
                     value={webhookUrl}
@@ -491,6 +499,15 @@ const IntegrationsPage = () => {
                   />
                   <CopyButton value={webhookUrl} label="Copié !" />
                 </div>
+              </div>
+
+              {/* Method */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Method</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                </div>
+                <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">POST</code></p>
               </div>
             </div>
           </div>
@@ -503,13 +520,13 @@ const IntegrationsPage = () => {
             </div>
 
             <p className="text-sm text-gray-500">
-              Cliquez sur <strong>Add a header</strong> deux fois pour ajouter les deux headers suivants :
+              Dans la section <strong>Headers</strong>, cliquez sur <strong>+ Add a header</strong>. Ajoutez un seul header :
             </p>
 
             <div className="space-y-3">
-              {/* Header 1 */}
+              {/* Header 1 — Authorization */}
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Header 1</p>
+                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Header 1 — Authorization</p>
                 <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
                   <span className="text-gray-500 font-medium">Name :</span>
                   <div className="flex items-center gap-2">
@@ -524,26 +541,14 @@ const IntegrationsPage = () => {
                 </div>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2 mt-2">
                   <span>⚠️</span>
-                  <span><strong>Très important :</strong> il faut écrire <code className="font-mono bg-amber-100 px-1 rounded">Bearer</code> + <strong>espace</strong> + votre clé complète</span>
+                  <span><strong>Très important :</strong> il faut écrire <code className="font-mono bg-amber-100 px-1 rounded">Bearer</code> + <strong>espace</strong> + votre clé complète. Utilisez le bouton <strong>« Copier pour Make »</strong> lors de la génération de clé pour avoir le format prêt.</span>
                 </div>
               </div>
+            </div>
 
-              {/* Header 2 */}
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Header 2</p>
-                <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
-                  <span className="text-gray-500 font-medium">Name :</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Content-Type</code>
-                    <CopyButton value="Content-Type" label="Copié !" />
-                  </div>
-                  <span className="text-gray-500 font-medium">Value :</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">application/json</code>
-                    <CopyButton value="application/json" label="Copié !" />
-                  </div>
-                </div>
-              </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-blue-800 text-xs flex items-start gap-2">
+              <span>💡</span>
+              <span>Pas besoin d'ajouter le header <code className="font-mono bg-blue-100 px-1 rounded">Content-Type</code> — Make le gère automatiquement quand vous choisissez le body type JSON à l'étape suivante.</span>
             </div>
           </div>
 
@@ -555,19 +560,48 @@ const IntegrationsPage = () => {
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
+              {/* Body content type */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <p>Dans <strong>Body type</strong>, choisissez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">JSON (Raw)</code></p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content type</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                </div>
+                <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">application/json</code></p>
               </div>
 
-              <p className="text-gray-500">Collez ensuite un JSON comme celui-ci :</p>
-
-              <div className="relative">
-                <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
-{makeSimpleJson}
-                </pre>
-                <div className="absolute top-2 right-2">
-                  <CopyButton value={makeSimpleJson} label="Copié !" />
+              {/* Body input method */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body input method</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
                 </div>
+                <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">JSON string</code></p>
+              </div>
+
+              {/* Body content */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                </div>
+                <p className="text-gray-500 text-xs">Collez ce JSON :</p>
+                <div className="relative">
+                  <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{makeSimpleJson}
+                  </pre>
+                  <div className="absolute top-2 right-2">
+                    <CopyButton value={makeSimpleJson} label="Copié !" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Parse response */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Parse response</span>
+                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                </div>
+                <p>Cochez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">Yes</code></p>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs flex items-start gap-2">
