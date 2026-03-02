@@ -592,20 +592,37 @@ const IntegrationsPage = () => {
               </div>
 
               {/* Body content */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content</span>
                   <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
                 </div>
-                <p className="text-gray-500 text-xs">Collez ce JSON :</p>
-                <div className="relative">
-                  <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
-{makeSimpleJson}
-                  </pre>
-                  <div className="absolute top-2 right-2">
-                    <CopyButton value={makeSimpleJson} label="Copié !" />
+
+                <p className="text-gray-600 text-xs">
+                  Construisez le JSON en utilisant les <strong>variables du module précédent</strong> (panneau violet à droite dans Make).
+                  Chaque valeur doit être une variable Make, <strong>pas du texte en dur</strong>.
+                </p>
+
+                <div className="bg-gray-900 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre space-y-0">
+                  <span className="text-gray-400">{'{'}</span>{'\n'}
+                  <span className="text-green-400">  "nom"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.nom}}'}</span><span className="text-gray-400">",</span>{'\n'}
+                  <span className="text-green-400">  "email"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.email}}'}</span><span className="text-gray-400">",</span>{'\n'}
+                  <span className="text-green-400">  "type_projet"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.type_projet}}'}</span><span className="text-gray-400">"</span>{'\n'}
+                  <span className="text-gray-400">{'}'}</span>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2">
+                  <span>⚠️</span>
+                  <div>
+                    <p><strong>Ne collez pas de valeurs en dur</strong> ("Jean Dupont", "jean@mail.com"…).</p>
+                    <p className="mt-1">Les noms en violet (<code className="font-mono bg-amber-100 px-1 rounded">{'{{1.xxx}}'}</code>) représentent les <strong>variables dynamiques</strong> de votre module précédent (Webhook, Google Sheets, etc.).</p>
                   </div>
                 </div>
+
+                <p className="text-gray-500 text-xs">
+                  <strong>Champs obligatoires :</strong> <code className="bg-gray-100 px-1 rounded font-mono">nom</code> et <code className="bg-gray-100 px-1 rounded font-mono">email</code>.
+                  Champs optionnels : <code className="bg-gray-100 px-1 rounded font-mono">telephone</code>, <code className="bg-gray-100 px-1 rounded font-mono">type_projet</code>, <code className="bg-gray-100 px-1 rounded font-mono">owner_email</code>.
+                </p>
               </div>
 
               {/* Parse response */}
