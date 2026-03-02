@@ -321,15 +321,15 @@ const IntegrationsPage = () => {
         <motion.div variants={itemVariants} className="space-y-6">
           {/* Intro */}
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-purple-800 text-sm">
-            <strong>⚡ Connecter avec Make (sans coder)</strong>
-            <br />Connectez votre site à EVATIME en 3 étapes simples.
+            <strong>🔌 Connecter Make à EVATIME</strong>
+            <br />Suivez ces étapes pour envoyer automatiquement vos prospects dans EVATIME.
           </div>
 
-          {/* ── Étape 1 — Générer une clé ── */}
+          {/* ── Prérequis — Générer une clé ── */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">1</span>
-              <h2 className="text-lg font-semibold text-gray-900">Générer une clé d'intégration</h2>
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">🔑</span>
+              <h2 className="text-lg font-semibold text-gray-900">Prérequis — Clé d'intégration</h2>
             </div>
 
             {keyLoading ? (
@@ -416,81 +416,201 @@ const IntegrationsPage = () => {
             </div>
           </div>
 
-          {/* ── Étape 2 — Configurer Make ── */}
+          {/* ── Étape 1 — Créer un scénario ── */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">2</span>
-              <h2 className="text-lg font-semibold text-gray-900">Configurer Make</h2>
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">1</span>
+              <h2 className="text-lg font-semibold text-gray-900">Créer un scénario</h2>
             </div>
-
-            <ol className="space-y-3 text-sm text-gray-700">
+            <ol className="space-y-2 text-sm text-gray-700">
               <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-purple-600 mt-0.5">1.</span>
-                <span>Allez sur <a href="https://www.make.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-medium">make.com</a></span>
+                <span className="font-bold text-green-600 mt-0.5">1.</span>
+                <span>Connectez-vous à <a href="https://www.make.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-medium">Make.com</a></span>
               </li>
               <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-purple-600 mt-0.5">2.</span>
-                <span>Créez un nouveau scénario</span>
+                <span className="font-bold text-green-600 mt-0.5">2.</span>
+                <span>Cliquez sur <strong>Create a new scenario</strong></span>
               </li>
               <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-purple-600 mt-0.5">3.</span>
-                <span>Ajoutez un module <strong>« HTTP → Make a request »</strong></span>
+                <span className="font-bold text-green-600 mt-0.5">3.</span>
+                <span>Choisissez <strong>Build from scratch</strong></span>
               </li>
               <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-purple-600 mt-0.5">4.</span>
-                <span>Méthode : <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">POST</code></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-purple-600 mt-0.5">5.</span>
-                <div className="flex-1 min-w-0">
-                  <span>URL :</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      value={webhookUrl}
-                      readOnly
-                      className="font-mono text-xs bg-white cursor-pointer select-all"
-                      onClick={(e) => e.target.select()}
-                    />
-                    <CopyButton value={webhookUrl} label="Copié !" />
-                  </div>
-                </div>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-purple-600 mt-0.5">6.</span>
-                <div className="flex-1 min-w-0">
-                  <span>Headers :</span>
-                  <pre className="bg-gray-900 text-green-400 rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre mt-1">
-{`Authorization: Bearer VOTRE_CLÉ
-Content-Type: application/json`}
-                  </pre>
-                </div>
+                <span className="font-bold text-green-600 mt-0.5">4.</span>
+                <span>Vous arrivez sur un écran vide avec un bouton <strong className="text-lg">➕</strong></span>
               </li>
             </ol>
           </div>
 
-          {/* ── Étape 3 — Envoyer les données ── */}
+          {/* ── Étape 2 — Ajouter le module HTTP ── */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">3</span>
-              <h2 className="text-lg font-semibold text-gray-900">Envoyer les données</h2>
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">2</span>
+              <h2 className="text-lg font-semibold text-gray-900">Ajouter le module HTTP</h2>
+            </div>
+            <ol className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-green-600 mt-0.5">1.</span>
+                <span>Cliquez sur le bouton <strong className="text-lg">➕</strong></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-green-600 mt-0.5">2.</span>
+                <span>Recherchez <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">HTTP</code></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-green-600 mt-0.5">3.</span>
+                <span>Sélectionnez <strong>HTTP → Make a request</strong></span>
+              </li>
+            </ol>
+          </div>
+
+          {/* ── Étape 3 — Configurer la requête ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">3</span>
+              <h2 className="text-lg font-semibold text-gray-900">Configurer la requête</h2>
+            </div>
+
+            <div className="space-y-4 text-sm text-gray-700">
+              {/* Méthode */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="font-medium text-gray-800 mb-1">Méthode</p>
+                <p>Choisissez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">POST</code></p>
+              </div>
+
+              {/* URL */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <p className="font-medium text-gray-800">URL</p>
+                <p className="text-gray-500 text-xs">Copiez l'URL ci-dessous et collez-la dans le champ URL de Make :</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={webhookUrl}
+                    readOnly
+                    className="font-mono text-xs bg-white cursor-pointer select-all"
+                    onClick={(e) => e.target.select()}
+                  />
+                  <CopyButton value={webhookUrl} label="Copié !" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Étape 4 — Ajouter les Headers ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">4</span>
+              <h2 className="text-lg font-semibold text-gray-900">Ajouter les Headers</h2>
             </div>
 
             <p className="text-sm text-gray-500">
-              Dans le body de la requête, envoyez un JSON avec les informations du prospect :
+              Cliquez sur <strong>Add a header</strong> deux fois pour ajouter les deux headers suivants :
             </p>
 
-            <div className="relative">
-              <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
-{makeSimpleJson}
-              </pre>
-              <div className="absolute top-2 right-2">
-                <CopyButton value={makeSimpleJson} label="Copié !" />
+            <div className="space-y-3">
+              {/* Header 1 */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Header 1</p>
+                <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
+                  <span className="text-gray-500 font-medium">Name :</span>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Authorization</code>
+                    <CopyButton value="Authorization" label="Copié !" />
+                  </div>
+                  <span className="text-gray-500 font-medium">Value :</span>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Bearer VOTRE_CLÉ_EVATIME</code>
+                    <CopyButton value="Bearer VOTRE_CLÉ_EVATIME" label="Copié !" />
+                  </div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2 mt-2">
+                  <span>⚠️</span>
+                  <span><strong>Très important :</strong> il faut écrire <code className="font-mono bg-amber-100 px-1 rounded">Bearer</code> + <strong>espace</strong> + votre clé complète</span>
+                </div>
+              </div>
+
+              {/* Header 2 */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Header 2</p>
+                <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
+                  <span className="text-gray-500 font-medium">Name :</span>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Content-Type</code>
+                    <CopyButton value="Content-Type" label="Copié !" />
+                  </div>
+                  <span className="text-gray-500 font-medium">Value :</span>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">application/json</code>
+                    <CopyButton value="application/json" label="Copié !" />
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* ── Étape 5 — Ajouter le Body ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">5</span>
+              <h2 className="text-lg font-semibold text-gray-900">Ajouter le Body</h2>
+            </div>
+
+            <div className="space-y-3 text-sm text-gray-700">
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <p>Dans <strong>Body type</strong>, choisissez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">JSON (Raw)</code></p>
+              </div>
+
+              <p className="text-gray-500">Collez ensuite un JSON comme celui-ci :</p>
+
+              <div className="relative">
+                <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{makeSimpleJson}
+                </pre>
+                <div className="absolute top-2 right-2">
+                  <CopyButton value={makeSimpleJson} label="Copié !" />
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs flex items-start gap-2">
+                <span>💡</span>
+                <div>
+                  <p><strong>type_projet</strong> doit correspondre à un projet existant dans votre organisation.</p>
+                  {projectTemplates && projectTemplates.length > 0 && (
+                    <p className="mt-1">
+                      Vos projets : {projectTemplates.map(t => (
+                        <code key={t.type} className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-xs mx-0.5">{t.type}</code>
+                      ))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Étape 6 — Tester ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">6</span>
+              <h2 className="text-lg font-semibold text-gray-900">Tester</h2>
+            </div>
+
+            <ol className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-green-600 mt-0.5">1.</span>
+                <span>Cliquez sur <strong>Save</strong></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-green-600 mt-0.5">2.</span>
+                <span>Cliquez sur <strong>Run once</strong></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-green-600 mt-0.5">3.</span>
+                <span>Si tout est correct, vous verrez : <code className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-mono text-xs font-bold">Status Code: 200</code></span>
+              </li>
+            </ol>
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-sm flex items-start gap-2">
               <span className="text-base">✅</span>
-              <span>Le prospect sera automatiquement créé et assigné dans EVATIME.</span>
+              <span>Le prospect sera automatiquement créé et assigné dans EVATIME. Vous le retrouverez dans votre Pipeline.</span>
             </div>
           </div>
         </motion.div>
@@ -637,7 +757,7 @@ Content-Type: application/json`}
             <h3 className="text-lg font-semibold text-gray-900">Clé générée avec succès</h3>
           </div>
 
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 space-y-2">
+          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 space-y-3">
             <p className="text-sm font-semibold text-red-700">⚠️ Cette clé ne sera plus affichée. Copiez-la maintenant.</p>
             <div className="flex items-center gap-2">
               <Input
@@ -646,24 +766,46 @@ Content-Type: application/json`}
                 className="font-mono text-xs bg-white cursor-pointer select-all flex-1"
                 onClick={(e) => e.target.select()}
               />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(`Bearer ${generatedKey}`);
+                    setKeyCopied('bearer');
+                    setTimeout(() => setKeyCopied(false), 3000);
+                  } catch { /* ignore */ }
+                }}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex-1 justify-center ${
+                  keyCopied === 'bearer'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+              >
+                {keyCopied === 'bearer' ? <><Check className="w-4 h-4" /> Copié !</> : <><Copy className="w-4 h-4" /> Copier pour Make</>}
+              </button>
               <button
                 type="button"
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(generatedKey);
-                    setKeyCopied(true);
+                    setKeyCopied('raw');
                     setTimeout(() => setKeyCopied(false), 3000);
                   } catch { /* ignore */ }
                 }}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  keyCopied
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs transition-colors ${
+                  keyCopied === 'raw'
                     ? 'bg-green-600 text-white'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                {keyCopied ? <><Check className="w-4 h-4" /> Copié</> : <><Copy className="w-4 h-4" /> Copier</>}
+                {keyCopied === 'raw' ? <><Check className="w-4 h-4" /> Copié !</> : <>Clé seule</>}
               </button>
             </div>
+            <p className="text-xs text-gray-500">
+              <strong>Copier pour Make</strong> = copie <code className="bg-gray-100 px-1 rounded font-mono text-[10px]">Bearer votre_clé</code> — prêt à coller dans le header Authorization.
+            </p>
           </div>
 
           <p className="text-xs text-gray-500 text-center">
