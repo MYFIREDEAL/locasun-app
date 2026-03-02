@@ -516,32 +516,45 @@ const IntegrationsPage = () => {
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">4</span>
-              <h2 className="text-lg font-semibold text-gray-900">Ajouter les Headers</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Ajouter le Header d'authentification</h2>
             </div>
 
             <p className="text-sm text-gray-500">
-              Dans la section <strong>Headers</strong>, cliquez sur <strong>+ Add a header</strong>. Ajoutez un seul header :
+              Dans la section <strong>Headers</strong>, cliquez sur <strong>+ Add a header</strong> :
             </p>
 
-            <div className="space-y-3">
-              {/* Header 1 — Authorization */}
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Header 1 — Authorization</p>
-                <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
-                  <span className="text-gray-500 font-medium">Name :</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Authorization</code>
-                    <CopyButton value="Authorization" label="Copié !" />
-                  </div>
-                  <span className="text-gray-500 font-medium">Value :</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Bearer VOTRE_CLÉ_EVATIME</code>
-                    <CopyButton value="Bearer VOTRE_CLÉ_EVATIME" label="Copié !" />
-                  </div>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+              {/* Name */}
+              <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
+                <span className="text-gray-500 font-medium">Name :</span>
+                <div className="flex items-center gap-2">
+                  <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Authorization</code>
+                  <CopyButton value="Authorization" label="Copié !" />
                 </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2 mt-2">
-                  <span>⚠️</span>
-                  <span><strong>Très important :</strong> il faut écrire <code className="font-mono bg-amber-100 px-1 rounded">Bearer</code> + <strong>espace</strong> + votre clé complète. Utilisez le bouton <strong>« Copier pour Make »</strong> lors de la génération de clé pour avoir le format prêt.</span>
+              </div>
+
+              {/* Value */}
+              <div className="grid grid-cols-[80px_1fr] gap-2 items-start text-sm">
+                <span className="text-gray-500 font-medium mt-1.5">Value :</span>
+                <div className="space-y-2">
+                  <p className="text-gray-600">
+                    Écrivez <code className="font-mono bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">Bearer</code> suivi d'un <strong>espace</strong>, puis <strong>collez votre clé</strong>.
+                  </p>
+                  <div className="bg-white border border-gray-200 rounded-lg p-3 font-mono text-xs text-gray-500">
+                    Bearer <span className="text-purple-600">eva_live_xxxxxxxx...</span>
+                  </div>
+
+                  {activeKey ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-green-800 text-xs flex items-start gap-2">
+                      <span>✅</span>
+                      <span>Vous avez une clé active (<code className="font-mono bg-green-100 px-1 rounded">{activeKey.key_prefix}</code>). Si vous l'avez déjà copiée, collez-la après <code className="font-mono bg-green-100 px-1 rounded">Bearer </code>.</span>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2">
+                      <span>⚠️</span>
+                      <span>Vous n'avez pas encore de clé. Remontez au <strong>Prérequis</strong> en haut de page pour en générer une. La clé n'est affichée <strong>qu'une seule fois</strong>.</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
