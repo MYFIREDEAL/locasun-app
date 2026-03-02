@@ -320,9 +320,13 @@ const IntegrationsPage = () => {
       {activeTab === 'make' && (
         <motion.div variants={itemVariants} className="space-y-6">
           {/* Intro */}
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-purple-800 text-sm">
-            <strong>🔌 Connecter Make à EVATIME</strong>
-            <br />Suivez ces étapes pour envoyer automatiquement vos prospects dans EVATIME.
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              🔌 Connecter Make à EVATIME
+            </h1>
+            <p className="text-purple-100 mt-2 text-base">
+              Suivez ces étapes pour envoyer automatiquement vos prospects dans EVATIME.
+            </p>
           </div>
 
           {/* ── Prérequis — Générer une clé ── */}
