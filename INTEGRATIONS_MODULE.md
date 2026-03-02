@@ -59,7 +59,8 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder
 - [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
 - [x] **Action 3** — Pré-sélection projet via query param `?project=` sur `/inscription`
-- [ ] **Action 4** — Onglet "Développeur" : webhook in/out, API keys
+- [x] **Action 4** — Onglet "Make" : contrat officiel webhook, règles d'attribution, sécurité & mapping
+- [ ] **Action 5** — Onglet "Développeur" : webhook in/out, API keys
 - [ ] **Action 5** — Persistance Supabase des configs d'intégration
 - [ ] **Action 6** — Tests E2E + validation UX
 - [ ] **Action 7** — Documentation finale + release notes
@@ -74,3 +75,6 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 | 2 mars 2026 | **Action 2** — Onglet "Sans code" fonctionnel : liens globaux (inscription, espace client, connexion pro), liens par projet (depuis `useSupabaseProjectTemplates` filtré par org), `CopyButton` réutilisable. |
 | 2 mars 2026 | **Correction Action 2** — Liens passés en **org-level** pur : suppression `affiliate_slug` / `useUsers` / `useAppContext`. Liens basés uniquement sur `window.location.origin` (= sous-domaine multi-tenant). Liens par projet = `{origin}/inscription?project={slug}`. |
 | 2 mars 2026 | **Action 3** — Pré-sélection projet sur `RegistrationPage` via `?project={slug}`. Validation org-scoped : le slug est comparé à `slugify(p.type)` des projets publics de l'org courante uniquement. Param invalide = ignoré silencieusement. |
+| 2 mars 2026 | **Action 4** — Onglet "Make" finalisé : endpoint webhook (`POST https://api.evatime.fr/webhook/v1`), headers Bearer, contrat JSON officiel avec `type_projet` / `contact` / `project`, règles d'attribution (owner_user_id → owner_email → fallback Global Admin), sécurité & mapping (champs inconnus ignorés, validation obligatoires, isolation multi-tenant). CopyButton sur chaque bloc. Aucun secret réel exposé. |
+| 2 mars 2026 | **Action 5.5** — Audit technique webhook universel : analyse multi-tenant, flux création contact/projet, attribution owner, magic link, project templates, risques identifiés. Fichier `AUDIT_WEBHOOK_UNIVERSEL.md` créé. |
+| 2 mars 2026 | **Action 6.1** — 🔒 **Security fix** : Suppression UUID hardcodé Jack Luc (`v_default_jack_id`) dans `create_affiliated_prospect`. Remplacé par lookup dynamique `Global Admin` par `organization_id`. Exception levée si aucun Global Admin trouvé. Fonction 100% multi-tenant. |

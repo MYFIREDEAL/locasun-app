@@ -30,8 +30,7 @@ declare
   v_prospect_id uuid;
   v_first_step_id text;
   v_affiliate_name text;
-  v_default_jack_id uuid := '82be903d-9600-4c53-9cd4-113bfaaac12e';
-  v_organization_id uuid; -- 🔥 AJOUT
+  v_organization_id uuid;
 begin
   -- 🔥 ÉTAPE 1: Résoudre organization_id depuis le hostname
   v_organization_id := resolve_organization_from_host(p_host);
@@ -48,10 +47,18 @@ begin
       and u.organization_id = v_organization_id; -- 🔥 AJOUT: isolation multi-tenant
   end if;
 
-  -- Fallback sur Jack Luc si slug non trouvé
+  -- Fallback sur le Global Admin de l'organisation si slug non trouvé
   if v_owner_id is null then
-    v_owner_id := v_default_jack_id;
-    select name into v_affiliate_name from public.users where user_id = v_default_jack_id;
+    select u.user_id, u.name into v_owner_id, v_affiliate_name
+    from public.users u
+    where u.organization_id = v_organization_id
+      and u.role = 'Global Admin'
+    order by u.created_at asc
+    limit 1;
+
+    if v_owner_id is null then
+      raise exception 'Aucun Global Admin trouvé pour l''organisation %', v_organization_id;
+    end if;
   end if;
 
   -- Récupérer le step_id de la première colonne du pipeline

@@ -23,19 +23,23 @@ Chaque entrée contient :
 - **Integrations module — Action 2** : Onglet "Sans code" fonctionnel — liens globaux + liens par projet avec `CopyButton` réutilisable
 - **Correction Action 2** : Liens passés en org-level pur — suppression `affiliate_slug` / `useUsers` / `useAppContext`, liens basés sur `window.location.origin` uniquement
 - **Integrations module — Action 3** : Pré-sélection projet sur `/inscription` via query param `?project={slug}` — validation org-scoped, param invalide ignoré
+- **Correction liens** : Ajout liens landing page + partenaire, correction routes (client → `/client-access`, pro → `/login`) alignées sur `App.jsx`
+- **Integrations module — Action 4** : Onglet "Make" finalisé — endpoint webhook, headers Bearer, contrat JSON officiel, règles d'attribution (owner_user_id → owner_email → fallback Global Admin), sécurité & mapping, CopyButton partout
+- **Action 5.5 — Audit technique** : Analyse complète du flux webhook universel (multi-tenant, création contact/projet, attribution owner, magic link, project templates, risques). Fichier `AUDIT_WEBHOOK_UNIVERSEL.md`.
+- **Action 6.1 — 🔒 Security fix** : Suppression UUID hardcodé Jack Luc dans `create_affiliated_prospect`. Fallback remplacé par lookup dynamique `Global Admin` par `organization_id` + exception si absent. Fonction 100% multi-tenant.
 
 ### 📦 Module Integrations — Checklist Actions
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder
 - [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
 - [x] **Action 3** — Pré-sélection projet via query param `?project=` sur `/inscription`
-- [ ] **Action 3** — Onglet "Make" : webhook URL, scénarios templates
-- [ ] **Action 4** — Onglet "Développeur" : webhook in/out, API keys
-- [ ] **Action 5** — Persistance Supabase des configs d'intégration
-- [ ] **Action 6** — Tests E2E + validation UX
-- [ ] **Action 7** — Documentation finale + release notes
+- [x] **Action 4** — Onglet "Make" : contrat officiel webhook, règles d'attribution, sécurité & mapping
+- [ ] **Action 5** — Onglet "Développeur" : webhook in/out, API keys
+- [ ] **Action 6** — Persistance Supabase des configs d'intégration
+- [ ] **Action 7** — Tests E2E + validation UX
+- [ ] **Action 8** — Documentation finale + release notes
 
 ### 🔜 Prochains sujets
-- Action 4 Integrations : onglet "Make"
+- Action 5 Integrations : onglet "Développeur"
 
 ---
 
