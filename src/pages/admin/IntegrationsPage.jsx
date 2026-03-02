@@ -455,11 +455,7 @@ const IntegrationsPage = () => {
               </li>
               <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                 <span className="font-bold text-green-600 mt-0.5">2.</span>
-                <span>Recherchez <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">HTTP</code></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">3.</span>
-                <span>Sélectionnez <strong>HTTP → Make a request</strong></span>
+                <span>Recherchez et sélectionnez <strong>HTTP → Make a request</strong></span>
               </li>
             </ol>
           </div>
