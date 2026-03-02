@@ -71,5 +71,6 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 | Date | Action |
 |------|--------|
 | 2 mars 2026 | **Action 1** — Scaffold initial : `INTEGRATIONS_MODULE.md`, page placeholder `/admin/integrations`, bouton dans Mon Profil, route ajoutée dans `App.jsx`, `PROJECT_GUIDE.md` et `PROGRESS_LOG.md` mis à jour. |
-| 2 mars 2026 | **Action 2** — Onglet "Sans code" fonctionnel : liens globaux (inscription, espace client, connexion pro), liens par projet (depuis `useSupabaseProjectTemplates` filtré par org), `CopyButton` réutilisable, orgSlug dérivé de `affiliate_slug` (même source que Mon Profil). |
+| 2 mars 2026 | **Action 2** — Onglet "Sans code" fonctionnel : liens globaux (inscription, espace client, connexion pro), liens par projet (depuis `useSupabaseProjectTemplates` filtré par org), `CopyButton` réutilisable. |
+| 2 mars 2026 | **Correction Action 2** — Liens passés en **org-level** pur : suppression `affiliate_slug` / `useUsers` / `useAppContext`. Liens basés uniquement sur `window.location.origin` (= sous-domaine multi-tenant). Liens par projet = `{origin}/inscription?project={slug}`. |
 | 2 mars 2026 | **Action 3** — Pré-sélection projet sur `RegistrationPage` via `?project={slug}`. Validation org-scoped : le slug est comparé à `slugify(p.type)` des projets publics de l'org courante uniquement. Param invalide = ignoré silencieusement. |

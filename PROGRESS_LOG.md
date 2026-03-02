@@ -20,7 +20,8 @@ Chaque entrée contient :
 
 ### ✅ Features
 - **Integrations module — Action 1** : Scaffold + docs + navigation + page placeholder `/admin/integrations`
-- **Integrations module — Action 2** : Onglet "Sans code" fonctionnel — liens globaux (inscription, espace client, connexion pro) + liens par projet avec `CopyButton` réutilisable
+- **Integrations module — Action 2** : Onglet "Sans code" fonctionnel — liens globaux + liens par projet avec `CopyButton` réutilisable
+- **Correction Action 2** : Liens passés en org-level pur — suppression `affiliate_slug` / `useUsers` / `useAppContext`, liens basés sur `window.location.origin` uniquement
 - **Integrations module — Action 3** : Pré-sélection projet sur `/inscription` via query param `?project={slug}` — validation org-scoped, param invalide ignoré
 
 ### 📦 Module Integrations — Checklist Actions

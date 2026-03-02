@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Link2, Zap, Code2, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Link2, Zap, Code2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CopyButton from '@/components/ui/CopyButton';
-import { useAppContext } from '@/App';
-import { useUsers } from '@/contexts/UsersContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates';
 import { slugify } from '@/lib/utils';
@@ -31,34 +29,23 @@ const IntegrationsPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('sans-code');
 
-  // 🔌 Données nécessaires pour générer les liens
-  const { activeAdminUser } = useAppContext();
-  const { users } = useUsers();
+  // 🔌 Données org-level pour générer les liens
   const { organizationId } = useOrganization();
   const { projectTemplates, loading: templatesLoading } = useSupabaseProjectTemplates({ organizationId });
 
-  // Dériver l'orgSlug depuis l'affiliate_slug de l'admin connecté (même source que Mon Profil)
-  const currentUserFull = useMemo(() => {
-    if (!users || !activeAdminUser) return null;
-    return users.find(u => u.user_id === activeAdminUser.id || u.user_id === activeAdminUser.user_id);
-  }, [users, activeAdminUser]);
-
-  const orgSlug = currentUserFull?.affiliate_slug || null;
+  // Multi-tenant : origin = sous-domaine actif (ex: https://locasun.evatime.fr)
   const origin = window.location.origin;
 
-  // Liens globaux
-  const globalLinks = useMemo(() => {
-    if (!orgSlug) return [];
-    return [
-      { label: 'Lien inscription global', url: `${origin}/inscription/${orgSlug}`, description: 'Page d\'inscription client avec affiliation automatique' },
-      { label: 'Espace client (connexion)', url: `${origin}/login`, description: 'Connexion espace client existant' },
-      { label: 'Connexion pro', url: `${origin}/login-pro`, description: 'Connexion espace admin / commercial' },
-    ];
-  }, [orgSlug, origin]);
+  // Liens globaux (org-level, aucune dépendance user)
+  const globalLinks = useMemo(() => [
+    { label: 'Inscription client', url: `${origin}/inscription`, description: 'Page d\'inscription client pour cette organisation' },
+    { label: 'Espace client (connexion)', url: `${origin}/login`, description: 'Connexion espace client existant' },
+    { label: 'Connexion pro', url: `${origin}/login-pro`, description: 'Connexion espace admin / commercial' },
+  ], [origin]);
 
-  // Liens par projet (scoped par org, filtrés public uniquement — même logique que RegistrationPage)
+  // Liens par projet (scoped par org via useSupabaseProjectTemplates, filtrés public)
   const projectLinks = useMemo(() => {
-    if (!orgSlug || !projectTemplates || projectTemplates.length === 0) return [];
+    if (!projectTemplates || projectTemplates.length === 0) return [];
     return projectTemplates
       .filter(p => p.isPublic || p.is_public)
       .map(p => {
@@ -67,10 +54,10 @@ const IntegrationsPage = () => {
           name: p.clientTitle || p.client_title || p.type,
           type: p.type,
           projectSlug,
-          url: `${origin}/inscription/${orgSlug}?project=${projectSlug}`,
+          url: `${origin}/inscription?project=${projectSlug}`,
         };
       });
-  }, [orgSlug, projectTemplates, origin]);
+  }, [projectTemplates, origin]);
 
   return (
     <motion.div
@@ -134,29 +121,23 @@ const IntegrationsPage = () => {
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">🔗 Liens prêts à coller sur votre site</h2>
 
-            {!orgSlug ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
-                ⚠️ Aucun lien d'affiliation trouvé pour votre compte. Vérifiez votre <code className="bg-amber-100 px-1 rounded">affiliate_slug</code> dans Mon Profil.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {globalLinks.map((link) => (
-                  <div key={link.label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-700">{link.label}</p>
-                      <p className="text-xs text-gray-400 mb-1">{link.description}</p>
-                      <Input
-                        value={link.url}
-                        readOnly
-                        className="font-mono text-xs bg-white cursor-pointer select-all"
-                        onClick={(e) => e.target.select()}
-                      />
-                    </div>
-                    <CopyButton value={link.url} label="Copié !" />
+            <div className="space-y-3">
+              {globalLinks.map((link) => (
+                <div key={link.label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700">{link.label}</p>
+                    <p className="text-xs text-gray-400 mb-1">{link.description}</p>
+                    <Input
+                      value={link.url}
+                      readOnly
+                      className="font-mono text-xs bg-white cursor-pointer select-all"
+                      onClick={(e) => e.target.select()}
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                  <CopyButton value={link.url} label="Copié !" />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Bloc 2 : Liens d'inscription par projet */}
@@ -170,10 +151,6 @@ const IntegrationsPage = () => {
               <div className="flex items-center justify-center py-8 text-gray-400">
                 <div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full mr-3" />
                 Chargement des projets…
-              </div>
-            ) : !orgSlug ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
-                ⚠️ Aucun lien d'affiliation — impossible de générer les liens par projet.
               </div>
             ) : projectLinks.length === 0 ? (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-500 text-sm text-center">
