@@ -22,6 +22,8 @@ const WorkflowV2Page = lazy(() => import('@/pages/admin/WorkflowV2Page'));
 const ProspectDetailsV2 = lazy(() => import('@/components/admin/ProspectDetailsV2'));
 // 🔥 PROMPT 10: Cockpit Workflow V2 Config (lazy loaded)
 const WorkflowV2ConfigPage = lazy(() => import('@/pages/admin/WorkflowV2ConfigPage'));
+// 🔌 Integrations page (lazy loaded)
+const IntegrationsPage = lazy(() => import('@/pages/admin/IntegrationsPage'));
 
 // Pages moins lourdes - import statique
 import CompleteOriginalContacts from '@/pages/admin/CompleteOriginalContacts';
@@ -1991,6 +1993,7 @@ function App() {
           <Route path="project-display" element={<ProjectDisplayManagementPage />} />
           <Route path="partners" element={<PartnersListPage />} />
           <Route path="partners/:partnerId" element={<PartnerDetailPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="parametres" element={<SettingsPage />} />
         </Route>

@@ -194,7 +194,16 @@ READ_ONLY: false          // Mode exécution ON
 
 ---
 
-## �🚫 INTERDITS ABSOLUS (À RESPECTER)
+## 🔌 Intégrations
+
+Module permettant aux admins de connecter EVATIME à des services tiers via 3 niveaux : **Sans code**, **Make**, **Développeur**.
+
+* Route : `/admin/integrations`
+* Doc complète : [`INTEGRATIONS_MODULE.md`](./INTEGRATIONS_MODULE.md)
+
+---
+
+## 🚫 INTERDITS ABSOLUS (À RESPECTER)
 
 * ❌ Déplacer une card de pipeline à la main
 * ❌ Laisser l'IA agir sans cadre

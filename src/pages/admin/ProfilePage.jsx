@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/App';
-import { Trash2, Copy, Phone, Plus, GripVertical, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut } from 'lucide-react';
+import { Trash2, Copy, Phone, Plus, GripVertical, Upload, FileText, Bot, ChevronDown, ChevronRight, Edit, Image as ImageIcon, LogOut, Link2 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Textarea } from '@/components/ui/textarea';
@@ -1859,6 +1860,7 @@ const PromptCreatorDialog = ({
             </Dialog>;
 };
 const ProfilePage = () => {
+  const navigate = useNavigate();
   const {
     projectsData,
     setProjectsData,
@@ -2976,7 +2978,17 @@ const ProfilePage = () => {
       {/* Main content */}
       <div className="flex-1">
         <motion.div className="max-w-5xl mx-auto space-y-8" variants={containerVariants} initial="hidden" animate="visible">
-          <motion.h1 variants={itemVariants} className="text-3xl font-bold text-gray-900">Mon Profil</motion.h1>
+          <motion.div variants={itemVariants} className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => navigate('/admin/integrations')}
+            >
+              <Link2 className="w-4 h-4" />
+              Gérer les intégrations
+            </Button>
+          </motion.div>
 
           <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="info-perso">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Informations personnelles</h2>

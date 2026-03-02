@@ -16,6 +16,25 @@ Chaque entrée contient :
 
 ---
 
+## 2 mars 2026
+
+### ✅ Features
+- **Integrations module — Action 1** : Scaffold + docs + navigation + page placeholder `/admin/integrations`
+
+### 📦 Module Integrations — Checklist Actions
+- [x] **Action 1** — Scaffold + docs + navigation + page placeholder
+- [ ] **Action 2** — Onglet "Sans code" : liens publics, QR codes, embed
+- [ ] **Action 3** — Onglet "Make" : webhook URL, scénarios templates
+- [ ] **Action 4** — Onglet "Développeur" : webhook in/out, API keys
+- [ ] **Action 5** — Persistance Supabase des configs d'intégration
+- [ ] **Action 6** — Tests E2E + validation UX
+- [ ] **Action 7** — Documentation finale + release notes
+
+### 🔜 Prochains sujets
+- Action 2 Integrations : onglet "Sans code"
+
+---
+
 ## 22 février 2026
 
 ### ✅ Features
