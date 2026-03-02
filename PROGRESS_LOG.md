@@ -28,6 +28,9 @@ Chaque entrée contient :
 - **Action 5.5 — Audit technique** : Analyse complète du flux webhook universel (multi-tenant, création contact/projet, attribution owner, magic link, project templates, risques). Fichier `AUDIT_WEBHOOK_UNIVERSEL.md`.
 - **Action 6.1 — 🔒 Security fix** : Suppression UUID hardcodé Jack Luc dans `create_affiliated_prospect`. Fallback remplacé par lookup dynamique `Global Admin` par `organization_id` + exception si absent. Fonction 100% multi-tenant.
 - **Action 6.2 — 🔒 Security fix** : `link_prospect_to_auth_user` corrigé multi-tenant. UPDATE limité au prospect le plus récent (`ORDER BY created_at DESC LIMIT 1`) au lieu de tous les prospects avec le même email. Fichier SQL dédié créé.
+- **Action 6 — 🚀 Edge Function webhook-v1** : Table `integration_keys` (SHA-256, RLS, permissions), RPC `create_webhook_prospect` (SECURITY DEFINER, validation complète), Edge Function Deno (auth Bearer → org_id, contrat JSON, magic link optionnel, codes HTTP clairs).
+- **Action 6 correctif — 🔒 Hardening prod** : `key_hash` UNIQUE, supprimé `updated_at`, pipeline step strict (erreur `NO_PIPELINE_STEP` au lieu de fallback fictif).
+- **Correctif alignement webhook-v1** : Magic link revenu à `signInWithOtp` (aligné RegistrationPage.jsx), supprimé `auth.admin.generateLink`. Vérifié SELECT `integration_keys` = 6 colonnes alignées schéma réel.
 
 ### 📦 Module Integrations — Checklist Actions
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder

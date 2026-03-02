@@ -61,15 +61,27 @@ begin
     end if;
   end if;
 
-  -- Récupérer le step_id de la première colonne du pipeline
+  -- Récupérer le step_id de la première colonne du pipeline — org-scoped
   if p_status is null then
+    -- 1) Chercher un pipeline step pour CETTE org
     select id into v_first_step_id
     from public.global_pipeline_steps
+    where organization_id = v_organization_id
     order by created_at asc
     limit 1;
-    
+
+    -- 2) Fallback global (organization_id IS NULL)
     if v_first_step_id is null then
-      v_first_step_id := 'default-global-pipeline-step-0';
+      select id into v_first_step_id
+      from public.global_pipeline_steps
+      where organization_id is null
+      order by created_at asc
+      limit 1;
+    end if;
+
+    -- 3) Strict : jamais de statut fictif
+    if v_first_step_id is null then
+      raise exception 'Aucun pipeline step configuré pour l''organisation %', v_organization_id;
     end if;
   else
     v_first_step_id := p_status;
