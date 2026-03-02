@@ -130,11 +130,14 @@ const IntegrationsPage = () => {
     }
   }, []);
 
+  // ─── Type de projet dynamique (premier template de l'org) ───
+  const exampleProjectType = projectTemplates?.[0]?.type || 'projet';
+
   // ─── Make : JSON simple pour l'exemple ───
   const makeSimpleJson = JSON.stringify({
     nom: 'Jean Dupont',
     email: 'jean@mail.com',
-    type_projet: 'centrale',
+    type_projet: exampleProjectType,
   }, null, 2);
 
   // ─── Développeur : Endpoint webhook réel ───
@@ -149,7 +152,7 @@ const IntegrationsPage = () => {
   -d '{
     "nom": "Jean Dupont",
     "email": "jean@mail.com",
-    "type_projet": "centrale",
+    "type_projet": "${exampleProjectType}",
     "owner_email": "commercial@org.com",
     "send_magic_link": true
   }'`;
@@ -164,7 +167,7 @@ const IntegrationsPage = () => {
   body: JSON.stringify({
     nom: "Jean Dupont",
     email: "jean@mail.com",
-    type_projet: "centrale"
+    type_projet: "${exampleProjectType}"
   })
 });`;
 
