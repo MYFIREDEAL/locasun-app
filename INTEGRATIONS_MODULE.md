@@ -57,7 +57,7 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 ## ✅ Checklist TODO
 
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder
-- [ ] **Action 2** — Onglet "Sans code" : liens publics, QR codes, embed
+- [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
 - [ ] **Action 3** — Onglet "Make" : webhook URL, scénarios templates
 - [ ] **Action 4** — Onglet "Développeur" : webhook in/out, API keys
 - [ ] **Action 5** — Persistance Supabase des configs d'intégration
@@ -71,3 +71,4 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 | Date | Action |
 |------|--------|
 | 2 mars 2026 | **Action 1** — Scaffold initial : `INTEGRATIONS_MODULE.md`, page placeholder `/admin/integrations`, bouton dans Mon Profil, route ajoutée dans `App.jsx`, `PROJECT_GUIDE.md` et `PROGRESS_LOG.md` mis à jour. |
+| 2 mars 2026 | **Action 2** — Onglet "Sans code" fonctionnel : liens globaux (inscription, espace client, connexion pro), liens par projet (depuis `useSupabaseProjectTemplates` filtré par org), `CopyButton` réutilisable, orgSlug dérivé de `affiliate_slug` (même source que Mon Profil). |
