@@ -58,7 +58,7 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder
 - [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
-- [ ] **Action 3** — Onglet "Make" : webhook URL, scénarios templates
+- [x] **Action 3** — Pré-sélection projet via query param `?project=` sur `/inscription`
 - [ ] **Action 4** — Onglet "Développeur" : webhook in/out, API keys
 - [ ] **Action 5** — Persistance Supabase des configs d'intégration
 - [ ] **Action 6** — Tests E2E + validation UX
@@ -72,3 +72,4 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 |------|--------|
 | 2 mars 2026 | **Action 1** — Scaffold initial : `INTEGRATIONS_MODULE.md`, page placeholder `/admin/integrations`, bouton dans Mon Profil, route ajoutée dans `App.jsx`, `PROJECT_GUIDE.md` et `PROGRESS_LOG.md` mis à jour. |
 | 2 mars 2026 | **Action 2** — Onglet "Sans code" fonctionnel : liens globaux (inscription, espace client, connexion pro), liens par projet (depuis `useSupabaseProjectTemplates` filtré par org), `CopyButton` réutilisable, orgSlug dérivé de `affiliate_slug` (même source que Mon Profil). |
+| 2 mars 2026 | **Action 3** — Pré-sélection projet sur `RegistrationPage` via `?project={slug}`. Validation org-scoped : le slug est comparé à `slugify(p.type)` des projets publics de l'org courante uniquement. Param invalide = ignoré silencieusement. |

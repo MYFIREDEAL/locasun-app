@@ -21,10 +21,12 @@ Chaque entrée contient :
 ### ✅ Features
 - **Integrations module — Action 1** : Scaffold + docs + navigation + page placeholder `/admin/integrations`
 - **Integrations module — Action 2** : Onglet "Sans code" fonctionnel — liens globaux (inscription, espace client, connexion pro) + liens par projet avec `CopyButton` réutilisable
+- **Integrations module — Action 3** : Pré-sélection projet sur `/inscription` via query param `?project={slug}` — validation org-scoped, param invalide ignoré
 
 ### 📦 Module Integrations — Checklist Actions
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder
 - [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
+- [x] **Action 3** — Pré-sélection projet via query param `?project=` sur `/inscription`
 - [ ] **Action 3** — Onglet "Make" : webhook URL, scénarios templates
 - [ ] **Action 4** — Onglet "Développeur" : webhook in/out, API keys
 - [ ] **Action 5** — Persistance Supabase des configs d'intégration
@@ -32,7 +34,7 @@ Chaque entrée contient :
 - [ ] **Action 7** — Documentation finale + release notes
 
 ### 🔜 Prochains sujets
-- Action 3 Integrations : onglet "Make"
+- Action 4 Integrations : onglet "Make"
 
 ---
 

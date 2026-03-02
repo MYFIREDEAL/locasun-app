@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { useSupabaseProjectTemplates } from '@/hooks/useSupabaseProjectTemplates
 
 const RegistrationPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { slugUser } = useParams();
   const { currentUser, activeAdminUser, setActiveAdminUser } = useAppContext(); // 🔥 Retiré projectsData
   const { organizationId } = useOrganization();
@@ -52,6 +53,22 @@ const RegistrationPage = () => {
             icon: p.icon
         }));
   }, [projectTemplates]);
+
+  // 🔌 INTEGRATIONS: Pré-sélection via query param ?project={slug}
+  // Le slug est comparé à slugify(p.type) des projets de CETTE org uniquement
+  // Si invalide ou absent → ignoré silencieusement
+  useEffect(() => {
+    const projectParam = new URLSearchParams(location.search).get('project');
+    if (!projectParam || projectOptions.length === 0) return;
+
+    const matchedProject = projectOptions.find(
+      p => slugify(p.id) === projectParam.toLowerCase()
+    );
+
+    if (matchedProject && !selectedProjects.includes(matchedProject.id)) {
+      setSelectedProjects(prev => [...prev, matchedProject.id]);
+    }
+  }, [projectOptions, location.search]); // Re-run quand les templates chargent
 
   // ✅ Toast si l'utilisateur est déjà connecté
   useEffect(() => {
