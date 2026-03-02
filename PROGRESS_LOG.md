@@ -27,6 +27,7 @@ Chaque entrée contient :
 - **Integrations module — Action 4** : Onglet "Make" finalisé — endpoint webhook, headers Bearer, contrat JSON officiel, règles d'attribution (owner_user_id → owner_email → fallback Global Admin), sécurité & mapping, CopyButton partout
 - **Action 5.5 — Audit technique** : Analyse complète du flux webhook universel (multi-tenant, création contact/projet, attribution owner, magic link, project templates, risques). Fichier `AUDIT_WEBHOOK_UNIVERSEL.md`.
 - **Action 6.1 — 🔒 Security fix** : Suppression UUID hardcodé Jack Luc dans `create_affiliated_prospect`. Fallback remplacé par lookup dynamique `Global Admin` par `organization_id` + exception si absent. Fonction 100% multi-tenant.
+- **Action 6.2 — 🔒 Security fix** : `link_prospect_to_auth_user` corrigé multi-tenant. UPDATE limité au prospect le plus récent (`ORDER BY created_at DESC LIMIT 1`) au lieu de tous les prospects avec le même email. Fichier SQL dédié créé.
 
 ### 📦 Module Integrations — Checklist Actions
 - [x] **Action 1** — Scaffold + docs + navigation + page placeholder

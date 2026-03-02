@@ -249,13 +249,21 @@ v_default_jack_id := '82be903d-9600-4c53-9cd4-113bfaaac12e';
 
 Ce UUID existe dans l'org Locasun. Pour un webhook multi-tenant, il faut un **fallback dynamique** : Global Admin de l'org cible.
 
-### 🔴 Risque 2 : `link_prospect_to_auth_user` ne scope pas par org
+### ✅ ~~Risque 2 : `link_prospect_to_auth_user` ne scope pas par org~~ — CORRIGÉ (Action 6.2)
 
 ```sql
+-- AVANT (v1) ❌
 UPDATE prospects SET user_id = NEW.id WHERE email = NEW.email AND user_id IS NULL;
+
+-- APRÈS (v2) ✅
+SELECT id INTO v_prospect_id FROM prospects
+WHERE email = NEW.email AND user_id IS NULL
+ORDER BY created_at DESC LIMIT 1;
+
+UPDATE prospects SET user_id = NEW.id WHERE id = v_prospect_id;
 ```
 
-Si le webhook crée un prospect + envoie un magic link, et que le même email existe dans 2 orgs, le mauvais prospect pourrait être lié.
+Seul le prospect le plus récent est lié. Les prospects d'autres orgs restent intacts.
 
 ### 🟡 Risque 3 : `type_projet` inconnu
 
