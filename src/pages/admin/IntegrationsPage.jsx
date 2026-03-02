@@ -136,6 +136,59 @@ const IntegrationsPage = () => {
     },
   ];
 
+  // ─── Développeur : Endpoint webhook réel ───
+  const supabaseProjectRef = (import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').replace('.supabase.co', '');
+  const webhookEndpoint = `POST https://${supabaseProjectRef}.supabase.co/functions/v1/webhook-v1`;
+  const webhookUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/webhook-v1`;
+
+  // ─── Développeur : Exemple curl ───
+  const curlExample = `curl -X POST ${webhookUrl} \\
+  -H "Authorization: Bearer eva_xxxxxxxxx" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "nom": "Jean Dupont",
+    "email": "jean@mail.com",
+    "type_projet": "centrale",
+    "owner_email": "commercial@org.com",
+    "send_magic_link": true
+  }'`;
+
+  // ─── Développeur : Exemple JS fetch ───
+  const fetchExample = `fetch("${webhookUrl}", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer eva_xxxxxxxxx",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    nom: "Jean Dupont",
+    email: "jean@mail.com",
+    type_projet: "centrale"
+  })
+});`;
+
+  // ─── Développeur : Codes erreurs ───
+  const errorCodes = [
+    { http: '401', code: 'INVALID_KEY', description: 'Clé d\'intégration absente, invalide ou introuvable.', httpClass: 'bg-red-100 text-red-700' },
+    { http: '403', code: 'KEY_DISABLED', description: 'La clé existe mais est désactivée (is_active = false).', httpClass: 'bg-orange-100 text-orange-700' },
+    { http: '403', code: 'KEY_EXPIRED', description: 'La clé a expiré (expires_at dépassé).', httpClass: 'bg-orange-100 text-orange-700' },
+    { http: '403', code: 'INSUFFICIENT_PERMISSIONS', description: 'La clé n\'a pas la permission "create_prospect".', httpClass: 'bg-orange-100 text-orange-700' },
+    { http: '400', code: 'INVALID_EMAIL', description: 'Champ email manquant ou format invalide.', httpClass: 'bg-yellow-100 text-yellow-700' },
+    { http: '400', code: 'INVALID_PROJECT_TYPE', description: 'type_projet ne correspond à aucun project_template de l\'org.', httpClass: 'bg-yellow-100 text-yellow-700' },
+    { http: '400', code: 'INVALID_OWNER', description: 'owner_user_id ou owner_email ne correspond à aucun user de l\'org.', httpClass: 'bg-yellow-100 text-yellow-700' },
+    { http: '409', code: 'DUPLICATE_EMAIL', description: 'Un prospect avec cet email existe déjà dans l\'organisation.', httpClass: 'bg-purple-100 text-purple-700' },
+    { http: '500', code: 'NO_PIPELINE_STEP', description: 'Aucune étape pipeline trouvée pour ce type de projet.', httpClass: 'bg-red-100 text-red-700' },
+  ];
+
+  // ─── Développeur : Règles d'attribution ───
+  const devAttributionRules = [
+    { icon: '🎯', label: 'owner_user_id (priorité 1)', description: 'Si fourni, assignation directe. Le UUID doit appartenir à un user de l\'organisation.', badge: 'Priorité 1', badgeClass: 'bg-green-100 text-green-700' },
+    { icon: '📧', label: 'owner_email (priorité 2)', description: 'Si fourni (et pas de owner_user_id), recherche automatique du user par email dans l\'org.', badge: 'Priorité 2', badgeClass: 'bg-blue-100 text-blue-700' },
+    { icon: '🏢', label: 'Aucun owner → Global Admin', description: 'Si ni owner_user_id ni owner_email : fallback automatique vers le Global Admin de l\'organisation.', badge: 'Fallback', badgeClass: 'bg-gray-100 text-gray-600' },
+    { icon: '🔄', label: 'Mapping dynamique', description: 'Les champs contact/project sont mappés automatiquement dans form_data du prospect.', badge: 'Auto', badgeClass: 'bg-emerald-100 text-emerald-700' },
+    { icon: '🔒', label: 'Isolation multi-tenant stricte', description: 'La clé Bearer détermine l\'org — aucun accès cross-organisation possible.', badge: 'Obligatoire', badgeClass: 'bg-red-100 text-red-700' },
+  ];
+
   return (
     <motion.div
       className="max-w-5xl mx-auto space-y-8 p-6"
@@ -366,18 +419,123 @@ Content-Type: application/json`}
         </motion.div>
       )}
 
-      {/* Placeholder Développeur */}
+      {/* ─── Onglet Développeur ─── */}
       {activeTab === 'developpeur' && (
-        <motion.div
-          variants={itemVariants}
-          className="bg-white rounded-2xl shadow-card border border-gray-100 p-8 text-center"
-        >
-          <div className="flex flex-col items-center gap-4 py-8">
-            <Code2 className="w-12 h-12 text-emerald-400" />
-            <h2 className="text-xl font-semibold text-gray-800">Développeur</h2>
-            <p className="text-gray-400 max-w-md">
-              À configurer (Action suivante)
+        <motion.div variants={itemVariants} className="space-y-6">
+          {/* Intro */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-800 text-sm">
+            <strong>🛠️ Documentation technique — Webhook V1</strong>
+            <br />Intégrez EVATIME depuis n'importe quel langage ou plateforme via notre API webhook.
+          </div>
+
+          {/* ── A) Bloc Endpoint ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">🔗 Endpoint</h2>
+
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-700">URL du webhook</p>
+                <Input
+                  value={webhookEndpoint}
+                  readOnly
+                  className="font-mono text-xs bg-white cursor-pointer select-all mt-1"
+                  onClick={(e) => e.target.select()}
+                />
+              </div>
+              <CopyButton value={webhookEndpoint} label="Copié !" />
+            </div>
+
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-2">Headers requis</p>
+              <pre className="bg-gray-900 text-green-400 rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre">
+{`Authorization: Bearer <integration_key>
+Content-Type: application/json`}
+              </pre>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs flex items-start gap-2">
+              <span className="text-base">ℹ️</span>
+              <span>L'organisation est résolue automatiquement via la clé d'intégration. Aucun <code className="bg-blue-100 px-1 rounded font-mono">org_slug</code> requis.</span>
+            </div>
+          </div>
+
+          {/* ── B) Exemple curl ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">📟 Exemple curl</h2>
+
+            <div className="relative">
+              <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{curlExample}
+              </pre>
+              <div className="absolute top-2 right-2">
+                <CopyButton value={curlExample} label="Copié !" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── C) Exemple JavaScript (fetch) ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">🟨 Exemple JavaScript (fetch)</h2>
+
+            <div className="relative">
+              <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{fetchExample}
+              </pre>
+              <div className="absolute top-2 right-2">
+                <CopyButton value={fetchExample} label="Copié !" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── D) Codes erreurs ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">⚠️ Codes erreurs</h2>
+            <p className="text-sm text-gray-500">
+              Réponses d'erreur possibles du webhook. Toutes les réponses sont au format JSON avec <code className="bg-gray-100 px-1 rounded font-mono">{"{ success: false, error: \"CODE\" }"}</code>.
             </p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-2 px-3 text-gray-600 font-medium">HTTP</th>
+                    <th className="text-left py-2 px-3 text-gray-600 font-medium">Code erreur</th>
+                    <th className="text-left py-2 px-3 text-gray-600 font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {errorCodes.map((err) => (
+                    <tr key={err.code} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-2 px-3">
+                        <span className={`inline-block text-xs font-mono font-bold px-2 py-0.5 rounded ${err.httpClass}`}>
+                          {err.http}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 font-mono text-xs text-gray-800">{err.code}</td>
+                      <td className="py-2 px-3 text-xs text-gray-500">{err.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── Encadré : Règles d'attribution ── */}
+          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-emerald-900">📐 Règles d'attribution du prospect</h2>
+
+            <div className="space-y-2">
+              {devAttributionRules.map((rule, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-emerald-200">
+                  <span className="text-lg">{rule.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">{rule.label}</p>
+                    <p className="text-xs text-gray-500">{rule.description}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${rule.badgeClass}`}>{rule.badge}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.div>
       )}

@@ -95,24 +95,8 @@ export function useSupabaseClientFormPanels(prospectId = null) {
           throw error;
         }
 
-        // 🔥 DEBUG TEMPORAIRE: Utiliser console.log car logger.debug est désactivé
-        console.log('[useSupabaseClientFormPanels] RPC result:', { 
-          raw: data?.length || 0, 
-          organizationId, 
-          prospectId,
-          firstPanel: data?.[0] ? { 
-            id: data[0].id,
-            panel_id: data[0].panel_id,
-            prospect_id: data[0].prospect_id,
-            form_id: data[0].form_id,
-            status: data[0].status,
-            filled_by_role: data[0].filled_by_role,
-            form_data: data[0].form_data,
-          } : null,
-        });
-        
         const transformed = Array.isArray(data) ? data.map(transformFromDB) : [];
-        console.log('[useSupabaseClientFormPanels] Transformed:', { count: transformed.length });
+        logger.debug('[useSupabaseClientFormPanels] Loaded', { count: transformed.length, organizationId, prospectId });
         setFormPanels(transformed);
         setError(null);
       } catch (err) {
