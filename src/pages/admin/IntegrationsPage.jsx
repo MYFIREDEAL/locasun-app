@@ -61,80 +61,12 @@ const IntegrationsPage = () => {
       });
   }, [projectTemplates, origin]);
 
-  // ─── Make : Contrat JSON officiel ───
-  const makeContractJson = JSON.stringify({
+  // ─── Make : JSON simple pour l'exemple ───
+  const makeSimpleJson = JSON.stringify({
+    nom: 'Jean Dupont',
+    email: 'jean@mail.com',
     type_projet: 'centrale',
-    owner_user_id: 'uuid-optionnel',
-    owner_email: 'email-optionnel',
-    contact: {
-      nom: 'Dupont',
-      prenom: 'Marie',
-      email: 'marie.dupont@email.com',
-      telephone: '06 12 34 56 78',
-      adresse: '12 rue du Soleil, 31000 Toulouse',
-    },
-    project: {
-      puissance_kwc: 9,
-      type_toiture: 'surimposition',
-      commentaire: 'Intéressée par autoconsommation',
-    },
   }, null, 2);
-
-  // ─── Make : Règles d'attribution ───
-  const attributionRules = [
-    {
-      icon: '🎯',
-      label: 'owner_user_id fourni',
-      description: 'Assignation directe si le user appartient à l\'organisation.',
-      badge: 'Priorité 1',
-      badgeClass: 'bg-green-100 text-green-700',
-    },
-    {
-      icon: '📧',
-      label: 'owner_email fourni',
-      description: 'Recherche automatique du user dans l\'organisation par email.',
-      badge: 'Priorité 2',
-      badgeClass: 'bg-blue-100 text-blue-700',
-    },
-    {
-      icon: '🏢',
-      label: 'Aucun owner spécifié',
-      description: 'Fallback → assignation au Global Admin de l\'organisation.',
-      badge: 'Fallback',
-      badgeClass: 'bg-gray-100 text-gray-600',
-    },
-    {
-      icon: '🔒',
-      label: 'Isolation multi-tenant',
-      description: 'Toujours scopé par organization_id — aucun accès cross-org possible.',
-      badge: 'Obligatoire',
-      badgeClass: 'bg-red-100 text-red-700',
-    },
-  ];
-
-  // ─── Make : Sécurité & Mapping ───
-  const securityPoints = [
-    {
-      icon: '🔄',
-      label: 'Mapping dynamique',
-      description: 'Les champs contact/project sont mappés automatiquement côté EVATIME.',
-    },
-    {
-      icon: '🚫',
-      label: 'Champs inconnus ignorés',
-      description: 'Les clés non reconnues sont ignorées silencieusement — pas d\'erreur.',
-    },
-    {
-      icon: '✅',
-      label: 'Champs obligatoires validés',
-      description: 'type_projet et au moins un champ contact (email ou téléphone) sont requis.',
-    },
-    {
-      icon: '🏰',
-      label: 'Isolation multi-tenant',
-      description: 'Le secret Bearer identifie l\'org — aucune donnée ne fuit entre organisations.',
-    },
-  ];
 
   // ─── Développeur : Endpoint webhook réel ───
   const supabaseProjectRef = (import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').replace('.supabase.co', '');
@@ -316,104 +248,112 @@ const IntegrationsPage = () => {
         <motion.div variants={itemVariants} className="space-y-6">
           {/* Intro */}
           <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-purple-800 text-sm">
-            <strong>⚡ Connecter avec Make (No-code)</strong>
-            <br />Envoyez vos formulaires ou simulateurs vers EVATIME sans écrire de code.
+            <strong>⚡ Connecter avec Make (sans coder)</strong>
+            <br />Connectez votre site à EVATIME en 3 étapes simples.
           </div>
 
-          {/* Bloc 1 : Endpoint & Headers */}
+          {/* ── Étape 1 — Générer une clé ── */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">🔗 Endpoint & Headers</h2>
-
-            {/* Endpoint */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-700">Endpoint webhook</p>
-                <p className="text-xs text-gray-400 mb-1">URL à coller dans votre scénario Make (module HTTP / Webhook)</p>
-                <Input
-                  value="POST https://api.evatime.fr/webhook/v1"
-                  readOnly
-                  className="font-mono text-xs bg-white cursor-pointer select-all"
-                  onClick={(e) => e.target.select()}
-                />
-              </div>
-              <CopyButton value="POST https://api.evatime.fr/webhook/v1" label="Copié !" />
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">1</span>
+              <h2 className="text-lg font-semibold text-gray-900">Générer une clé d'intégration</h2>
             </div>
 
-            {/* Headers */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-700">Headers requis</p>
-                <p className="text-xs text-gray-400 mb-1">À configurer dans le module HTTP de Make</p>
-                <pre className="bg-gray-900 text-green-400 rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre">
-{`Authorization: Bearer <integration_secret>
-Content-Type: application/json`}
-                </pre>
-              </div>
-              <CopyButton value={`Authorization: Bearer <integration_secret>\nContent-Type: application/json`} label="Copié !" />
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center space-y-3">
+              <p className="text-sm text-gray-500">Aucune clé active pour cette organisation.</p>
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white font-medium text-sm opacity-60 cursor-not-allowed"
+              >
+                🔑 Générer une clé d'intégration
+              </button>
+              <p className="text-xs text-gray-400">
+                Bientôt disponible — la génération de clés sera activée prochainement.
+              </p>
             </div>
 
-            {/* Secret notice */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-xs flex items-start gap-2">
               <span className="text-base">🔐</span>
-              <div>
-                <strong>Secret d'intégration</strong> — Sera généré automatiquement par organisation (Action 6 — backend).
-                <br />Ne jamais exposer de secret réel dans le frontend.
-              </div>
+              <span>La clé complète est affichée <strong>une seule fois</strong> lors de sa création. Conservez-la en lieu sûr.</span>
             </div>
           </div>
 
-          {/* Bloc 2 : Contrat JSON */}
+          {/* ── Étape 2 — Configurer Make ── */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">📋 Contrat JSON officiel</h2>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">2</span>
+              <h2 className="text-lg font-semibold text-gray-900">Configurer Make</h2>
+            </div>
+
+            <ol className="space-y-3 text-sm text-gray-700">
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-purple-600 mt-0.5">1.</span>
+                <span>Allez sur <a href="https://www.make.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-medium">make.com</a></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-purple-600 mt-0.5">2.</span>
+                <span>Créez un nouveau scénario</span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-purple-600 mt-0.5">3.</span>
+                <span>Ajoutez un module <strong>« HTTP → Make a request »</strong></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-purple-600 mt-0.5">4.</span>
+                <span>Méthode : <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">POST</code></span>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-purple-600 mt-0.5">5.</span>
+                <div className="flex-1 min-w-0">
+                  <span>URL :</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      value={webhookUrl}
+                      readOnly
+                      className="font-mono text-xs bg-white cursor-pointer select-all"
+                      onClick={(e) => e.target.select()}
+                    />
+                    <CopyButton value={webhookUrl} label="Copié !" />
+                  </div>
+                </div>
+              </li>
+              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="font-bold text-purple-600 mt-0.5">6.</span>
+                <div className="flex-1 min-w-0">
+                  <span>Headers :</span>
+                  <pre className="bg-gray-900 text-green-400 rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre mt-1">
+{`Authorization: Bearer VOTRE_CLÉ
+Content-Type: application/json`}
+                  </pre>
+                </div>
+              </li>
+            </ol>
+          </div>
+
+          {/* ── Étape 3 — Envoyer les données ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">3</span>
+              <h2 className="text-lg font-semibold text-gray-900">Envoyer les données</h2>
+            </div>
+
             <p className="text-sm text-gray-500">
-              Structure du body JSON à envoyer dans le webhook. Les champs <code className="bg-gray-100 px-1 rounded">contact</code> et <code className="bg-gray-100 px-1 rounded">project</code> sont personnalisables.
+              Dans le body de la requête, envoyez un JSON avec les informations du prospect :
             </p>
 
             <div className="relative">
               <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
-{makeContractJson}
+{makeSimpleJson}
               </pre>
               <div className="absolute top-2 right-2">
-                <CopyButton value={makeContractJson} label="Copié !" />
+                <CopyButton value={makeSimpleJson} label="Copié !" />
               </div>
             </div>
-          </div>
 
-          {/* Bloc 3 : Règles d'attribution */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">👤 Règles d'attribution</h2>
-            <p className="text-sm text-gray-500">
-              Comment EVATIME attribue le prospect entrant au bon commercial.
-            </p>
-
-            <div className="space-y-2">
-              {attributionRules.map((rule, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-lg">{rule.icon}</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{rule.label}</p>
-                    <p className="text-xs text-gray-500">{rule.description}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${rule.badgeClass}`}>{rule.badge}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bloc 4 : Sécurité & Mapping */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">🛡️ Sécurité & Mapping</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {securityPoints.map((point, i) => (
-                <div key={i} className="flex items-start gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-base">{point.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{point.label}</p>
-                    <p className="text-xs text-gray-500">{point.description}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-sm flex items-start gap-2">
+              <span className="text-base">✅</span>
+              <span>Le prospect sera automatiquement créé et assigné dans EVATIME.</span>
             </div>
           </div>
         </motion.div>
