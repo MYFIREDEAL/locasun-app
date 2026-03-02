@@ -38,9 +38,11 @@ const IntegrationsPage = () => {
 
   // Liens globaux (org-level, aucune dépendance user)
   const globalLinks = useMemo(() => [
+    { label: 'Landing page', url: `${origin}/landing`, description: 'Page d\'accueil publique de votre organisation' },
     { label: 'Inscription client', url: `${origin}/inscription`, description: 'Page d\'inscription client pour cette organisation' },
     { label: 'Espace client (connexion)', url: `${origin}/login`, description: 'Connexion espace client existant' },
     { label: 'Connexion pro', url: `${origin}/login-pro`, description: 'Connexion espace admin / commercial' },
+    { label: 'Espace partenaire (connexion)', url: `${origin}/partner/login`, description: 'Connexion espace partenaire' },
   ], [origin]);
 
   // Liens par projet (scoped par org via useSupabaseProjectTemplates, filtrés public)
