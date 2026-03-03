@@ -129,7 +129,7 @@ serve(async (req) => {
     const integrationKeyId: string = keyData.id
 
     // ══════════════════════════════════════════════════════════════
-    // ÉTAPE 2: Parser et valider le body
+    // ÉTAPE 1b: Mode validate_only (pour tester la connexion Make)
     // ══════════════════════════════════════════════════════════════
     let body: Record<string, unknown>
     try {
@@ -141,6 +141,25 @@ serve(async (req) => {
         message: 'Le body doit être un JSON valide'
       }, 400)
     }
+
+    if (body.validate_only === true) {
+      // Incrémenter le compteur d'utilisation même pour validate_only
+      await supabaseAdmin
+        .from('integration_keys')
+        .update({ use_count: (keyData.use_count || 0) + 1, last_used_at: new Date().toISOString() })
+        .eq('id', integrationKeyId)
+
+      return jsonResponse({
+        success: true,
+        status: 'valid',
+        message: 'Clé d\'intégration valide',
+        organization_id: organizationId
+      }, 200)
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // ÉTAPE 2: Parser et valider le body
+    // ══════════════════════════════════════════════════════════════
 
     // Extraire les champs (supporte le contrat Make + format plat)
     const contact = (body.contact as Record<string, unknown>) || {}
