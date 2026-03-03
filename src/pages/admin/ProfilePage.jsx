@@ -1223,7 +1223,7 @@ const CreateProjectDialog = ({
       ...JSON.parse(JSON.stringify(template)),
       title: `${template.title} (Copie)`,
       clientTitle: `${template.clientTitle} (Copie)`,
-      type: `${template.type}-copie-${Date.now()}`,
+      type: '', // Vide → sera généré depuis le titre final au moment du Save
       isPublic: true
     };
     setProject(newProject);
