@@ -60,10 +60,11 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 - [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
 - [x] **Action 3** — Pré-sélection projet via query param `?project=` sur `/inscription`
 - [x] **Action 4** — Onglet "Make" : contrat officiel webhook, règles d'attribution, sécurité & mapping
-- [ ] **Action 5** — Onglet "Développeur" : webhook in/out, API keys
-- [ ] **Action 5** — Persistance Supabase des configs d'intégration
-- [ ] **Action 6** — Tests E2E + validation UX
-- [ ] **Action 7** — Documentation finale + release notes
+- [x] **Action 5** — Onglet "Développeur" : API keys, Edge Functions (webhook-v1, generate-integration-key)
+- [x] **Action 6** — Persistance Supabase : table `integration_keys`, RPC `create_webhook_prospect`
+- [x] **Action 7** — App EVATIME sur Make.com : module Create Prospect, validate_only, 2 méthodes UX
+- [x] **Action 8** — Action `add_project` : RPC `add_project_to_prospect` + routage webhook-v1
+- [ ] **Action 9** — Tests E2E complets + documentation finale
 
 ---
 
@@ -82,3 +83,7 @@ Accessible depuis **Mon Profil** → bouton **"Gérer les intégrations"**.
 | 2 mars 2026 | **Action 6** — 🚀 **Edge Function webhook-v1** : Table `integration_keys` (hash SHA-256, RLS, permissions granulaires), RPC `create_webhook_prospect` (SECURITY DEFINER, service_role only, validation type_projet + doublon + owner + fallback Global Admin), Edge Function `webhook-v1/index.ts` (auth Bearer → hash → org_id, contrat JSON flexible, magic link optionnel, codes erreur HTTP clairs). |
 | 2 mars 2026 | **Action 6 correctif — Hardening prod** : `key_hash` UNIQUE, supprimé `updated_at`, pipeline step strict (plus de fallback fictif → erreur `NO_PIPELINE_STEP`), `use_count` propre dans select initial. |
 | 2 mars 2026 | **Correctif alignement** : Magic link revenu à `signInWithOtp` (aligné RegistrationPage), supprimé `auth.admin.generateLink`. Vérifié que le SELECT `integration_keys` correspond exactement au schéma réel (6 colonnes lues, 2 colonnes écrites). |
+| 3 mars 2026 | **validate_only** : Mode test connexion Make — `{ "validate_only": true }` → 200 + clé valide, sans créer de prospect. Déployé sur Edge Functions. |
+| 3 mars 2026 | **App EVATIME sur Make.com** : App custom publiée (v1.0.0). Connection Communication pointe sur `webhook-v1` POST avec `validate_only`. Module "Create Prospect" avec champs `nom`, `email`, `telephone`, `type_projet`, `adresse`. Testé OK end-to-end. |
+| 3 mars 2026 | **Onglet Make 2 méthodes** : Refonte UX — sélecteur App EVATIME (recommandé, 3 étapes) + Module HTTP (avancé, 6 étapes). Boutons copie inversés (gros = clé brute, petit = Bearer). |
+| 4 mars 2026 | **Action `add_project`** : Nouvelle action webhook pour ajouter un projet à un prospect existant. RPC `add_project_to_prospect` (SECURITY DEFINER, vérifie prospect ∈ org, template existe, pas de doublon). Routage dans `webhook-v1` : `action` absent = create_prospect, `add_project` = nouvelle RPC. Fix `organization_id` manquant dans INSERT `project_steps_status`. Test OK : prospect josh + fenetre → 8 steps. |

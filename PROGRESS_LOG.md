@@ -16,6 +16,37 @@ Chaque entrée contient :
 
 ---
 
+## 4 mars 2026
+
+### ✅ Features
+- **validate_only mode** : `webhook-v1` supporte `{ "validate_only": true }` pour tester une connexion Make/Zapier sans créer de prospect. Retourne `200 { success: true, status: "valid" }` si la clé est bonne.
+- **App EVATIME sur Make.com** : App custom configurée sur Make Developer Platform (v1.0.0, published). Module "Create Prospect" fonctionnel end-to-end. Connection Communication pointe sur `webhook-v1` avec `validate_only`.
+- **Onglet Make 2 méthodes** : Refonte UX de l'onglet Make dans IntegrationsPage — sélecteur "App EVATIME" (recommandé, 3 étapes) + "Module HTTP" (avancé, 6 étapes). Boutons copie inversés (gros = clé brute pour app, petit = avec Bearer pour HTTP).
+- **Action `add_project` dans webhook-v1** : Nouvelle action pour ajouter un projet à un prospect existant via webhook. Body : `{ "action": "add_project", "prospect_id": "UUID", "type_projet": "slug" }`. Ajoute le tag, initialise `project_steps_status` avec les étapes du template (1ère = `in_progress`, reste = `pending`).
+- **RPC `add_project_to_prospect`** : Nouvelle fonction SQL SECURITY DEFINER. Vérifie prospect ∈ org, template existe, pas de doublon projet. Retourne `success + prospect_name + steps_count`.
+
+### 🐛 Bugs fixés
+- **Fix `organization_id` manquant** : L'INSERT dans `project_steps_status` de la RPC `add_project_to_prospect` ne passait pas `organization_id` → violation NOT NULL. Corrigé.
+
+### 🗄️ Migrations SQL exécutées
+- `add_project_to_prospect.sql` — Nouvelle RPC (CREATE OR REPLACE + GRANT service_role)
+
+### 🧪 Tests validés
+| Test | Résultat |
+|------|----------|
+| `validate_only: true` | ✅ 200 — clé valide |
+| Créer prospect via Make app EVATIME | ✅ 201 — prospect créé chez Rosca Finance |
+| `add_project` fenetre → prospect josh | ✅ 201 — 8 steps initialisées |
+| Mauvaise clé | ✅ 401 INVALID_KEY |
+| Type projet inexistant | ✅ 400 INVALID_PROJECT_TYPE |
+
+### 🔜 Prochains sujets
+- Mettre à jour l'onglet Développeur d'IntegrationsPage avec l'exemple `add_project`
+- Ajouter un 2ème module "Add Project" dans l'app Make EVATIME
+- Renommer les types `piscine-copie-*` en vrais noms chez Rosca Finance
+
+---
+
 ## 2 mars 2026
 
 ### ✅ Features
@@ -37,10 +68,11 @@ Chaque entrée contient :
 - [x] **Action 2** — Onglet "Sans code" : liens publics, liens par projet, CopyButton
 - [x] **Action 3** — Pré-sélection projet via query param `?project=` sur `/inscription`
 - [x] **Action 4** — Onglet "Make" : contrat officiel webhook, règles d'attribution, sécurité & mapping
-- [ ] **Action 5** — Onglet "Développeur" : webhook in/out, API keys
-- [ ] **Action 6** — Persistance Supabase des configs d'intégration
-- [ ] **Action 7** — Tests E2E + validation UX
-- [ ] **Action 8** — Documentation finale + release notes
+- [x] **Action 5** — Onglet "Développeur" : API keys, Edge Functions (webhook-v1, generate-integration-key)
+- [x] **Action 6** — Persistance Supabase : table `integration_keys`, RPC `create_webhook_prospect`
+- [x] **Action 7** — App EVATIME sur Make.com : module Create Prospect, validate_only, 2 méthodes UX
+- [x] **Action 8** — Action `add_project` : RPC `add_project_to_prospect` + routage webhook-v1
+- [ ] **Action 9** — Tests E2E complets + documentation finale
 
 ### 🔜 Prochains sujets
 - Action 5 Integrations : onglet "Développeur"
