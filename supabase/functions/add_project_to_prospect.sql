@@ -116,8 +116,8 @@ BEGIN
   END IF;
 
   -- Insérer dans project_steps_status (UNIQUE constraint prospect_id + project_type)
-  INSERT INTO public.project_steps_status (prospect_id, project_type, steps)
-  VALUES (p_prospect_id, p_project_type, v_initialized_steps)
+  INSERT INTO public.project_steps_status (prospect_id, project_type, steps, organization_id)
+  VALUES (p_prospect_id, p_project_type, v_initialized_steps, p_organization_id)
   ON CONFLICT (prospect_id, project_type) DO NOTHING;
 
   -- ============================================================
