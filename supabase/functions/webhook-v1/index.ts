@@ -158,7 +158,86 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // ÉTAPE 2: Parser et valider le body
+    // ÉTAPE 1c: Routage par action
+    // ══════════════════════════════════════════════════════════════
+    const action = (body.action as string) || null
+
+    // ── ACTION: add_project ──
+    if (action === 'add_project') {
+      const prospectId = (body.prospect_id as string)
+      const projectType = (body.type_projet as string) || (body.project_type as string)
+
+      if (!prospectId || !projectType) {
+        return jsonResponse({
+          success: false,
+          error: 'MISSING_FIELDS',
+          message: 'Les champs "prospect_id" et "type_projet" sont obligatoires pour action "add_project"'
+        }, 400)
+      }
+
+      // Appeler la RPC add_project_to_prospect
+      const { data: addResult, error: addError } = await supabaseAdmin.rpc('add_project_to_prospect', {
+        p_prospect_id: prospectId,
+        p_organization_id: organizationId,
+        p_project_type: projectType,
+      })
+
+      if (addError) {
+        console.error('❌ RPC add_project_to_prospect error:', addError.message)
+        return jsonResponse({
+          success: false,
+          error: 'RPC_ERROR',
+          message: addError.message
+        }, 500)
+      }
+
+      const addResultObj = addResult as Record<string, unknown>
+
+      if (!addResultObj.success) {
+        const errorMap: Record<string, number> = {
+          'INVALID_PROSPECT': 400,
+          'INVALID_PROJECT_TYPE': 400,
+          'DUPLICATE_PROJECT': 409,
+        }
+        const httpStatus = errorMap[addResultObj.error as string] || 400
+
+        return jsonResponse({
+          success: false,
+          error: addResultObj.error,
+          message: addResultObj.message
+        }, httpStatus)
+      }
+
+      // Mettre à jour last_used_at
+      await supabaseAdmin
+        .from('integration_keys')
+        .update({ use_count: (keyData.use_count || 0) + 1, last_used_at: new Date().toISOString() })
+        .eq('id', integrationKeyId)
+
+      console.log(`✅ Projet ajouté via webhook: ${projectType} → prospect ${prospectId} (org: ${organizationId})`)
+
+      return jsonResponse({
+        success: true,
+        action: 'add_project',
+        prospect_id: addResultObj.prospect_id,
+        prospect_name: addResultObj.prospect_name,
+        project_type: addResultObj.project_type,
+        steps_count: addResultObj.steps_count,
+        organization_id: organizationId,
+      }, 201)
+    }
+
+    // ── ACTION inconnue ──
+    if (action && action !== 'create_prospect') {
+      return jsonResponse({
+        success: false,
+        error: 'UNKNOWN_ACTION',
+        message: `Action "${action}" non reconnue. Actions supportées: create_prospect, add_project`
+      }, 400)
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // ÉTAPE 2: Parser et valider le body (action = create_prospect ou absent)
     // ══════════════════════════════════════════════════════════════
 
     // Extraire les champs (supporte le contrat Make + format plat)
