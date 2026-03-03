@@ -994,39 +994,39 @@ Content-Type: application/json`}
                 type="button"
                 onClick={async () => {
                   try {
-                    await navigator.clipboard.writeText(`Bearer ${generatedKey}`);
-                    setKeyCopied('bearer');
-                    setTimeout(() => setKeyCopied(false), 3000);
-                  } catch { /* ignore */ }
-                }}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex-1 justify-center ${
-                  keyCopied === 'bearer'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
-                }`}
-              >
-                {keyCopied === 'bearer' ? <><Check className="w-4 h-4" /> Copié !</> : <><Copy className="w-4 h-4" /> Copier pour Make</>}
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
                     await navigator.clipboard.writeText(generatedKey);
                     setKeyCopied('raw');
                     setTimeout(() => setKeyCopied(false), 3000);
                   } catch { /* ignore */ }
                 }}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex-1 justify-center ${
                   keyCopied === 'raw'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+              >
+                {keyCopied === 'raw' ? <><Check className="w-4 h-4" /> Copié !</> : <><Copy className="w-4 h-4" /> Copier la clé</>}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(`Bearer ${generatedKey}`);
+                    setKeyCopied('bearer');
+                    setTimeout(() => setKeyCopied(false), 3000);
+                  } catch { /* ignore */ }
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-xs transition-colors ${
+                  keyCopied === 'bearer'
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                {keyCopied === 'raw' ? <><Check className="w-4 h-4" /> Copié !</> : <>Clé seule</>}
+                {keyCopied === 'bearer' ? <><Check className="w-4 h-4" /> Copié !</> : <>Avec Bearer</>}
               </button>
             </div>
             <p className="text-xs text-gray-500">
-              <strong>Copier pour Make</strong> = copie <code className="bg-gray-100 px-1 rounded font-mono text-[10px]">Bearer votre_clé</code> — prêt à coller dans le header Authorization.
+              <strong>Copier la clé</strong> = clé seule, à coller dans l'app EVATIME sur Make. <strong>Avec Bearer</strong> = pour le module HTTP (header Authorization).
             </p>
           </div>
 
