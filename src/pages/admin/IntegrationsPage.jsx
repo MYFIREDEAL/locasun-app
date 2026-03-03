@@ -38,6 +38,8 @@ const IntegrationsPage = () => {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [showConfirmReplace, setShowConfirmReplace] = useState(false);
   const [keyCopied, setKeyCopied] = useState(false);
+  const [makeMethod, setMakeMethod] = useState('app'); // 'app' ou 'http'
+  const [showHttpSteps, setShowHttpSteps] = useState(false);
 
   // 🔌 Données org-level pour générer les liens
   const { organizationId } = useOrganization();
@@ -342,7 +344,6 @@ const IntegrationsPage = () => {
                 Chargement…
               </div>
             ) : activeKey ? (
-              /* ── Clé active existante ── */
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
                   <Key className="w-5 h-5 text-green-600 shrink-0" />
@@ -396,7 +397,6 @@ const IntegrationsPage = () => {
                 )}
               </div>
             ) : (
-              /* ── Aucune clé ── */
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center space-y-3">
                 <p className="text-sm text-gray-500">Aucune clé active pour cette organisation.</p>
                 <button
@@ -420,263 +420,421 @@ const IntegrationsPage = () => {
             </div>
           </div>
 
-          {/* ── Étape 1 — Créer un scénario ── */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* SÉLECTEUR DE MÉTHODE */}
+          {/* ══════════════════════════════════════════════════════════════ */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">1</span>
-              <h2 className="text-lg font-semibold text-gray-900">Créer un scénario</h2>
-            </div>
-            <ol className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">1.</span>
-                <span>Connectez-vous à <a href="https://www.make.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-medium">Make.com</a></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">2.</span>
-                <span>Cliquez sur <strong>Create a new scenario</strong></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">3.</span>
-                <span>Choisissez <strong>Build from scratch</strong></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">4.</span>
-                <span>Vous arrivez sur un écran vide avec un bouton <strong className="text-lg">➕</strong></span>
-              </li>
-            </ol>
-          </div>
+            <h2 className="text-lg font-semibold text-gray-900">Choisissez votre méthode</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* App EVATIME */}
+              <button
+                type="button"
+                onClick={() => setMakeMethod('app')}
+                className={`relative p-5 rounded-xl border-2 text-left transition-all ${
+                  makeMethod === 'app'
+                    ? 'border-purple-500 bg-purple-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  Recommandé
+                </span>
+                <div className="text-2xl mb-2">🚀</div>
+                <h3 className="font-bold text-gray-900">App EVATIME</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Cherchez "EVATIME" dans Make, collez votre clé, c'est parti.
+                </p>
+                <p className="text-xs text-purple-600 font-medium mt-2">3 étapes · 2 minutes</p>
+              </button>
 
-          {/* ── Étape 2 — Ajouter le module HTTP ── */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">2</span>
-              <h2 className="text-lg font-semibold text-gray-900">Ajouter le module HTTP</h2>
-            </div>
-            <ol className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">1.</span>
-                <span>Cliquez sur le bouton <strong className="text-lg">➕</strong></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">2.</span>
-                <span>Recherchez et sélectionnez <strong>HTTP → Make a request</strong></span>
-              </li>
-            </ol>
-          </div>
-
-          {/* ── Étape 3 — Configurer la requête ── */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">3</span>
-              <h2 className="text-lg font-semibold text-gray-900">Remplir le module HTTP</h2>
-            </div>
-
-            <p className="text-sm text-gray-500">Un panneau s'ouvre avec plusieurs champs. Remplissez-les dans l'ordre :</p>
-
-            <div className="space-y-3 text-sm text-gray-700">
-              {/* Authentication type */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Authentication type</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
-                </div>
-                <p>Laissez sur : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">No authentication</code></p>
-              </div>
-
-              {/* URL */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">URL</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
-                </div>
-                <p className="text-gray-500 text-xs">Copiez et collez cette URL :</p>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={webhookUrl}
-                    readOnly
-                    className="font-mono text-xs bg-white cursor-pointer select-all"
-                    onClick={(e) => e.target.select()}
-                  />
-                  <CopyButton value={webhookUrl} label="Copié !" />
-                </div>
-              </div>
-
-              {/* Method */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Method</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
-                </div>
-                <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">POST</code></p>
-              </div>
+              {/* HTTP avancé */}
+              <button
+                type="button"
+                onClick={() => setMakeMethod('http')}
+                className={`relative p-5 rounded-xl border-2 text-left transition-all ${
+                  makeMethod === 'http'
+                    ? 'border-purple-500 bg-purple-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                  Avancé
+                </span>
+                <div className="text-2xl mb-2">⚙️</div>
+                <h3 className="font-bold text-gray-900">Module HTTP</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Configurez manuellement un module HTTP Make a request.
+                </p>
+                <p className="text-xs text-gray-500 font-medium mt-2">6 étapes · 5 minutes</p>
+              </button>
             </div>
           </div>
 
-          {/* ── Étape 4 — Ajouter les Headers ── */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">4</span>
-              <h2 className="text-lg font-semibold text-gray-900">Ajouter le Header d'authentification</h2>
-            </div>
-
-            <p className="text-sm text-gray-500">
-              Dans la section <strong>Headers</strong>, cliquez sur <strong>+ Add a header</strong> :
-            </p>
-
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
-              {/* Name */}
-              <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
-                <span className="text-gray-500 font-medium">Name :</span>
-                <div className="flex items-center gap-2">
-                  <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Authorization</code>
-                  <CopyButton value="Authorization" label="Copié !" />
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* MÉTHODE 1 — APP EVATIME (Recommandé) */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {makeMethod === 'app' && (
+            <div className="space-y-4">
+              {/* Étape 1 — Créer un scénario + ajouter EVATIME */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">1</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Ajouter le module EVATIME</h2>
                 </div>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">1.</span>
+                    <span>Connectez-vous à <a href="https://www.make.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-medium">Make.com</a> et créez un <strong>nouveau scénario</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">2.</span>
+                    <span>Cliquez sur le bouton <strong className="text-lg">➕</strong> et recherchez <strong className="text-purple-700">"EVATIME"</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">3.</span>
+                    <span>Sélectionnez <strong>EVATIME → Create Prospect</strong></span>
+                  </li>
+                </ol>
               </div>
 
-              {/* Value */}
-              <div className="grid grid-cols-[80px_1fr] gap-2 items-start text-sm">
-                <span className="text-gray-500 font-medium mt-1.5">Value :</span>
-                <div className="space-y-2">
-                  <p className="text-gray-600">
-                    Écrivez <code className="font-mono bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">Bearer</code> suivi d'un <strong>espace</strong>, puis <strong>collez votre clé</strong>.
-                  </p>
-                  <div className="bg-white border border-gray-200 rounded-lg p-3 font-mono text-xs text-gray-500">
-                    Bearer <span className="text-purple-600">eva_live_xxxxxxxx...</span>
+              {/* Étape 2 — Connexion */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">2</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Connecter votre clé API</h2>
+                </div>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">1.</span>
+                    <span>Make vous demande une <strong>Connection</strong> — cliquez sur <strong>Add</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">2.</span>
+                    <span>Donnez un nom (ex: <strong>Mon entreprise</strong>)</span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">3.</span>
+                    <span>Collez votre <strong>clé API</strong> (sans "Bearer", juste la clé <code className="font-mono bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">eva_live_xxx...</code>)</span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">4.</span>
+                    <span>Cliquez <strong>Save</strong> — la connexion est validée automatiquement ✅</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Étape 3 — Remplir + Tester */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">3</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Remplir les champs et tester</h2>
+                </div>
+                <p className="text-sm text-gray-500">Le formulaire affiche les champs du prospect. Remplissez-les avec les <strong>variables de votre module précédent</strong> (ou en dur pour tester) :</p>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-red-500 font-bold text-xs">*</span>
+                    <span className="font-medium text-gray-700 w-28">Nom</span>
+                    <span className="text-gray-500">Prénom et nom du prospect</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-red-500 font-bold text-xs">*</span>
+                    <span className="font-medium text-gray-700 w-28">Email</span>
+                    <span className="text-gray-500">Adresse email</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-gray-300 font-bold text-xs">○</span>
+                    <span className="font-medium text-gray-700 w-28">Téléphone</span>
+                    <span className="text-gray-500">Optionnel</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-red-500 font-bold text-xs">*</span>
+                    <span className="font-medium text-gray-700 w-28">Type de projet</span>
+                    <span className="text-gray-500">
+                      {projectTemplates && projectTemplates.length > 0 ? (
+                        <>Vos projets : {projectTemplates.map(t => (
+                          <code key={t.type} className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-mono text-xs mx-0.5">{t.type}</code>
+                        ))}</>
+                      ) : 'Ex: solaire, piscine...'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-gray-300 font-bold text-xs">○</span>
+                    <span className="font-medium text-gray-700 w-28">Adresse</span>
+                    <span className="text-gray-500">Optionnel</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <p className="text-sm text-gray-700">Puis cliquez <strong>Save</strong> → <strong>Run once</strong></p>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-sm flex items-start gap-2">
+                    <span className="text-base">✅</span>
+                    <span>Si vous voyez <code className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-mono text-xs font-bold">success: true</code>, le prospect est créé dans votre Pipeline EVATIME !</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* MÉTHODE 2 — HTTP (Avancé) */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {makeMethod === 'http' && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm flex items-start gap-2">
+                <span>💡</span>
+                <span>Cette méthode est pour les utilisateurs avancés. Si vous débutez, utilisez plutôt la <button type="button" onClick={() => setMakeMethod('app')} className="text-purple-600 underline font-medium">méthode App EVATIME</button> (plus simple).</span>
+              </div>
+
+              {/* ── Étape 1 — Créer un scénario ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">1</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Créer un scénario</h2>
+                </div>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">1.</span>
+                    <span>Connectez-vous à <a href="https://www.make.com" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-medium">Make.com</a></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">2.</span>
+                    <span>Cliquez sur <strong>Create a new scenario</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">3.</span>
+                    <span>Choisissez <strong>Build from scratch</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">4.</span>
+                    <span>Vous arrivez sur un écran vide avec un bouton <strong className="text-lg">➕</strong></span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* ── Étape 2 — Module HTTP ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">2</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Ajouter le module HTTP</h2>
+                </div>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">1.</span>
+                    <span>Cliquez sur le bouton <strong className="text-lg">➕</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">2.</span>
+                    <span>Recherchez et sélectionnez <strong>HTTP → Make a request</strong></span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* ── Étape 3 — Configurer la requête ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">3</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Remplir le module HTTP</h2>
+                </div>
+
+                <p className="text-sm text-gray-500">Un panneau s'ouvre avec plusieurs champs. Remplissez-les dans l'ordre :</p>
+
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Authentication type</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                    </div>
+                    <p>Laissez sur : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">No authentication</code></p>
                   </div>
 
-                  {activeKey ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-green-800 text-xs flex items-start gap-2">
-                      <span>✅</span>
-                      <span>Vous avez une clé active (<code className="font-mono bg-green-100 px-1 rounded">{activeKey.key_prefix}</code>). Si vous l'avez déjà copiée, collez-la après <code className="font-mono bg-green-100 px-1 rounded">Bearer </code>.</span>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">URL</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
                     </div>
-                  ) : (
+                    <p className="text-gray-500 text-xs">Copiez et collez cette URL :</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={webhookUrl}
+                        readOnly
+                        className="font-mono text-xs bg-white cursor-pointer select-all"
+                        onClick={(e) => e.target.select()}
+                      />
+                      <CopyButton value={webhookUrl} label="Copié !" />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Method</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                    </div>
+                    <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">POST</code></p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Étape 4 — Headers ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">4</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Ajouter le Header d'authentification</h2>
+                </div>
+
+                <p className="text-sm text-gray-500">
+                  Dans la section <strong>Headers</strong>, cliquez sur <strong>+ Add a header</strong> :
+                </p>
+
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                  <div className="grid grid-cols-[80px_1fr] gap-2 items-center text-sm">
+                    <span className="text-gray-500 font-medium">Name :</span>
+                    <div className="flex items-center gap-2">
+                      <code className="bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs flex-1">Authorization</code>
+                      <CopyButton value="Authorization" label="Copié !" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-[80px_1fr] gap-2 items-start text-sm">
+                    <span className="text-gray-500 font-medium mt-1.5">Value :</span>
+                    <div className="space-y-2">
+                      <p className="text-gray-600">
+                        Écrivez <code className="font-mono bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">Bearer</code> suivi d'un <strong>espace</strong>, puis <strong>collez votre clé</strong>.
+                      </p>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3 font-mono text-xs text-gray-500">
+                        Bearer <span className="text-purple-600">eva_live_xxxxxxxx...</span>
+                      </div>
+
+                      {activeKey ? (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-green-800 text-xs flex items-start gap-2">
+                          <span>✅</span>
+                          <span>Vous avez une clé active (<code className="font-mono bg-green-100 px-1 rounded">{activeKey.key_prefix}</code>). Si vous l'avez déjà copiée, collez-la après <code className="font-mono bg-green-100 px-1 rounded">Bearer </code>.</span>
+                        </div>
+                      ) : (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2">
+                          <span>⚠️</span>
+                          <span>Vous n'avez pas encore de clé. Remontez au <strong>Prérequis</strong> en haut de page pour en générer une.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-blue-800 text-xs flex items-start gap-2">
+                  <span>💡</span>
+                  <span>Pas besoin d'ajouter le header <code className="font-mono bg-blue-100 px-1 rounded">Content-Type</code> — Make le gère automatiquement quand vous choisissez le body type JSON à l'étape suivante.</span>
+                </div>
+              </div>
+
+              {/* ── Étape 5 — Body ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">5</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Ajouter le Body</h2>
+                </div>
+
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content type</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                    </div>
+                    <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">application/json</code></p>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body input method</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                    </div>
+                    <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">JSON string</code></p>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                    </div>
+
+                    <p className="text-gray-600 text-xs">
+                      Construisez le JSON en utilisant les <strong>variables du module précédent</strong> (panneau violet à droite dans Make).
+                    </p>
+
+                    <div className="bg-gray-900 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre space-y-0">
+                      <span className="text-gray-400">{'{'}</span>{'\n'}
+                      <span className="text-green-400">  "nom"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.nom}}'}</span><span className="text-gray-400">",</span>{'\n'}
+                      <span className="text-green-400">  "email"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.email}}'}</span><span className="text-gray-400">",</span>{'\n'}
+                      <span className="text-green-400">  "type_projet"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.type_projet}}'}</span><span className="text-gray-400">"</span>{'\n'}
+                      <span className="text-gray-400">{'}'}</span>
+                    </div>
+
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2">
                       <span>⚠️</span>
-                      <span>Vous n'avez pas encore de clé. Remontez au <strong>Prérequis</strong> en haut de page pour en générer une. La clé n'est affichée <strong>qu'une seule fois</strong>.</span>
+                      <div>
+                        <p><strong>Ne collez pas de valeurs en dur</strong> ("Jean Dupont", "jean@mail.com"…).</p>
+                        <p className="mt-1">Les noms en violet (<code className="font-mono bg-amber-100 px-1 rounded">{'{{1.xxx}}'}</code>) représentent les <strong>variables dynamiques</strong> de votre module précédent.</p>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-500 text-xs">
+                      <strong>Champs obligatoires :</strong> <code className="bg-gray-100 px-1 rounded font-mono">nom</code> et <code className="bg-gray-100 px-1 rounded font-mono">email</code>.
+                      Optionnels : <code className="bg-gray-100 px-1 rounded font-mono">telephone</code>, <code className="bg-gray-100 px-1 rounded font-mono">type_projet</code>, <code className="bg-gray-100 px-1 rounded font-mono">adresse</code>, <code className="bg-gray-100 px-1 rounded font-mono">owner_email</code>.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Parse response</span>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+                    </div>
+                    <p>Cochez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">Yes</code></p>
+                  </div>
+
+                  {projectTemplates && projectTemplates.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs flex items-start gap-2">
+                      <span>💡</span>
+                      <div>
+                        <p><strong>type_projet</strong> doit correspondre à un projet existant dans votre organisation.</p>
+                        <p className="mt-1">
+                          Vos projets : {projectTemplates.map(t => (
+                            <code key={t.type} className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-xs mx-0.5">{t.type}</code>
+                          ))}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-blue-800 text-xs flex items-start gap-2">
-              <span>💡</span>
-              <span>Pas besoin d'ajouter le header <code className="font-mono bg-blue-100 px-1 rounded">Content-Type</code> — Make le gère automatiquement quand vous choisissez le body type JSON à l'étape suivante.</span>
-            </div>
-          </div>
-
-          {/* ── Étape 5 — Ajouter le Body ── */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">5</span>
-              <h2 className="text-lg font-semibold text-gray-900">Ajouter le Body</h2>
-            </div>
-
-            <div className="space-y-3 text-sm text-gray-700">
-              {/* Body content type */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content type</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
-                </div>
-                <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">application/json</code></p>
-              </div>
-
-              {/* Body input method */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body input method</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
-                </div>
-                <p>Sélectionnez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">JSON string</code></p>
-              </div>
-
-              {/* Body content */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Body content</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
+              {/* ── Étape 6 — Tester ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">6</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Tester</h2>
                 </div>
 
-                <p className="text-gray-600 text-xs">
-                  Construisez le JSON en utilisant les <strong>variables du module précédent</strong> (panneau violet à droite dans Make).
-                  Chaque valeur doit être une variable Make, <strong>pas du texte en dur</strong>.
-                </p>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">1.</span>
+                    <span>Cliquez sur <strong>Save</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">2.</span>
+                    <span>Cliquez sur <strong>Run once</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-green-600 mt-0.5">3.</span>
+                    <span>Si tout est correct, vous verrez : <code className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-mono text-xs font-bold">Status Code: 200</code></span>
+                  </li>
+                </ol>
 
-                <div className="bg-gray-900 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre space-y-0">
-                  <span className="text-gray-400">{'{'}</span>{'\n'}
-                  <span className="text-green-400">  "nom"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.nom}}'}</span><span className="text-gray-400">",</span>{'\n'}
-                  <span className="text-green-400">  "email"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.email}}'}</span><span className="text-gray-400">",</span>{'\n'}
-                  <span className="text-green-400">  "type_projet"</span><span className="text-gray-400">: "</span><span className="text-purple-400 bg-purple-900/30 px-1 rounded">{'{{1.type_projet}}'}</span><span className="text-gray-400">"</span>{'\n'}
-                  <span className="text-gray-400">{'}'}</span>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800 text-xs flex items-start gap-2">
-                  <span>⚠️</span>
-                  <div>
-                    <p><strong>Ne collez pas de valeurs en dur</strong> ("Jean Dupont", "jean@mail.com"…).</p>
-                    <p className="mt-1">Les noms en violet (<code className="font-mono bg-amber-100 px-1 rounded">{'{{1.xxx}}'}</code>) représentent les <strong>variables dynamiques</strong> de votre module précédent (Webhook, Google Sheets, etc.).</p>
-                  </div>
-                </div>
-
-                <p className="text-gray-500 text-xs">
-                  <strong>Champs obligatoires :</strong> <code className="bg-gray-100 px-1 rounded font-mono">nom</code> et <code className="bg-gray-100 px-1 rounded font-mono">email</code>.
-                  Champs optionnels : <code className="bg-gray-100 px-1 rounded font-mono">telephone</code>, <code className="bg-gray-100 px-1 rounded font-mono">type_projet</code>, <code className="bg-gray-100 px-1 rounded font-mono">owner_email</code>.
-                </p>
-              </div>
-
-              {/* Parse response */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Parse response</span>
-                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">champ Make</span>
-                </div>
-                <p>Cochez : <code className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono text-xs font-bold">Yes</code></p>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs flex items-start gap-2">
-                <span>💡</span>
-                <div>
-                  <p><strong>type_projet</strong> doit correspondre à un projet existant dans votre organisation.</p>
-                  {projectTemplates && projectTemplates.length > 0 && (
-                    <p className="mt-1">
-                      Vos projets : {projectTemplates.map(t => (
-                        <code key={t.type} className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-xs mx-0.5">{t.type}</code>
-                      ))}
-                    </p>
-                  )}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-sm flex items-start gap-2">
+                  <span className="text-base">✅</span>
+                  <span>Le prospect sera automatiquement créé et assigné dans EVATIME. Vous le retrouverez dans votre Pipeline.</span>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* ── Étape 6 — Tester ── */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold text-sm">6</span>
-              <h2 className="text-lg font-semibold text-gray-900">Tester</h2>
-            </div>
-
-            <ol className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">1.</span>
-                <span>Cliquez sur <strong>Save</strong></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">2.</span>
-                <span>Cliquez sur <strong>Run once</strong></span>
-              </li>
-              <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <span className="font-bold text-green-600 mt-0.5">3.</span>
-                <span>Si tout est correct, vous verrez : <code className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-mono text-xs font-bold">Status Code: 200</code></span>
-              </li>
-            </ol>
-
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-sm flex items-start gap-2">
-              <span className="text-base">✅</span>
-              <span>Le prospect sera automatiquement créé et assigné dans EVATIME. Vous le retrouverez dans votre Pipeline.</span>
-            </div>
-          </div>
+          )}
         </motion.div>
       )}
 
