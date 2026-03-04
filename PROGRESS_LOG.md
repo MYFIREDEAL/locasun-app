@@ -24,12 +24,19 @@ Chaque entrée contient :
 - **Onglet Make 2 méthodes** : Refonte UX de l'onglet Make dans IntegrationsPage — sélecteur "App EVATIME" (recommandé, 3 étapes) + "Module HTTP" (avancé, 6 étapes). Boutons copie inversés (gros = clé brute pour app, petit = avec Bearer pour HTTP).
 - **Action `add_project` dans webhook-v1** : Nouvelle action pour ajouter un projet à un prospect existant via webhook. Body : `{ "action": "add_project", "prospect_id": "UUID", "type_projet": "slug" }`. Ajoute le tag, initialise `project_steps_status` avec les étapes du template (1ère = `in_progress`, reste = `pending`).
 - **RPC `add_project_to_prospect`** : Nouvelle fonction SQL SECURITY DEFINER. Vérifie prospect ∈ org, template existe, pas de doublon projet. Retourne `success + prospect_name + steps_count`.
+- **Onglet Développeur — Section Add Project** : Documentation complète dans l'onglet Développeur d'IntegrationsPage : contrat JSON, réponse succès 201, exemples curl + fetch, table codes erreurs (MISSING_FIELDS, INVALID_PROSPECT, INVALID_PROJECT_TYPE, DUPLICATE_PROJECT).
+- **Module Make "Add Project" (doc)** : Documentation `MAKE_ADD_PROJECT_MODULE.md` pour configurer le 2ème module sur Make Developer Platform (champs `prospect_id` + `type_projet`, Communication JSON, Output interface, tests).
+- **Module Add Project dans onglet Make** : Section "Module 2 : Add Project" ajoutée dans la méthode App EVATIME de l'onglet Make, avec instructions et cas d'usage.
+- **Diagnostic types Rosca Finance** : Les types `piscine-copie-*` n'existent plus — les 4 types actuels sont déjà propres : `baby`, `fenetre`, `piscine`, `solaire`. Aucun renommage nécessaire.
 
 ### 🐛 Bugs fixés
 - **Fix `organization_id` manquant** : L'INSERT dans `project_steps_status` de la RPC `add_project_to_prospect` ne passait pas `organization_id` → violation NOT NULL. Corrigé.
 
 ### 🗄️ Migrations SQL exécutées
 - `add_project_to_prospect.sql` — Nouvelle RPC (CREATE OR REPLACE + GRANT service_role)
+
+### 📄 Fichiers créés
+- `MAKE_ADD_PROJECT_MODULE.md` — Documentation 2ème module Make "Add Project"
 
 ### 🧪 Tests validés
 | Test | Résultat |
@@ -39,11 +46,11 @@ Chaque entrée contient :
 | `add_project` fenetre → prospect josh | ✅ 201 — 8 steps initialisées |
 | Mauvaise clé | ✅ 401 INVALID_KEY |
 | Type projet inexistant | ✅ 400 INVALID_PROJECT_TYPE |
+| Diagnostic types Rosca | ✅ 4 types propres (baby, fenetre, piscine, solaire) — aucun piscine-copie-* |
 
 ### 🔜 Prochains sujets
-- Mettre à jour l'onglet Développeur d'IntegrationsPage avec l'exemple `add_project`
-- Ajouter un 2ème module "Add Project" dans l'app Make EVATIME
-- Renommer les types `piscine-copie-*` en vrais noms chez Rosca Finance
+- **Configurer le module "Add Project"** sur Make Developer Platform (suivre `MAKE_ADD_PROJECT_MODULE.md`)
+- **Action 9** : Tests E2E complets + documentation finale module Intégrations
 
 ---
 

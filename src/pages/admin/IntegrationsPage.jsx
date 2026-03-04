@@ -147,7 +147,7 @@ const IntegrationsPage = () => {
   const webhookEndpoint = `POST https://${supabaseProjectRef}.supabase.co/functions/v1/webhook-v1`;
   const webhookUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/webhook-v1`;
 
-  // ─── Développeur : Exemple curl ───
+  // ─── Développeur : Exemple curl (Create Prospect) ───
   const curlExample = `curl -X POST ${webhookUrl} \\
   -H "Authorization: Bearer eva_xxxxxxxxx" \\
   -H "Content-Type: application/json" \\
@@ -159,7 +159,17 @@ const IntegrationsPage = () => {
     "send_magic_link": true
   }'`;
 
-  // ─── Développeur : Exemple JS fetch ───
+  // ─── Développeur : Exemple curl (Add Project) ───
+  const curlAddProjectExample = `curl -X POST ${webhookUrl} \\
+  -H "Authorization: Bearer eva_xxxxxxxxx" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "action": "add_project",
+    "prospect_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "type_projet": "${exampleProjectType}"
+  }'`;
+
+  // ─── Développeur : Exemple JS fetch (Create Prospect) ───
   const fetchExample = `fetch("${webhookUrl}", {
   method: "POST",
   headers: {
@@ -173,7 +183,21 @@ const IntegrationsPage = () => {
   })
 });`;
 
-  // ─── Développeur : Codes erreurs ───
+  // ─── Développeur : Exemple JS fetch (Add Project) ───
+  const fetchAddProjectExample = `fetch("${webhookUrl}", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer eva_xxxxxxxxx",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    action: "add_project",
+    prospect_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    type_projet: "${exampleProjectType}"
+  })
+});`;
+
+  // ─── Développeur : Codes erreurs (Create Prospect) ───
   const errorCodes = [
     { http: '401', code: 'INVALID_KEY', description: 'Clé d\'intégration absente, invalide ou introuvable.', httpClass: 'bg-red-100 text-red-700' },
     { http: '403', code: 'KEY_DISABLED', description: 'La clé existe mais est désactivée (is_active = false).', httpClass: 'bg-orange-100 text-orange-700' },
@@ -184,6 +208,16 @@ const IntegrationsPage = () => {
     { http: '400', code: 'INVALID_OWNER', description: 'owner_user_id ou owner_email ne correspond à aucun user de l\'org.', httpClass: 'bg-yellow-100 text-yellow-700' },
     { http: '409', code: 'DUPLICATE_EMAIL', description: 'Un prospect avec cet email existe déjà dans l\'organisation.', httpClass: 'bg-purple-100 text-purple-700' },
     { http: '500', code: 'NO_PIPELINE_STEP', description: 'Aucune étape pipeline trouvée pour ce type de projet.', httpClass: 'bg-red-100 text-red-700' },
+  ];
+
+  // ─── Développeur : Codes erreurs (Add Project) ───
+  const addProjectErrorCodes = [
+    { http: '401', code: 'INVALID_KEY', description: 'Clé d\'intégration absente, invalide ou introuvable.', httpClass: 'bg-red-100 text-red-700' },
+    { http: '400', code: 'MISSING_FIELDS', description: 'Les champs "prospect_id" et "type_projet" sont obligatoires.', httpClass: 'bg-yellow-100 text-yellow-700' },
+    { http: '400', code: 'INVALID_PROSPECT', description: 'Le prospect_id n\'existe pas dans cette organisation.', httpClass: 'bg-yellow-100 text-yellow-700' },
+    { http: '400', code: 'INVALID_PROJECT_TYPE', description: 'type_projet ne correspond à aucun project_template de l\'org.', httpClass: 'bg-yellow-100 text-yellow-700' },
+    { http: '409', code: 'DUPLICATE_PROJECT', description: 'Le prospect possède déjà ce type de projet.', httpClass: 'bg-purple-100 text-purple-700' },
+    { http: '500', code: 'RPC_ERROR', description: 'Erreur interne lors de l\'ajout du projet.', httpClass: 'bg-red-100 text-red-700' },
   ];
 
   // ─── Développeur : Règles d'attribution ───
@@ -573,6 +607,49 @@ const IntegrationsPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* ── Module 2 : Add Project ── */}
+              <div className="bg-white rounded-2xl shadow-card border border-teal-200 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold text-sm">📦</span>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Module 2 : Add Project</h2>
+                    <p className="text-xs text-teal-600 font-medium">Ajouter un projet à un prospect existant</p>
+                  </div>
+                </div>
+
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-teal-800 text-sm">
+                  <strong>📦 Nouveau !</strong> L'app EVATIME dispose d'un 2ème module <strong>Add Project</strong> pour ajouter un projet supplémentaire sans recréer le contact.
+                </div>
+
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-teal-600 mt-0.5">1.</span>
+                    <span>Ajoutez un nouveau module <strong className="text-purple-700">EVATIME → Add Project</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-teal-600 mt-0.5">2.</span>
+                    <span>Remplissez <strong>Prospect ID</strong> (UUID du prospect, souvent issu d'un module précédent)</span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-teal-600 mt-0.5">3.</span>
+                    <span>Remplissez <strong>Type de projet</strong> : {projectTemplates && projectTemplates.length > 0 ? (
+                      projectTemplates.map(t => (
+                        <code key={t.type} className="bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded font-mono text-xs mx-0.5">{t.type}</code>
+                      ))
+                    ) : <span className="text-gray-400">ex: solaire, fenetre...</span>}</span>
+                  </li>
+                  <li className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="font-bold text-teal-600 mt-0.5">4.</span>
+                    <span>Cliquez <strong>Save</strong> → <strong>Run once</strong> → <code className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-mono text-xs font-bold">success: true</code> ✅</span>
+                  </li>
+                </ol>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs flex items-start gap-2">
+                  <span>💡</span>
+                  <span><strong>Cas d'usage</strong> : Module 1 "Create Prospect" → récupérer <code className="bg-blue-100 px-1 rounded font-mono">prospect_id</code> → Module 2 "Add Project" pour ajouter un 2ème projet au même contact.</span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -954,6 +1031,146 @@ Content-Type: application/json`}
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${rule.badgeClass}`}>{rule.badge}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════════ */}
+          {/* SECTION ADD PROJECT */}
+          {/* ══════════════════════════════════════════════════════════════ */}
+          <div className="border-t-2 border-dashed border-emerald-300 pt-6" />
+
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              📦 Action : Add Project
+            </h1>
+            <p className="text-emerald-100 mt-2 text-base">
+              Ajoutez un nouveau projet à un prospect existant — sans recréer le contact.
+            </p>
+          </div>
+
+          {/* ── Add Project : Contrat JSON ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">📋 Contrat JSON — Add Project</h2>
+            <p className="text-sm text-gray-500">
+              Même endpoint, même clé Bearer. Ajoutez <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">"action": "add_project"</code> pour router vers l'ajout de projet.
+            </p>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="text-red-500 font-bold text-xs">*</span>
+                <span className="font-medium text-gray-700 w-32 font-mono">action</span>
+                <span className="text-gray-500">Toujours <code className="bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded font-mono text-xs">"add_project"</code></span>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="text-red-500 font-bold text-xs">*</span>
+                <span className="font-medium text-gray-700 w-32 font-mono">prospect_id</span>
+                <span className="text-gray-500">UUID du prospect existant</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="text-red-500 font-bold text-xs">*</span>
+                <span className="font-medium text-gray-700 w-32 font-mono">type_projet</span>
+                <span className="text-gray-500">
+                  Slug du projet à ajouter.{' '}
+                  {projectTemplates && projectTemplates.length > 0 ? (
+                    <>Vos projets : {projectTemplates.map(t => (
+                      <code key={t.type} className="bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded font-mono text-xs mx-0.5">{t.type}</code>
+                    ))}</>
+                  ) : 'Ex: solaire, fenetre...'}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-teal-800 text-xs flex items-start gap-2">
+              <span className="text-base">💡</span>
+              <div>
+                <p><strong>Le prospect doit déjà exister</strong> dans votre organisation (créé via webhook ou manuellement).</p>
+                <p className="mt-1">Si le prospect a déjà ce projet, l'API retournera <code className="bg-teal-100 px-1 rounded font-mono">409 DUPLICATE_PROJECT</code>.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Add Project : Réponse succès ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">✅ Réponse succès (201)</h2>
+
+            <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{`{
+  "success": true,
+  "action": "add_project",
+  "prospect_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "prospect_name": "Jean Dupont",
+  "project_type": "${exampleProjectType}",
+  "steps_count": 8,
+  "organization_id": "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+}`}
+            </pre>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-xs flex items-start gap-2">
+              <span className="text-base">✅</span>
+              <div>
+                <p><strong>Le tag est ajouté</strong> au prospect et les <strong>étapes du workflow</strong> sont initialisées automatiquement (1ère = <code className="bg-green-100 px-1 rounded font-mono">in_progress</code>, les suivantes = <code className="bg-green-100 px-1 rounded font-mono">pending</code>).</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Add Project : Exemple curl ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">📟 Exemple curl — Add Project</h2>
+
+            <div className="relative">
+              <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{curlAddProjectExample}
+              </pre>
+              <div className="absolute top-2 right-2">
+                <CopyButton value={curlAddProjectExample} label="Copié !" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Add Project : Exemple JavaScript ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">🟨 Exemple JavaScript — Add Project</h2>
+
+            <div className="relative">
+              <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre">
+{fetchAddProjectExample}
+              </pre>
+              <div className="absolute top-2 right-2">
+                <CopyButton value={fetchAddProjectExample} label="Copié !" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Add Project : Codes erreurs ── */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">⚠️ Codes erreurs — Add Project</h2>
+            <p className="text-sm text-gray-500">
+              Réponses d'erreur possibles pour <code className="bg-gray-100 px-1 rounded font-mono">{"action: \"add_project\""}</code>.
+            </p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-2 px-3 text-gray-600 font-medium">HTTP</th>
+                    <th className="text-left py-2 px-3 text-gray-600 font-medium">Code erreur</th>
+                    <th className="text-left py-2 px-3 text-gray-600 font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {addProjectErrorCodes.map((err) => (
+                    <tr key={err.code} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-2 px-3">
+                        <span className={`inline-block text-xs font-mono font-bold px-2 py-0.5 rounded ${err.httpClass}`}>
+                          {err.http}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 font-mono text-xs text-gray-800">{err.code}</td>
+                      <td className="py-2 px-3 text-xs text-gray-500">{err.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </motion.div>
