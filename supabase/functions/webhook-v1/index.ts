@@ -84,7 +84,7 @@ serve(async (req) => {
 
     const { data: keyData, error: keyError } = await supabaseAdmin
       .from('integration_keys')
-      .select('id, organization_id, permissions, is_active, expires_at, use_count')
+      .select('id, organization_id, permissions, is_active, expires_at, use_count, external_webhook_url')
       .eq('key_hash', tokenHash)
       .single()
 
@@ -127,6 +127,7 @@ serve(async (req) => {
 
     const organizationId: string = keyData.organization_id
     const integrationKeyId: string = keyData.id
+    const externalWebhookUrl: string | null = (keyData as any).external_webhook_url || null
 
     // ══════════════════════════════════════════════════════════════
     // ÉTAPE 1b: Mode validate_only (pour tester la connexion Make)
@@ -410,7 +411,39 @@ serve(async (req) => {
       .eq('id', integrationKeyId)
 
     // ══════════════════════════════════════════════════════════════
-    // ÉTAPE 8: Retour succès
+    // ÉTAPE 8: (Optionnel) Appeler le webhook externe de l'org
+    // ══════════════════════════════════════════════════════════════
+    // Fire-and-forget — ne bloque JAMAIS la réponse au client.
+    // Si l'appel échoue, on log l'erreur mais le prospect est déjà créé.
+    if (externalWebhookUrl) {
+      try {
+        await fetch(externalWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'prospect.created',
+            prospect_id: result.prospect_id,
+            owner_id: result.owner_id,
+            owner_name: result.owner_name,
+            nom: name,
+            email,
+            telephone: phone,
+            type_projet: typeProjet,
+            tags,
+            organization_id: organizationId,
+            magic_link_sent: magicLinkSent,
+            created_at: new Date().toISOString(),
+          }),
+        })
+        console.log(`🔔 Webhook externe appelé: ${externalWebhookUrl}`)
+      } catch (webhookErr) {
+        console.error(`⚠️ Webhook externe échoué (${externalWebhookUrl}):`, webhookErr)
+        // On ne fail PAS — le prospect est déjà créé
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // ÉTAPE 9: Retour succès
     // ══════════════════════════════════════════════════════════════
     console.log(`✅ Prospect créé via webhook: ${result.prospect_id} (org: ${organizationId})`)
 

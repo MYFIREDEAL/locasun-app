@@ -16,6 +16,22 @@ Chaque entrée contient :
 
 ---
 
+## 4 mars 2026 (session 2)
+
+### ✅ Features
+- **Webhook externe par organisation** : Après création d'un prospect via `webhook-v1`, si l'org a un `external_webhook_url` configuré dans `integration_keys`, un appel POST fire-and-forget est envoyé automatiquement avec les infos du prospect (`event: prospect.created`, `prospect_id`, `owner_id`, `nom`, `email`, `telephone`, `type_projet`, `tags`, `organization_id`, `magic_link_sent`, `created_at`). Ne bloque jamais la réponse 201.
+
+### 🗄️ Migrations SQL exécutées
+- `add_external_webhook_url_to_integration_keys.sql` — `ALTER TABLE integration_keys ADD COLUMN external_webhook_url TEXT DEFAULT NULL`
+
+### 🔜 Prochains sujets
+- Déployer webhook-v1 (`supabase functions deploy webhook-v1`)
+- Tester avec webhook.site ou un endpoint réel
+- Ajouter UI dans IntegrationsPage pour configurer l'URL webhook externe
+- Reprendre config module Make (auth header issue)
+
+---
+
 ## 4 mars 2026
 
 ### ✅ Features
