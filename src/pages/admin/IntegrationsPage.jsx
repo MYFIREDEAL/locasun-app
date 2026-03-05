@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Link2, Zap, Code2, ArrowLeft, Key, Copy, Check, AlertTriangle, X, Power, ExternalLink } from 'lucide-react';
+import { Link2, Zap, Code2, ArrowLeft, Key, Copy, Check, AlertTriangle, X, Power, ExternalLink, Puzzle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ const TABS = [
   { id: 'sans-code', label: 'Sans code', icon: Link2, description: 'Liens, QR codes, widgets embed', color: 'bg-blue-50 border-blue-200 text-blue-700' },
   { id: 'make', label: 'Make', icon: Zap, description: 'Scénarios Make prêts à l\'emploi', color: 'bg-purple-50 border-purple-200 text-purple-700' },
   { id: 'developpeur', label: 'Développeur', icon: Code2, description: 'Webhooks, API keys, endpoints', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+  { id: 'plugins', label: 'Plugins', icon: Puzzle, description: 'Apps tierces connectées', color: 'bg-orange-50 border-orange-200 text-orange-700' },
 ];
 
 const IntegrationsPage = () => {
@@ -339,7 +340,7 @@ const IntegrationsPage = () => {
       </motion.div>
 
       {/* Tabs / Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -433,107 +434,6 @@ const IntegrationsPage = () => {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Bloc 3 : Plugins / Apps connectées */}
-          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">🔌 Plugins</h2>
-            <p className="text-sm text-gray-500">
-              Activez des applications tierces pour synchroniser vos prospects automatiquement.
-            </p>
-
-            {/* Card Hangar 3D */}
-            <div className={`rounded-xl border-2 transition-all ${hangarEnabled ? 'border-green-300 bg-green-50/50' : 'border-gray-200 bg-gray-50'} p-5 space-y-4`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${hangarEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
-                    🏗️
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      Hangar 3D
-                      {hangarEnabled && (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Actif</span>
-                      )}
-                    </h3>
-                    <p className="text-xs text-gray-500">Envoyez vos prospects vers Hangar 3D, configurez l'offre et envoyez-la au client</p>
-                  </div>
-                </div>
-
-                {/* Toggle */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (hangarEnabled) {
-                      handleHangarToggle(false);
-                    } else if (hangarUrl.trim()) {
-                      handleHangarToggle(true);
-                    }
-                  }}
-                  disabled={hangarSaving || (!hangarEnabled && !hangarUrl.trim())}
-                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                    hangarEnabled ? 'bg-green-500' : 'bg-gray-300'
-                  } ${hangarSaving ? 'opacity-50' : ''}`}
-                >
-                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform ${
-                    hangarEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
-                </button>
-              </div>
-
-              {/* Config URL */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">URL webhook Hangar 3D</label>
-                <p className="text-xs text-gray-400">
-                  Quand vous créez un prospect sur EVATIME, il est envoyé automatiquement à Hangar 3D. Vous configurez son offre et vous l'envoyez au client. Le client choisit son offre, ce qui crée le projet correspondant dans EVATIME.
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={hangarUrl}
-                    onChange={(e) => setHangarUrl(e.target.value)}
-                    placeholder="https://app.hangar3d.com/api/webhook/evatime"
-                    className="font-mono text-sm flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleHangarSaveUrl}
-                    disabled={hangarSaving || !hangarUrl.trim()}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                      hangarSaved
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
-                    }`}
-                  >
-                    {hangarSaving ? (
-                      <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Saving…</>
-                    ) : hangarSaved ? (
-                      <><Check className="w-4 h-4" /> Sauvegardé</>
-                    ) : (
-                      'Sauvegarder'
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Info box */}
-              {hangarEnabled && (
-                <div className="bg-green-100 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
-                  <Power className="w-4 h-4 mt-0.5 shrink-0" />
-                  <div>
-                    <strong>Plugin actif</strong> — Chaque nouveau prospect créé sur EVATIME est envoyé à Hangar 3D. Vous configurez l'offre, vous l'envoyez au client, il choisit et le projet se crée automatiquement dans EVATIME.
-                  </div>
-                </div>
-              )}
-
-              {!hangarEnabled && !hangarKeyId && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <div>
-                    <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Make</strong> ou <strong>Développeur</strong>.
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </motion.div>
       )}
@@ -1358,6 +1258,121 @@ Content-Type: application/json`}
                 </tbody>
               </table>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── Onglet Plugins ─── */}
+      {activeTab === 'plugins' && (
+        <motion.div variants={itemVariants} className="space-y-6">
+          {/* Intro */}
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-6 text-white shadow-lg">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              🔌 Plugins
+            </h1>
+            <p className="text-orange-100 mt-2 text-base">
+              Activez des applications tierces pour enrichir votre workflow.
+            </p>
+          </div>
+
+          {/* Card Hangar 3D */}
+          <div className={`bg-white rounded-2xl shadow-card border-2 transition-all ${hangarEnabled ? 'border-green-300' : 'border-gray-100'} p-6 space-y-5`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${hangarEnabled ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  🏗️
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    Hangar 3D
+                    {hangarEnabled && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Actif</span>
+                    )}
+                  </h3>
+                  <p className="text-sm text-gray-500">Envoyez vos prospects vers Hangar 3D, configurez l'offre et envoyez-la au client</p>
+                </div>
+              </div>
+
+              {/* Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (hangarEnabled) {
+                    handleHangarToggle(false);
+                  } else if (hangarUrl.trim()) {
+                    handleHangarToggle(true);
+                  }
+                }}
+                disabled={hangarSaving || (!hangarEnabled && !hangarUrl.trim())}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                  hangarEnabled ? 'bg-green-500' : 'bg-gray-300'
+                } ${hangarSaving ? 'opacity-50' : ''}`}
+              >
+                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform ${
+                  hangarEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            {/* Flow description */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <p className="text-sm font-medium text-gray-700">Comment ça marche :</p>
+              <div className="flex flex-col gap-1.5 text-sm text-gray-600">
+                <span>1️⃣ Vous créez un prospect sur EVATIME → il est envoyé automatiquement à Hangar 3D</span>
+                <span>2️⃣ Vous configurez l'offre sur Hangar 3D et vous l'envoyez au client</span>
+                <span>3️⃣ Le client choisit son offre → le projet se crée automatiquement dans EVATIME</span>
+              </div>
+            </div>
+
+            {/* Config URL */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">URL webhook Hangar 3D</label>
+              <div className="flex gap-2">
+                <Input
+                  value={hangarUrl}
+                  onChange={(e) => setHangarUrl(e.target.value)}
+                  placeholder="https://app.hangar3d.com/api/webhook/evatime"
+                  className="font-mono text-sm flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={handleHangarSaveUrl}
+                  disabled={hangarSaving || !hangarUrl.trim()}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    hangarSaved
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
+                  }`}
+                >
+                  {hangarSaving ? (
+                    <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Saving…</>
+                  ) : hangarSaved ? (
+                    <><Check className="w-4 h-4" /> Sauvegardé</>
+                  ) : (
+                    'Sauvegarder'
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Info box */}
+            {hangarEnabled && (
+              <div className="bg-green-100 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
+                <Power className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  <strong>Plugin actif</strong> — Vos prospects sont envoyés automatiquement à Hangar 3D.
+                </div>
+              </div>
+            )}
+
+            {!hangarEnabled && !hangarKeyId && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Make</strong> ou <strong>Développeur</strong>.
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       )}
