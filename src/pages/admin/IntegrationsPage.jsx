@@ -1283,15 +1283,15 @@ Content-Type: application/json`}
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Hangar 3D</h3>
-                <p className="text-sm text-gray-500">Configurateur 3D de bâtiments — connecté à EVATIME via la même base de données</p>
+                <p className="text-sm text-gray-500">Configurateur 3D de bâtiments connecté à EVATIME</p>
               </div>
             </div>
 
-            {/* Architecture technique */}
+            {/* Comment ça fonctionne */}
             <div className="bg-blue-50 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-blue-800">🔗 Comment la connexion fonctionne :</p>
               <div className="text-sm text-blue-700 space-y-1">
-                <p>EVATIME et Hangar 3D partagent la <strong>même base de données Supabase</strong>. Aucune configuration supplémentaire n'est nécessaire côté EVATIME.</p>
+                <p>Générez une clé API sur EVATIME et collez-la dans Hangar 3D. La connexion est automatique.</p>
               </div>
             </div>
 
@@ -1305,7 +1305,7 @@ Content-Type: application/json`}
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-                  <span>L'utilisateur <strong>crée un prospect</strong> sur EVATIME → Hangar 3D le <strong>lit automatiquement</strong> (même base Supabase)</span>
+                  <span>L'utilisateur <strong>crée un prospect</strong> sur EVATIME → Hangar 3D le <strong>lit automatiquement</strong></span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
@@ -1313,27 +1313,17 @@ Content-Type: application/json`}
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
-                  <span>Le client choisit son offre → Hangar 3D appelle <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">webhook-v1</code> avec <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">action: "add_project"</code> → <strong>le projet se crée automatiquement dans EVATIME</strong></span>
+                  <span>Le client choisit son offre → <strong>le projet se crée automatiquement dans EVATIME</strong></span>
                 </div>
               </div>
             </div>
 
-            {/* Détails techniques */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-700">⚙️ Détails techniques :</p>
-              <div className="grid grid-cols-1 gap-2 text-sm">
-                <div className="flex items-start gap-2 text-gray-600">
-                  <span className="text-green-500 mt-0.5">✓</span>
-                  <span><strong>Lecture prospects</strong> : Hangar 3D lit directement la table <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">prospects</code> via Supabase (même DB, RLS appliquée)</span>
-                </div>
-                <div className="flex items-start gap-2 text-gray-600">
-                  <span className="text-green-500 mt-0.5">✓</span>
-                  <span><strong>Ajout projet</strong> : Hangar 3D appelle <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">POST webhook-v1</code> avec la clé API <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">Bearer eva_live_xxx</code></span>
-                </div>
-                <div className="flex items-start gap-2 text-gray-600">
-                  <span className="text-green-500 mt-0.5">✓</span>
-                  <span><strong>Zéro config côté EVATIME</strong> : Il suffit de générer une clé API et de la coller dans Hangar 3D</span>
-                </div>
+            {/* Avertissement mapping type */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+              <p className="text-sm font-semibold text-amber-800">⚠️ Mapping des projets :</p>
+              <div className="text-sm text-amber-700 space-y-1">
+                <p>Pour mapper les projets entre EVATIME et Hangar 3D, utilisez toujours le <strong>type technique</strong> du projet et non le nom affiché. Le nom peut être modifié, mais le type reste la référence stable.</p>
+                <p className="text-xs text-amber-600 mt-1">Exemple : le projet affiché <strong>"Centraleyes"</strong> a le type <strong>centrale</strong> — c'est <strong>centrale</strong> qu'il faut utiliser dans Hangar 3D.</p>
               </div>
             </div>
 
@@ -1351,7 +1341,7 @@ Content-Type: application/json`}
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
                 <Check className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <strong>Clé API active</strong> — Hangar 3D peut lire vos prospects et ajouter des projets via <code className="bg-green-100 px-1 py-0.5 rounded text-xs font-mono">webhook-v1</code>.
+                  <strong>Clé API active</strong> — Hangar 3D peut lire vos prospects et ajouter des projets.
                 </div>
               </div>
             )}
