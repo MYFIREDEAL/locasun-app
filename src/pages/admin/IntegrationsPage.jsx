@@ -456,7 +456,7 @@ const IntegrationsPage = () => {
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Actif</span>
                       )}
                     </h3>
-                    <p className="text-xs text-gray-500">Synchronisation automatique des prospects vers Hangar 3D</p>
+                    <p className="text-xs text-gray-500">Envoyez vos prospects vers Hangar 3D, configurez l'offre et envoyez-la au client</p>
                   </div>
                 </div>
 
@@ -485,7 +485,7 @@ const IntegrationsPage = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">URL webhook Hangar 3D</label>
                 <p className="text-xs text-gray-400">
-                  L'URL fournie par Hangar 3D pour recevoir les nouveaux prospects. Chaque prospect créé sur EVATIME sera envoyé automatiquement.
+                  Quand vous créez un prospect sur EVATIME, il est envoyé automatiquement à Hangar 3D. Vous configurez son offre et vous l'envoyez au client. Le client choisit son offre, ce qui crée le projet correspondant dans EVATIME.
                 </p>
                 <div className="flex gap-2">
                   <Input
@@ -520,7 +520,7 @@ const IntegrationsPage = () => {
                 <div className="bg-green-100 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
                   <Power className="w-4 h-4 mt-0.5 shrink-0" />
                   <div>
-                    <strong>Plugin actif</strong> — Chaque nouveau prospect créé via l'API sera automatiquement envoyé vers Hangar 3D (POST fire-and-forget).
+                    <strong>Plugin actif</strong> — Chaque nouveau prospect créé sur EVATIME est envoyé à Hangar 3D. Vous configurez l'offre, vous l'envoyez au client, il choisit et le projet se crée automatiquement dans EVATIME.
                   </div>
                 </div>
               )}
