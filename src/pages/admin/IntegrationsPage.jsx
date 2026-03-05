@@ -1276,100 +1276,82 @@ Content-Type: application/json`}
           </div>
 
           {/* Card Hangar 3D */}
-          <div className={`bg-white rounded-2xl shadow-card border-2 transition-all ${hangarEnabled ? 'border-green-300' : 'border-gray-100'} p-6 space-y-5`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${hangarEnabled ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  🏗️
+          <div className="bg-white rounded-2xl shadow-card border-2 border-gray-100 p-6 space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-100">
+                🏗️
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Hangar 3D</h3>
+                <p className="text-sm text-gray-500">Configurateur 3D de bâtiments — connecté à EVATIME via la même base de données</p>
+              </div>
+            </div>
+
+            {/* Architecture technique */}
+            <div className="bg-blue-50 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-blue-800">🔗 Comment la connexion fonctionne :</p>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>EVATIME et Hangar 3D partagent la <strong>même base de données Supabase</strong>. Aucune configuration supplémentaire n'est nécessaire côté EVATIME.</p>
+              </div>
+            </div>
+
+            {/* Flow en 4 étapes */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">📋 Flow complet :</p>
+              <div className="flex flex-col gap-2 text-sm text-gray-600">
+                <div className="flex items-start gap-2">
+                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                  <span>L'utilisateur <strong>génère une clé API</strong> sur EVATIME (onglet Développeur) et la <strong>colle dans Hangar 3D</strong> à l'inscription</span>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    Hangar 3D
-                    {hangarEnabled && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Actif</span>
-                    )}
-                  </h3>
-                  <p className="text-sm text-gray-500">Envoyez vos prospects vers Hangar 3D, configurez l'offre et envoyez-la au client</p>
+                <div className="flex items-start gap-2">
+                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                  <span>L'utilisateur <strong>crée un prospect</strong> sur EVATIME → Hangar 3D le <strong>lit automatiquement</strong> (même base Supabase)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                  <span>L'utilisateur <strong>configure l'offre</strong> sur Hangar 3D et <strong>l'envoie au client</strong></span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
+                  <span>Le client choisit son offre → Hangar 3D appelle <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">webhook-v1</code> avec <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">action: "add_project"</code> → <strong>le projet se crée automatiquement dans EVATIME</strong></span>
                 </div>
               </div>
-
-              {/* Toggle */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (hangarEnabled) {
-                    handleHangarToggle(false);
-                  } else if (hangarUrl.trim()) {
-                    handleHangarToggle(true);
-                  }
-                }}
-                disabled={hangarSaving || (!hangarEnabled && !hangarUrl.trim())}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                  hangarEnabled ? 'bg-green-500' : 'bg-gray-300'
-                } ${hangarSaving ? 'opacity-50' : ''}`}
-              >
-                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform ${
-                  hangarEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`} />
-              </button>
             </div>
 
-            {/* Flow description */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <p className="text-sm font-medium text-gray-700">Comment ça marche :</p>
-              <div className="flex flex-col gap-1.5 text-sm text-gray-600">
-                <span>1️⃣ Vous créez un prospect sur EVATIME → il est envoyé automatiquement à Hangar 3D</span>
-                <span>2️⃣ Vous configurez l'offre sur Hangar 3D et vous l'envoyez au client</span>
-                <span>3️⃣ Le client choisit son offre → le projet se crée automatiquement dans EVATIME</span>
+            {/* Détails techniques */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700">⚙️ Détails techniques :</p>
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-start gap-2 text-gray-600">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span><strong>Lecture prospects</strong> : Hangar 3D lit directement la table <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">prospects</code> via Supabase (même DB, RLS appliquée)</span>
+                </div>
+                <div className="flex items-start gap-2 text-gray-600">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span><strong>Ajout projet</strong> : Hangar 3D appelle <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">POST webhook-v1</code> avec la clé API <code className="bg-gray-200 px-1 py-0.5 rounded text-xs font-mono">Bearer eva_live_xxx</code></span>
+                </div>
+                <div className="flex items-start gap-2 text-gray-600">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span><strong>Zéro config côté EVATIME</strong> : Il suffit de générer une clé API et de la coller dans Hangar 3D</span>
+                </div>
               </div>
             </div>
 
-            {/* Config URL */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">URL webhook Hangar 3D</label>
-              <div className="flex gap-2">
-                <Input
-                  value={hangarUrl}
-                  onChange={(e) => setHangarUrl(e.target.value)}
-                  placeholder="https://app.hangar3d.com/api/webhook/evatime"
-                  className="font-mono text-sm flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={handleHangarSaveUrl}
-                  disabled={hangarSaving || !hangarUrl.trim()}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                    hangarSaved
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
-                  }`}
-                >
-                  {hangarSaving ? (
-                    <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Saving…</>
-                  ) : hangarSaved ? (
-                    <><Check className="w-4 h-4" /> Sauvegardé</>
-                  ) : (
-                    'Sauvegarder'
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Info box */}
-            {hangarEnabled && (
-              <div className="bg-green-100 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
-                <Power className="w-4 h-4 mt-0.5 shrink-0" />
+            {/* Lien vers la clé */}
+            {!hangarKeyId && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <strong>Plugin actif</strong> — Vos prospects sont envoyés automatiquement à Hangar 3D.
+                  <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Développeur</strong>, puis collez-la dans Hangar 3D.
                 </div>
               </div>
             )}
 
-            {!hangarEnabled && !hangarKeyId && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            {hangarKeyId && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
+                <Check className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Make</strong> ou <strong>Développeur</strong>.
+                  <strong>Clé API active</strong> — Hangar 3D peut lire vos prospects et ajouter des projets via <code className="bg-green-100 px-1 py-0.5 rounded text-xs font-mono">webhook-v1</code>.
                 </div>
               </div>
             )}
