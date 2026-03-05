@@ -1319,12 +1319,31 @@ Content-Type: application/json`}
             </div>
 
             {/* Avertissement mapping type */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
               <p className="text-sm font-semibold text-amber-800">⚠️ Mapping des projets :</p>
               <div className="text-sm text-amber-700 space-y-1">
                 <p>Pour mapper les projets entre EVATIME et Hangar 3D, utilisez toujours le <strong>type technique</strong> du projet et non le nom affiché. Le nom peut être modifié, mais le type reste la référence stable.</p>
-                <p className="text-xs text-amber-600 mt-1">Exemple : le projet affiché <strong>"Centraleyes"</strong> a le type <strong>centrale</strong> — c'est <strong>centrale</strong> qu'il faut utiliser dans Hangar 3D.</p>
               </div>
+              {projectTemplates && projectTemplates.length > 0 && (
+                <div className="mt-2 border border-amber-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-amber-100">
+                        <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type (à utiliser)</th>
+                        <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Nom affiché</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projectTemplates.map(t => (
+                        <tr key={t.type} className="border-t border-amber-200">
+                          <td className="px-3 py-1.5 font-mono font-bold text-amber-900">{t.type}</td>
+                          <td className="px-3 py-1.5 text-amber-700">{t.title}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Lien vers la clé */}
