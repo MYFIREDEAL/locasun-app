@@ -20,6 +20,14 @@ Chaque entrée contient :
 
 ### ✅ Features
 - **Webhook externe par organisation** : Après création d'un prospect via `webhook-v1`, si l'org a un `external_webhook_url` configuré dans `integration_keys`, un appel POST fire-and-forget est envoyé automatiquement avec les infos du prospect (`event: prospect.created`, `prospect_id`, `owner_id`, `nom`, `email`, `telephone`, `type_projet`, `tags`, `organization_id`, `magic_link_sent`, `created_at`). Ne bloque jamais la réponse 201.
+- **Deploy Edge Function** : `webhook-v1` déployé en prod avec `--no-verify-jwt` (Bearer custom, pas JWT Supabase). Config `supabase/config.toml` ajouté.
+
+### 🧪 Tests validés
+| Test | Résultat |
+|------|----------|
+| Créer prospect via curl (Rosca Finance) | ✅ 201 — prospect créé |
+| Webhook externe → webhook.site | ✅ POST reçu avec payload complet |
+| **Flow complet EVATIME → Hangar 3D** | ✅ Prospect créé sur EVATIME → créé auto sur Hangar 3D → config bâtiment → URL envoyée au client dans le chat → client choisit offre → projet créé dans EVATIME |
 
 ### 🗄️ Migrations SQL exécutées
 - `add_external_webhook_url_to_integration_keys.sql` — `ALTER TABLE integration_keys ADD COLUMN external_webhook_url TEXT DEFAULT NULL`
