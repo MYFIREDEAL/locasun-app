@@ -16,6 +16,54 @@ Chaque entrée contient :
 
 ---
 
+## 9 mars 2026 (session 4 — soirée)
+
+### ✅ Features
+- **Trigger DB 100% server-side** : Le trigger `fn_v2_action_chaining` gère TOUT le workflow V2 côté serveur : chaînage des actions, complétion d'étape, mise à jour des subSteps. Le frontend n'intervient plus du tout pour les panels V2.
+- **Test end-to-end réussi** : FORM (decouverte) → approve → passage auto chiffrage → MESSAGE (chiffrage) → client Valider → passage auto connexion. Tout propre, pas de subSteps fantômes.
+
+### 🐛 Bugs fixés (3 hotfixes)
+- **Double complétion d'étape** : Le trigger DB ET le frontend `sendNextAction` faisaient la complétion d'étape → subSteps du module courant clonées sur l'étape suivante. Fix : supprimé la complétion d'étape frontend pour V2 (le trigger DB s'en charge).
+- **subSteps marquées "Terminé" prématurément** : `useWorkflowActionTrigger` appelait encore `sendNextAction` pour les panels V2, qui exécutait l'action suivante ET marquait les subSteps completed avant que le client n'interagisse. Fix : ajout guard `action_id.startsWith('v2-')` → skip `sendNextAction`, le trigger DB gère tout.
+- **Actions clonées sur étape non-configurée** : L'étape chiffrage recevait les subSteps de decouverte à cause du `sendNextAction` frontend qui créait les subSteps depuis `currentModuleConfig` (qui pointait sur le mauvais module après le switch d'étape par le trigger). Fix : même guard que ci-dessus.
+
+### 📁 Fichiers modifiés
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/admin/ProspectDetailsAdmin.jsx` | Supprimé le bloc complétion d'étape frontend pour V2 (else dans sendNextAction). Remplacé par un simple return + log "complétion gérée par trigger DB". |
+| `src/hooks/useWorkflowActionTrigger.js` | Ajout guard : si `action_id.startsWith('v2-')` → skip `sendNextAction`. Seuls les panels V1 déclenchent encore le chaînage frontend. |
+
+### 🧪 Tests validés
+| Test | Résultat |
+|------|----------|
+| FORM simple (1 action, decouverte) | ✅ Client remplit → admin approuve → étape Terminé |
+| MESSAGE (1 action, chiffrage) | ✅ Admin lance robot → client Valider → étape Terminé |
+| Passage d'étape auto (decouverte→chiffrage→connexion) | ✅ Trigger DB gère tout |
+| Pas de subSteps fantômes sur étape suivante | ✅ connexion = "En cours" propre |
+| Pas de double exécution frontend | ✅ Guard V2 dans useWorkflowActionTrigger |
+
+### 🏗️ Architecture V2 — État actuel
+
+```
+Panel V2 approved
+  ↓
+Trigger DB fn_v2_action_chaining (SECURITY DEFINER)
+  ├── CAS 1: Action suivante → crée panel + chat message + MAJ subSteps
+  └── CAS 2: Dernière action → complète étape + active suivante
+
+Frontend (useWorkflowActionTrigger)
+  └── Panel V2 ? → SKIP (trigger DB gère)
+  └── Panel V1 ? → sendNextAction (legacy)
+```
+
+### 🔜 Prochains sujets
+- Tester multi-actions (FORM → MESSAGE dans la même étape) avec trigger DB
+- Tester SIGNATURE en multi-actions
+- Tester sans admin en ligne (l'IA envoie l'action puis "part")
+- Nettoyer le code `sendNextAction` : le bloc de mise à jour subSteps (lignes 533-577) est maintenant dead code pour V2
+
+---
+
 ## 9 mars 2026
 
 ### ✅ Features

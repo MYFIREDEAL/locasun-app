@@ -2205,6 +2205,25 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
             }
 
             // ═══════════════════════════════════════════════════════════════════
+            // 🔥 V2 PANELS: Le trigger DB fn_v2_action_chaining gère TOUT server-side
+            // (chaînage intra-étape, complétion d'étape, subSteps).
+            // Le frontend ne doit PAS faire de completeStepAndProceed ni de subStep update
+            // car le trigger s'exécute AVANT que le handleApprove continue,
+            // et les steps ont déjà changé (race condition).
+            // ═══════════════════════════════════════════════════════════════════
+            const isV2Panel = panel.actionId?.startsWith('v2-') || panel.action_id?.startsWith('v2-');
+            if (isV2Panel) {
+                logger.info('[V2] Panel V2 approved → trigger DB gère chaînage + complétion, skip frontend logic', {
+                    actionId: panel.actionId || panel.action_id,
+                    panelId: panel.panelId,
+                });
+                // On ne fait rien de plus — le trigger DB a déjà :
+                // 1. Chaîné vers l'action suivante (CAS 1) ou complété l'étape (CAS 2)
+                // 2. Mis à jour les subSteps
+                // 3. Créé le panel + message chat pour l'action suivante
+            } else {
+
+            // ═══════════════════════════════════════════════════════════════════
             // 🔥 V2: Vérifier completionTrigger depuis config V2 (Supabase ou in-memory)
             // ═══════════════════════════════════════════════════════════════════
             const currentSteps = supabaseSteps?.[panel.projectType];
@@ -2473,6 +2492,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                     }
                 }
             }
+
+            } // ← Fin du else (panels non-V2)
 
             // 🆕 ENVOYER MESSAGE AUTO dans le chat (UNIQUEMENT pour formulaires CLIENT, pas partenaire)
             const isPartnerForm = panel.filledByRole === 'partner';
