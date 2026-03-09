@@ -77,6 +77,17 @@ export function useWorkflowActionTrigger({
           });
           
           if (projectMatch && isApproved && hasActionId) {
+            // 🔥 V2 panels: Le trigger DB fn_v2_action_chaining gère TOUT server-side
+            // (chaînage, complétion d'étape, subSteps). Le frontend ne doit PAS intervenir
+            // sinon il crée des doublons et marque les subSteps terminées prématurément.
+            const isV2Panel = updatedPanel.action_id?.startsWith('v2-');
+            if (isV2Panel) {
+              logger.info('🔄 [V2] Panel V2 approved → trigger DB gère le chaînage server-side, skip frontend', {
+                actionId: updatedPanel.action_id,
+              });
+              return;
+            }
+            
             const actionKey = `${prospectId}-${projectType}-${currentStepIndex}-${updatedPanel.action_id}`;
             
             // Éviter les duplicatas
@@ -87,17 +98,17 @@ export function useWorkflowActionTrigger({
             
             executedRef.current.add(actionKey);
             
-            logger.info('✅ Formulaire approuvé → Action suivante dans 2s', {
+            logger.info('✅ [V1] Formulaire approuvé → Action suivante dans 2s', {
               formId: updatedPanel.form_id,
               actionId: updatedPanel.action_id,
             });
             
             // 🔥 Délai de 2 secondes pour laisser le message de validation s'afficher
             setTimeout(() => {
-              logger.info('🚀 Envoi action suivante', { 
+              logger.info('🚀 [V1] Envoi action suivante', { 
                 completedActionId: updatedPanel.action_id 
               });
-              sendNextAction(updatedPanel.action_id); // Passer l'ID de l'action complétée
+              sendNextAction(updatedPanel.action_id);
             }, 2000);
           }
         }
