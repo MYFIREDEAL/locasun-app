@@ -526,6 +526,54 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           nextActionType: nextActionConfig.actionType,
         });
         
+        // 🔥 FIX: Mettre à jour les subSteps AVANT d'exécuter l'action suivante
+        // Marquer la sous-étape complétée et activer la suivante
+        try {
+          const { data: stepsRow } = await supabase
+            .from('project_steps_status')
+            .select('steps')
+            .eq('prospect_id', prospectId)
+            .eq('project_type', projectType)
+            .single();
+          
+          const fetchedSteps = stepsRow?.steps;
+          if (fetchedSteps) {
+            const stepIdx = fetchedSteps.findIndex(s => s.status === 'in_progress');
+            if (stepIdx !== -1 && fetchedSteps[stepIdx].subSteps?.length > 0) {
+              const updatedSteps = JSON.parse(JSON.stringify(fetchedSteps));
+              const subSteps = updatedSteps[stepIdx].subSteps;
+              
+              // Trouver la sous-étape par action_id
+              let subIdx = subSteps.findIndex(sub => sub.id === completedActionId);
+              // Fallback: première in_progress
+              if (subIdx === -1) {
+                subIdx = subSteps.findIndex(sub => sub.status === STATUS_CURRENT);
+              }
+              
+              if (subIdx !== -1) {
+                subSteps[subIdx].status = STATUS_COMPLETED;
+                // Activer la sous-étape suivante (qui correspond à nextIdx)
+                if (nextIdx < subSteps.length && subSteps[nextIdx].status === STATUS_PENDING) {
+                  subSteps[nextIdx].status = STATUS_CURRENT;
+                }
+                
+                await supabase
+                  .from('project_steps_status')
+                  .update({ steps: updatedSteps })
+                  .eq('prospect_id', prospectId)
+                  .eq('project_type', projectType);
+                
+                logger.info('✅ [V2] SubSteps mis à jour', {
+                  completedSubStep: subIdx,
+                  activatedSubStep: nextIdx,
+                });
+              }
+            }
+          }
+        } catch (subStepErr) {
+          logger.error('⚠️ [V2] Erreur mise à jour subSteps (non bloquant)', { error: subStepErr.message });
+        }
+        
         // Importer dynamiquement les fonctions V2
         const { buildActionOrder } = await import('@/lib/actionOrderV2');
         const { executeActionOrder } = await import('@/lib/executeActionOrderV2');
@@ -591,7 +639,28 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
             return;
           }
           
-          await completeStepAndProceed(prospectId, projectType, currentStepIndex, currentSteps);
+          // 🔥 FIX: Marquer la dernière sous-étape comme complétée AVANT completeStepAndProceed
+          const stepIdx = currentSteps.findIndex(s => s.status === 'in_progress');
+          if (stepIdx !== -1 && currentSteps[stepIdx].subSteps?.length > 0) {
+            const updatedSteps = JSON.parse(JSON.stringify(currentSteps));
+            const subSteps = updatedSteps[stepIdx].subSteps;
+            
+            // Trouver la sous-étape par action_id
+            let subIdx = subSteps.findIndex(sub => sub.id === completedActionId);
+            if (subIdx === -1) {
+              subIdx = subSteps.findIndex(sub => sub.status === STATUS_CURRENT);
+            }
+            
+            if (subIdx !== -1) {
+              subSteps[subIdx].status = STATUS_COMPLETED;
+              logger.info('✅ [V2] Dernière subStep marquée completed', { subIdx });
+            }
+            
+            // Passer les steps mis à jour à completeStepAndProceed
+            await completeStepAndProceed(prospectId, projectType, currentStepIndex, updatedSteps);
+          } else {
+            await completeStepAndProceed(prospectId, projectType, currentStepIndex, currentSteps);
+          }
           logger.info('✅ [V2] Étape complétée avec succès');
         } catch (err) {
           logger.error('❌ [V2] Erreur complétion étape', { error: err.message });
