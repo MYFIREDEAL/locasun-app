@@ -508,7 +508,13 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     
     // ═══════════════════════════════════════════════════════════════════
     // TENTATIVE 2: Chaînage via template V2 (MESSAGE, etc.)
+    // 🔥 V2: Le trigger DB fn_v2_action_chaining gère TOUT le chaînage server-side.
+    // Le frontend ne doit PAS créer de panels/messages en doublon.
     // ═══════════════════════════════════════════════════════════════════
+    if (completedActionId?.startsWith('v2-')) {
+      logger.info('🔄 [V2] sendNextAction: chaînage géré par trigger DB, skip frontend', { completedActionId });
+      return;
+    }
     if (completedActionId && currentModuleConfig?.actions?.length >= 1) {
       const v2Actions = currentModuleConfig.actions;
       const completedIndex = v2Actions.findIndex((_, idx) => 
