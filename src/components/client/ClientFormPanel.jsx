@@ -52,6 +52,10 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
         if (projectType && panel.projectType !== projectType) return false;
         // 🔥 FILTRER: Ne montrer QUE les formulaires à remplir par le CLIENT
         if (panel.filledByRole === 'partner') return false;
+        // 💬 FILTRER: Les panels MESSAGE/SIGNATURE n'ont pas de formId → pas un formulaire
+        // Ils sont gérés dans le chat (boutons Valider/Besoin d'infos)
+        if (panel.actionType === 'message' || panel.actionType === 'signature') return false;
+        if (!panel.formId) return false;
         return true;
       })
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));

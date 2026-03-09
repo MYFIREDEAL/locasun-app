@@ -139,9 +139,9 @@ export function buildActionOrder({
     actionType,
     v1ActionType,
     
-    // Ressources
-    formIds: [...allowedFormIds],
-    templateIds: resolvedTemplateIds,  // ✅ Utilise la fusion
+    // Ressources (formIds uniquement pour FORM, templateIds uniquement pour SIGNATURE)
+    formIds: actionType === 'FORM' ? [...allowedFormIds] : [],
+    templateIds: actionType === 'SIGNATURE' ? resolvedTemplateIds : [],
     signatureType,
     
     // Modes

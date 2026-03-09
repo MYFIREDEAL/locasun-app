@@ -1702,10 +1702,13 @@ const ModuleConfigTab = ({
         console.log('[V2 Config Tab] Form changed → requiredFields CLEARED');
       }
       
-      // 💬 MESSAGE: Auto-forcer completionTrigger = button_click
+      // 💬 MESSAGE: Auto-forcer completionTrigger + vider les formIds/templateIds
       if (field === 'actionType' && value === 'MESSAGE') {
         updated.completionTrigger = 'button_click';
-        console.log('[V2 Config Tab] MESSAGE selected → completionTrigger forced to button_click');
+        updated.allowedFormIds = [];
+        updated.allowedTemplateIds = [];
+        updated.requiredFields = [];
+        console.log('[V2 Config Tab] MESSAGE selected → completionTrigger forced, formIds/templateIds CLEARED');
       }
       
       // Persister en mémoire via moduleAIConfig UNIQUEMENT si 1 seule action

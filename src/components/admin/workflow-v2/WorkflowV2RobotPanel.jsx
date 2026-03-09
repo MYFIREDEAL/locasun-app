@@ -583,16 +583,16 @@ const WorkflowV2RobotPanel = ({
                   </div>
                 )}
 
-                {/* Formulaires */}
-                {actionConfig?.allowedFormIds?.length > 0 && (
+                {/* Formulaires (uniquement pour type FORM) */}
+                {actionConfig?.actionType === 'FORM' && actionConfig?.allowedFormIds?.length > 0 && (
                   <div className="text-sm text-gray-600">
                     <span className="text-gray-500">Formulaires:</span>{' '}
                     {actionConfig.allowedFormIds.map(id => getFormName(id)).join(', ')}
                   </div>
                 )}
 
-                {/* Templates */}
-                {actionConfig?.allowedTemplateIds?.length > 0 && (
+                {/* Templates (uniquement pour type SIGNATURE) */}
+                {actionConfig?.actionType === 'SIGNATURE' && actionConfig?.allowedTemplateIds?.length > 0 && (
                   <div className="text-sm text-gray-600">
                     <span className="text-gray-500">Templates:</span>{' '}
                     {actionConfig.allowedTemplateIds.map(id => getTemplateName(id)).join(', ')}
