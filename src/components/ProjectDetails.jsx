@@ -88,12 +88,12 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     const fetchStatuses = async () => {
       const { data, error } = await supabase
         .from('client_form_panels')
-        .select('id, status')
-        .in('id', panelIds);
+        .select('panel_id, status')
+        .in('panel_id', panelIds);
       
       if (!error && data) {
         const statuses = {};
-        data.forEach(panel => { statuses[panel.id] = panel.status; });
+        data.forEach(panel => { statuses[panel.panel_id] = panel.status; });
         setPanelStatuses(statuses);
       }
     };
@@ -107,12 +107,14 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
         event: 'UPDATE', 
         schema: 'public', 
         table: 'client_form_panels',
-        filter: `id=in.(${panelIds.join(',')})`,
       }, (payload) => {
-        setPanelStatuses(prev => ({
-          ...prev,
-          [payload.new.id]: payload.new.status,
-        }));
+        // Vérifier si ce panel fait partie de ceux qu'on suit
+        if (panelIds.includes(payload.new.panel_id)) {
+          setPanelStatuses(prev => ({
+            ...prev,
+            [payload.new.panel_id]: payload.new.status,
+          }));
+        }
       })
       .subscribe();
     
@@ -123,11 +125,11 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const handleActionValidate = async (panelId, proceedLabel) => {
     setButtonLoading(panelId);
     try {
-      // 1. Update panel status → approved
+      // 1. Update panel status → approved (via panel_id text)
       const { error: updateError } = await supabase
         .from('client_form_panels')
         .update({ status: 'approved' })
-        .eq('id', panelId);
+        .eq('panel_id', panelId);
       
       if (updateError) throw updateError;
       

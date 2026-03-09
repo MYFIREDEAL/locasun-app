@@ -803,7 +803,7 @@ async function executeMessageAction(order, context) {
       };
     }
     
-    logV2('✅ Panel MESSAGE créé', { panelId: panel.id, panelPanelId: panelId });
+    logV2('✅ Panel MESSAGE créé', { panelId: panel.panel_id, dbId: panel.id });
     
     // 2. Envoyer le message chat avec les boutons dans metadata
     const organizationId = context.organizationId || null;
@@ -820,7 +820,7 @@ async function executeMessageAction(order, context) {
         channel: 'client',
         metadata: {
           actionButtons: true,
-          panelId: panel.id,
+          panelId: panel.panel_id,
           proceedLabel,
           needDataLabel,
           source: 'workflow-v2',
@@ -831,7 +831,7 @@ async function executeMessageAction(order, context) {
     if (chatError) {
       logV2('❌ Erreur envoi chat MESSAGE', { error: chatError.message });
     } else {
-      logV2('💬 Chat MESSAGE envoyé avec boutons', { prospectId, panelId: panel.id });
+      logV2('💬 Chat MESSAGE envoyé avec boutons', { prospectId, panelId: panel.panel_id });
     }
     
     toast({
@@ -845,7 +845,7 @@ async function executeMessageAction(order, context) {
       message: `Boutons envoyés au client dans le chat`,
       data: {
         orderId: order.id,
-        panelId: panel.id,
+        panelId: panel.panel_id,
         proceedLabel,
         needDataLabel,
       },
