@@ -3724,27 +3724,43 @@ const ProspectDetailsAdmin = ({
           }
 
           if (resolvedPanelDbId) {
-            logger.info('[V2 Signature Listener] Updating panel to approved (standard chaining)', {
+            // Récupérer l'action_id du panel pour le chaînage
+            let resolvedActionId = metadata.actionId || null;
+            if (!resolvedActionId) {
+              const { data: panelData } = await supabase
+                .from('client_form_panels')
+                .select('action_id')
+                .eq('id', resolvedPanelDbId)
+                .maybeSingle();
+              resolvedActionId = panelData?.action_id || null;
+            }
+
+            logger.info('[V2 Signature Listener] Updating panel to approved + direct chaining', {
               panelDbId: resolvedPanelDbId,
-              actionId: metadata.actionId,
+              actionId: resolvedActionId,
             });
             
-            const { error: updateError } = await supabase
+            // Mettre le panel à approved (peut être déjà fait par le trigger DB, pas grave)
+            await supabase
               .from('client_form_panels')
               .update({ status: 'approved' })
               .eq('id', resolvedPanelDbId);
             
-            if (updateError) {
-              logger.error('[V2 Signature Listener] Error updating panel', { error: updateError.message });
-            } else {
-              logger.info('✅ [V2 Signature Listener] Panel → approved, chaînage standard prend le relais');
-              toast({
-                title: '✅ Signature validée',
-                description: 'Le document a été signé avec succès.',
-                className: 'bg-green-500 text-white',
-              });
+            toast({
+              title: '✅ Signature validée',
+              description: 'Le document a été signé avec succès.',
+              className: 'bg-green-500 text-white',
+            });
+
+            // 🔥 Appeler sendNextAction DIRECTEMENT au lieu de compter sur useWorkflowActionTrigger
+            // Car le trigger DB peut avoir déjà mis le panel à approved → pas de nouvel event real-time
+            if (resolvedActionId) {
+              logger.info('🚀 [V2 Signature Listener] Appel direct sendNextAction', { actionId: resolvedActionId });
+              setTimeout(() => {
+                sendNextAction(resolvedActionId);
+              }, 1000);
             }
-            return; // Le chaînage standard (useWorkflowActionTrigger → sendNextAction) gère la suite
+            return;
           }
 
           // ═══════════════════════════════════════════════════════════════
