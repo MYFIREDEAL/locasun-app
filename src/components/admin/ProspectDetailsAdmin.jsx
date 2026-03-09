@@ -3684,20 +3684,54 @@ const ProspectDetailsAdmin = ({
           }
 
           const projectType = newRecord.project_type;
+          const metadata = newRecord.signature_metadata || {};
+          
           logger.info('[V2 Signature Listener] Signature completed', {
             procedureId: newRecord.id,
             projectType,
             prospectId: newRecord.prospect_id,
+            hasActionId: !!metadata.actionId,
+            hasPanelDbId: !!metadata.panelDbId,
           });
 
-          // Récupérer les steps pour ce projet
+          // ═══════════════════════════════════════════════════════════════
+          // STRATÉGIE 1: Panel V2 existe → mettre à approved → chaînage standard
+          // ═══════════════════════════════════════════════════════════════
+          if (metadata.panelDbId) {
+            logger.info('[V2 Signature Listener] Updating panel to approved (standard chaining)', {
+              panelDbId: metadata.panelDbId,
+              actionId: metadata.actionId,
+            });
+            
+            const { error: updateError } = await supabase
+              .from('client_form_panels')
+              .update({ status: 'approved' })
+              .eq('id', metadata.panelDbId);
+            
+            if (updateError) {
+              logger.error('[V2 Signature Listener] Error updating panel', { error: updateError.message });
+            } else {
+              logger.info('✅ [V2 Signature Listener] Panel → approved, chaînage standard prend le relais');
+              toast({
+                title: '✅ Signature validée',
+                description: 'Le document a été signé avec succès.',
+                className: 'bg-green-500 text-white',
+              });
+            }
+            return; // Le chaînage standard (useWorkflowActionTrigger → sendNextAction) gère la suite
+          }
+
+          // ═══════════════════════════════════════════════════════════════
+          // STRATÉGIE 2: FALLBACK V1 — Pas de panel → ancien comportement direct
+          // ═══════════════════════════════════════════════════════════════
+          logger.info('[V2 Signature Listener] No panel found, using V1 fallback (direct step completion)');
+          
           const projectStepsForType = supabaseSteps?.[projectType];
           if (!projectStepsForType || projectStepsForType.length === 0) {
             logger.warn('[V2 Signature Listener] No steps found for project type', { projectType });
             return;
           }
 
-          // Trouver le step courant (status = 'in_progress')
           const currentStepIdx = projectStepsForType.findIndex(s => s.status === 'in_progress');
           if (currentStepIdx === -1) {
             logger.warn('[V2 Signature Listener] No current step in_progress', { projectType });
@@ -3705,29 +3739,15 @@ const ProspectDetailsAdmin = ({
           }
 
           const currentStepName = projectStepsForType[currentStepIdx]?.name;
-          if (!currentStepName) {
-            logger.warn('[V2 Signature Listener] Current step has no name', { currentStepIdx });
-            return;
-          }
-
-          // Vérifier la config V2 pour ce module
-          const moduleActionConfig = getModuleActionConfig(currentStepName);
+          const moduleActionConfig = currentStepName ? getModuleActionConfig(currentStepName) : null;
           
           if (moduleActionConfig?.completionTrigger !== 'signature') {
-            logger.debug('[V2 Signature Listener] completionTrigger is not "signature", skipping', {
+            logger.debug('[V2 Signature Listener] V1 fallback: completionTrigger is not "signature", skipping', {
               stepName: currentStepName,
               completionTrigger: moduleActionConfig?.completionTrigger || 'null',
             });
             return;
           }
-
-          // ✅ Trigger completeStepAndProceed
-          logger.info('[V2 Signature Listener] Triggering completeStepAndProceed', {
-            prospectId: prospect.id,
-            projectType,
-            currentStepIdx,
-            stepName: currentStepName,
-          });
 
           try {
             await completeStepAndProceed(

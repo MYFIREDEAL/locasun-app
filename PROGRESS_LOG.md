@@ -69,11 +69,56 @@ Chaque entrée contient :
 | `src/hooks/useSupabaseClientFormPanels.js` | Ajout `actionType` et `actionId` dans `transformFromDB` |
 
 ### 🔜 Prochains sujets
-- Tester SIGNATURE en multi-actions (FORM + SIGNATURE dans une même étape) — nécessite création d'un panel pour SIGNATURE + mise à jour panel→approved quand signed
+- Tester SIGNATURE en multi-actions
 
 ---
 
-## 📖 GUIDE : Comment fonctionne le chaînage Actions ↔ Étapes
+## 9 mars 2026 (session 3 — fin d'après-midi)
+
+### ✅ Features
+- **SIGNATURE compatible multi-actions** : `executeSignatureAction` crée maintenant un `client_form_panels` avec `action_type: 'signature'` et `action_id`. Le listener `signature_procedures` met le panel à `approved` quand la signature est signée → le chaînage standard (`useWorkflowActionTrigger` → `sendNextAction`) prend le relais.
+- **Listener signature V1/V2** : Si `signature_metadata.panelDbId` existe → met le panel à approved (V2 multi-actions). Sinon → fallback V1 (direct `completeStepAndProceed`).
+
+### 📁 Fichiers modifiés
+| Fichier | Modification |
+|---------|-------------|
+| `src/lib/executeActionOrderV2.js` | Panel `action_type: 'signature'` créé dans `executeSignatureAction` + `signature_metadata` mis à jour avec `actionId`/`panelDbId` |
+| `src/components/admin/ProspectDetailsAdmin.jsx` | Listener signature : stratégie 1 (panel V2 → approved → chaînage) + stratégie 2 (fallback V1) |
+
+### ✅ Vérification PARTENAIRE
+- `action_id` déjà transmis dans les panels partenaire+FORM (ligne 277 de `executeActionOrderV2.js`)
+- Cas edge : mission partenaire SANS formulaire → pas de panel → à traiter si besoin futur
+
+### 📋 TODO FUTUR : Type PAIEMENT
+
+> **Quand Stripe (ou autre) sera intégré, voici le plan d'implémentation :**
+
+**Principe** : Même pattern universel que tous les autres types → `client_form_panels` + `action_id` + `approved` = chaînage.
+
+**Fichiers à modifier :**
+| Fichier | Quoi faire |
+|---------|-----------|
+| `src/lib/catalogueV2.js` | PAYMENT existe déjà (`isMock: true`). Retirer le flag `isMock` |
+| `src/lib/moduleAIConfig.js` | Ajouter `completionTrigger: 'payment_confirmed'`, exemptions validation (pas de formIds/templateIds) |
+| `src/components/admin/workflow-v2/ModuleConfigTab.jsx` | UI config PAIEMENT (montant, devise, description) + cacher modes inutiles |
+| `src/lib/actionOrderV2.js` | Ajouter PAYMENT dans `validate` + `formatActionOrderForDisplay` |
+| `src/lib/executeActionOrderV2.js` | `executePaymentAction()` : créer panel `action_type: 'payment'` + créer session Stripe/lien de paiement + envoyer lien dans le chat |
+| `src/components/ProjectDetails.jsx` | Afficher bouton "Payer" côté client (si on veut) |
+| Webhook Stripe (Edge Function) | Quand paiement confirmé → UPDATE panel `status: 'approved'` → chaînage standard |
+
+**Flow complet :**
+```
+1. executePaymentAction → crée panel (action_type='payment', action_id, status='pending')
+2. Crée session Stripe → envoie lien paiement dans le chat
+3. Client paie → Stripe webhook → Edge Function
+4. Edge Function → UPDATE client_form_panels SET status='approved' WHERE id=panelDbId
+5. useWorkflowActionTrigger détecte → sendNextAction → action suivante ou passage étape
+```
+
+### 🔜 Prochains sujets
+- Tester SIGNATURE en multi-actions (ex: MESSAGE → FORM → SIGNATURE)
+- Implémenter PAIEMENT quand Stripe sera prêt (voir plan ci-dessus)
+- Mission partenaire sans formulaire en multi-actions (edge case)
 
 > **À lire avant de créer un nouveau type d'action ou de modifier le workflow.**
 

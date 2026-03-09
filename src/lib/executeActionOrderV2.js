@@ -662,6 +662,50 @@ async function executeSignatureAction(order, context) {
   
   logV2('✅ Procédure signature créée', { procedureId: procedure.id });
   
+  // 🔥 NEW: Créer un client_form_panel pour le tracking + chaînage multi-actions
+  // Même pattern que MESSAGE et FORM : le panel est la table pivot du chaînage
+  const panelId = `panel-sig-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const orgId = context?.organizationId || prospect.organization_id;
+  
+  const { data: panel, error: panelError } = await supabase
+    .from('client_form_panels')
+    .insert({
+      panel_id: panelId,
+      prospect_id: prospectId,
+      project_type: projectType || 'general',
+      form_id: null, // Pas de formulaire pour signature
+      status: 'pending',
+      action_type: 'signature',
+      message_timestamp: Date.now().toString(),
+      step_name: order.moduleName || order.moduleId || null,
+      action_id: order.actionId || null,
+      verification_mode: 'AUTO', // La signature se vérifie automatiquement (signed → approved)
+      organization_id: orgId,
+    })
+    .select()
+    .single();
+  
+  if (panelError) {
+    logV2('⚠️ Erreur création panel SIGNATURE (non bloquant)', { error: panelError.message });
+  } else {
+    logV2('✅ Panel SIGNATURE créé', { panelId: panel.id, actionId: order.actionId });
+  }
+  
+  // 🔥 Stocker l'action_id et le panel_id dans signature_metadata pour le listener
+  if (panel && (order.actionId || panel.id)) {
+    await supabase
+      .from('signature_procedures')
+      .update({
+        signature_metadata: {
+          ...procedure.signature_metadata,
+          actionId: order.actionId,
+          panelDbId: panel.id, // ID numérique du panel pour le retrouver
+        },
+      })
+      .eq('id', procedure.id);
+    logV2('✅ signature_metadata mis à jour avec actionId + panelDbId');
+  }
+  
   // 5. Envoyer un message chat avec le LIEN DE SIGNATURE (comme V1)
   if (hasClientAction === true) {
     // Construire l'URL de signature (domaine production comme V1)
