@@ -577,7 +577,21 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         });
         
         try {
-          await completeStepAndProceed(prospectId, projectType, currentStepIndex);
+          // Récupérer les steps actuels depuis Supabase
+          const { data: stepsData } = await supabase
+            .from('project_steps_status')
+            .select('steps')
+            .eq('prospect_id', prospectId)
+            .eq('project_type', projectType)
+            .single();
+          
+          const currentSteps = stepsData?.steps;
+          if (!currentSteps || currentSteps.length === 0) {
+            logger.error('❌ [V2] Impossible de récupérer les steps pour complétion');
+            return;
+          }
+          
+          await completeStepAndProceed(prospectId, projectType, currentStepIndex, currentSteps);
           logger.info('✅ [V2] Étape complétée avec succès');
         } catch (err) {
           logger.error('❌ [V2] Erreur complétion étape', { error: err.message });
