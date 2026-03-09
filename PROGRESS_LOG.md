@@ -5,6 +5,57 @@
 
 ---
 
+## 🏗️ Architecture Workflow V2 — ÉTAT ACTUEL (10 mars 2026)
+
+> **Lis cette section EN PREMIER pour comprendre le système avant toute modification.**
+
+### Principe fondamental
+```
+L'admin/IA clique le robot 🤖 pour CHAQUE action.
+Le trigger DB ne lance JAMAIS d'action — il fait le "ménage" (subSteps + complétion).
+```
+
+### Flow complet (étape avec 2 actions)
+```
+Admin clique 🤖 → preview action-0 → "Exécuter"
+  → executeActionOrderV2.js crée panel + message chat
+  → Client interagit → panel.status = 'approved'
+  → TRIGGER DB fn_v2_action_chaining :
+     • Crée subSteps si absentes (depuis workflow_module_templates)
+     • action-0 → completed, action-1 → in_progress
+     • STOP (attend le robot)
+
+Admin clique 🤖 → preview action-1 → "Exécuter"
+  → Client interagit → panel.status = 'approved'
+  → TRIGGER DB : dernière action !
+     • Toutes subSteps → completed
+     • Étape → completed, étape suivante → in_progress
+```
+
+### 3 guards frontend (V2 panels ignorés par le frontend)
+| Guard | Fichier | Si `action_id.startsWith('v2-')` |
+|-------|---------|----------------------------------|
+| `useWorkflowActionTrigger` | `src/hooks/useWorkflowActionTrigger.js` | SKIP sendNextAction |
+| `handleApprove` | `ProspectDetailsAdmin.jsx` | SKIP completeStepAndProceed |
+| `sendNextAction` TENTATIVE 2 | `ProspectDetailsAdmin.jsx` | return immédiat |
+
+### Types d'actions
+| Type | Qui interagit | Comment ça se termine |
+|------|---------------|----------------------|
+| MESSAGE | Client clique Valider | panel → approved |
+| FORM | Client remplit → Admin valide | panel → approved |
+| PARTENAIRE | Partenaire soumet → Admin valide | panel → approved |
+
+### Fichiers clés
+| Fichier | Rôle |
+|---------|------|
+| `fix_trigger_v4_simple.sql` | Trigger DB actuel (subSteps + complétion) |
+| `src/lib/executeActionOrderV2.js` | Moteur exécution (admin clique Exécuter) |
+| `src/hooks/useWorkflowActionTrigger.js` | Real-time listener + guard V2 |
+| `src/components/admin/ProspectDetailsAdmin.jsx` | Guards handleApprove + sendNextAction |
+
+---
+
 ## 🔖 Convention
 
 Chaque entrée contient :

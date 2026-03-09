@@ -157,11 +157,14 @@ http://localhost:5173/admin/workflow-v2-config
 - S'applique automatiquement à tous les prospects du même type
 
 ### Architecture V1 vs V2
-- **V1 (exécution)**: Actions et exécutions dans `WorkflowsCharlyPage.jsx` + `useWorkflowExecutor.js`
+- **V1 (legacy)**: Actions et exécutions dans `WorkflowsCharlyPage.jsx` + `useWorkflowExecutor.js`
   - Le "petit robot" est déclenché depuis `ProspectDetailsAdmin.jsx`
-  - Exécute directement les actions (formulaires, signatures, etc.)
-- **V2 (cockpit)**: Config + génération d'ActionOrder + simulation + exécution sous feature flag
-  - Ne modifie PAS V1, génère des ordres que V1 exécute
+  - Chaînage frontend via `sendNextAction` + `useWorkflowActionTrigger`
+  - ⚠️ Toujours actif pour les anciens prompts V1
+- **V2 (actuel — Trigger V4)**: Config globale + exécution manuelle + trigger DB pour le ménage
+  - **L'admin/IA clique le robot pour CHAQUE action** (jamais de chaînage automatique)
+  - Le trigger DB `fn_v2_action_chaining` fait UNIQUEMENT : subSteps MAJ + complétion d'étape
+  - Le frontend a 3 guards qui empêchent toute intervention V1 sur les panels V2
   - ⚠️ La route `/admin/workflow-v2/:prospectId/:projectType` existe dans le code mais N'EST PLUS UTILISÉE (ancien design par prospect)
 
 ### Fichiers clés V2
@@ -171,11 +174,13 @@ http://localhost:5173/admin/workflow-v2-config
 | `src/lib/moduleAIConfig.js` | Config IA par module (objectif, instructions, actionConfig) |
 | `src/lib/catalogueV2.js` | Catalogue read-only (forms, templates, targets, modes) |
 | `src/lib/actionOrderV2.js` | Build ActionOrder JSON (simulation pure) |
-| `src/lib/executeActionOrderV2.js` | Bridge V2→V1 avec guards + feature flag |
+| `src/lib/executeActionOrderV2.js` | ⭐ **Moteur d'exécution** — appelé quand admin clique "Exécuter" sur le robot |
 | `src/lib/workflowV2Config.js` | Feature flags (READ_ONLY, EXECUTION_FROM_V2) |
 | `src/components/admin/workflow-v2/ActionOrderSimulator.jsx` | UI simulation + exécution |
 | `src/components/admin/workflow-v2/ModuleConfigTab.jsx` | Éditeur UI config IA |
 | `src/hooks/useSupabaseWorkflowModuleTemplates.js` | Persistance Supabase des configs |
+| `src/hooks/useWorkflowActionTrigger.js` | Real-time listener panels — guard V2 (skip sendNextAction) |
+| `fix_trigger_v4_simple.sql` | ⭐ **Trigger DB actuel** — subSteps MAJ + complétion d'étape |
 
 ### Page obsolète (code legacy)
 | Fichier | Statut |
@@ -186,39 +191,77 @@ http://localhost:5173/admin/workflow-v2-config
 ### Persistance
 | Phase | Mode | Détail |
 |-------|------|--------|
-| Phase 3 (actuel) | **Mémoire** | Config perdue au refresh |
-| Phase 9 (futur) | **Supabase** | Table `workflow_module_templates` par `org_id` + `project_type` + `module_id` |
+| ~~Phase 3~~ | ~~Mémoire~~ | ~~Config perdue au refresh~~ |
+| **Actuel** | **Supabase** | Table `workflow_module_templates` par `org_id` + `project_type` + `module_id` |
 
 ### Feature Flags (`workflowV2Config.js`)
-- `READ_ONLY: true` → Aucune écriture DB depuis V2
-- `EXECUTION_FROM_V2: false` → Bouton "Exécuter" désactivé (simulation uniquement)
+- `READ_ONLY: false` → V2 écrit en DB (templates sauvegardés dans Supabase)
+- `EXECUTION_FROM_V2: true` → Bouton "Exécuter" actif (admin lance les actions depuis le robot)
 
-### 🆕 Types d'actions supportés (9 mars 2026)
+### 🆕 Types d'actions supportés (10 mars 2026)
 
-| Type | Description | completionTrigger | Panel form_id |
-|------|-------------|-------------------|---------------|
-| **FORM** | Formulaire envoyé au client/partenaire | `form_approved` | UUID du form |
-| **SIGNATURE** | Procédure de signature électronique | `signature_completed` | UUID du template |
-| **MESSAGE** | Boutons Valider/Besoin d'infos dans le chat | `button_click` | `null` |
+| Type | Description | completionTrigger | Panel form_id | Qui valide ? |
+|------|-------------|-------------------|---------------|-------------|
+| **FORM** | Formulaire envoyé au client | `form_approved` | UUID du form | Client remplit → Admin valide |
+| **SIGNATURE** | Procédure de signature électronique | `signature_completed` | UUID du template | Client signe |
+| **MESSAGE** | Boutons Valider/Besoin d'infos dans le chat | `button_click` | `null` | Client clique Valider |
+| **FORM+PARTENAIRE** | Formulaire envoyé au partenaire via mission | `form_approved` | UUID du form | Partenaire remplit → Admin valide |
 
-### 🔗 Chaînage Actions ↔ Étapes (CRITIQUE)
+### 🔗 Chaînage Actions ↔ Étapes — Trigger V4 (10 mars 2026)
 
-> **Lire `PROGRESS_LOG.md` section "GUIDE : Comment fonctionne le chaînage"** avant de modifier le workflow.
+> **Le chaînage est géré par le trigger DB `fn_v2_action_chaining` (SECURITY DEFINER).**
+> **Le frontend ne chaîne JAMAIS les actions V2. L'admin clique le robot pour chaque action.**
 
-**Résumé rapide :**
+#### Flow complet (exemple : étape avec 2 actions MESSAGE + FORM)
 ```
-Action exécutée → panel créé (client_form_panels) avec action_id
-  → Client/Admin valide → panel.status = 'approved'
-  → useWorkflowActionTrigger (real-time) détecte
-  → sendNextAction(completedActionId) dans ProspectDetailsAdmin
-  → Si action suivante → exécute (chaînage)
-  → Si dernière action → completeStepAndProceed (passage étape)
+1. Admin clique 🤖 Robot → voit preview action-0 (MESSAGE)
+   → Clique "Exécuter" → executeActionOrderV2 crée :
+     • panel dans client_form_panels (action_id="v2-xxx-action-0")
+     • message chat avec boutons Valider/Besoin d'infos
+
+2. Client clique "Valider" → panel.status = 'approved'
+   → TRIGGER DB se déclenche :
+     • Crée subSteps si absentes (depuis template workflow_module_templates)
+     • action-0 → completed ✅
+     • action-1 → in_progress 🔄
+     • RETURN et ATTEND que l'admin relance le robot
+
+3. Admin clique 🤖 Robot → voit preview action-1 (FORM)
+   → Clique "Exécuter" → envoie formulaire
+
+4. Client remplit → Admin valide → panel.status = 'approved'
+   → TRIGGER DB : c'est la DERNIÈRE action !
+     • Toutes subSteps → completed ✅
+     • Étape courante → completed ✅
+     • Étape suivante → in_progress 🔄
 ```
+
+#### 3 guards frontend (empêchent V1 d'interférer avec V2)
+| Guard | Fichier | Logique |
+|-------|---------|---------|
+| `useWorkflowActionTrigger` | `src/hooks/useWorkflowActionTrigger.js` L83 | Si `action_id.startsWith('v2-')` → SKIP `sendNextAction` |
+| `handleApprove` | `ProspectDetailsAdmin.jsx` L2080 | Si `isV2Panel` → SKIP `completeStepAndProceed` + subSteps |
+| `sendNextAction` TENTATIVE 2 | `ProspectDetailsAdmin.jsx` L518 | Si `completedActionId.startsWith('v2-')` → return immédiat |
+
+#### Trigger DB `fn_v2_action_chaining` (fix_trigger_v4_simple.sql)
+| Étape trigger | Action |
+|---------------|--------|
+| **Gardes** | Seulement `status → approved` + `action_id LIKE 'v2-%'` |
+| **Parse** | `action_id = "v2-{moduleId}-action-{index}"` → extrait module + index |
+| **Template** | Charge config depuis `workflow_module_templates` (par org_id + project_type + module_id) |
+| **SubSteps** | Crée les subSteps depuis template `actions[]` si absentes en DB |
+| **Pas dernière action** | action courante → `completed`, suivante → `in_progress`, **STOP** |
+| **Dernière action** | Toutes subSteps → `completed`, étape → `completed`, étape suivante → `in_progress` |
+
+#### ⚠️ RÈGLE ABSOLUE
+> **Le trigger ne clique JAMAIS sur le robot à la place de l'humain ou de l'IA.**
+> C'est TOUJOURS l'admin qui décide quand lancer l'action suivante.
+> Le trigger fait uniquement le "ménage" : mettre à jour les statuts des subSteps et compléter l'étape.
 
 **Points critiques pour tout nouveau type d'action :**
 - `organization_id` obligatoire dans le panel (RLS multi-tenant)
-- `action_id` obligatoire dans le panel (chaînage)
-- `completeStepAndProceed` exige 4 params dont `currentSteps` (fetch Supabase)
+- `action_id` obligatoire dans le panel (format `v2-{moduleId}-action-{index}`)
+- Le panel doit passer à `status = 'approved'` pour que le trigger se déclenche
 - Ajouter le case dans `executeActionOrderV2.js` + whitelist `canExecuteActionOrder`
 
 ### 🆕 Fonctionnalités Partenaires (19 fév 2026)
@@ -235,11 +278,12 @@ Action exécutée → panel créé (client_form_panels) avec action_id
 #### Flow complet Partenaire + Formulaire
 ```
 1. Admin config Workflow V2 → Module X → Target: PARTENAIRE + Formulaire
-2. Workflow V1 crée mission + client_form_panel (filled_by_role='partner')
+2. Admin clique 🤖 Robot → executeActionOrderV2 crée mission + client_form_panel (filled_by_role='partner')
 3. Partenaire ouvre mission → voit formulaire → remplit → soumet
 4. form_data sauvegardé dans client_form_panels.form_data
-5. Admin voit dans ProspectDetailsAdmin → Section "Formulaires soumis"
-6. Admin valide ou refuse
+5. 🔔 Trigger DB notifie admin (🟠 Formulaire partenaire soumis)
+6. Admin voit dans ProspectDetailsAdmin → Section "Formulaires soumis"
+7. Admin valide → panel.status = 'approved' → Trigger V4 gère subSteps + complétion
 ```
 
 #### Fichiers clés Partenaires
