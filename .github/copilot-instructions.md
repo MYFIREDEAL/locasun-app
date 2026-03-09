@@ -193,6 +193,34 @@ http://localhost:5173/admin/workflow-v2-config
 - `READ_ONLY: true` → Aucune écriture DB depuis V2
 - `EXECUTION_FROM_V2: false` → Bouton "Exécuter" désactivé (simulation uniquement)
 
+### 🆕 Types d'actions supportés (9 mars 2026)
+
+| Type | Description | completionTrigger | Panel form_id |
+|------|-------------|-------------------|---------------|
+| **FORM** | Formulaire envoyé au client/partenaire | `form_approved` | UUID du form |
+| **SIGNATURE** | Procédure de signature électronique | `signature_completed` | UUID du template |
+| **MESSAGE** | Boutons Valider/Besoin d'infos dans le chat | `button_click` | `null` |
+
+### 🔗 Chaînage Actions ↔ Étapes (CRITIQUE)
+
+> **Lire `PROGRESS_LOG.md` section "GUIDE : Comment fonctionne le chaînage"** avant de modifier le workflow.
+
+**Résumé rapide :**
+```
+Action exécutée → panel créé (client_form_panels) avec action_id
+  → Client/Admin valide → panel.status = 'approved'
+  → useWorkflowActionTrigger (real-time) détecte
+  → sendNextAction(completedActionId) dans ProspectDetailsAdmin
+  → Si action suivante → exécute (chaînage)
+  → Si dernière action → completeStepAndProceed (passage étape)
+```
+
+**Points critiques pour tout nouveau type d'action :**
+- `organization_id` obligatoire dans le panel (RLS multi-tenant)
+- `action_id` obligatoire dans le panel (chaînage)
+- `completeStepAndProceed` exige 4 params dont `currentSteps` (fetch Supabase)
+- Ajouter le case dans `executeActionOrderV2.js` + whitelist `canExecuteActionOrder`
+
 ### 🆕 Fonctionnalités Partenaires (19 fév 2026)
 
 #### ✅ Ce qui fonctionne maintenant

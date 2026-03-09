@@ -16,6 +16,140 @@ Chaque entrée contient :
 
 ---
 
+## 9 mars 2026
+
+### ✅ Features
+- **Type d'action MESSAGE dans Workflow V2** : Nouveau type d'action permettant à l'admin/IA d'écrire dans le chat puis d'envoyer des boutons de validation au client. Le client clique "Valider" ou "Besoin d'infos" directement dans le chat. Validation → chaînage automatique vers l'action/étape suivante.
+
+### 🐛 Bugs fixés (5 hotfixes en session)
+- **`form_id NOT NULL`** : La colonne `form_id` de `client_form_panels` avait une contrainte NOT NULL → `ALTER COLUMN form_id DROP NOT NULL` pour accepter MESSAGE (pas de formulaire)
+- **`organization_id` manquant** : Le panel MESSAGE était créé sans `organization_id` → RLS multi-tenant bloquait silencieusement l'UPDATE du client
+- **Chaînage V2 inactif** : `useWorkflowActionTrigger` exigeait un prompt V1 → ajout `hasV2Actions` comme alternative + fallback V2 dans `sendNextAction`
+- **Guard `> 1` au lieu de `>= 1`** : Avec 1 seule action dans l'étape, le bloc V2 n'était jamais atteint
+- **`completeStepAndProceed` sans steps** : Le 4ème paramètre `currentSteps` est requis → fetch des steps depuis Supabase avant appel
+
+### 🗄️ Migrations SQL exécutées
+- `add_action_type_column_client_form_panels.sql` — `ALTER TABLE client_form_panels ADD COLUMN action_type TEXT DEFAULT 'form'`
+- `make_form_id_nullable_client_form_panels.sql` — `ALTER COLUMN form_id DROP NOT NULL`
+
+### 📁 Fichiers modifiés (10 fichiers)
+| Fichier | Modification |
+|---------|-------------|
+| `src/lib/catalogueV2.js` | MESSAGE dans ACTION_TYPES |
+| `src/lib/moduleAIConfig.js` | `button_click` trigger, exemptions MESSAGE |
+| `src/components/admin/workflow-v2/ModuleConfigTab.jsx` | UI config MESSAGE, auto-force button_click |
+| `src/lib/actionOrderV2.js` | `buttonLabels` dans build/validate/format |
+| `src/lib/executeActionOrderV2.js` | `executeMessageAction()` + organization_id |
+| `src/components/admin/workflow-v2/WorkflowV2RobotPanel.jsx` | Icône, labels, preview objectif/instructions/boutons |
+| `src/components/admin/workflow-v2/ActionOrderSimulator.jsx` | Icône teal, preview boutons |
+| `src/components/ProjectDetails.jsx` | Boutons Valider/Besoin d'infos côté client |
+| `src/hooks/useWorkflowActionTrigger.js` | Support `hasV2Actions` sans prompt V1 |
+| `src/components/admin/ProspectDetailsAdmin.jsx` | `sendNextAction` avec fallback V2 + complétion étape |
+
+### 🔜 Prochains sujets
+- SubSteps admin pas mises à jour en temps réel quand client valide MESSAGE (cosmétique)
+- Tester MESSAGE avec multi-actions (2+ actions dans une même étape)
+- Mettre à jour `PROGRESS_LOG.md` ✅
+
+---
+
+## 📖 GUIDE : Comment fonctionne le chaînage Actions ↔ Étapes
+
+> **À lire avant de créer un nouveau type d'action ou de modifier le workflow.**
+
+### Concepts clés
+
+```
+ÉTAPE (step)           = Phase du projet (Inscription, Collecte, Offre...)
+  └── ACTION (action)  = Tâche dans l'étape (Formulaire, Signature, Message...)
+       └── SOUS-ÉTAPE (subStep) = Visualisation admin de la progression d'une action
+```
+
+- Chaque étape peut avoir **1 ou N actions** configurées dans Workflow V2
+- Les actions s'exécutent **séquentiellement** (une seule active à la fois)
+- Le passage action → action suivante = **chaînage**
+- Le passage étape → étape suivante = **complétion d'étape**
+
+### Cycle de vie d'une action
+
+```
+1. Admin exécute l'action (via WorkflowV2RobotPanel)
+   → executeActionOrderV2.js → crée un client_form_panel + chat_messages
+   → panel.status = 'pending', panel.action_id = 'v2-{moduleId}-action-{index}'
+
+2. Client interagit (remplit formulaire / clique Valider / signe)
+   → panel.status = 'submitted' ou 'approved'
+
+3. Si vérification humaine : Admin approuve
+   → handleApprove dans ProspectDetailsAdmin → panel.status = 'approved'
+   
+4. Si clic bouton (MESSAGE) : Client approuve directement
+   → handleActionValidate dans ProjectDetails.jsx → panel.status = 'approved'
+```
+
+### Mécanisme de chaînage (action → action suivante)
+
+**Fichier clé : `useWorkflowActionTrigger.js`**
+
+```
+Real-time listener sur client_form_panels UPDATE
+  ↓
+Panel passe à 'approved' + a un action_id ?
+  ↓ OUI
+sendNextAction(completedActionId) dans ProspectDetailsAdmin.jsx
+  ↓
+Cherche l'action suivante :
+  - D'abord dans prompt V1 (stepsConfig.actions) — legacy
+  - Sinon dans template V2 (currentModuleConfig.actions) — actuel
+  ↓
+Si action suivante existe → buildActionOrder + executeActionOrder (chaînage)
+Si c'est la dernière action → completeStepAndProceed (passage étape suivante)
+```
+
+### Mécanisme de complétion d'étape
+
+**Fichier clé : `completeStepAndProceed` dans `App.jsx`**
+
+```
+Signature : completeStepAndProceed(prospectId, projectType, currentStepIndex, currentSteps)
+                                                                              ↑ REQUIS !
+  ↓
+1. Si subSteps → marque la subStep active comme 'completed'
+   - Si subStep suivante existe → l'active → NE passe PAS à l'étape suivante
+   - Si toutes complétées → passe à l'étape suivante
+
+2. Marque l'étape courante comme 'completed'
+3. Active l'étape suivante ('in_progress')
+4. Sauvegarde dans project_steps_status (Supabase)
+```
+
+### ⚠️ Points critiques pour un nouveau type d'action
+
+| Élément | Obligatoire | Pourquoi |
+|---------|-------------|----------|
+| `organization_id` dans le panel | ✅ | RLS multi-tenant bloque le client sinon |
+| `action_id` dans le panel | ✅ | Nécessaire pour le chaînage (`useWorkflowActionTrigger` vérifie `hasActionId`) |
+| `action_type` dans le panel | ✅ | Distinguer form/signature/message |
+| `form_id` dans le panel | ❌ nullable | MESSAGE n'a pas de formulaire |
+| `completionTrigger` dans moduleAIConfig | ✅ | `form_approved`, `signature_completed`, `button_click` |
+| Cas dans `executeActionOrderV2.js` switch | ✅ | Route vers la bonne fonction d'exécution |
+| Whitelist dans `canExecuteActionOrder` | ✅ | Sinon l'exécution est bloquée |
+| `sendNextAction` fallback V2 | ✅ | Chaînage fonctionne sans prompt V1 |
+| `completeStepAndProceed` avec steps | ✅ | Fetch depuis `project_steps_status` avant appel |
+
+### Fichiers impliqués dans le chaînage (ordre d'exécution)
+
+```
+1. executeActionOrderV2.js      → Crée le panel + chat (exécution initiale)
+2. ProjectDetails.jsx           → Client interagit (boutons, formulaire)
+   OU ProspectDetailsAdmin.jsx  → Admin approuve (handleApprove)
+3. useWorkflowActionTrigger.js  → Real-time: détecte panel approved
+4. ProspectDetailsAdmin.jsx     → sendNextAction() : chaîne ou complète
+5. App.jsx                      → completeStepAndProceed() : passe à l'étape suivante
+```
+
+---
+
 ## 4 mars 2026 (session 2)
 
 ### ✅ Features
