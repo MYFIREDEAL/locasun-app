@@ -2445,8 +2445,12 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                         }
                     }
                     
-                    // Sauvegarder les steps mis à jour
-                    await updateSupabaseSteps(panel.projectType, updatedSteps);
+                    // Sauvegarder les steps mis à jour (appel direct Supabase)
+                    await supabase
+                      .from('project_steps_status')
+                      .update({ steps: updatedSteps })
+                      .eq('prospect_id', prospect.id)
+                      .eq('project_type', panel.projectType);
                     
                     // 🔥 IMPORTANT: Utiliser les steps mis à jour pour completeStepAndProceed
                     updatedStepsForCompletion = updatedSteps;
