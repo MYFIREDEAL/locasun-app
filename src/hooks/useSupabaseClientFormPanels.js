@@ -28,6 +28,8 @@ export function useSupabaseClientFormPanels(prospectId = null) {
     filledByRole: dbPanel.filled_by_role || 'client', // 🔥 AJOUT: Qui remplit (client/partner)
     formData: dbPanel.form_data || {}, // 🔥 AJOUT: Données du formulaire (pour partenaire)
     rejectionReason: dbPanel.rejection_reason || null, // 🔥 AJOUT: Raison du refus (pour partenaire)
+    actionType: dbPanel.action_type || null, // 🔥 AJOUT: Type d'action (message, form, signature)
+    actionId: dbPanel.action_id || null, // 🔥 AJOUT: ID action V2 (pour chaînage)
     lastSubmittedAt: dbPanel.last_submitted_at ? new Date(dbPanel.last_submitted_at).getTime() : null,
     createdAt: new Date(dbPanel.created_at).getTime(),
     updatedAt: new Date(dbPanel.updated_at).getTime(),

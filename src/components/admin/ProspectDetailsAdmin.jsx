@@ -539,8 +539,25 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           const fetchedSteps = stepsRow?.steps;
           if (fetchedSteps) {
             const stepIdx = fetchedSteps.findIndex(s => s.status === 'in_progress');
-            if (stepIdx !== -1 && fetchedSteps[stepIdx].subSteps?.length > 0) {
+            if (stepIdx !== -1) {
               const updatedSteps = JSON.parse(JSON.stringify(fetchedSteps));
+              
+              // 🔥 FIX: Si les subSteps n'existent pas encore en Supabase, les créer 
+              // à partir du template V2 (même logique que deriveSubStepsFromTemplate)
+              if (!updatedSteps[stepIdx].subSteps || updatedSteps[stepIdx].subSteps.length === 0) {
+                updatedSteps[stepIdx].subSteps = v2Actions.map((action, idx) => {
+                  const actionCfg = action.config || action.actionConfig || {};
+                  return {
+                    id: `v2-${currentModuleId}-action-${idx}`,
+                    name: actionCfg.objective?.trim() || action.title || action.label || `Action ${idx + 1}`,
+                    status: idx === 0 ? STATUS_CURRENT : STATUS_PENDING,
+                  };
+                });
+                logger.info('✅ [V2] SubSteps créées depuis template', {
+                  count: updatedSteps[stepIdx].subSteps.length,
+                });
+              }
+              
               const subSteps = updatedSteps[stepIdx].subSteps;
               
               // Trouver la sous-étape par action_id
@@ -641,20 +658,27 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
           
           // 🔥 FIX: Marquer la dernière sous-étape comme complétée AVANT completeStepAndProceed
           const stepIdx = currentSteps.findIndex(s => s.status === 'in_progress');
-          if (stepIdx !== -1 && currentSteps[stepIdx].subSteps?.length > 0) {
+          if (stepIdx !== -1) {
             const updatedSteps = JSON.parse(JSON.stringify(currentSteps));
+            
+            // 🔥 FIX: Créer les subSteps si absentes de Supabase
+            if (!updatedSteps[stepIdx].subSteps || updatedSteps[stepIdx].subSteps.length === 0) {
+              const v2Actions = currentModuleConfig.actions;
+              updatedSteps[stepIdx].subSteps = v2Actions.map((action, idx) => {
+                const actionCfg = action.config || action.actionConfig || {};
+                return {
+                  id: `v2-${currentModuleId}-action-${idx}`,
+                  name: actionCfg.objective?.trim() || action.title || action.label || `Action ${idx + 1}`,
+                  status: STATUS_PENDING,
+                };
+              });
+            }
+            
             const subSteps = updatedSteps[stepIdx].subSteps;
             
-            // Trouver la sous-étape par action_id
-            let subIdx = subSteps.findIndex(sub => sub.id === completedActionId);
-            if (subIdx === -1) {
-              subIdx = subSteps.findIndex(sub => sub.status === STATUS_CURRENT);
-            }
-            
-            if (subIdx !== -1) {
-              subSteps[subIdx].status = STATUS_COMPLETED;
-              logger.info('✅ [V2] Dernière subStep marquée completed', { subIdx });
-            }
+            // Marquer TOUTES les sous-étapes comme complétées (c'est la dernière action)
+            subSteps.forEach(sub => { sub.status = STATUS_COMPLETED; });
+            logger.info('✅ [V2] Toutes subSteps marquées completed', { count: subSteps.length });
             
             // Passer les steps mis à jour à completeStepAndProceed
             await completeStepAndProceed(prospectId, projectType, currentStepIndex, updatedSteps);
@@ -1843,7 +1867,8 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
         
         const filtered = clientFormPanels.filter(panel => 
             panel.prospectId === prospect.id && 
-            panel.projectType === projectType
+            panel.projectType === projectType &&
+            panel.actionType !== 'message' // 🔥 FIX: Exclure les panels MESSAGE du compteur formulaires
         ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         
         // 🔥 DEBUG: Log pour identifier le problème
