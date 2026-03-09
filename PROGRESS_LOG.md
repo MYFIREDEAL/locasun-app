@@ -16,6 +16,64 @@ Chaque entrée contient :
 
 ---
 
+## 9–10 mars 2026 (session 5 — nuit)
+
+### ✅ Features
+- **Multi-actions dans une même étape** : Le trigger DB `fn_v2_action_chaining` gère maintenant correctement 2+ actions dans une même étape (ex: FORM + MESSAGE dans "Inscription").
+- **Création automatique des subSteps** : Le trigger crée les subSteps depuis le template V2 si elles n'existent pas en DB, puis les met à jour au fil du chaînage.
+- **Test E2E propre réussi** : Piscine/decouverte avec 2 actions (FORM + MESSAGE) → les 2 terminées → passage automatique à "chiffrage". Aucune intervention SQL manuelle.
+
+### 🐛 Bugs fixés (4 hotfixes)
+- **`handleApprove` race condition** : Quand l'admin clique "Valider" un formulaire V2, le trigger DB modifie les steps AVANT que `handleApprove` ne les lise → le frontend faisait `completeStepAndProceed` sur la MAUVAISE étape. Fix : guard `isV2Panel` dans `handleApprove` → skip toute logique frontend pour V2.
+- **`v_new_panel_id BIGINT`** : Le trigger DB crashait avec "invalid input syntax for type bigint" car `client_form_panels.id` est UUID, pas BIGINT. Fix : `v_new_panel_id UUID`.
+- **Doublons `panel-msg-`** : `sendNextAction` TENTATIVE 2 créait un panel MESSAGE en doublon de celui créé par le trigger DB → le CAS 2 voyait des panels `pending` et ne complétait pas l'étape. Fix : guard `completedActionId?.startsWith('v2-')` → return immédiat avant TENTATIVE 2.
+- **Build Vercel pas à jour** : Vercel servait un ancien JS → les guards frontend n'étaient pas actifs. Fix : empty commit pour forcer le rebuild.
+
+### 🗄️ Migrations SQL exécutées
+- `fix_trigger_create_substeps.sql` — Trigger `fn_v2_action_chaining` v3 : création subSteps depuis template + fix UUID type + chaînage complet + complétion d'étape
+
+### 📁 Fichiers modifiés
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/admin/ProspectDetailsAdmin.jsx` | Guard `isV2Panel` dans `handleApprove` (skip subSteps/completeStepAndProceed). Guard `startsWith('v2-')` dans `sendNextAction` TENTATIVE 2 (skip chaînage frontend). |
+| `src/hooks/useWorkflowActionTrigger.js` | Guard V2 déjà en place (session 4) |
+| `fix_trigger_create_substeps.sql` | Trigger DB v3 avec création subSteps + fix UUID |
+
+### 🧪 Tests validés
+| Test | Résultat |
+|------|----------|
+| Multi-actions FORM+MESSAGE (Piscine/decouverte) | ✅ Les 2 actions terminées → passage auto à chiffrage |
+| SubSteps créées automatiquement par trigger | ✅ "formulaire client" + "parler client" visibles |
+| Pas de doublon panel-msg- | ✅ Guard sendNextAction TENTATIVE 2 actif |
+| Passage d'étape automatique CAS 2 | ✅ decouverte→chiffrage propre |
+
+### 🏗️ Architecture V2 — Flux complet actuel
+
+```
+Admin clique Robot → executeActionOrderV2 → crée panel action-0 + message chat
+  ↓
+Client/Admin interagit → panel.status = 'approved'
+  ↓
+Trigger DB fn_v2_action_chaining
+  ├── Crée subSteps si absentes (depuis template)
+  ├── Marque action courante → completed
+  ├── CAS 1 (pas dernière): Crée panel action-N+1 + message chat → active subStep suivante
+  └── CAS 2 (dernière): Vérifie tous panels approved → étape completed → étape suivante in_progress
+  
+Frontend (3 guards V2):
+  1. useWorkflowActionTrigger: V2 panel → SKIP sendNextAction
+  2. handleApprove: V2 panel → SKIP subSteps/completeStepAndProceed  
+  3. sendNextAction TENTATIVE 2: v2- actionId → RETURN immédiat
+```
+
+### 🔜 Prochains sujets
+- Tester SIGNATURE en multi-actions
+- Tester 3+ actions dans une même étape
+- Question design : chaînage automatique vs. admin clique robot pour chaque action ?
+- Nettoyer le code mort dans `sendNextAction` TENTATIVE 2 (dead code pour V2)
+
+---
+
 ## 9 mars 2026 (session 4 — soirée)
 
 ### ✅ Features
