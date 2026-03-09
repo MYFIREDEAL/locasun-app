@@ -16,6 +16,50 @@ Chaque entrée contient :
 
 ---
 
+## 10 mars 2026 (session 6 — nuit)
+
+### ✅ Features
+- **🎉 FLOW COMPLET V4 VALIDÉ** : MESSAGE → FORMULAIRE → PARTENAIRE fonctionne de bout en bout !
+  - Admin clique robot pour CHAQUE action (plus de chaînage automatique)
+  - Trigger V4 fait uniquement subSteps MAJ + complétion d'étape
+  - Testé sur "Construction Tiers Invest" : Inscription (2 actions) ✅, Collecte de données (2 actions) ✅, Offre client (1 action) ✅, Appel d'Offre (1 action) ✅, Signature de la PDB → En cours ✅
+- **Trigger V4 simplifié** : Trigger `fn_v2_action_chaining` ne lance JAMAIS d'action. Rôle : subSteps MAJ + complétion d'étape si dernière action. L'admin/IA clique toujours le robot.
+- **3 guards frontend V2 finaux** :
+  1. `sendNextAction` TENTATIVE 2 → return immédiat pour V2
+  2. `handleApprove` → skip toute logique frontend pour V2
+  3. `useWorkflowActionTrigger` → skip V2 panels
+
+### 🐛 Bugs identifiés (1)
+- **Pas de notification quand partenaire soumet formulaire** : Le trigger `notify_admin_on_partner_chat_message` ne notifie que sur les messages chat (`chat_messages INSERT`). Quand un partenaire soumet un formulaire (`client_form_panels.status = 'submitted'`), aucune notification n'est créée. Fix : nouveau trigger `notify_admin_on_partner_form_submit` créé (SQL prêt, à déployer).
+
+### 🗄️ Migrations SQL
+- `fix_trigger_v4_simple.sql` — Trigger V4 déployé et actif ✅
+- `add_trigger_notify_admin_on_partner_form_submit.sql` — **À DÉPLOYER** : notification quand partenaire soumet formulaire
+
+### 📁 Fichiers modifiés
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/admin/ProspectDetailsAdmin.jsx` | `sendNextAction` TENTATIVE 2 simplifié → return immédiat pour V2 (supprimé ~100 lignes dead code) |
+| `fix_trigger_v4_simple.sql` | Trigger V4 complet (222 lignes) |
+| `add_trigger_notify_admin_on_partner_form_submit.sql` | Nouveau trigger notification partenaire |
+
+### 🧪 Tests validés
+| Test | Résultat |
+|------|----------|
+| MESSAGE → admin Execute → client Valider → action suivante | ✅ |
+| FORMULAIRE → client remplit → admin Valider → action suivante | ✅ |
+| PARTENAIRE → partenaire soumet → admin Valider → action/étape suivante | ✅ |
+| Multi-étapes complètes (Inscription → Collecte → Offre → Appel → Signature) | ✅ |
+| Notification partenaire soumission | ❌ Manquante (trigger à déployer) |
+
+### 🔜 Prochains sujets
+- **Déployer** `add_trigger_notify_admin_on_partner_form_submit.sql` sur Supabase
+- Tester SIGNATURE en multi-actions
+- Tester un prospect complètement neuf de A à Z avec le nouveau flow
+- Nettoyer les fichiers SQL obsolètes (v1, v2, v3 du trigger)
+
+---
+
 ## 9–10 mars 2026 (session 5 — nuit)
 
 ### ✅ Features
@@ -47,30 +91,18 @@ Chaque entrée contient :
 | Pas de doublon panel-msg- | ✅ Guard sendNextAction TENTATIVE 2 actif |
 | Passage d'étape automatique CAS 2 | ✅ decouverte→chiffrage propre |
 
-### 🏗️ Architecture V2 — Flux complet actuel
+### 🏗️ Architecture V2 — Flux complet (OBSOLÈTE après session 6)
+
+> ⚠️ Cette architecture a été remplacée par le Trigger V4 en session 6.
+> Voir session 6 pour le design final : admin clique robot pour CHAQUE action.
 
 ```
-Admin clique Robot → executeActionOrderV2 → crée panel action-0 + message chat
-  ↓
-Client/Admin interagit → panel.status = 'approved'
-  ↓
-Trigger DB fn_v2_action_chaining
-  ├── Crée subSteps si absentes (depuis template)
-  ├── Marque action courante → completed
-  ├── CAS 1 (pas dernière): Crée panel action-N+1 + message chat → active subStep suivante
-  └── CAS 2 (dernière): Vérifie tous panels approved → étape completed → étape suivante in_progress
-  
-Frontend (3 guards V2):
-  1. useWorkflowActionTrigger: V2 panel → SKIP sendNextAction
-  2. handleApprove: V2 panel → SKIP subSteps/completeStepAndProceed  
-  3. sendNextAction TENTATIVE 2: v2- actionId → RETURN immédiat
+[OBSOLÈTE] Le trigger V3 créait les panels automatiquement.
+[ACTUEL V4] Le trigger ne fait que subSteps MAJ + complétion d'étape.
 ```
 
-### 🔜 Prochains sujets
-- Tester SIGNATURE en multi-actions
-- Tester 3+ actions dans une même étape
-- Question design : chaînage automatique vs. admin clique robot pour chaque action ?
-- Nettoyer le code mort dans `sendNextAction` TENTATIVE 2 (dead code pour V2)
+### 🔜 Prochains sujets (résolu en session 6)
+- ~~Question design : chaînage automatique vs. admin clique robot pour chaque action ?~~ → **Résolu : admin clique robot**
 
 ---
 
