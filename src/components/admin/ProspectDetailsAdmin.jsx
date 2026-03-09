@@ -509,7 +509,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     // ═══════════════════════════════════════════════════════════════════
     // TENTATIVE 2: Chaînage via template V2 (MESSAGE, etc.)
     // ═══════════════════════════════════════════════════════════════════
-    if (completedActionId && currentModuleConfig?.actions?.length > 1) {
+    if (completedActionId && currentModuleConfig?.actions?.length >= 1) {
       const v2Actions = currentModuleConfig.actions;
       const completedIndex = v2Actions.findIndex((_, idx) => 
         `v2-${currentModuleId}-action-${idx}` === completedActionId
@@ -569,13 +569,25 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         });
         return;
       } else {
-        logger.info('🏁 [V2] Dernière action complétée', { completedActionId });
+        // 🔥 Dernière action complétée → compléter l'étape et passer à la suivante
+        logger.info('🏁 [V2] Dernière action complétée → complétion étape', { 
+          completedActionId,
+          currentStepIndex,
+          projectType,
+        });
+        
+        try {
+          await completeStepAndProceed(prospectId, projectType, currentStepIndex);
+          logger.info('✅ [V2] Étape complétée avec succès');
+        } catch (err) {
+          logger.error('❌ [V2] Erreur complétion étape', { error: err.message });
+        }
         return;
       }
     }
     
     logger.warn('Aucun prompt V1 ni actions V2 disponibles pour chaînage');
-  }, [availablePrompts, currentStepIndex, currentModuleConfig, currentModuleId, currentStepData, projectType, prospectId, organizationId, activeAdminUser]);
+  }, [availablePrompts, currentStepIndex, currentModuleConfig, currentModuleId, currentStepData, projectType, prospectId, organizationId, activeAdminUser, completeStepAndProceed]);
   
   // 🔥 V2: Déterminer si des actions V2 existent pour le module courant
   const hasV2Actions = !!(currentModuleConfig?.actions?.length > 0);
