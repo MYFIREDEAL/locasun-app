@@ -47,9 +47,29 @@ Chaque entrée contient :
 | `src/components/admin/ProspectDetailsAdmin.jsx` | `sendNextAction` avec fallback V2 + complétion étape |
 
 ### 🔜 Prochains sujets
-- SubSteps admin pas mises à jour en temps réel quand client valide MESSAGE (cosmétique)
-- Tester MESSAGE avec multi-actions (2+ actions dans une même étape)
-- Mettre à jour `PROGRESS_LOG.md` ✅
+- Tester SIGNATURE en multi-actions (FORM + SIGNATURE dans une même étape) — nécessite création d'un panel pour SIGNATURE + mise à jour panel→approved quand signed
+
+---
+
+## 9 mars 2026 (session 2 — après-midi)
+
+### ✅ Features
+- **Multi-actions MESSAGE + FORM fonctionne de bout en bout** : Testé avec 3 actions (MESSAGE → FORM A → FORM B). Chaînage séquentiel, sous-étapes, et passage d'étape automatique.
+
+### 🐛 Bugs fixés (4 hotfixes)
+- **`shouldCompleteStep` bloqué par `button_click`** : En multi-actions, le `completionTrigger` module-level (`button_click` pour MESSAGE) empêchait le passage d'étape même quand toutes les actions étaient approved. Fix : en multi-actions, seul critère = `allActionsCompleted`.
+- **SubSteps non mises à jour en temps réel** : `sendNextAction` ne mettait pas à jour les sous-étapes (elles n'existaient pas en Supabase, générées uniquement côté UI). Fix : `sendNextAction` crée les subSteps depuis le template V2 si absentes, puis met à jour les statuts (completed → in_progress).
+- **`updateSupabaseSteps is not defined`** : Variable du composant parent utilisée dans `ProspectForms` (sous-composant). Fix : remplacé par appel Supabase direct.
+- **Compteur "Formulaires soumis" comptait les MESSAGE** : Ajout de `actionType` dans la transformation du hook `useSupabaseClientFormPanels` + filtre `panel.actionType !== 'message'`.
+
+### 📁 Fichiers modifiés
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/admin/ProspectDetailsAdmin.jsx` | `shouldCompleteStep` multi-actions, subSteps dans `sendNextAction` avec création si absentes, appel Supabase direct dans handleApprove |
+| `src/hooks/useSupabaseClientFormPanels.js` | Ajout `actionType` et `actionId` dans `transformFromDB` |
+
+### 🔜 Prochains sujets
+- Tester SIGNATURE en multi-actions (FORM + SIGNATURE dans une même étape) — nécessite création d'un panel pour SIGNATURE + mise à jour panel→approved quand signed
 
 ---
 
