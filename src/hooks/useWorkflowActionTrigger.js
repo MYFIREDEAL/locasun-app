@@ -17,13 +17,15 @@ export function useWorkflowActionTrigger({
   projectType, 
   currentStepIndex,
   prompt,
+  hasV2Actions = false,
   sendNextAction
 }) {
   const executedRef = useRef(new Set());
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (!prospectId || !projectType || currentStepIndex === undefined || !prompt) {
+    // 🔥 FIX: Activer le trigger si prompt V1 OU actions V2 existent
+    if (!prospectId || !projectType || currentStepIndex === undefined || (!prompt && !hasV2Actions)) {
       return;
     }
 
@@ -106,5 +108,5 @@ export function useWorkflowActionTrigger({
       supabase.removeChannel(formPanelChannel);
       logger.debug('🔴 Workflow action trigger désactivé');
     };
-  }, [prospectId, projectType, currentStepIndex, prompt, sendNextAction]);
+  }, [prospectId, projectType, currentStepIndex, prompt, hasV2Actions, sendNextAction]);
 }

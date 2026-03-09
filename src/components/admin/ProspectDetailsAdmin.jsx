@@ -478,44 +478,107 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   // 🔥 Fonction pour envoyer la prochaine action du workflow (mémoïsée pour éviter re-renders)
   const sendNextAction = useCallback(async (completedActionId = null) => {
     logger.debug('🚀 Tentative envoi action suivante', { completedActionId });
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // TENTATIVE 1: Chaînage via prompt V1 (comportement existant)
+    // ═══════════════════════════════════════════════════════════════════
     const currentPrompt = availablePrompts[0];
-    if (!currentPrompt) {
-      logger.warn('Aucun prompt disponible');
-      return;
-    }
-    
-    const stepConfig = currentPrompt.stepsConfig?.[currentStepIndex];
-    if (!stepConfig || !stepConfig.actions) {
-      logger.warn('Aucune action dans la config de l\'étape');
-      return;
-    }
-    
-    // Trier les actions par ordre
-    const sortedActions = [...stepConfig.actions].sort((a, b) => (a.order || 0) - (b.order || 0));
-    
-    if (completedActionId) {
-      // Trouver l'action complétée et prendre la suivante
-      const completedIndex = sortedActions.findIndex(a => a.id === completedActionId);
-      if (completedIndex !== -1 && completedIndex + 1 < sortedActions.length) {
-        const nextAction = sortedActions[completedIndex + 1];
-        logger.info('🎯 Action suivante trouvée', { 
-          completedActionId, 
-          nextActionId: nextAction.id,
-          nextActionType: nextAction.type 
-        });
+    if (currentPrompt) {
+      const stepConfig = currentPrompt.stepsConfig?.[currentStepIndex];
+      if (stepConfig?.actions?.length > 0) {
+        const sortedActions = [...stepConfig.actions].sort((a, b) => (a.order || 0) - (b.order || 0));
         
-        // Exécuter directement cette action spécifique
-        await handleSelectPrompt(currentPrompt, nextAction.id);
-        return;
-      } else {
-        logger.warn('Pas d\'action suivante', { completedActionId, totalActions: sortedActions.length });
+        if (completedActionId) {
+          const completedIndex = sortedActions.findIndex(a => a.id === completedActionId);
+          if (completedIndex !== -1 && completedIndex + 1 < sortedActions.length) {
+            const nextAction = sortedActions[completedIndex + 1];
+            logger.info('🎯 [V1] Action suivante trouvée', { completedActionId, nextActionId: nextAction.id });
+            await handleSelectPrompt(currentPrompt, nextAction.id);
+            return;
+          } else {
+            logger.info('🏁 [V1] Dernière action complétée', { completedActionId });
+            return;
+          }
+        }
+        
+        await handleSelectPrompt(currentPrompt);
         return;
       }
     }
     
-    // Fallback: comportement par défaut (première action non envoyée)
-    await handleSelectPrompt(currentPrompt);
-  }, [availablePrompts, currentStepIndex]);
+    // ═══════════════════════════════════════════════════════════════════
+    // TENTATIVE 2: Chaînage via template V2 (MESSAGE, etc.)
+    // ═══════════════════════════════════════════════════════════════════
+    if (completedActionId && currentModuleConfig?.actions?.length > 1) {
+      const v2Actions = currentModuleConfig.actions;
+      const completedIndex = v2Actions.findIndex((_, idx) => 
+        `v2-${currentModuleId}-action-${idx}` === completedActionId
+      );
+      
+      if (completedIndex !== -1 && completedIndex + 1 < v2Actions.length) {
+        const nextIdx = completedIndex + 1;
+        const nextAction = v2Actions[nextIdx];
+        const nextActionConfig = nextAction.config || nextAction.actionConfig || {};
+        
+        logger.info('🎯 [V2] Action suivante trouvée via template', { 
+          completedActionId, 
+          nextIndex: nextIdx,
+          nextActionType: nextActionConfig.actionType,
+        });
+        
+        // Importer dynamiquement les fonctions V2
+        const { buildActionOrder } = await import('@/lib/actionOrderV2');
+        const { executeActionOrder } = await import('@/lib/executeActionOrderV2');
+        
+        // Normaliser targetAudience
+        const firstTarget = Array.isArray(nextActionConfig.targetAudience)
+          ? nextActionConfig.targetAudience[0]
+          : nextActionConfig.targetAudience;
+        
+        const order = buildActionOrder({
+          moduleId: currentModuleId,
+          moduleName: currentStepData?.name || currentModuleId,
+          projectType,
+          prospectId,
+          actionIndex: nextIdx,
+          actionConfig: {
+            ...nextActionConfig,
+            targetAudience: firstTarget || 'CLIENT',
+            ...(nextActionConfig.actionType === 'MESSAGE' && {
+              buttonLabels: currentModuleConfig.buttonLabels || {
+                proceedLabel: 'Valider ✓',
+                needDataLabel: "Besoin d'infos",
+              },
+            }),
+          },
+          message: '',
+        });
+        
+        // Exécuter l'action suivante (non-simulation)
+        const orderForExecution = {
+          ...order,
+          _meta: { ...order._meta, isSimulation: false },
+        };
+        
+        const context = { organizationId: organizationId || activeAdminUser?.organization_id };
+        const result = await executeActionOrder(orderForExecution, context);
+        
+        logger.info('🚀 [V2] Action suivante exécutée', { 
+          success: result.success, 
+          message: result.message,
+        });
+        return;
+      } else {
+        logger.info('🏁 [V2] Dernière action complétée', { completedActionId });
+        return;
+      }
+    }
+    
+    logger.warn('Aucun prompt V1 ni actions V2 disponibles pour chaînage');
+  }, [availablePrompts, currentStepIndex, currentModuleConfig, currentModuleId, currentStepData, projectType, prospectId, organizationId, activeAdminUser]);
+  
+  // 🔥 V2: Déterminer si des actions V2 existent pour le module courant
+  const hasV2Actions = !!(currentModuleConfig?.actions?.length > 0);
   
   // 🔥 Hook pour déclencher automatiquement l'action suivante quand la précédente est complétée
   useWorkflowActionTrigger({
@@ -523,6 +586,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     projectType,
     currentStepIndex,
     prompt: availablePrompts[0],
+    hasV2Actions,
     sendNextAction,
   });
   
