@@ -3678,8 +3678,9 @@ const ProspectDetailsAdmin = ({
         async (payload) => {
           const { new: newRecord, old: oldRecord } = payload;
           
-          // Déclencher uniquement quand status passe à 'signed'
-          if (newRecord.status !== 'signed' || oldRecord?.status === 'signed') {
+          // Déclencher quand status passe à 'signed' OU 'completed' (les deux existent selon le provider)
+          const signedStatuses = ['signed', 'completed'];
+          if (!signedStatuses.includes(newRecord.status) || signedStatuses.includes(oldRecord?.status)) {
             return;
           }
 
@@ -3695,18 +3696,43 @@ const ProspectDetailsAdmin = ({
           });
 
           // ═══════════════════════════════════════════════════════════════
-          // STRATÉGIE 1: Panel V2 existe → mettre à approved → chaînage standard
+          // STRATÉGIE 1: Panel V2 existe (via panelDbId dans metadata) → approved → chaînage standard
           // ═══════════════════════════════════════════════════════════════
-          if (metadata.panelDbId) {
+          let resolvedPanelDbId = metadata.panelDbId || null;
+
+          // STRATÉGIE 1bis: Pas de panelDbId → chercher le panel SIGNATURE pending pour ce prospect/project
+          if (!resolvedPanelDbId) {
+            logger.info('[V2 Signature Listener] No panelDbId in metadata, searching for pending signature panel...');
+            const { data: foundPanel } = await supabase
+              .from('client_form_panels')
+              .select('id, action_id')
+              .eq('prospect_id', prospect.id)
+              .eq('project_type', projectType)
+              .eq('action_type', 'signature')
+              .eq('status', 'pending')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            
+            if (foundPanel) {
+              resolvedPanelDbId = foundPanel.id;
+              logger.info('[V2 Signature Listener] Found pending signature panel (1bis fallback)', {
+                panelId: foundPanel.id,
+                actionId: foundPanel.action_id,
+              });
+            }
+          }
+
+          if (resolvedPanelDbId) {
             logger.info('[V2 Signature Listener] Updating panel to approved (standard chaining)', {
-              panelDbId: metadata.panelDbId,
+              panelDbId: resolvedPanelDbId,
               actionId: metadata.actionId,
             });
             
             const { error: updateError } = await supabase
               .from('client_form_panels')
               .update({ status: 'approved' })
-              .eq('id', metadata.panelDbId);
+              .eq('id', resolvedPanelDbId);
             
             if (updateError) {
               logger.error('[V2 Signature Listener] Error updating panel', { error: updateError.message });

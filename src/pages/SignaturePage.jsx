@@ -205,6 +205,13 @@ export default function SignaturePage() {
       };
 
       // 8. Mettre à jour la procédure de signature
+      // 🔥 FIX: Merger signature_metadata au lieu d'écraser (préserve actionId, panelDbId de V2)
+      const existingMetadata = procedure?.signature_metadata || {};
+      const mergedMetadata = {
+        ...existingMetadata,
+        ...signatureMetadata,
+      };
+
       const { data: updatedProc, error: updateError } = await supabase
         .from('signature_procedures')
         .update({
@@ -212,7 +219,7 @@ export default function SignaturePage() {
           signers: updatedSigners,
           signed_at: new Date().toISOString(),
           document_hash: documentHash,
-          signature_metadata: signatureMetadata,
+          signature_metadata: mergedMetadata,
         })
         .eq('id', signatureProcedureId)
         .eq('access_token', token) // Sécurité: vérifier le token
