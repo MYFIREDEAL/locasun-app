@@ -100,6 +100,12 @@ const COMPLETION_TRIGGER_OPTIONS = [
     description: 'L\'étape est terminée quand le contrat est signé'
   },
   { 
+    id: 'button_click', 
+    label: 'Clic bouton client', 
+    icon: '💬',
+    description: 'L\'étape est terminée quand le client clique sur le bouton "Valider" dans le chat'
+  },
+  { 
     id: 'checklist', 
     label: 'Checklist complétée', 
     icon: '✅',
@@ -1696,6 +1702,12 @@ const ModuleConfigTab = ({
         console.log('[V2 Config Tab] Form changed → requiredFields CLEARED');
       }
       
+      // 💬 MESSAGE: Auto-forcer completionTrigger = button_click
+      if (field === 'actionType' && value === 'MESSAGE') {
+        updated.completionTrigger = 'button_click';
+        console.log('[V2 Config Tab] MESSAGE selected → completionTrigger forced to button_click');
+      }
+      
       // Persister en mémoire via moduleAIConfig UNIQUEMENT si 1 seule action
       // En multi-actions, actions[] est la source de vérité (sync via useEffect)
       if (actions.length <= 1) {
@@ -2077,7 +2089,25 @@ const ModuleConfigTab = ({
             </div>
           )}
           
-          {/* 5️⃣ MODES (Gestion + Vérification) */}
+          {/* 💬 MESSAGE INFO (si actionType = MESSAGE) */}
+          {actionConfig.actionType === 'MESSAGE' && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+              <div className="flex items-center gap-2 text-blue-700 font-medium text-sm">
+                <span className="text-lg">💬</span>
+                Action Message conversationnel
+              </div>
+              <p className="text-xs text-blue-600">
+                L'admin ou l'IA échange avec le client dans le chat en suivant l'objectif et les instructions définis ci-dessus. 
+                Quand la conversation est prête, les boutons de validation sont envoyés au client dans le chat.
+              </p>
+              <p className="text-xs text-blue-500 italic">
+                Le client valide en cliquant sur le bouton → l'action est complétée → passage à l'étape suivante.
+              </p>
+            </div>
+          )}
+          
+          {/* 5️⃣ MODES (Gestion + Vérification) — masqué pour MESSAGE */}
+          {actionConfig.actionType !== 'MESSAGE' && (
           <div className="grid grid-cols-2 gap-4">
             <ModeSelect
               label="Mode de gestion"
@@ -2094,6 +2124,7 @@ const ModuleConfigTab = ({
               modes={getVerificationModesList()}
             />
           </div>
+          )}
           
           {/* ─────────────────────────────────────────────────────────────────
               SECTION 6: VALIDATION DE L'ÉTAPE
@@ -2101,10 +2132,21 @@ const ModuleConfigTab = ({
           <div className="border-t border-purple-200/50 my-5" />
           
           <div>
-            <CompletionTriggerSelect
-              selected={actionConfig.completionTrigger}
-              onChange={(trigger) => updateActionConfigField('completionTrigger', trigger)}
-            />
+            {actionConfig.actionType === 'MESSAGE' ? (
+              <div className="p-3 bg-gray-50 border rounded-lg">
+                <span className="text-xs text-gray-500 uppercase font-medium">Trigger de complétion</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg">💬</span>
+                  <span className="text-sm font-medium text-gray-700">Clic bouton client</span>
+                  <span className="text-xs text-gray-400 italic ml-2">(automatique pour MESSAGE)</span>
+                </div>
+              </div>
+            ) : (
+              <CompletionTriggerSelect
+                selected={actionConfig.completionTrigger}
+                onChange={(trigger) => updateActionConfigField('completionTrigger', trigger)}
+              />
+            )}
           </div>
           
           {/* Séparateur avant simulateur */}

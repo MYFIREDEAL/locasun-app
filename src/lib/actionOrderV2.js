@@ -157,6 +157,14 @@ export function buildActionOrder({
         }
       : null,
     
+    // 💬 Config boutons (si action = MESSAGE)
+    buttonLabels: actionType === 'MESSAGE' 
+      ? {
+          proceedLabel: actionConfig.buttonLabels?.proceedLabel || 'Valider ✓',
+          needDataLabel: actionConfig.buttonLabels?.needDataLabel || "Besoin d'infos",
+        }
+      : null,
+    
     // Contexte
     moduleId,
     moduleName: moduleName || moduleId,
@@ -207,6 +215,11 @@ export function formatActionOrderSummary(order) {
     lines.push(`✍️ Type signature: ${order.signatureType || 'Non défini'}`);
   }
   
+  if (order.actionType === 'MESSAGE') {
+    lines.push(`✅ Bouton Valider: ${order.buttonLabels?.proceedLabel || 'Valider ✓'}`);
+    lines.push(`❓ Bouton Besoin: ${order.buttonLabels?.needDataLabel || "Besoin d'infos"}`);
+  }
+  
   lines.push(`⚙️ Gestion: ${order.managementMode}`);
   lines.push(`✅ Vérification: ${order.verificationMode}`);
   lines.push(`💬 Message: ${order.message}`);
@@ -251,13 +264,15 @@ export function validateActionOrder(order) {
     errors.push('target manquant');
   }
   
-  if (order.actionType === 'FORM' && order.formIds.length === 0) {
+  if (order.actionType === 'FORM' && (!order.formIds || order.formIds.length === 0)) {
     errors.push('Aucun formulaire sélectionné pour action FORM');
   }
   
-  if (order.actionType === 'SIGNATURE' && order.formIds.length === 0) {
+  if (order.actionType === 'SIGNATURE' && (!order.formIds || order.formIds.length === 0)) {
     errors.push('Aucun formulaire de collecte pour SIGNATURE');
   }
+  
+  // MESSAGE: pas de formIds/templateIds requis — validation OK si actionType + target + prospectId
   
   return {
     valid: errors.length === 0,

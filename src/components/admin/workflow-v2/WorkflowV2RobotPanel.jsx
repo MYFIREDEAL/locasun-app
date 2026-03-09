@@ -20,6 +20,7 @@ import {
   X, 
   FileText, 
   PenTool,
+  MessageSquare,
   User,
   Briefcase,
   Users,
@@ -59,11 +60,13 @@ const TARGET_LABELS = {
 const ACTION_TYPE_ICONS = {
   FORM: FileText,
   SIGNATURE: PenTool,
+  MESSAGE: MessageSquare,
 };
 
 const ACTION_TYPE_LABELS = {
   FORM: 'Formulaire',
   SIGNATURE: 'Signature',
+  MESSAGE: 'Message',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -280,6 +283,13 @@ const WorkflowV2RobotPanel = ({
           ...actionConfig,
           // Prendre la première cible pour la simulation
           targetAudience: firstTarget || 'CLIENT',
+          // 💬 MESSAGE: Inclure buttonLabels depuis moduleConfig
+          ...(actionConfig.actionType === 'MESSAGE' && {
+            buttonLabels: moduleConfig?.buttonLabels || {
+              proceedLabel: 'Valider ✓',
+              needDataLabel: "Besoin d'infos",
+            },
+          }),
         },
         message: '', // Message écrit manuellement par l'admin
       });
@@ -589,11 +599,42 @@ const WorkflowV2RobotPanel = ({
                   </div>
                 )}
 
-                {/* Modes */}
+                {/* 💬 MESSAGE: Objectif + Instructions + Aperçu boutons */}
+                {actionConfig?.actionType === 'MESSAGE' && (
+                  <div className="space-y-3 pt-2 border-t">
+                    {moduleConfig?.objective && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-500">🎯 Objectif:</span>
+                        <p className="text-sm text-gray-800 mt-0.5">{moduleConfig.objective}</p>
+                      </div>
+                    )}
+                    {moduleConfig?.instructions && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-500">📋 Instructions:</span>
+                        <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{moduleConfig.instructions}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-xs font-medium text-gray-500">🔘 Boutons envoyés au client:</span>
+                      <div className="flex gap-2 mt-1">
+                        <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                          ✅ {moduleConfig?.buttonLabels?.proceedLabel || 'Valider ✓'}
+                        </span>
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">
+                          ❓ {moduleConfig?.buttonLabels?.needDataLabel || "Besoin d'infos"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Modes — masqué pour MESSAGE */}
+                {actionConfig?.actionType !== 'MESSAGE' && (
                 <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
                   <span>Gestion: {actionConfig?.managementMode === 'AI' ? '✨ IA' : '👤 Humain'}</span>
                   <span>Vérif: {actionConfig?.verificationMode === 'AI' ? '✨ IA' : '👤 Humain'}</span>
                 </div>
+                )}
               </div>
 
               {/* ActionOrder généré */}

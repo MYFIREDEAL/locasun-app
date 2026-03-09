@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowLeft, UploadCloud, Lock, Send, Paperclip, Download, FileText, Calendar, Clock, MapPin, Video, X, Phone, Mail, User } from 'lucide-react';
+import { ArrowLeft, UploadCloud, Lock, Send, Paperclip, Download, FileText, Calendar, Clock, MapPin, Video, X, Phone, Mail, User, CheckCircle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
@@ -72,6 +72,111 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const [attachedFile, setAttachedFile] = useState(null);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  
+  // 💬 MESSAGE: Track panel statuses for action buttons
+  const [panelStatuses, setPanelStatuses] = useState({});
+  const [buttonLoading, setButtonLoading] = useState(null); // panelId being processed
+
+  // 💬 MESSAGE: Fetch panel statuses for action button messages
+  useEffect(() => {
+    const panelIds = messages
+      .filter(msg => msg.metadata?.actionButtons && msg.metadata?.panelId)
+      .map(msg => msg.metadata.panelId);
+    
+    if (panelIds.length === 0) return;
+    
+    const fetchStatuses = async () => {
+      const { data, error } = await supabase
+        .from('client_form_panels')
+        .select('id, status')
+        .in('id', panelIds);
+      
+      if (!error && data) {
+        const statuses = {};
+        data.forEach(panel => { statuses[panel.id] = panel.status; });
+        setPanelStatuses(statuses);
+      }
+    };
+    
+    fetchStatuses();
+    
+    // Real-time: écouter les changements de status des panels
+    const channel = supabase
+      .channel('message-panels-status')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'client_form_panels',
+        filter: `id=in.(${panelIds.join(',')})`,
+      }, (payload) => {
+        setPanelStatuses(prev => ({
+          ...prev,
+          [payload.new.id]: payload.new.status,
+        }));
+      })
+      .subscribe();
+    
+    return () => supabase.removeChannel(channel);
+  }, [messages]);
+
+  // 💬 MESSAGE: Client clique "Valider"
+  const handleActionValidate = async (panelId, proceedLabel) => {
+    setButtonLoading(panelId);
+    try {
+      // 1. Update panel status → approved
+      const { error: updateError } = await supabase
+        .from('client_form_panels')
+        .update({ status: 'approved' })
+        .eq('id', panelId);
+      
+      if (updateError) throw updateError;
+      
+      // 2. Envoyer message chat de confirmation
+      addChatMessage(prospectId, projectType, {
+        sender: 'client',
+        text: `✅ ${proceedLabel || 'Validé'}`,
+        metadata: { actionResponse: 'validated', panelId },
+      });
+      
+      setPanelStatuses(prev => ({ ...prev, [panelId]: 'approved' }));
+      
+      toast({
+        title: '✅ Confirmé',
+        description: 'Votre réponse a été enregistrée.',
+      });
+    } catch (error) {
+      logger.error('❌ Error validating action', error);
+      toast({
+        title: '❌ Erreur',
+        description: 'Impossible de valider. Réessayez.',
+        variant: 'destructive',
+      });
+    } finally {
+      setButtonLoading(null);
+    }
+  };
+
+  // 💬 MESSAGE: Client clique "Besoin d'infos"
+  const handleActionNeedInfo = async (panelId, needDataLabel) => {
+    setButtonLoading(panelId);
+    try {
+      // Envoyer message chat demandant plus d'infos
+      addChatMessage(prospectId, projectType, {
+        sender: 'client',
+        text: `❓ ${needDataLabel || "J'ai besoin de plus d'informations"}`,
+        metadata: { actionResponse: 'need_info', panelId },
+      });
+      
+      toast({
+        title: '📩 Message envoyé',
+        description: 'Votre conseiller reviendra vers vous.',
+      });
+    } catch (error) {
+      logger.error('❌ Error sending need info', error);
+    } finally {
+      setButtonLoading(null);
+    }
+  };
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -233,6 +338,48 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
                     </p>
                   </div>
               )}
+              {/* 💬 MESSAGE: Boutons d'action (Valider / Besoin d'infos) */}
+              {msg.metadata?.actionButtons && msg.metadata?.panelId && (() => {
+                const panelId = msg.metadata.panelId;
+                const isApproved = panelStatuses[panelId] === 'approved';
+                const isLoading = buttonLoading === panelId;
+                const proceedLabel = msg.metadata.proceedLabel || 'Valider ✓';
+                const needDataLabel = msg.metadata.needDataLabel || "Besoin d'infos";
+                
+                return (
+                  <div className="mt-3 space-y-2">
+                    {isApproved ? (
+                      <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg p-2 text-xs">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="font-medium">Réponse validée ✓</span>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleActionValidate(panelId, proceedLabel)}
+                          disabled={isLoading}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? (
+                            <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-3.5 h-3.5" />
+                          )}
+                          {proceedLabel}
+                        </button>
+                        <button
+                          onClick={() => handleActionNeedInfo(panelId, needDataLabel)}
+                          disabled={isLoading}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" />
+                          {needDataLabel}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <p className={`text-xs mt-1 ${msg.sender === 'client' ? 'text-blue-200' : 'text-gray-500'}`}>
                 {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: fr })}
               </p>

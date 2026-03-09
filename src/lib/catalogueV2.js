@@ -38,6 +38,13 @@ export const ACTION_TYPES = {
     icon: '✍️',
     description: 'Lancer une procédure de signature de contrat',
   },
+  MESSAGE: {
+    id: 'MESSAGE',
+    v1Type: 'send_message',
+    label: 'Message',
+    icon: '💬',
+    description: 'Envoyer un message conversationnel avec boutons de validation client',
+  },
   PAYMENT: {
     id: 'PAYMENT',
     v1Type: 'open_payment', // Mock - Stripe non intégré

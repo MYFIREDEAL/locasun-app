@@ -31,6 +31,7 @@ import {
   ChevronUp,
   FileText,
   PenTool,
+  MessageSquare,
   Users,
   Zap,
   Rocket,
@@ -335,6 +336,8 @@ export function ActionOrderSimulator({
               <div className="flex items-center gap-1.5">
                 {generatedOrder.actionType === 'FORM' ? (
                   <FileText className="h-4 w-4 text-blue-600" />
+                ) : generatedOrder.actionType === 'MESSAGE' ? (
+                  <MessageSquare className="h-4 w-4 text-teal-600" />
                 ) : (
                   <PenTool className="h-4 w-4 text-green-600" />
                 )}
@@ -359,7 +362,7 @@ export function ActionOrderSimulator({
           </div>
           
           {/* Formulaires */}
-          {generatedOrder.formIds.length > 0 && (
+          {generatedOrder.formIds?.length > 0 && (
             <div>
               <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">
                 Formulaires ({generatedOrder.formIds.length})
@@ -378,7 +381,7 @@ export function ActionOrderSimulator({
           )}
           
           {/* Templates (si SIGNATURE) */}
-          {generatedOrder.actionType === 'SIGNATURE' && generatedOrder.templateIds.length > 0 && (
+          {generatedOrder.actionType === 'SIGNATURE' && generatedOrder.templateIds?.length > 0 && (
             <div>
               <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">
                 Templates contrat ({generatedOrder.templateIds.length})
@@ -392,6 +395,23 @@ export function ActionOrderSimulator({
                     {name}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+          
+          {/* 💬 Boutons MESSAGE */}
+          {generatedOrder.actionType === 'MESSAGE' && generatedOrder.buttonLabels && (
+            <div>
+              <div className="text-[10px] font-medium text-gray-400 uppercase mb-1">
+                Boutons client
+              </div>
+              <div className="flex gap-2">
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                  ✅ {generatedOrder.buttonLabels.proceedLabel}
+                </span>
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                  ❓ {generatedOrder.buttonLabels.needDataLabel}
+                </span>
               </div>
             </div>
           )}

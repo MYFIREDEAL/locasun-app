@@ -14,6 +14,7 @@
  * Actions supportées:
  *    - FORM → envoi formulaire au client/commercial
  *    - SIGNATURE → lancement procédure de signature
+ *    - MESSAGE → envoi boutons de validation dans le chat client
  * 
  * ❌ AUCUN changement dans ProspectDetailsAdmin V1
  * ❌ AUCUNE cascade automatique
@@ -308,7 +309,7 @@ export async function executeActionOrder(order, context = {}) {
     }
     
     // ───────────────────────────────────────────────────────────────────────
-    // SWITCH NORMAL: FORM / SIGNATURE
+    // SWITCH NORMAL: FORM / SIGNATURE / MESSAGE
     // ───────────────────────────────────────────────────────────────────────
     switch (order.actionType) {
       case 'FORM':
@@ -317,6 +318,10 @@ export async function executeActionOrder(order, context = {}) {
         
       case 'SIGNATURE':
         result = await executeSignatureAction(order, context);
+        break;
+      
+      case 'MESSAGE':
+        result = await executeMessageAction(order, context);
         break;
         
       default:
@@ -695,6 +700,121 @@ async function executeSignatureAction(order, context) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// EXÉCUTION MESSAGE (send_message — boutons dans le chat)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Exécute une action MESSAGE :
+ *   1. Crée un client_form_panel (action_type='message', status='pending')
+ *   2. Envoie un message chat avec metadata.actionButtons + boutons labels + panelId
+ *   → Le client voit les boutons dans le chat
+ *   → Clic "Valider" → panel approved → chaînage séquentiel
+ *   → Clic "Besoin d'infos" → panel reste pending → conversation continue
+ * 
+ * @param {Object} order - ActionOrder
+ * @param {Object} context - Contexte d'exécution
+ * @returns {Promise<ExecutionResult>}
+ */
+async function executeMessageAction(order, context) {
+  const { prospectId, projectType, message, buttonLabels } = order;
+  
+  logV2('💬 executeMessageAction', { prospectId, projectType, buttonLabels });
+  
+  const proceedLabel = buttonLabels?.proceedLabel || 'Valider ✓';
+  const needDataLabel = buttonLabels?.needDataLabel || "Besoin d'infos";
+  
+  try {
+    // Générer un panel_id unique
+    const panelId = `panel-msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    // 1. Créer un client_form_panel pour tracker l'action MESSAGE
+    const { data: panel, error: panelError } = await supabase
+      .from('client_form_panels')
+      .insert({
+        panel_id: panelId,
+        prospect_id: prospectId,
+        project_type: projectType || 'general',
+        form_id: null,
+        status: 'pending',
+        action_type: 'message',
+        message_timestamp: Date.now().toString(),
+        step_name: order.moduleName || order.moduleId || null,
+        action_id: order.actionId || null,
+        verification_mode: 'HUMAN',
+      })
+      .select()
+      .single();
+    
+    if (panelError) {
+      logV2('❌ Erreur création panel MESSAGE', { error: panelError.message });
+      return {
+        success: false,
+        status: 'error',
+        message: `Erreur création panel: ${panelError.message}`,
+        data: { orderId: order.id, error: panelError.message },
+      };
+    }
+    
+    logV2('✅ Panel MESSAGE créé', { panelId: panel.id, panelPanelId: panelId });
+    
+    // 2. Envoyer le message chat avec les boutons dans metadata
+    const organizationId = context.organizationId || null;
+    
+    const { error: chatError } = await supabase
+      .from('chat_messages')
+      .insert({
+        prospect_id: prospectId,
+        project_type: projectType || 'general',
+        sender: 'pro',
+        text: message || 'Merci de confirmer en cliquant sur un des boutons ci-dessous.',
+        read: false,
+        organization_id: organizationId,
+        channel: 'client',
+        metadata: {
+          actionButtons: true,
+          panelId: panel.id,
+          proceedLabel,
+          needDataLabel,
+          source: 'workflow-v2',
+          actionType: 'MESSAGE',
+        },
+      });
+    
+    if (chatError) {
+      logV2('❌ Erreur envoi chat MESSAGE', { error: chatError.message });
+    } else {
+      logV2('💬 Chat MESSAGE envoyé avec boutons', { prospectId, panelId: panel.id });
+    }
+    
+    toast({
+      title: "💬 Boutons envoyés au client",
+      description: `Le client verra "${proceedLabel}" et "${needDataLabel}" dans le chat`,
+    });
+    
+    return {
+      success: true,
+      status: 'executed',
+      message: `Boutons envoyés au client dans le chat`,
+      data: {
+        orderId: order.id,
+        panelId: panel.id,
+        proceedLabel,
+        needDataLabel,
+      },
+    };
+    
+  } catch (error) {
+    logV2('❌ Erreur executeMessageAction', { error: error.message });
+    return {
+      success: false,
+      status: 'error',
+      message: `Erreur: ${error.message}`,
+      data: { orderId: order.id, error: error.message },
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // HELPER: ENVOI MESSAGE CHAT
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -757,7 +877,7 @@ export function canExecuteActionOrder(order) {
   }
   
   // Check supported types
-  if (!['FORM', 'SIGNATURE'].includes(order.actionType)) {
+  if (!['FORM', 'SIGNATURE', 'MESSAGE'].includes(order.actionType)) {
     return { canExecute: false, reason: `Type ${order.actionType} non supporté` };
   }
   

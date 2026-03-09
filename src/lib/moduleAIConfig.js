@@ -143,7 +143,7 @@ export const DEFAULT_ACTION_CONFIG = {
   allowedTemplateIds: [],          // Aucun template par défaut
   managementMode: 'HUMAN',         // Par défaut: humain gère
   verificationMode: 'HUMAN',       // Par défaut: humain vérifie
-  completionTrigger: null,         // Trigger de fin d'étape: 'form_approved' | 'signature' | 'checklist' | 'ia_confirmation'
+  completionTrigger: null,         // Trigger de fin d'étape: 'form_approved' | 'signature' | 'checklist' | 'ia_confirmation' | 'button_click'
   requiredFields: [],              // Champs requis du formulaire pour validation (Client uniquement)
   reminderConfig: {                // Configuration de relance automatique (Client uniquement)
     enabled: false,
@@ -592,7 +592,7 @@ export function isModuleConfigComplete(moduleId, projectType = null) {
   if (!actionType) {
     errors.push({
       field: 'actionType',
-      message: 'Le type d\'action doit être défini (Formulaire ou Signature)',
+      message: 'Le type d\'action doit être défini (Formulaire, Signature ou Message)',
     });
   }
   
@@ -624,22 +624,26 @@ export function isModuleConfigComplete(moduleId, projectType = null) {
     }
   }
   
-  // Règle 5: managementMode défini
-  const managementMode = actionConfig.managementMode;
-  if (!managementMode || !['AI', 'HUMAN'].includes(managementMode)) {
-    errors.push({
-      field: 'managementMode',
-      message: 'Le mode de gestion doit être défini (IA ou Humain)',
-    });
+  // Règle 5: managementMode défini (sauf MESSAGE)
+  if (actionType !== 'MESSAGE') {
+    const managementMode = actionConfig.managementMode;
+    if (!managementMode || !['AI', 'HUMAN'].includes(managementMode)) {
+      errors.push({
+        field: 'managementMode',
+        message: 'Le mode de gestion doit être défini (IA ou Humain)',
+      });
+    }
   }
   
-  // Règle 6: verificationMode défini
-  const verificationMode = actionConfig.verificationMode;
-  if (!verificationMode || !['AI', 'HUMAN'].includes(verificationMode)) {
-    errors.push({
-      field: 'verificationMode',
-      message: 'Le mode de vérification doit être défini (IA ou Humain)',
-    });
+  // Règle 6: verificationMode défini (sauf MESSAGE)
+  if (actionType !== 'MESSAGE') {
+    const verificationMode = actionConfig.verificationMode;
+    if (!verificationMode || !['AI', 'HUMAN'].includes(verificationMode)) {
+      errors.push({
+        field: 'verificationMode',
+        message: 'Le mode de vérification doit être défini (IA ou Humain)',
+      });
+    }
   }
   
   // Règle 7: completionTrigger défini

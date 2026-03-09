@@ -3,7 +3,30 @@
 ## ⚡ PREMIÈRE CHOSE À FAIRE
 **Lis `PROGRESS_LOG.md`** à la racine du projet pour connaître l'état actuel de la progression (features faites, bugs fixés, prochains sujets).
 
-## 📝 MISE À JOUR DE LA PROGRESSION
+## � RÈGLE D'ANALYSE OBLIGATOIRE (AVANT TOUTE MODIFICATION)
+
+**Quand l'utilisateur demande une analyse ou une nouvelle feature sur un système existant :**
+
+1. **Tracer AU MOINS UN flux réel de bout en bout** avec un exemple concret
+   - Pas de théorie. Prendre un cas : "Le prospect X a 2 actions (FORM + SIGNATURE). L'admin clique sur le robot. Que se passe-t-il exactement dans le code ?"
+   - Suivre le flux dans les fichiers : composant UI → builder → exécution → complétion → chaînage
+
+2. **Identifier le modèle d'exécution AVANT de lister les risques**
+   - Séquentiel ? Parallèle ? Événementiel ?
+   - Chercher les guards, les boucles, les `findIndex`, les statuts (`pending`, `in_progress`, `completed`)
+   - Vérifier : une seule chose active à la fois, ou plusieurs ?
+
+3. **Ne JAMAIS théoriser sur des risques sans preuve dans le code**
+   - ❌ "Il pourrait y avoir un conflit si..." → sans avoir vérifié
+   - ✅ "Le code ligne X fait Y, donc ce risque n'existe pas" → avec preuve
+
+4. **Résumer le modèle d'exécution en premier** dans toute analyse
+   - Avant les fichiers impactés, avant la stratégie, avant les risques
+   - Exemple : "Les actions d'une étape sont séquentielles. Une seule active à la fois. Le chaînage est automatique via subSteps."
+
+> **Pourquoi** : Une erreur sur le modèle d'exécution se propage dans TOUTE l'analyse (risques inventés, stratégie sur-complexe, piéges inexistants).
+
+## �📝 MISE À JOUR DE LA PROGRESSION
 - **Quand l'utilisateur dit** "met à jour", "update progress", "on a bien avancé", ou en fin de session après du travail significatif → **mettre à jour `PROGRESS_LOG.md`** avec les features ajoutées, bugs fixés, migrations SQL exécutées, et prochains sujets.
 - **Proposer proactivement** de mettre à jour `PROGRESS_LOG.md` après 3+ features/fixes dans une même session.
 - **Format** : Ajouter une nouvelle section datée en haut du fichier (sous le header), avec les catégories ✅ Features, 🐛 Bugs fixés, 🗄️ Migrations SQL, 🔜 Prochains sujets.
