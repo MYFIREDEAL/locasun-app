@@ -2275,10 +2275,15 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 allActionsCompleted,
             });
 
-            // V2: Si completionTrigger === 'form_approved' OU aucune config explicite
-            // Comportement par défaut: valider un formulaire = passer à l'étape suivante
-            // 🔥 MAIS: si multi-actions et toutes pas terminées → bloquer
-            const shouldCompleteStep = (effectiveCompletionTrigger === 'form_approved' || !effectiveCompletionTrigger) && allActionsCompleted;
+            // V2: Déterminer si on doit passer à l'étape suivante
+            // - Si multi-actions: on complète l'étape dès que TOUTES les actions sont approved,
+            //   quel que soit le completionTrigger du module (qui est le trigger de la 1ère action)
+            // - Si single-action: on complète si trigger === 'form_approved' ou pas de config explicite
+            // 🔥 FIX: En multi-actions, le trigger module-level peut être 'button_click' (pour MESSAGE)
+            //    mais la dernière action est un FORM approuvé par l'admin → doit quand même compléter
+            const shouldCompleteStep = hasMultiActions
+                ? allActionsCompleted  // Multi-actions: seul critère = toutes les actions terminées
+                : (effectiveCompletionTrigger === 'form_approved' || !effectiveCompletionTrigger);
             
             // 🔥 FIX BUG 2: Mettre à jour la sous-étape correspondante AVANT de compléter l'étape
             // Trouver l'index de la sous-étape à partir de panel.action_id
