@@ -634,61 +634,19 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         });
         return;
       } else {
-        // 🔥 Dernière action complétée → compléter l'étape et passer à la suivante
-        logger.info('🏁 [V2] Dernière action complétée → complétion étape', { 
+        // 🔥 Dernière action V2 complétée → le TRIGGER DB (fn_v2_action_chaining) 
+        // gère déjà la complétion d'étape server-side.
+        // Le frontend ne doit PAS refaire la complétion sinon il pollue l'étape suivante
+        // avec des subSteps clonées du module courant.
+        logger.info('🏁 [V2] Dernière action complétée → complétion gérée par trigger DB (server-side)', { 
           completedActionId,
           currentStepIndex,
           projectType,
         });
-        
-        try {
-          // Récupérer les steps actuels depuis Supabase
-          const { data: stepsData } = await supabase
-            .from('project_steps_status')
-            .select('steps')
-            .eq('prospect_id', prospectId)
-            .eq('project_type', projectType)
-            .single();
-          
-          const currentSteps = stepsData?.steps;
-          if (!currentSteps || currentSteps.length === 0) {
-            logger.error('❌ [V2] Impossible de récupérer les steps pour complétion');
-            return;
-          }
-          
-          // 🔥 FIX: Marquer la dernière sous-étape comme complétée AVANT completeStepAndProceed
-          const stepIdx = currentSteps.findIndex(s => s.status === 'in_progress');
-          if (stepIdx !== -1) {
-            const updatedSteps = JSON.parse(JSON.stringify(currentSteps));
-            
-            // 🔥 FIX: Créer les subSteps si absentes de Supabase
-            if (!updatedSteps[stepIdx].subSteps || updatedSteps[stepIdx].subSteps.length === 0) {
-              const v2Actions = currentModuleConfig.actions;
-              updatedSteps[stepIdx].subSteps = v2Actions.map((action, idx) => {
-                const actionCfg = action.config || action.actionConfig || {};
-                return {
-                  id: `v2-${currentModuleId}-action-${idx}`,
-                  name: actionCfg.objective?.trim() || action.title || action.label || `Action ${idx + 1}`,
-                  status: STATUS_PENDING,
-                };
-              });
-            }
-            
-            const subSteps = updatedSteps[stepIdx].subSteps;
-            
-            // Marquer TOUTES les sous-étapes comme complétées (c'est la dernière action)
-            subSteps.forEach(sub => { sub.status = STATUS_COMPLETED; });
-            logger.info('✅ [V2] Toutes subSteps marquées completed', { count: subSteps.length });
-            
-            // Passer les steps mis à jour à completeStepAndProceed
-            await completeStepAndProceed(prospectId, projectType, currentStepIndex, updatedSteps);
-          } else {
-            await completeStepAndProceed(prospectId, projectType, currentStepIndex, currentSteps);
-          }
-          logger.info('✅ [V2] Étape complétée avec succès');
-        } catch (err) {
-          logger.error('❌ [V2] Erreur complétion étape', { error: err.message });
-        }
+        // Ne rien faire ici, le trigger fn_v2_action_chaining s'en charge :
+        // 1. Marque l'étape courante completed
+        // 2. Active l'étape suivante in_progress
+        // 3. Met à jour les subSteps de l'étape courante seulement
         return;
       }
     }
