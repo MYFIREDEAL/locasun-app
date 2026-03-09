@@ -727,6 +727,9 @@ async function executeMessageAction(order, context) {
     // Générer un panel_id unique
     const panelId = `panel-msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     
+    // Récupérer organization_id du context ou du prospect
+    const orgId = context.organizationId || null;
+    
     // 1. Créer un client_form_panel pour tracker l'action MESSAGE
     const { data: panel, error: panelError } = await supabase
       .from('client_form_panels')
@@ -741,6 +744,7 @@ async function executeMessageAction(order, context) {
         step_name: order.moduleName || order.moduleId || null,
         action_id: order.actionId || null,
         verification_mode: 'HUMAN',
+        organization_id: orgId,
       })
       .select()
       .single();
