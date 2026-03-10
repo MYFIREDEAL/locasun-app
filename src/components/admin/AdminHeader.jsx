@@ -27,7 +27,7 @@ const allNavItems = [
   { name: 'Contacts', path: '/admin/contacts', icon: Users, adminOnly: false },
   { name: 'Charly AI', path: '/admin/charly', icon: Bot, adminOnly: false },
   { name: 'Workflow V2', path: '/admin/workflow-v2-config', icon: Sparkles, adminOnly: true },
-  { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings, adminOnly: true },
+  { name: 'Configuration IA', path: '/admin/projects-management', icon: Settings, adminOnly: true },
 ];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;
