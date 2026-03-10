@@ -1702,13 +1702,29 @@ const ModuleConfigTab = ({
         console.log('[V2 Config Tab] Form changed → requiredFields CLEARED');
       }
       
-      // 💬 MESSAGE: Auto-forcer completionTrigger + vider les formIds/templateIds
-      if (field === 'actionType' && value === 'MESSAGE') {
-        updated.completionTrigger = 'button_click';
-        updated.allowedFormIds = [];
-        updated.allowedTemplateIds = [];
-        updated.requiredFields = [];
-        console.log('[V2 Config Tab] MESSAGE selected → completionTrigger forced, formIds/templateIds CLEARED');
+      // � Auto-forcer completionTrigger selon le type d'action
+      // FORM → form_approved, SIGNATURE → signature_completed, MESSAGE → button_click
+      if (field === 'actionType') {
+        const triggerMap = {
+          FORM: 'form_approved',
+          SIGNATURE: 'signature_completed',
+          MESSAGE: 'button_click',
+        };
+        if (triggerMap[value]) {
+          updated.completionTrigger = triggerMap[value];
+        }
+        // Vider les champs non pertinents selon le type
+        if (value === 'MESSAGE') {
+          updated.allowedFormIds = [];
+          updated.allowedTemplateIds = [];
+          updated.requiredFields = [];
+        } else if (value === 'FORM') {
+          updated.allowedTemplateIds = [];
+        } else if (value === 'SIGNATURE') {
+          updated.allowedFormIds = [];
+          updated.requiredFields = [];
+        }
+        console.log(`[V2 Config Tab] ${value} selected → completionTrigger=${triggerMap[value]}`);
       }
       
       // Persister en mémoire via moduleAIConfig UNIQUEMENT si 1 seule action
@@ -2135,21 +2151,33 @@ const ModuleConfigTab = ({
           <div className="border-t border-purple-200/50 my-5" />
           
           <div>
-            {actionConfig.actionType === 'MESSAGE' ? (
-              <div className="p-3 bg-gray-50 border rounded-lg">
-                <span className="text-xs text-gray-500 uppercase font-medium">Trigger de complétion</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-lg">💬</span>
-                  <span className="text-sm font-medium text-gray-700">Clic bouton client</span>
-                  <span className="text-xs text-gray-400 italic ml-2">(automatique pour MESSAGE)</span>
+            {/* Trigger auto-déduit du type d'action — plus de sélection manuelle */}
+            {(() => {
+              const triggerInfo = {
+                FORM: { icon: '📝', label: 'Formulaire validé', desc: 'automatique pour FORMULAIRE' },
+                SIGNATURE: { icon: '✍️', label: 'Signature complétée', desc: 'automatique pour SIGNATURE' },
+                MESSAGE: { icon: '💬', label: 'Clic bouton client', desc: 'automatique pour MESSAGE' },
+              };
+              const info = triggerInfo[actionConfig.actionType];
+              if (info) {
+                return (
+                  <div className="p-3 bg-gray-50 border rounded-lg">
+                    <span className="text-xs text-gray-500 uppercase font-medium">Validation de l'action</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-lg">{info.icon}</span>
+                      <span className="text-sm font-medium text-gray-700">{info.label}</span>
+                      <span className="text-xs text-gray-400 italic ml-2">({info.desc})</span>
+                    </div>
+                  </div>
+                );
+              }
+              // Fallback si aucun type sélectionné
+              return (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <span className="text-xs text-amber-600">Sélectionnez un type d'action ci-dessus pour définir la validation.</span>
                 </div>
-              </div>
-            ) : (
-              <CompletionTriggerSelect
-                selected={actionConfig.completionTrigger}
-                onChange={(trigger) => updateActionConfigField('completionTrigger', trigger)}
-              />
-            )}
+              );
+            })()}
           </div>
           
           {/* Séparateur avant simulateur */}
