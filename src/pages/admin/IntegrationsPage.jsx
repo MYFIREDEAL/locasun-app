@@ -328,7 +328,7 @@ const IntegrationsPage = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/admin/profil')}
+          onClick={() => navigate('/admin/projects-management')}
           className="shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
