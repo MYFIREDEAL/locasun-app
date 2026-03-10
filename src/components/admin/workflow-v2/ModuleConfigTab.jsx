@@ -67,9 +67,6 @@ import {
   isModuleConfigComplete,
 } from '@/lib/moduleAIConfig';
 
-// ✅ Import simulateur ActionOrder (PROMPT 6-7)
-import { ActionOrderSimulator } from './ActionOrderSimulator';
-
 // ✅ Import catalogue V2 pour les sélecteurs
 import {
   ACTION_TYPES,
@@ -2178,21 +2175,6 @@ const ModuleConfigTab = ({
                 </div>
               );
             })()}
-          </div>
-          
-          {/* Séparateur avant simulateur */}
-          <div className="border-t border-purple-200/50 my-5" />
-          
-          {/* Simulateur ActionOrder */}
-          <div>
-            <ActionOrderSimulator
-              moduleId={moduleId}
-              projectType={projectType}
-              prospectId={prospectId}
-              actionConfig={actionConfig}
-              availableForms={availableForms}
-              availableTemplates={availableTemplates}
-            />
           </div>
           
         </div>
