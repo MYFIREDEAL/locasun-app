@@ -2177,6 +2177,35 @@ const ModuleConfigTab = ({
             })()}
           </div>
           
+          {/* Labels des boutons — uniquement pour MESSAGE */}
+          {actionConfig.actionType === 'MESSAGE' && (
+            <div className="mt-4">
+              <FieldLabel icon={Zap} label="Labels des boutons" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Bouton PROCEED
+                  </label>
+                  <TextInput
+                    value={config.buttonLabels?.proceedLabel || ''}
+                    onChange={(v) => updateButtonLabel('proceedLabel', v)}
+                    placeholder="Valider et continuer"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Bouton NEED_DATA
+                  </label>
+                  <TextInput
+                    value={config.buttonLabels?.needDataLabel || ''}
+                    onChange={(v) => updateButtonLabel('needDataLabel', v)}
+                    placeholder="J'ai besoin d'infos"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
         </div>
       </section>
       
@@ -2206,35 +2235,6 @@ const ModuleConfigTab = ({
         <p className="text-xs text-gray-400 mt-2">
           Sélectionnez les sources de données auxquelles l'IA peut accéder.
         </p>
-      </section>
-      
-      {/* ─────────────────────────────────────────────────────────────────
-          SECTION 3: LABELS BOUTONS (déplacé en bas)
-      ───────────────────────────────────────────────────────────────── */}
-      <section className="mt-8">
-        <FieldLabel icon={Zap} label="Labels des boutons" />
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">
-              Bouton PROCEED
-            </label>
-            <TextInput
-              value={config.buttonLabels?.proceedLabel || ''}
-              onChange={(v) => updateButtonLabel('proceedLabel', v)}
-              placeholder="Valider et continuer"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">
-              Bouton NEED_DATA
-            </label>
-            <TextInput
-              value={config.buttonLabels?.needDataLabel || ''}
-              onChange={(v) => updateButtonLabel('needDataLabel', v)}
-              placeholder="J'ai besoin d'infos"
-            />
-          </div>
-        </div>
       </section>
       
       {/* ─────────────────────────────────────────────────────────────────
