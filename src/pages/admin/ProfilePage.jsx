@@ -2980,14 +2980,6 @@ const ProfilePage = () => {
         <motion.div className="max-w-5xl mx-auto space-y-8" variants={containerVariants} initial="hidden" animate="visible">
           <motion.div variants={itemVariants} className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => navigate('/admin/integrations')}
-            >
-              <Link2 className="w-4 h-4" />
-              Gérer les intégrations
-            </Button>
           </motion.div>
 
           <motion.div variants={itemVariants} className="bg-white p-6 sm:p-8 rounded-2xl shadow-card" id="info-perso">

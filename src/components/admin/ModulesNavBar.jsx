@@ -15,6 +15,7 @@ const ModulesNavBar = ({ activeModule }) => {
     { id: 'catalogue', path: '/admin/project-display', label: 'Catalogue Client', icon: '🧱', color: 'bg-indigo-600 hover:bg-indigo-700', activeColor: 'bg-indigo-600' },
     { id: 'partenaires', path: '/admin/partners', label: 'Partenaires', icon: '🤝', color: 'bg-orange-600 hover:bg-orange-700', activeColor: 'bg-orange-600' },
     { id: 'landing-page', path: '/admin/landing-page', label: 'Landing Page', icon: '🌐', color: 'bg-pink-600 hover:bg-pink-700', activeColor: 'bg-pink-600' },
+    { id: 'integrations', path: '/admin/integrations', label: 'Intégrations', icon: '🔌', color: 'bg-gray-600 hover:bg-gray-700', activeColor: 'bg-gray-600' },
   ];
 
   return (
