@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, RotateCcw, ExternalLink, Save, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, ExternalLink, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -18,6 +19,7 @@ import { toast } from '@/components/ui/use-toast';
  * - Section "Comment ça marche" avec 3 blocs
  */
 const LandingPageConfigPage = () => {
+  const navigate = useNavigate();
   const { organizationId, logoUrl, brandName } = useOrganization();
   const { 
     loading, 
@@ -90,11 +92,21 @@ const LandingPageConfigPage = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">🎨 Landing Page</h1>
-          <p className="text-gray-600 mt-1">
-            Personnalisez la page d'accueil publique de votre entreprise. Cliquez sur n'importe quel texte pour le modifier.
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/admin/projects-management')}
+            className="shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">🎨 Landing Page</h1>
+            <p className="text-gray-600 mt-1">
+              Personnalisez la page d'accueil publique de votre entreprise. Cliquez sur n'importe quel texte pour le modifier.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button
