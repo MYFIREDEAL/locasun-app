@@ -28,7 +28,7 @@ export const ACTION_TYPES = {
     id: 'MESSAGE',
     v1Type: 'send_message',
     label: 'Message',
-    icon: '�',
+    icon: '💬',
     description: 'Envoyer un message conversationnel avec boutons de validation client',
   },
   FORM: {
