@@ -2249,12 +2249,6 @@ const ModuleConfigTab = ({
       ───────────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="flex items-center gap-2">
-          {saveSuccess && (
-            <span className="text-xs text-green-600 flex items-center gap-1">
-              <CheckCircle className="h-3.5 w-3.5" />
-              Sauvegardé (session)
-            </span>
-          )}
           {isPersisted && (
             <span className="text-xs text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full">
               <CheckCircle className="h-3.5 w-3.5" />
@@ -2264,26 +2258,6 @@ const ModuleConfigTab = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReset}
-            disabled={!hasChanges}
-          >
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Réinitialiser
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!hasChanges}
-            className={cn(
-              hasChanges && "bg-blue-600 hover:bg-blue-700"
-            )}
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Session
-          </Button>
           {/* ✅ PROMPT 9: Bouton persistance Supabase */}
           <Button
             size="sm"
