@@ -1810,7 +1810,7 @@ const ModuleConfigTab = ({
       {/* ─────────────────────────────────────────────────────────────────
           ONGLETS MULTI-ACTIONS — Timeline horizontale
       ───────────────────────────────────────────────────────────────── */}
-      {actions.length > 1 && (
+      {actions.length >= 1 && (
         <div className="sticky top-0 z-20 -mx-6 px-6 py-4 bg-gradient-to-b from-white to-gray-50/80 backdrop-blur-sm border-b border-gray-200 shadow-sm">
           <div className="flex items-center gap-0 overflow-x-auto pb-1">
             {actions.map((action, index) => {
@@ -1906,6 +1906,19 @@ const ModuleConfigTab = ({
                 </React.Fragment>
               );
             })}
+            
+            {/* Bouton + ajouter une action */}
+            <div className="flex items-center px-1 flex-shrink-0">
+              <div className="w-4 h-0.5 rounded-full bg-gray-200" />
+            </div>
+            <button
+              type="button"
+              onClick={handleAddAction}
+              className="flex items-center justify-center w-9 h-9 rounded-full border-2 border-dashed border-blue-300 text-blue-400 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600 transition-all flex-shrink-0"
+              title="Ajouter une action"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
@@ -2257,22 +2270,6 @@ const ModuleConfigTab = ({
           Liste des actions que l'IA peut effectuer (non modifiable en Phase 1).
         </p>
       </section>
-      
-      {/* ─────────────────────────────────────────────────────────────────
-          BOUTON AJOUTER UNE ACTION
-      ───────────────────────────────────────────────────────────────── */}
-      <div className="pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleAddAction}
-          className="w-full border-dashed border-2 border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400"
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Ajouter une action
-        </Button>
-      </div>
       
       {/* ─────────────────────────────────────────────────────────────────
           FOOTER: BOUTONS ACTION
