@@ -44,7 +44,35 @@ Admin clique 🤖 → preview action-1 → "Exécuter"
 |------|---------------|----------------------|
 | MESSAGE | Client clique Valider | panel → approved |
 | FORM | Client remplit → Admin valide | panel → approved |
+| SIGNATURE | Client signe (Yousign/etc) | signature → trigger → panel → approved |
 | PARTENAIRE | Partenaire soumet → Admin valide | panel → approved |
+
+### Flow SIGNATURE (2 triggers chaînés, 100% server-side)
+```
+1. executeActionOrderV2 crée panel + signature_procedure (panelDbId stocké dans metadata)
+2. Client signe → signature_procedures.status = 'signed'/'completed'
+3. TRIGGER 1: fn_signature_completed_to_panel_approved → panel.status = 'approved'
+4. TRIGGER 2: fn_v2_action_chaining → subSteps MAJ + complétion étape
+→ Fonctionne SANS admin connecté. Zéro intervention frontend.
+```
+
+### 🤖 Préparation IA (config prête, pas encore branchée)
+L'IA n'est PAS encore connectée, mais toute la config est prête dans `workflow_module_templates.config_json` :
+- **knowledgeKey** : 8 clés d'accès données (prospect_info, contract_history, forms_submitted, chat_history, documents, client_projects_history, commercial_activity, partner_activity). UI en lecture seule pour l'instant.
+- **documents IA** : Upload de documents privés par action (context pour l'IA)
+- **allowedActions** : Liste des actions autorisées (respond, checklist, list_docs). À étendre avec create_appointment, send_whatsapp, send_sms, send_email quand l'IA sera branchée.
+- **instructions** : Prompt en langage naturel par module (objectif, comportement, ton)
+- **Fichier clé** : `src/components/admin/workflow-v2/ModuleConfigTab.jsx` (KnowledgeKeySelect, documents IA, allowedActions)
+
+### 📡 Vision canal de communication (à implémenter)
+```
+WhatsApp = canal principal de conversation (IA discute avec le client)
+Espace client = canal d'action (formulaires, signature, documents via magic link)
+chat_messages = source de vérité (tout est stocké ici, WhatsApp = transport)
+```
+- Magic link déjà codé côté admin (bouton dans ProspectDetailsAdmin), envoie par email → futur : envoyer par WhatsApp
+- Client ne crée jamais de mot de passe, clique le lien, fait son action, ferme
+- Briques à ajouter : Edge Function Twilio (WhatsApp + SMS), détection présence client
 
 ### Fichiers clés
 | Fichier | Rôle |
@@ -80,12 +108,19 @@ Chaque entrée contient :
   2. `handleApprove` → skip toute logique frontend pour V2
   3. `useWorkflowActionTrigger` → skip V2 panels
 
-### 🐛 Bugs identifiés (1)
-- **Pas de notification quand partenaire soumet formulaire** : Le trigger `notify_admin_on_partner_chat_message` ne notifie que sur les messages chat (`chat_messages INSERT`). Quand un partenaire soumet un formulaire (`client_form_panels.status = 'submitted'`), aucune notification n'est créée. Fix : nouveau trigger `notify_admin_on_partner_form_submit` créé (SQL prêt, à déployer).
+### 🐛 Bugs identifiés (1) → FIXÉ
+- **Pas de notification quand partenaire soumet formulaire** : Fix : trigger `notify_admin_on_partner_form_submit` créé ET déployé (tgenabled=O) ✅
 
 ### 🗄️ Migrations SQL
 - `fix_trigger_v4_simple.sql` — Trigger V4 déployé et actif ✅
-- `add_trigger_notify_admin_on_partner_form_submit.sql` — **À DÉPLOYER** : notification quand partenaire soumet formulaire
+- `add_trigger_notify_admin_on_partner_form_submit.sql` — Déployé et actif ✅
+
+### ✅ Vérifications session 6 (suite)
+- **SIGNATURE flow server-side confirmé** : `trigger_signature_completed_to_panel_approved` déployé (tgenabled=O). Chaîne : signature signed → panel approved → trigger V4 → subSteps + complétion. 100% server-side, fonctionne sans admin connecté.
+- **knowledgeKey analysé** : Config UI prête (8 clés), sauvée en Supabase dans `workflow_module_templates.config_json`. MAIS aucun code ne consomme ces clés pour filtrer les données → placeholder pour l'IA.
+- **allowedActions analysé** : Même chose, config stockée mais pas de consommateur. Sera activé quand l'IA sera branchée.
+- **copilot-instructions.md mis à jour** : V4 flow, 3 guards, feature flags, persistence, action types, partner flow documentés
+- **PROGRESS_LOG.md mis à jour** : Architecture section en haut + session 6
 
 ### 📁 Fichiers modifiés
 | Fichier | Modification |
@@ -104,9 +139,13 @@ Chaque entrée contient :
 | Notification partenaire soumission | ❌ Manquante (trigger à déployer) |
 
 ### 🔜 Prochains sujets
-- **Déployer** `add_trigger_notify_admin_on_partner_form_submit.sql` sur Supabase
-- Tester SIGNATURE en multi-actions
-- Tester un prospect complètement neuf de A à Z avec le nouveau flow
+- **Intégration IA** (priorité #1) : Brancher OpenAI API via Edge Function. La config est prête (knowledgeKey, documents, allowedActions, instructions dans les templates). L'IA lit la config et exécute.
+- **WhatsApp comme canal principal** : Edge Function Twilio WhatsApp API. IA discute sur WhatsApp, envoie magic links pour les actions (formulaires, signature). `chat_messages` reste source de vérité.
+- **allowedActions à étendre** : `create_appointment` (exposer addAppointment à l'IA), `send_whatsapp`, `send_sms`, `send_email`
+- **knowledgeKey interactif** : Rendre les boutons toggle on/off (quand l'IA sera branchée)
+- **Magic link via WhatsApp** : Même lien Supabase Auth OTP, transport WhatsApp au lieu d'email
+- Tester SIGNATURE en multi-actions avec signing réel
+- Tester un prospect complètement neuf de A à Z
 - Nettoyer les fichiers SQL obsolètes (v1, v2, v3 du trigger)
 
 ---

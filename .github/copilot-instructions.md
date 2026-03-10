@@ -340,5 +340,44 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
+## 🤖 Roadmap IA — Vision (pas encore implémenté)
+
+### Principe
+L'IA s'intègre dans le Workflow V2 existant. Toute la config est **déjà prête** dans les templates :
+- `knowledgeKey` : quelles données l'IA peut lire (8 clés : prospect_info, contract_history, forms_submitted, chat_history, documents, client_projects_history, commercial_activity, partner_activity)
+- `allowedActions` : quelles actions l'IA peut exécuter (respond, create_appointment, send_whatsapp, send_sms, send_email)
+- `instructions` : prompt en langage naturel par module
+- `documents IA` : documents privés uploadés par action (context)
+- **Stocké dans** : `workflow_module_templates.config_json`
+- **UI Config** : `src/components/admin/workflow-v2/ModuleConfigTab.jsx`
+
+### Canal de communication : WhatsApp-first
+```
+WhatsApp = canal principal (IA discute avec le client en temps réel)
+Espace client = canal d'action (formulaires, signature via magic link)
+chat_messages = source de vérité (tout stocké ici, WhatsApp = transport)
+```
+- L'IA écrit dans `chat_messages`, un webhook envoie sur WhatsApp
+- Pour les actions (formulaire, signature), l'IA envoie un **magic link** sur WhatsApp
+- Le client clique → connecté auto (Supabase Auth OTP) → fait l'action → ferme → retourne sur WhatsApp
+- Le magic link existe déjà côté admin (bouton dans ProspectDetailsAdmin), envoie par email → futur : WhatsApp
+
+### Briques à ajouter
+| Brique | Effort | Détail |
+|--------|--------|--------|
+| Edge Function OpenAI | Moyen | Lit config_json du template, appelle GPT, écrit dans chat_messages |
+| `create_appointment` | Facile | Exposer `addAppointment()` de useSupabaseAgenda à l'IA |
+| WhatsApp (Twilio) | Moyen | Edge Function send + webhook receive |
+| SMS (Twilio) | Facile | Même Edge Function, canal différent |
+| Email (Resend) | Facile | Edge Function + template |
+| Magic link WhatsApp | Facile | Supabase Auth OTP, transport WhatsApp au lieu d'email |
+| Appel vocal | Plus tard | Twilio Voice / Vapi.ai |
+
+### Ce qui NE change PAS
+- Le moteur V2 (`executeActionOrderV2.js`) reste identique
+- Les triggers DB (V4 + signature + notifications) restent identiques
+- Les 3 guards frontend restent identiques
+- L'IA clique le robot comme un admin — même flow exact
+
 ---
 **Before modifying database schema or auth**: Read `supabase/` documentation. For feature additions: Use existing Supabase hooks as templates.
