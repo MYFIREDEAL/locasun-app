@@ -1788,25 +1788,6 @@ const ModuleConfigTab = ({
         )}
       </div>
       
-      {/* Info banner - contextuel */}
-      <div className={cn(
-        "p-3 border rounded-lg",
-        isPersisted ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"
-      )}>
-        <p className={cn(
-          "text-xs flex items-start gap-2",
-          isPersisted ? "text-emerald-700" : "text-blue-700"
-        )}>
-          <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <span>
-            {isPersisted 
-              ? "Cette configuration est enregistrée en base. Elle sera rechargée automatiquement au prochain refresh."
-              : "Cliquez 'Enregistrer en base' pour persister cette configuration. Elle sera rechargée automatiquement après refresh."
-            }
-          </span>
-        </p>
-      </div>
-      
       {/* ─────────────────────────────────────────────────────────────────
           ONGLETS MULTI-ACTIONS — Timeline horizontale
       ───────────────────────────────────────────────────────────────── */}
@@ -1967,19 +1948,11 @@ const ModuleConfigTab = ({
               <Zap className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                Configuration Actions V2
-                <span className="px-2 py-0.5 text-[10px] font-semibold bg-white/80 text-purple-700 rounded-full border border-purple-200 shadow-sm">
-                  Phase 3
-                </span>
+              <h3 className="text-base font-bold text-gray-800">
+                Configuration action
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">Définissez les actions automatisées du workflow</p>
             </div>
           </div>
-          <ValidationBadge 
-            isComplete={configValidation.isComplete} 
-            details={configValidation.summary} 
-          />
         </div>
         
         {/* Contenu du bloc (avec z-index pour être au-dessus du fond) */}
