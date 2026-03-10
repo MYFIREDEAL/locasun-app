@@ -28,7 +28,6 @@ const allNavItems = [
   { name: 'Charly AI', path: '/admin/charly', icon: Bot, adminOnly: false },
   { name: 'Workflow V2', path: '/admin/workflow-v2-config', icon: Sparkles, adminOnly: true },
   { name: 'Configuration IA', path: '/admin/configuration-ia', icon: Settings, adminOnly: true },
-  { name: 'Landing Page', path: '/admin/landing-page', icon: Globe, adminOnly: true },
 ];    const AdminHeader = () => {
       const { width } = useWindowSize();
       const isMobile = width < 768;
