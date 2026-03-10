@@ -2185,7 +2185,7 @@ const ModuleConfigTab = ({
           ⚠️ En multi-actions, chaque action a ses propres documents IA
       ───────────────────────────────────────────────────────────────── */}
       <section className="mt-8">
-        <FieldLabel icon={FileText} label={`📚 Documents IA (Base de connaissances)${actions.length > 1 ? ` — Action ${activeActionIndex + 1}` : ''}`} />
+        <FieldLabel icon={FileText} label={`Documents IA${actions.length > 1 ? ` — Action ${activeActionIndex + 1}` : ''}`} />
         <IAKnowledgeDocuments
           moduleId={actions.length > 1 ? `${moduleId}:action-${activeActionIndex + 1}` : moduleId}
           projectType={projectType}
