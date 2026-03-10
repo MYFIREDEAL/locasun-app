@@ -24,6 +24,13 @@
  * Correspond aux types V1: show_form, start_signature
  */
 export const ACTION_TYPES = {
+  MESSAGE: {
+    id: 'MESSAGE',
+    v1Type: 'send_message',
+    label: 'Message',
+    icon: '�',
+    description: 'Envoyer un message conversationnel avec boutons de validation client',
+  },
   FORM: {
     id: 'FORM',
     v1Type: 'show_form',
@@ -37,13 +44,6 @@ export const ACTION_TYPES = {
     label: 'Signature',
     icon: '✍️',
     description: 'Lancer une procédure de signature de contrat',
-  },
-  MESSAGE: {
-    id: 'MESSAGE',
-    v1Type: 'send_message',
-    label: 'Message',
-    icon: '💬',
-    description: 'Envoyer un message conversationnel avec boutons de validation client',
   },
   PAYMENT: {
     id: 'PAYMENT',
