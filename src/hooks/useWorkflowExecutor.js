@@ -397,17 +397,25 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
     }
 
     // 2. Vérifier si une mission existe déjà pour ce prospect/partenaire/projet
-    const { data: existingMission } = await supabase
+    // 🔥 V2: Si actionId fourni, vérifier par actionId (permet multi-missions même partenaire)
+    // V1/legacy: Sans actionId, garde l'ancien comportement (1 mission par prospect+partenaire+projectType)
+    let duplicateQuery = supabase
       .from('missions')
       .select('id')
       .eq('prospect_id', prospectId)
       .eq('partner_id', action.partnerId)
-      .eq('project_type', projectType)
-      .maybeSingle();
+      .eq('project_type', projectType);
+
+    if (action.actionId) {
+      duplicateQuery = duplicateQuery.eq('action_id', action.actionId);
+    }
+
+    const { data: existingMission } = await duplicateQuery.maybeSingle();
 
     if (existingMission) {
       logger.debug('Mission partenaire déjà existante, pas de duplication', {
-        missionId: existingMission.id
+        missionId: existingMission.id,
+        actionId: action.actionId || null,
       });
       return;
     }
@@ -429,6 +437,7 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
         phone: prospectData.phone || null,
         address: prospectData.address || null,
         form_ids: action.formIds || [], // 🔥 AJOUTER: IDs des formulaires associés
+        action_id: action.actionId || null, // 🔥 AJOUTER: ID action V2 pour multi-missions
       })
       .select()
       .single();

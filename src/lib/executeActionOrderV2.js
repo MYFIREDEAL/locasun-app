@@ -228,6 +228,7 @@ export async function executeActionOrder(order, context = {}) {
           partnerInstructions: actionConfig.instructions || '',
           isBlocking: actionConfig.isBlocking !== false,
           formIds: order.formIds || [], // 🔥 AJOUTER formIds pour stockage dans mission
+          actionId: order.actionId || null, // 🔥 AJOUTER actionId pour guard anti-duplication V2
         },
         prospectId: order.prospectId,
         projectType: order.projectType,
