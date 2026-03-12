@@ -1235,7 +1235,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
             ↑ Charger les messages précédents
           </button>
         )}
-        {filteredMessages.length === 0 && !loading && (
+        {filteredMessages.length === 0 && !messagesLoading && (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
             {replyChannel === 'partner' ? '🟠 Aucun message partenaire' 
               : replyChannel === 'internal' ? '👥 Aucun message interne'
