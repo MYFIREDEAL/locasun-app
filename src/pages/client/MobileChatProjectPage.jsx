@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { useSupabaseChatMessages } from '@/hooks/useSupabaseChatMessages';
 import { useSupabaseProjectFiles } from '@/hooks/useSupabaseProjectFiles';
 import { logger } from '@/lib/logger';
+import MobileFormModal from '@/components/client/MobileFormModal';
 
 /**
  * Page chat mobile pour un projet spécifique
@@ -47,6 +48,7 @@ const MobileChatProjectPage = () => {
 
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
+  const [showFormModal, setShowFormModal] = useState(false);
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const isInitialLoadRef = useRef(true);
@@ -362,7 +364,7 @@ const MobileChatProjectPage = () => {
                   {isRejected ? 'Votre formulaire a été refusé. Veuillez le modifier et renvoyer.' : 'Votre conseiller vous a envoyé un formulaire à compléter.'}
                 </p>
                 <button
-                  onClick={() => navigate(`/dashboard`, { state: { openProjectType: projectType } })}
+                  onClick={() => setShowFormModal(true)}
                   className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white ${isRejected ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'} active:scale-[0.97] transition-all`}
                 >
                   <ClipboardList className="h-4 w-4" />
@@ -401,6 +403,14 @@ const MobileChatProjectPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Modal formulaire plein écran */}
+      {showFormModal && (
+        <MobileFormModal
+          projectType={projectType}
+          onClose={() => setShowFormModal(false)}
+        />
+      )}
     </div>
   );
 };
