@@ -84,7 +84,7 @@ import React, { useMemo } from 'react';
             transition={{ delay: 0.2 }}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Vue d'ensemble</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Mes projets</h2>
               <div className="flex items-center space-x-4">
                 <div className="hidden sm:flex items-center space-x-4 text-sm font-medium">
                   <span className="flex items-center text-green-600">
