@@ -103,7 +103,22 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
   }, [relevantForms, forms, prospect]);
 
   if (!relevantForms.length) {
-    return null;
+    return (
+      <aside className={`bg-white rounded-2xl shadow-card p-6 space-y-6 ${isDesktop ? '' : 'mt-6'}`}>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-gray-900">Formulaires à compléter</h2>
+          <p className="text-sm text-gray-500">
+            Retrouvez ici les actions à réaliser ou déjà envoyées pour votre projet.
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+            <span className="text-2xl">📋</span>
+          </div>
+          <p className="text-sm text-gray-400">Aucune action pour le moment</p>
+        </div>
+      </aside>
+    );
   }
 
   const handleFieldChange = (panelId, fieldId, value) => {
