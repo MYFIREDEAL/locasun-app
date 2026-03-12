@@ -4300,7 +4300,7 @@ const ProspectDetailsAdmin = ({
           opacity: 1,
           y: 0
         }} 
-        className="space-y-6"
+        className="space-y-3"
       >
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full hover:bg-gray-100">
@@ -4312,7 +4312,7 @@ const ProspectDetailsAdmin = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)_420px] gap-6 xl:gap-6 items-stretch">
+          <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)_420px] gap-4 xl:gap-4 items-stretch">
             <div className="space-y-6">
                <div className="bg-white rounded-2xl shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
