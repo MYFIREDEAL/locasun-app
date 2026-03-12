@@ -43,17 +43,17 @@ import React, { useMemo } from 'react';
 
       return (
         <motion.div
-          className="bg-white rounded-2xl shadow-card p-6 flex flex-col justify-between cursor-pointer md:cursor-default"
+          className="bg-white rounded-2xl shadow-card p-6 flex flex-col justify-between cursor-pointer hover:shadow-lg transition-shadow duration-200"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
-          onClick={isMobile ? () => {
-            if (hasActionRequired) {
+          onClick={() => {
+            if (isMobile && hasActionRequired) {
               navigate(`/dashboard/chat/${project.type}`);
             } else {
               onSelectProject(project);
             }
-          } : undefined}
+          }}
         >
           <div>
             <div className="flex items-center space-x-4 mb-4">
@@ -64,8 +64,8 @@ import React, { useMemo } from 'react';
                 <h3 className="font-bold text-gray-900 text-lg">{project.title}</h3>
                 <p className="text-sm text-gray-500">{currentStep.name}</p>
               </div>
-              {/* 📱 Pastille "Action requise" sur mobile */}
-              {isMobile && hasActionRequired && (
+              {/* Pastille "Action requise" */}
+              {hasActionRequired && (
                 <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full animate-pulse">
                   Action requise
                 </span>
