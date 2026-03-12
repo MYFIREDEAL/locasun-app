@@ -106,7 +106,7 @@ import React from 'react';
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-bold">Découvrir nos offres</h3>
+                    <h3 className="text-lg font-bold">Découvrez nos offres exclusives ⚡</h3>
                     <p className="text-blue-100 text-sm mt-1">Explorez notre catalogue de solutions.</p>
                   </div>
                   <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">

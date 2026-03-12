@@ -229,7 +229,7 @@ const OffersPage = () => {
       className="space-y-4 md:space-y-8"
     >
       <div className="text-center">
-        <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-gray-900">Nos offres ⚡</h1>
+        <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-gray-900">Nos offres exclusives ⚡</h1>
         <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base max-w-2xl mx-auto">Choisissez l'opportunité qui vous correspond.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
