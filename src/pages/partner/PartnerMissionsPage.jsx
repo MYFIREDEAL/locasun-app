@@ -77,6 +77,46 @@ const PartnerMissionsPage = () => {
     return () => { mounted = false; };
   }, [navigate]);
 
+  // 🔥 Real-time: écouter les changements sur les missions du partenaire
+  useEffect(() => {
+    if (!partner?.id) return;
+
+    const channel = supabase
+      .channel(`partner-missions-${partner.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'missions',
+        filter: `partner_id=eq.${partner.id}`,
+      }, (payload) => {
+        const { eventType, new: newRow, old: oldRow } = payload;
+
+        if (eventType === 'INSERT' && newRow.status === 'pending') {
+          // Nouvelle mission → ajouter en tête
+          setMissions(prev => [newRow, ...prev]);
+        } else if (eventType === 'UPDATE') {
+          if (newRow.status === 'pending') {
+            // Mission redevient pending (rejet admin) → ajouter si absente, sinon update
+            setMissions(prev => {
+              const exists = prev.find(m => m.id === newRow.id);
+              if (exists) return prev.map(m => m.id === newRow.id ? newRow : m);
+              return [newRow, ...prev];
+            });
+          } else {
+            // Mission n'est plus pending → retirer de la liste
+            setMissions(prev => prev.filter(m => m.id !== newRow.id));
+          }
+        } else if (eventType === 'DELETE') {
+          setMissions(prev => prev.filter(m => m.id !== oldRow.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [partner?.id]);
+
   // Grouper les missions par priorité
   const today = new Date();
   today.setHours(0, 0, 0, 0);

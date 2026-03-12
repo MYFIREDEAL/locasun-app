@@ -223,6 +223,55 @@ const PartnerMissionDetailPage = () => {
     return () => { mounted = false; };
   }, [missionId, navigate]);
 
+  // 🔥 Real-time: écouter les changements sur la mission et les panels
+  useEffect(() => {
+    if (!mission) return;
+
+    // Canal 1: changements sur la mission elle-même (admin remet en pending, etc.)
+    const missionChannel = supabase
+      .channel(`partner-mission-${missionId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'missions',
+        filter: `id=eq.${missionId}`,
+      }, (payload) => {
+        setMission(prev => ({ ...prev, ...payload.new }));
+      })
+      .subscribe();
+
+    // Canal 2: changements sur les panels (admin approuve/rejette un formulaire ou message)
+    const panelsChannel = supabase
+      .channel(`partner-panels-${mission.prospect_id}-${mission.project_type}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'client_form_panels',
+        filter: `prospect_id=eq.${mission.prospect_id}`,
+      }, (payload) => {
+        const updated = payload.new;
+        // Mettre à jour les panels formulaires
+        setPartnerForms(prev => prev.map(p => 
+          p.panelId === updated.panel_id 
+            ? { ...p, status: updated.status, rejectionReason: updated.rejection_reason || null }
+            : p
+        ));
+        // Mettre à jour le panel MESSAGE si c'est le bon
+        setPartnerMessagePanel(prev => {
+          if (prev && prev.panelId === updated.panel_id) {
+            return { ...prev, status: updated.status, rejectionReason: updated.rejection_reason || null };
+          }
+          return prev;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(missionChannel);
+      supabase.removeChannel(panelsChannel);
+    };
+  }, [mission?.id, mission?.prospect_id, mission?.project_type, missionId]);
+
   const handleBack = () => navigate('/partner/missions');
 
   const handleAnswerChange = (key, value) => {
