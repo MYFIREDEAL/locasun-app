@@ -66,7 +66,7 @@ import React, { useMemo } from 'react';
               </div>
               {/* Pastille "Action requise" */}
               {hasActionRequired && (
-                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full animate-pulse">
+                <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-[glow_2s_ease-in-out_infinite]">
                   Action requise
                 </span>
               )}

@@ -136,3 +136,9 @@ details[open] summary .chevron-icon {
 [data-rbd-drag-handle-context-id]:active {
   cursor: grabbing;
 }
+
+/* Glow pulse pour pastille Action requise — toujours visible, seule l'ombre pulse */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.7); }
+}
