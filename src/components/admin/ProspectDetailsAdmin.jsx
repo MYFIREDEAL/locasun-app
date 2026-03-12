@@ -4300,7 +4300,7 @@ const ProspectDetailsAdmin = ({
           opacity: 1,
           y: 0
         }} 
-        className="space-y-3"
+        className="space-y-2 -mt-4"
       >
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full hover:bg-gray-100">
