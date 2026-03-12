@@ -284,8 +284,8 @@ const ChatForm = ({ form, prospectId, onFormSubmit }) => {
 const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminUser, initialChannel }) => {
   const { addChatMessage, prompts, projectsData, forms, updateProspect, prospects, completeStepAndProceed, registerClientForm } = useAppContext();
   const { users: supabaseUsers, loading: usersLoading } = useUsers(); // 🔥 Cache global UsersContext
-  // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
-  const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType);
+  // ✅ Utiliser le hook Supabase pour les messages chat avec real-time + pagination
+  const { messages, loading: messagesLoading, loadMore, hasMore, loadingMore } = useSupabaseChatMessages(prospectId, projectType);
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
   // 🔥 MULTI-TENANT: Utilise organization_id de l'admin
   const { uploadFile, uploading } = useSupabaseProjectFiles({ 
@@ -306,6 +306,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const isInitialLoadRef = useRef(true);
   const fileInputRef = useRef(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   
@@ -533,11 +535,39 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
     sendNextAction,
   });
   
+  // Scroll: instant au premier chargement, smooth pour les nouveaux messages
   useEffect(() => {
+    if (!messages.length) return;
     requestAnimationFrame(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      if (isInitialLoadRef.current) {
+        // Premier chargement → scroll instantané en bas (pas de défilement visible)
+        chatEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
+        isInitialLoadRef.current = false;
+      } else {
+        // Nouveau message reçu → scroll smooth
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
     });
   }, [messages, replyChannel]);
+
+  // Reset initial load flag quand on change de prospect/projet
+  useEffect(() => {
+    isInitialLoadRef.current = true;
+  }, [prospectId, projectType]);
+
+  // Scroll infini vers le haut : charger les messages plus anciens
+  const handleChatScroll = useCallback(async (e) => {
+    const container = e.target;
+    if (container.scrollTop < 80 && hasMore && !loadingMore) {
+      const prevScrollHeight = container.scrollHeight;
+      await loadMore();
+      // Maintenir la position de scroll après le prepend
+      requestAnimationFrame(() => {
+        const newScrollHeight = container.scrollHeight;
+        container.scrollTop = newScrollHeight - prevScrollHeight;
+      });
+    }
+  }, [hasMore, loadingMore, loadMore]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachedFile) return;
@@ -1190,8 +1220,22 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex, activeAdminU
         </div>
       )}
 
-      <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
-        {filteredMessages.length === 0 && (
+      <div ref={chatContainerRef} onScroll={handleChatScroll} className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
+        {loadingMore && (
+          <div className="flex items-center justify-center py-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500" />
+            <span className="ml-2 text-xs text-gray-400">Chargement...</span>
+          </div>
+        )}
+        {hasMore && !loadingMore && filteredMessages.length > 0 && (
+          <button 
+            onClick={loadMore}
+            className="w-full text-center text-xs text-blue-500 hover:text-blue-700 py-1"
+          >
+            ↑ Charger les messages précédents
+          </button>
+        )}
+        {filteredMessages.length === 0 && !loading && (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
             {replyChannel === 'partner' ? '🟠 Aucun message partenaire' 
               : replyChannel === 'internal' ? '👥 Aucun message interne'

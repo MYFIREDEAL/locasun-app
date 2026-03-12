@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -59,7 +59,7 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const { addChatMessage, currentUser, forms } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   // 🔒 channel='client' → ne voit que les messages client ↔ admin (pas partner)
-  const { messages, loading: messagesLoading } = useSupabaseChatMessages(prospectId, projectType, 'client');
+  const { messages, loading: messagesLoading, loadMore, hasMore, loadingMore } = useSupabaseChatMessages(prospectId, projectType, 'client');
   // 🔥 Hook pour uploader les fichiers vers Supabase Storage
   // 🔥 MULTI-TENANT: Utilise organization_id du currentUser (prospect)
   const { uploadFile, uploading } = useSupabaseProjectFiles({ 
@@ -71,6 +71,8 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const isInitialLoadRef = useRef(true);
   const fileInputRef = useRef(null);
   
   // 💬 MESSAGE: Track panel statuses for action buttons
@@ -180,11 +182,31 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     }
   };
 
+  // Scroll: instant au premier chargement, smooth pour les nouveaux messages
   useEffect(() => {
+    if (!messages.length) return;
     requestAnimationFrame(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      if (isInitialLoadRef.current) {
+        chatEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
+        isInitialLoadRef.current = false;
+      } else {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
     });
   }, [messages]);
+
+  // Scroll infini vers le haut : charger les messages plus anciens
+  const handleChatScroll = useCallback(async (e) => {
+    const container = e.target;
+    if (container.scrollTop < 80 && hasMore && !loadingMore) {
+      const prevScrollHeight = container.scrollHeight;
+      await loadMore();
+      requestAnimationFrame(() => {
+        const newScrollHeight = container.scrollHeight;
+        container.scrollTop = newScrollHeight - prevScrollHeight;
+      });
+    }
+  }, [hasMore, loadingMore, loadMore]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !attachedFile) return;
@@ -304,7 +326,21 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
 
   return (
     <div className="mt-6">
-      <div className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
+      <div ref={chatContainerRef} onScroll={handleChatScroll} className="space-y-4 h-96 overflow-y-auto pr-2 mb-4 rounded-lg bg-gray-50 p-4 border">
+        {loadingMore && (
+          <div className="flex items-center justify-center py-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500" />
+            <span className="ml-2 text-xs text-gray-400">Chargement...</span>
+          </div>
+        )}
+        {hasMore && !loadingMore && messages.length > 0 && (
+          <button 
+            onClick={loadMore}
+            className="w-full text-center text-xs text-blue-500 hover:text-blue-700 py-1"
+          >
+            ↑ Charger les messages précédents
+          </button>
+        )}
         {messages.map((msg, index) => {
           if (msg.formId && !msg.text) {
             return null;
@@ -592,7 +628,7 @@ const ProjectDetails = ({ project, onBack }) => {
   } = useAppContext();
   // ✅ Utiliser le hook Supabase pour les messages chat avec real-time
   // 🔒 channel='client' → ne voit que les messages client ↔ admin (pas partner)
-  const { messages, loading: messagesLoading } = useSupabaseChatMessages(currentUser?.id, project.type, 'client');
+  const { messages, loading: messagesLoading, loadMore, hasMore, loadingMore } = useSupabaseChatMessages(currentUser?.id, project.type, 'client');
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const [progress, setProgress] = useState(0);

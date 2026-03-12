@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import logger from '../lib/logger';
+
+const PAGE_SIZE = 25;
 
 /**
  * Hook pour gérer les messages chat via Supabase
  * Table: chat_messages
  * Real-time bidirectionnel admin ↔ client / admin ↔ partner
+ * 
+ * Pagination: charge les 25 derniers messages au départ.
+ * loadMore() charge les 25 précédents (scroll infini vers le haut).
  * 
  * @param {string} prospectId - UUID du prospect
  * @param {string} projectType - Type de projet (ACC, Centrale, etc.)
@@ -21,7 +26,10 @@ import logger from '../lib/logger';
 export function useSupabaseChatMessages(prospectId = null, projectType = null, chatChannel = null, partnerId = null) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
+  const oldestTimestampRef = useRef(null);
 
   // Transformation Supabase → App
   const transformFromDB = (dbMessage) => ({
@@ -42,7 +50,24 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
     createdAt: dbMessage.created_at,
   });
 
-  // Charger les messages
+  // Helper pour construire la query de base
+  const buildBaseQuery = () => {
+    let query = supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('prospect_id', prospectId)
+      .eq('project_type', projectType);
+
+    if (chatChannel) {
+      query = query.eq('channel', chatChannel);
+    }
+    if (partnerId && chatChannel === 'partner') {
+      query = query.eq('partner_id', partnerId);
+    }
+    return query;
+  };
+
+  // Charger les messages (25 derniers)
   useEffect(() => {
     if (!prospectId || !projectType) {
       setLoading(false);
@@ -52,29 +77,32 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
     const fetchMessages = async () => {
       try {
         setLoading(true);
-        let query = supabase
-          .from('chat_messages')
-          .select('*')
-          .eq('prospect_id', prospectId)
-          .eq('project_type', projectType);
+        setHasMore(true);
+        oldestTimestampRef.current = null;
 
-        // Filtrer par channel si spécifié (client/partner ne voient que leur canal)
-        // Si null (admin), on récupère TOUT
-        if (chatChannel) {
-          query = query.eq('channel', chatChannel);
-        }
+        // Charger les PAGE_SIZE derniers (desc) puis reverse
+        const query = buildBaseQuery()
+          .order('created_at', { ascending: false })
+          .limit(PAGE_SIZE);
 
-        // 🟠 Filtrer par partner_id pour isolation multi-partenaire
-        if (partnerId && chatChannel === 'partner') {
-          query = query.eq('partner_id', partnerId);
-        }
-
-        const { data, error: fetchError } = await query.order('created_at', { ascending: true });
+        const { data, error: fetchError } = await query;
 
         if (fetchError) throw fetchError;
 
-        const transformed = (data || []).map(transformFromDB);
+        // Reverse pour afficher dans l'ordre chronologique
+        const sorted = (data || []).reverse();
+        const transformed = sorted.map(transformFromDB);
         setMessages(transformed);
+
+        // Stocker le timestamp du plus ancien message pour loadMore
+        if (sorted.length > 0) {
+          oldestTimestampRef.current = sorted[0].created_at;
+        }
+        // S'il y a moins que PAGE_SIZE, il n'y a pas de messages plus anciens
+        if ((data || []).length < PAGE_SIZE) {
+          setHasMore(false);
+        }
+
         setError(null);
       } catch (err) {
         logger.error('❌ Error loading chat messages:', err);
@@ -142,6 +170,58 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
       supabase.removeChannel(realtimeChannel);
     };
   }, [prospectId, projectType, chatChannel, partnerId]);
+
+  // Charger les messages plus anciens (pagination vers le haut)
+  const loadMore = useCallback(async () => {
+    if (!prospectId || !projectType || !hasMore || loadingMore || !oldestTimestampRef.current) {
+      return [];
+    }
+
+    try {
+      setLoadingMore(true);
+
+      const query = buildBaseQuery()
+        .lt('created_at', oldestTimestampRef.current)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+
+      if (!data || data.length === 0) {
+        setHasMore(false);
+        return [];
+      }
+
+      // Reverse pour l'ordre chronologique
+      const sorted = data.reverse();
+      const transformed = sorted.map(transformFromDB);
+
+      // Mettre à jour le oldest timestamp
+      oldestTimestampRef.current = sorted[0].created_at;
+
+      // S'il y a moins que PAGE_SIZE, plus rien à charger
+      if (data.length < PAGE_SIZE) {
+        setHasMore(false);
+      }
+
+      // Prepend les anciens messages
+      setMessages((prev) => {
+        // Dédoublonner
+        const existingIds = new Set(prev.map(m => m.id));
+        const newMsgs = transformed.filter(m => !existingIds.has(m.id));
+        return [...newMsgs, ...prev];
+      });
+
+      return transformed;
+    } catch (err) {
+      logger.error('❌ Error loading more messages:', err);
+      return [];
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [prospectId, projectType, chatChannel, partnerId, hasMore, loadingMore]);
 
   // Envoyer un message
   const sendMessage = async (messageData) => {
@@ -223,6 +303,9 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
   return {
     messages,
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
     error,
     sendMessage,
     markAsRead,
