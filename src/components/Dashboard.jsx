@@ -1,18 +1,13 @@
 import React from 'react';
-    import { useNavigate } from 'react-router-dom';
     import { motion } from 'framer-motion';
-    import { Plus, CheckCircle, Clock, User, Zap, Gift } from 'lucide-react';
+    import { Plus, CheckCircle, Clock, User } from 'lucide-react';
     import ProjectCard from '@/components/ProjectCard';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
     import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
-    import useWindowSize from '@/hooks/useWindowSize';
 
     const Dashboard = ({ projects = [], onProjectClick, onAddProject }) => {
       const { currentUser } = useAppContext();
-      const navigate = useNavigate();
-      const { width } = useWindowSize();
-      const isMobile = width < 768;
       const totalProjects = projects.length;
       
       // 🔥 Charger les steps UNE SEULE FOIS au niveau Dashboard (pas dans chaque carte)
@@ -93,48 +88,6 @@ import React from 'react';
             </motion.div>
           )}
 
-          {/* Bandeaux mobile : Offres + Parrainage */}
-          {isMobile && (
-            <div className="space-y-3 pb-4">
-              {/* Bandeau Offres */}
-              <motion.button
-                onClick={() => navigate('/dashboard/offres')}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-5 text-left text-white shadow-lg active:scale-[0.98] transition-transform"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold">Découvrez nos offres exclusives ⚡</h3>
-                    <p className="text-blue-100 text-sm mt-1">Explorez notre catalogue de solutions.</p>
-                  </div>
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Zap className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-              </motion.button>
-
-              {/* Bandeau Parrainage */}
-              <motion.button
-                onClick={() => navigate('/dashboard/parrainage')}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 text-left text-white shadow-lg active:scale-[0.98] transition-transform"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold">Parrainage 🎁</h3>
-                    <p className="text-amber-100 text-sm mt-1">Parrainez vos proches et gagnez des récompenses !</p>
-                  </div>
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Gift className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-              </motion.button>
-            </div>
-          )}
         </motion.div>
       );
     };

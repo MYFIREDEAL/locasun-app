@@ -118,8 +118,8 @@ const ClientLayout = () => {
           </main>
         </div>
       )}
-      {/* Bottom nav mobile — masquée dans le chat projet */}
-      {isMobile && !isChatProjectPage && <MobileBottomNav />}
+      {/* Bottom nav mobile — toujours visible */}
+      {isMobile && <MobileBottomNav />}
     </div>
   );
 };

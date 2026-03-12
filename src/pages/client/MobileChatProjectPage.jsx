@@ -230,7 +230,7 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-white">
+    <div className="fixed inset-0 bottom-16 z-40 flex flex-col bg-white">
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">

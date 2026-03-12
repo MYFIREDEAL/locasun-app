@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+    import { useNavigate } from 'react-router-dom';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
@@ -8,6 +9,7 @@ import React, { useMemo } from 'react';
 
     const ProjectCard = ({ project, projectStepsStatus, onSelectProject, index }) => {
       const { currentUser, getProjectSteps, clientFormPanels } = useAppContext();
+      const navigate = useNavigate();
       const { width } = useWindowSize();
       const isMobile = width < 768;
       
@@ -45,7 +47,13 @@ import React, { useMemo } from 'react';
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
-          onClick={isMobile ? () => onSelectProject(project) : undefined}
+          onClick={isMobile ? () => {
+            if (hasActionRequired) {
+              navigate(`/dashboard/chat/${project.type}`);
+            } else {
+              onSelectProject(project);
+            }
+          } : undefined}
         >
           <div>
             <div className="flex items-center space-x-4 mb-4">

@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, User } from 'lucide-react';
+import { Home, MessageCircle, Menu } from 'lucide-react';
 import { useAppContext } from '@/App';
 
 const navItems = [
   { name: 'Home', path: '/dashboard', icon: Home, end: true },
   { name: 'Chat', path: '/dashboard/chat', icon: MessageCircle },
-  { name: 'Profil', path: '/dashboard/profil', icon: User },
+  { name: 'Menu', path: '/dashboard/menu', icon: Menu },
 ];
 
 const MobileBottomNav = () => {
@@ -24,13 +24,22 @@ const MobileBottomNav = () => {
           const isChat = item.path === '/dashboard/chat';
           const isChatActive = isChat && location.pathname.startsWith('/dashboard/chat');
 
+          // Menu actif si on est sur /dashboard/menu, /dashboard/profil, /dashboard/parrainage, /dashboard/offres
+          const isMenu = item.path === '/dashboard/menu';
+          const isMenuActive = isMenu && (
+            location.pathname.startsWith('/dashboard/menu') ||
+            location.pathname.startsWith('/dashboard/profil') ||
+            location.pathname.startsWith('/dashboard/parrainage') ||
+            location.pathname.startsWith('/dashboard/offres')
+          );
+
           return (
             <NavLink
               key={item.name}
               to={item.path}
               end={item.end}
               className={({ isActive }) => {
-                const active = isActive || isChatActive;
+                const active = isActive || isChatActive || isMenuActive;
                 return `relative flex flex-col items-center justify-center space-y-0.5 w-full h-full transition-colors duration-200 ${
                   active ? 'text-blue-600' : 'text-gray-400'
                 }`;

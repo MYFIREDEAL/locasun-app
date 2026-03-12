@@ -46,6 +46,7 @@ import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
 import ChatPage from '@/pages/client/ChatPage';
 import MobileChatProjectPage from '@/pages/client/MobileChatProjectPage';
+import MenuPage from '@/pages/client/MenuPage';
 import ActivationPage from '@/pages/client/ActivationPage';
 import ActivateAccountPage from '@/pages/ActivateAccountPage';
 import OrganizationsListPage from '@/pages/platform/OrganizationsListPage';
@@ -1766,6 +1767,7 @@ function App() {
     if (location.pathname === '/producteurs') return `${brand} - Vendez mieux votre électricité`;
     if (location.pathname.startsWith('/dashboard/offres')) return `${brand} - Nos Offres Exclusives`;
     if (location.pathname.startsWith('/dashboard/profil')) return `${brand} - Votre Profil`;
+    if (location.pathname.startsWith('/dashboard/menu')) return `${brand} - Menu`;
     if (location.pathname.startsWith('/dashboard')) return `${brand} - Votre Espace Client`;
     if (location.pathname.startsWith('/admin/profil')) return `${brand} Pro - Mon Profil`;
     if (location.pathname.startsWith('/admin/charly')) return `${brand} Pro - Charly AI`;
@@ -1932,6 +1934,7 @@ function App() {
           <Route index element={<ClientDashboardPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:projectType" element={<MobileChatProjectPage />} />
+          <Route path="menu" element={<MenuPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />
@@ -1940,6 +1943,7 @@ function App() {
           <Route index element={<ClientDashboardPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:projectType" element={<MobileChatProjectPage />} />
+          <Route path="menu" element={<MenuPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />

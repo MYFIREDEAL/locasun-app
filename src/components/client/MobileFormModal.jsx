@@ -13,7 +13,7 @@ import ClientFormPanel from '@/components/client/ClientFormPanel';
  */
 const MobileFormModal = ({ projectType, onClose }) => {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+    <div className="fixed inset-0 bottom-16 z-50 flex flex-col bg-white">
       {/* Header fixe */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-white flex-shrink-0">
         <h2 className="text-base font-semibold text-gray-900">📋 Formulaire</h2>
