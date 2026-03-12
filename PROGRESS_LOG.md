@@ -95,6 +95,33 @@ Chaque entrée contient :
 
 ---
 
+## 12 mars 2026 (session 7)
+
+### ✅ Features
+- **Partenaire + Message** : Nouveau type d'action — mission partenaire SANS formulaire. Le partenaire voit les instructions + boutons Valider/Impossible. L'admin voit le résultat avec commentaire dans la section Formulaires soumis.
+  - `executeActionOrderV2.js` : Bloc PARTENAIRE+MESSAGE crée panel `action_type='message'`, `filled_by_role='partner'`
+  - `PartnerMissionDetailPage.jsx` : Charge le panel MESSAGE pour missions sans `form_ids`, gère soumission/rejet
+  - `ProspectDetailsAdmin.jsx` : Rendu spécifique "Mission partenaire" (pas de champs form, pas de Modifier, affiche commentaire)
+
+- **Multi-missions même partenaire** : Un partenaire peut recevoir plusieurs missions pour le même prospect/project_type (actions V2 distinctes).
+  - Migration SQL : `ALTER TABLE missions ADD COLUMN action_id TEXT` 
+  - Guard anti-duplication V2 : utilise `action_id` pour distinguer les missions (V1 garde l'ancien comportement)
+
+### 🐛 Bugs fixés
+- **Mission pas créée (silencieux)** : `maybeSingle()` dans le guard anti-doublon renvoyait une erreur quand plusieurs missions legacy (action_id=null) matchaient → ajout handling erreur `maybeSingle()` + fallback V2
+- **Double-clic robot → panels dupliqués** : Pas de guard dedup sur les panels MESSAGE partenaire → ajout check `action_id` existant avant INSERT
+- **Panel MESSAGE non lié à la mission** : Le chargement dans `PartnerMissionDetailPage` ne filtrait pas par `action_id` → ajout filtre `mission.action_id` pour liaison précise
+
+### 🗄️ Migrations SQL
+- `add_action_id_to_missions.sql` — `ALTER TABLE missions ADD COLUMN action_id TEXT DEFAULT NULL` ✅
+
+### 🔜 Prochains sujets
+- Retirer les `console.log` verbose de `executePartnerTaskAction` (debugging terminé)
+- Tester le flow complet Partenaire+Message de bout en bout (admin exécute → partenaire valide → admin approuve → trigger V4 complète subStep)
+- Partenaire + Signature (pas encore implémenté)
+
+---
+
 ## 10 mars 2026 (session 6 — nuit)
 
 ### ✅ Features
