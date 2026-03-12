@@ -899,7 +899,7 @@ async function executeMessageAction(order, context) {
       .insert({
         prospect_id: prospectId,
         project_type: projectType || 'general',
-        sender: 'pro',
+        sender: 'admin',
         text: message || 'Merci de confirmer en cliquant sur un des boutons ci-dessous.',
         read: false,
         organization_id: organizationId,
@@ -963,7 +963,7 @@ async function sendChatMessage({ prospectId, projectType, message, organizationI
       .insert({
         prospect_id: prospectId,
         project_type: projectType || 'general',
-        sender: 'pro', // 'pro' pour les messages admin (comme V1)
+        sender: 'admin', // 'admin' pour déclencher le trigger de notification client
         text: message,
         read: false,
         organization_id: organizationId || null,
