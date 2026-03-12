@@ -156,34 +156,34 @@ const OfferCard = ({ project, projectStatus }) => {
 
   return (
     <motion.div 
-      className="bg-white rounded-3xl shadow-soft overflow-hidden flex flex-col"
+      className="bg-white rounded-2xl md:rounded-3xl shadow-soft overflow-hidden flex flex-col"
       whileHover={{ y: -5 }}
     >
-      <div className="h-48 w-full bg-gray-100 flex items-center justify-center">
+      <div className="h-32 md:h-48 w-full bg-gray-100 flex items-center justify-center">
         {project.coverImage ? (
           <img src={project.coverImage} alt={project.clientTitle} className="w-full h-full object-cover" />
         ) : (
-          <ShoppingBag className="h-16 w-16 text-gray-300" />
+          <ShoppingBag className="h-10 w-10 md:h-16 md:w-16 text-gray-300" />
         )}
       </div>
-      <div className="p-6 flex-grow flex flex-col">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">{project.clientTitle}</h3>
-        <p className="text-gray-600 text-sm flex-grow mb-6">
+      <div className="p-4 md:p-6 flex-grow flex flex-col">
+        <h3 className="text-base md:text-xl font-bold text-gray-900 mb-1 md:mb-2">{project.clientTitle}</h3>
+        <p className="text-gray-600 text-xs md:text-sm flex-grow mb-3 md:mb-6">
           {project.clientDescription || 'Ce nouveau projet est disponible. Ajoutez-le à votre tableau de bord pour en savoir plus.'}
         </p>
         {isInactive ? (
           <Button 
             onClick={handleReactivate}
-            className="w-full mt-auto rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
-            size="lg"
+            className="w-full mt-auto rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm md:text-base"
+            size="default"
           >
-            <RefreshCw className="mr-2 h-4 w-4" /> Réactiver ce projet
+            <RefreshCw className="mr-1.5 h-4 w-4" /> Réactiver
           </Button>
         ) : (
           <Button 
             onClick={handleCtaClick}
-            className={`w-full mt-auto rounded-xl ${isProjectAdded ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'gradient-green hover:opacity-90'}`}
-            size="lg"
+            className={`w-full mt-auto rounded-xl text-sm md:text-base ${isProjectAdded ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'gradient-green hover:opacity-90'}`}
+            size="default"
           >
             {isProjectAdded ? '➤ Voir le projet' : (project.ctaText || '➤ Ajouter ce projet')}
           </Button>
@@ -226,13 +226,13 @@ const OffersPage = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-8"
+      className="space-y-4 md:space-y-8"
     >
       <div className="text-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Découvrez nos offres exclusives ⚡</h1>
-        <p className="text-gray-600 mt-2 max-w-2xl mx-auto">Choisissez l’opportunité qui vous correspond et suivez-la directement dans votre Tableau de bord.</p>
+        <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-gray-900">Nos offres ⚡</h1>
+        <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base max-w-2xl mx-auto">Choisissez l'opportunité qui vous correspond.</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
         {offers.map((project) => (
           <OfferCard 
             key={project.type} 
