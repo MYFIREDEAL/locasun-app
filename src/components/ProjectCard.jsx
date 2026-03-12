@@ -2,11 +2,14 @@ import React, { useMemo } from 'react';
     import { motion } from 'framer-motion';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
+    import useWindowSize from '@/hooks/useWindowSize';
 
     const STATUS_COMPLETED = 'completed';
 
     const ProjectCard = ({ project, projectStepsStatus, onSelectProject, index }) => {
-      const { currentUser, getProjectSteps } = useAppContext();
+      const { currentUser, getProjectSteps, clientFormPanels } = useAppContext();
+      const { width } = useWindowSize();
+      const isMobile = width < 768;
       
       // 🔥 PRIORITÉ: Recevoir projectStepsStatus en props (partagé par toutes les cartes via Dashboard)
       // Pas besoin d'appeler le hook ici, ça évite les subscriptions multiples
@@ -26,22 +29,39 @@ import React, { useMemo } from 'react';
       
       const buttonText = progress > 0 ? "Continuer le projet 🚀" : "Démarrer le projet 🚀";
 
+      // 📱 Mobile : détecter si une action est requise (formulaire pending/rejected côté client)
+      const hasActionRequired = useMemo(() => {
+        if (!currentUser || !clientFormPanels) return false;
+        return clientFormPanels.some(
+          panel => panel.prospectId === currentUser.id && 
+                   panel.projectType === project.type &&
+                   (panel.status === 'pending' || panel.status === 'rejected')
+        );
+      }, [currentUser, clientFormPanels, project.type]);
+
       return (
         <motion.div
-          className="bg-white rounded-2xl shadow-card p-6 flex flex-col justify-between"
+          className="bg-white rounded-2xl shadow-card p-6 flex flex-col justify-between cursor-pointer md:cursor-default"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
+          onClick={isMobile ? () => onSelectProject(project) : undefined}
         >
           <div>
             <div className="flex items-center space-x-4 mb-4">
               <div className={`w-12 h-12 ${project.color} rounded-xl flex items-center justify-center shadow-soft`}>
                 <span className="text-2xl">{project.icon}</span>
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="font-bold text-gray-900 text-lg">{project.title}</h3>
                 <p className="text-sm text-gray-500">{currentStep.name}</p>
               </div>
+              {/* 📱 Pastille "Action requise" sur mobile */}
+              {isMobile && hasActionRequired && (
+                <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full animate-pulse">
+                  Action requise
+                </span>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -66,6 +86,8 @@ import React, { useMemo } from 'react';
             </div>
           </div>
 
+          {/* Bouton desktop uniquement — sur mobile la carte entière est cliquable */}
+          {!isMobile && (
           <div className="flex justify-end items-center mt-6">
             <Button
               onClick={() => onSelectProject(project)}
@@ -74,6 +96,7 @@ import React, { useMemo } from 'react';
               {buttonText}
             </Button>
           </div>
+          )}
         </motion.div>
       );
     };

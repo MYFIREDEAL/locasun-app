@@ -631,6 +631,7 @@ const ProjectDetails = ({ project, onBack }) => {
   const { messages, loading: messagesLoading, loadMore, hasMore, loadingMore } = useSupabaseChatMessages(currentUser?.id, project.type, 'client');
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
+  const isMobile = width < 768;
   const [progress, setProgress] = useState(0);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [stepsFromSupabase, setStepsFromSupabase] = useState(null);
@@ -864,6 +865,8 @@ const ProjectDetails = ({ project, onBack }) => {
           </div>
         </div>
 
+        {/* Chat du projet — MASQUÉ sur mobile (redesign : accès via onglet Chat) */}
+        {!isMobile && (
         <div className="bg-white rounded-2xl shadow-card p-6">
           {currentStep && (
             <motion.div
@@ -892,6 +895,7 @@ const ProjectDetails = ({ project, onBack }) => {
             </motion.div>
           )}
         </div>
+        )}
           </div>
         </div>
 
