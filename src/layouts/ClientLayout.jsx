@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import ClientHeader from '@/components/client/ClientHeader';
 import MobileBottomNav from '@/components/client/MobileBottomNav';
 import useWindowSize from '@/hooks/useWindowSize';
@@ -15,7 +15,11 @@ const ClientLayout = () => {
   const isMobile = width < 768;
   const { currentUser, setCurrentUser, companyLogo } = useAppContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sessionCheckDone, setSessionCheckDone] = useState(false);
+
+  // Cacher header + bottom nav quand on est dans le chat d'un projet (MobileChatProjectPage gère tout)
+  const isChatProjectPage = /\/chat\/[^/]+/.test(location.pathname);
   
   // 🔥 NOUVEAU: Vérifier et créer session Supabase si manquante
   useEffect(() => {
@@ -101,17 +105,21 @@ const ClientLayout = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header complet sur desktop, mini header (logo seul) sur mobile */}
-      <ClientHeader />
-      <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-24 md:pb-8">
-        <main className="flex-1 min-w-0">
-          <ModuleBoundary name="Espace Client">
-            <Outlet />
-          </ModuleBoundary>
-        </main>
-      </div>
-      {/* Bottom nav mobile — 3 onglets Home/Chat/Profil */}
-      {isMobile && <MobileBottomNav />}
+      {/* Header complet sur desktop, mini header (logo seul) sur mobile — masqué dans le chat projet */}
+      {!isChatProjectPage && <ClientHeader />}
+      {isChatProjectPage ? (
+        <Outlet />
+      ) : (
+        <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-24 md:pb-8">
+          <main className="flex-1 min-w-0">
+            <ModuleBoundary name="Espace Client">
+              <Outlet />
+            </ModuleBoundary>
+          </main>
+        </div>
+      )}
+      {/* Bottom nav mobile — masquée dans le chat projet */}
+      {isMobile && !isChatProjectPage && <MobileBottomNav />}
     </div>
   );
 };
