@@ -52,23 +52,30 @@ import React, { useMemo } from 'react';
             )}
           </div>
 
-          {/* Mobile: header compact "Mes projets" avec compteurs */}
+          {/* Mobile: bloc "Mes projets" avec compteurs */}
           {isMobile ? (
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Mes projets</h2>
-              <div className="flex items-center gap-3 text-xs font-semibold">
-                {completedProjects > 0 && (
-                  <span className="flex items-center gap-1 text-green-600">
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    {completedProjects} terminé{completedProjects > 1 ? 's' : ''}
+            <motion.div
+              className="bg-white rounded-2xl shadow-card p-4"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-900">Mes projets</h2>
+                <div className="flex items-center gap-3 text-xs font-semibold">
+                  {completedProjects > 0 && (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      {completedProjects} terminé{completedProjects > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-blue-600">
+                    <Clock className="h-3.5 w-3.5" />
+                    {inProgressProjects} en cours
                   </span>
-                )}
-                <span className="flex items-center gap-1 text-blue-600">
-                  <Clock className="h-3.5 w-3.5" />
-                  {inProgressProjects} en cours
-                </span>
+                </div>
               </div>
-            </div>
+            </motion.div>
           ) : (
           <motion.div
             className="bg-white rounded-2xl shadow-card p-4 sm:p-6"
