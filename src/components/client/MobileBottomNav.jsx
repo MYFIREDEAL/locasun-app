@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, MessageCircle, Menu } from 'lucide-react';
 import { useAppContext } from '@/App';
 
@@ -12,6 +12,7 @@ const navItems = [
 const MobileBottomNav = () => {
   const { clientNotifications } = useAppContext();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Compteur notifs non lues pour la pastille Chat
   const unreadCount = clientNotifications.filter(n => !n.read).reduce((sum, n) => sum + (n.count || 1), 0);
@@ -38,6 +39,14 @@ const MobileBottomNav = () => {
               key={item.name}
               to={item.path}
               end={item.end}
+              state={item.end ? { resetProject: true } : undefined}
+              onClick={item.end ? (e) => {
+                // Si déjà sur /dashboard, NavLink ne re-navigue pas → forcer manuellement
+                if (location.pathname === '/dashboard') {
+                  e.preventDefault();
+                  navigate('/dashboard', { state: { resetProject: true, ts: Date.now() } });
+                }
+              } : undefined}
               className={({ isActive }) => {
                 const active = isActive || isChatActive || isMenuActive;
                 return `relative flex flex-col items-center justify-center space-y-0.5 w-full h-full transition-colors duration-200 ${
