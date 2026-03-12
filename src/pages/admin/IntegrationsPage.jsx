@@ -22,6 +22,7 @@ const itemVariants = {
 
 const TABS = [
   { id: 'sans-code', label: 'Sans code', icon: Link2, description: 'Liens, QR codes, widgets embed', color: 'bg-blue-50 border-blue-200 text-blue-700' },
+  { id: 'cle-api', label: 'Clé API', icon: Key, description: 'Générer et gérer votre clé', color: 'bg-amber-50 border-amber-200 text-amber-700' },
   { id: 'make', label: 'Make', icon: Zap, description: 'Scénarios Make prêts à l\'emploi', color: 'bg-purple-50 border-purple-200 text-purple-700' },
   { id: 'developpeur', label: 'Développeur', icon: Code2, description: 'Webhooks, API keys, endpoints', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
   { id: 'plugins', label: 'Plugins', icon: Puzzle, description: 'Apps tierces connectées', color: 'bg-orange-50 border-orange-200 text-orange-700' },
@@ -439,29 +440,21 @@ const IntegrationsPage = () => {
         </motion.div>
       )}
 
-      {/* ─── Onglet Make ─── */}
-      {activeTab === 'make' && (
+      {/* ─── Onglet Clé API ─── */}
+      {activeTab === 'cle-api' && (
         <motion.div variants={itemVariants} className="space-y-6">
-          {/* Intro */}
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              🔌 Connecter Make à EVATIME
-            </h1>
-            <p className="text-purple-100 mt-2 text-base">
-              Suivez ces étapes pour envoyer automatiquement vos prospects dans EVATIME.
-            </p>
-          </div>
-
-          {/* ── Prérequis — Générer une clé ── */}
           <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">🔑</span>
-              <h2 className="text-lg font-semibold text-gray-900">Prérequis — Clé d'intégration</h2>
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-bold text-sm">🔑</span>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Clé d'intégration</h2>
+                <p className="text-xs text-gray-500">Utilisée par Make, Hangar 3D, webhooks et toute intégration externe.</p>
+              </div>
             </div>
 
             {keyLoading ? (
               <div className="flex items-center justify-center py-6 text-gray-400">
-                <div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-purple-500 rounded-full mr-3" />
+                <div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-amber-500 rounded-full mr-3" />
                 Chargement…
               </div>
             ) : activeKey ? (
@@ -482,7 +475,7 @@ const IntegrationsPage = () => {
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                       <p className="text-sm text-amber-800">
-                        <strong>Attention :</strong> l'ancienne clé sera désactivée immédiatement. Tous les services qui l'utilisent cesseront de fonctionner.
+                        <strong>Attention :</strong> l'ancienne clé sera désactivée immédiatement. <strong>Tous les services</strong> (Make, Hangar 3D, webhooks…) qui l'utilisent cesseront de fonctionner.
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -511,7 +504,7 @@ const IntegrationsPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowConfirmReplace(true)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white font-medium text-sm hover:bg-purple-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 text-white font-medium text-sm hover:bg-amber-700 transition-colors"
                   >
                     🔑 Générer une nouvelle clé (l'ancienne sera désactivée)
                   </button>
@@ -524,7 +517,7 @@ const IntegrationsPage = () => {
                   type="button"
                   onClick={handleGenerateKey}
                   disabled={generating}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white font-medium text-sm hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 text-white font-medium text-sm hover:bg-amber-700 disabled:opacity-50 transition-colors"
                 >
                   {generating ? (
                     <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Génération…</>
@@ -540,6 +533,29 @@ const IntegrationsPage = () => {
               <span>La clé complète est affichée <strong>une seule fois</strong> lors de sa création. Conservez-la en lieu sûr.</span>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* ─── Onglet Make ─── */}
+      {activeTab === 'make' && (
+        <motion.div variants={itemVariants} className="space-y-6">
+          {/* Intro */}
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              🔌 Connecter Make à EVATIME
+            </h1>
+            <p className="text-purple-100 mt-2 text-base">
+              Suivez ces étapes pour envoyer automatiquement vos prospects dans EVATIME.
+            </p>
+          </div>
+
+          {/* Rappel clé */}
+          {!activeKey && !keyLoading && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Vous n'avez pas encore de clé. Allez dans l'onglet <strong>🔑 Clé API</strong> pour en générer une.</span>
+            </div>
+          )}
 
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* SÉLECTEUR DE MÉTHODE */}
@@ -1428,7 +1444,7 @@ Content-Type: application/json`}
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                     <div>
-                      <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Développeur</strong>, puis collez-la dans Hangar 3D.
+                      <strong>Prérequis :</strong> Générez d'abord une clé dans l'onglet <strong>🔑 Clé API</strong>, puis collez-la dans Hangar 3D.
                     </div>
                   </div>
                 )}
