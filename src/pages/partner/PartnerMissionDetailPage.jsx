@@ -31,6 +31,7 @@ const PartnerMissionDetailPage = () => {
   const [formSchemas, setFormSchemas] = useState({});
   const [formDrafts, setFormDrafts] = useState({});
   const [partnerForms, setPartnerForms] = useState([]); // Panels à remplir
+  const [partnerMessagePanel, setPartnerMessagePanel] = useState(null); // 🔥 Panel MESSAGE partenaire (mission sans formulaire)
 
   // 🔥 Hook upload fichiers (activé seulement quand mission chargée)
   const { uploadFile, uploading: fileUploading } = useSupabaseProjectFiles({
@@ -160,6 +161,31 @@ const PartnerMissionDetailPage = () => {
             }
             
             logger.debug('Panels partenaire chargés', { count: transformedPanels.length });
+          }
+        } else {
+          // 🔥 Mission sans formulaire (MESSAGE partenaire) → charger le panel MESSAGE
+          const { data: msgPanelData, error: msgPanelError } = await supabase
+            .from('client_form_panels')
+            .select('*')
+            .eq('prospect_id', missionData.prospect_id)
+            .eq('project_type', missionData.project_type)
+            .eq('filled_by_role', 'partner')
+            .eq('action_type', 'message')
+            .in('status', ['pending', 'submitted', 'approved'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (msgPanelError) {
+            logger.error('Erreur chargement panel MESSAGE partenaire', { error: msgPanelError.message });
+          } else if (msgPanelData && mounted) {
+            setPartnerMessagePanel({
+              id: msgPanelData.id,
+              panelId: msgPanelData.panel_id,
+              status: msgPanelData.status,
+              actionType: msgPanelData.action_type,
+            });
+            logger.debug('Panel MESSAGE partenaire chargé', { panelId: msgPanelData.panel_id, status: msgPanelData.status });
           }
         }
 
@@ -395,7 +421,30 @@ const PartnerMissionDetailPage = () => {
         })));
       }
 
-      // 2. Préparer les notes partenaire
+      // 2. 🔥 Si mission sans formulaire (MESSAGE partenaire) → mettre à jour le panel MESSAGE
+      if (partnerForms.length === 0 && partnerMessagePanel) {
+        const formDataPayload = {};
+        if (comment && comment.trim()) {
+          formDataPayload.__partner_comment__ = comment.trim();
+        }
+        
+        const { error: msgPanelError } = await supabase
+          .from('client_form_panels')
+          .update({
+            status: 'submitted',
+            form_data: Object.keys(formDataPayload).length > 0 ? formDataPayload : null,
+            last_submitted_at: new Date().toISOString(),
+          })
+          .eq('panel_id', partnerMessagePanel.panelId);
+
+        if (msgPanelError) {
+          logger.error('Erreur mise à jour panel MESSAGE partenaire', { error: msgPanelError.message });
+        } else {
+          logger.debug('✅ Panel MESSAGE partenaire → submitted', { panelId: partnerMessagePanel.panelId });
+        }
+      }
+
+      // 3. Préparer les notes partenaire
       const payload = {
         responses,
         comment: comment || null,
@@ -417,7 +466,9 @@ const PartnerMissionDetailPage = () => {
 
       toast({ 
         title: '✅ Mission soumise', 
-        description: 'Formulaires envoyés. En attente de validation admin.',
+        description: partnerForms.length > 0 
+          ? 'Formulaires envoyés. En attente de validation admin.'
+          : 'Mission soumise. En attente de validation admin.',
         className: 'bg-green-500 text-white' 
       });
       
@@ -483,6 +534,21 @@ const PartnerMissionDetailPage = () => {
         
         if (panelError) {
           logger.error('Erreur mise à jour panels après mission impossible', { error: panelError.message });
+        }
+      }
+
+      // 🔥 Si "Impossible" + mission sans formulaire (MESSAGE partenaire) → rejeter le panel MESSAGE
+      if (newStatus === 'blocked' && partnerForms.length === 0 && partnerMessagePanel) {
+        const { error: msgPanelError } = await supabase
+          .from('client_form_panels')
+          .update({
+            status: 'rejected',
+            rejection_reason: `Mission impossible — ${comment}`,
+          })
+          .eq('panel_id', partnerMessagePanel.panelId);
+        
+        if (msgPanelError) {
+          logger.error('Erreur rejet panel MESSAGE partenaire', { error: msgPanelError.message });
         }
       }
 

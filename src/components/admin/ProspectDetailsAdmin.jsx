@@ -1692,7 +1692,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
         const filtered = clientFormPanels.filter(panel => 
             panel.prospectId === prospect.id && 
             panel.projectType === projectType &&
-            panel.actionType !== 'message' // 🔥 FIX: Exclure les panels MESSAGE du compteur formulaires
+            (panel.actionType !== 'message' || panel.filledByRole === 'partner') // 🔥 FIX: Exclure les panels MESSAGE client du compteur, mais GARDER les MESSAGE partenaire
         ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         
         // 🔥 DEBUG: Log pour identifier le problème
@@ -2419,10 +2419,37 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 }
             }
 
+            // 🔥 PARTENAIRE MESSAGE (sans formulaire): Trouver et compléter la mission soumise
+            if (isPartnerForm && !panel.formId && panel.actionType === 'message') {
+                const { data: linkedMissions, error: missionErr } = await supabase
+                    .from('missions')
+                    .select('id, status')
+                    .eq('prospect_id', prospect.id)
+                    .eq('project_type', panel.projectType)
+                    .eq('status', 'submitted')
+                    .limit(1);
+                
+                if (!missionErr && linkedMissions?.length > 0) {
+                    const targetMission = linkedMissions[0];
+                    const { error: updateErr } = await supabase
+                        .from('missions')
+                        .update({ status: 'completed', completed_at: new Date().toISOString() })
+                        .eq('id', targetMission.id);
+                    
+                    if (updateErr) {
+                        logger.error('❌ Erreur mise à jour mission MESSAGE → completed', updateErr);
+                    } else {
+                        logger.info('✅ Mission MESSAGE passée en completed', { missionId: targetMission.id });
+                    }
+                }
+            }
+
             toast({
-                title: '✅ Formulaire validé',
+                title: isPartnerForm && !panel.formId ? '✅ Mission validée' : '✅ Formulaire validé',
                 description: isPartnerForm 
-                    ? 'Le formulaire partenaire a été validé. Mission marquée comme complétée.' 
+                    ? (panel.formId 
+                        ? 'Le formulaire partenaire a été validé. Mission marquée comme complétée.'
+                        : 'La mission partenaire a été validée.')
                     : 'Un message a été envoyé au client.',
                 className: 'bg-green-500 text-white',
             });
@@ -2629,20 +2656,24 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 {relevantPanels.map(panel => {
                     const formDefinition = forms[panel.formId];
                     
+                    // 🔥 Détection mission partenaire sans formulaire (MESSAGE)
+                    const isPartnerMessage = panel.actionType === 'message' && panel.filledByRole === 'partner';
+                    
                     // 🔥 FIX: Pour les formulaires PARTENAIRE, lire form_data depuis le panel
                     // Car le partenaire ne peut pas UPDATE prospects.form_data (RLS)
                     let formData = {};
                     if (panel.filledByRole === 'partner' && panel.formData) {
                         // Formulaire partenaire → données dans panel.formData
                         formData = panel.formData;
-                    } else {
+                    } else if (!isPartnerMessage) {
                         // Formulaire client → données dans prospect.form_data
                         const fullFormData = prospect.form_data || prospect.formData || {};
                         const projectFormData = fullFormData[panel.projectType] || {};
                         formData = projectFormData[panel.formId] || {};
                     }
                     
-                    if (!formDefinition) return null;
+                    // Skip si pas de formDefinition ET pas un message partenaire
+                    if (!formDefinition && !isPartnerMessage) return null;
 
                     // 🔥 FIX: Fallback pour step_name - déduire depuis supabaseSteps si absent
                     const displayStepName = panel.stepName 
@@ -2653,7 +2684,9 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                         <div key={panel.panelId} className="border border-gray-200 rounded-xl p-4 space-y-3">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <h3 className="font-semibold text-gray-900">{formDefinition.name}</h3>
+                                    <h3 className="font-semibold text-gray-900">
+                                        {isPartnerMessage ? '📋 Mission partenaire' : formDefinition.name}
+                                    </h3>
                                     {displayStepName && (
                                         <p className="text-xs text-gray-500 mt-1">
                                             Étape : {displayStepName}
@@ -2679,7 +2712,9 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                 <div className="space-y-2">
                                     <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                                         <p className="text-sm text-green-700">
-                                            ✅ {panel.filledByRole === 'partner' ? 'Partenaire' : 'Client'} a soumis ce formulaire
+                                            ✅ {isPartnerMessage 
+                                                ? 'Partenaire a validé la mission' 
+                                                : (panel.filledByRole === 'partner' ? 'Partenaire' : 'Client') + ' a soumis ce formulaire'}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -2723,8 +2758,21 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                 </div>
                             )}
 
+                            {/* 🔥 Mission partenaire sans formulaire (MESSAGE) → afficher seulement le commentaire */}
+                            {isPartnerMessage ? (
+                                <div className="space-y-3 pt-2">
+                                    {panel.formData?.__partner_comment__ ? (
+                                        <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                                            <p className="text-xs font-semibold text-orange-700 mb-1">💬 Commentaire du partenaire</p>
+                                            <p className="text-sm text-orange-900">{panel.formData.__partner_comment__}</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500 italic">Aucun commentaire</p>
+                                    )}
+                                </div>
+                            ) : (
                             <div className="space-y-3 pt-2">
-                                {(formDefinition.fields || []).map(field => {
+                                {(formDefinition?.fields || []).map(field => {
                                     // 🔥 Vérifier les conditions multiples d'affichage
                                     if (field.show_if_conditions && field.show_if_conditions.length > 0) {
                                         const operator = field.condition_operator || 'AND';
@@ -2896,16 +2944,18 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                     );
                                 })}
                             </div>
+                            )}
 
-                            {/* 💬 Commentaire optionnel du partenaire (après les champs) */}
-                            {panel.filledByRole === 'partner' && formData.__partner_comment__ && (
+                            {/* 💬 Commentaire optionnel du partenaire (après les champs) — seulement pour formulaires, pas MESSAGE */}
+                            {!isPartnerMessage && panel.filledByRole === 'partner' && formData.__partner_comment__ && (
                                 <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 mt-2">
                                     <p className="text-xs font-semibold text-orange-700 mb-1">💬 Commentaire du partenaire</p>
                                     <p className="text-sm text-orange-900">{formData.__partner_comment__}</p>
                                 </div>
                             )}
 
-                            {/* Boutons d'action admin */}
+                            {/* Boutons d'action admin — pas de "Modifier" pour les missions MESSAGE */}
+                            {!isPartnerMessage && (
                             <div className="flex items-center justify-end space-x-2 pt-2 border-t">
                                 {editingPanelId === panel.panelId ? (
                                     <>
@@ -2925,6 +2975,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                     </Button>
                                 )}
                             </div>
+                            )}
                         </div>
                     );
                 })}

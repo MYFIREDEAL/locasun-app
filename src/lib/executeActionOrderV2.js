@@ -287,12 +287,47 @@ export async function executeActionOrder(order, context = {}) {
         }
       }
 
+      // 🔥 SI actionType=MESSAGE → Créer un panel de tracking (mission sans formulaire)
+      // Le partenaire voit juste les instructions + boutons Valider/Impossible
+      if (order.actionType === 'MESSAGE') {
+        logV2('💬 executeActionOrder PARTENAIRE+MESSAGE - Création panel tracking', {
+          prospectId: order.prospectId,
+          moduleId: order.moduleId,
+        });
+
+        const panelId = `panel-partner-msg-${order.prospectId}-${order.projectType}-${Date.now()}`;
+        
+        const { error: panelError } = await supabase
+          .from('client_form_panels')
+          .insert({
+            panel_id: panelId,
+            prospect_id: order.prospectId,
+            project_type: order.projectType,
+            form_id: null, // Pas de formulaire pour MESSAGE
+            status: 'pending',
+            action_type: 'message', // Type message (pas form)
+            verification_mode: order.verificationMode || 'human',
+            organization_id: prospectData.organization_id,
+            filled_by_role: 'partner', // Marqué comme mission partenaire
+            step_name: order.moduleName || order.moduleId || null,
+            action_id: order.actionId || null,
+            message_timestamp: Date.now().toString(),
+          });
+
+        if (panelError) {
+          logV2('⚠️ Erreur création panel MESSAGE partenaire', { error: panelError.message });
+        } else {
+          logV2('✅ Panel MESSAGE partenaire créé', { panelId });
+        }
+      }
+
       logV2('✅ executeActionOrder PARTENAIRE - Mission créée', { 
         orderId: order.id,
         moduleId: order.moduleId, 
         partnerId: actionConfig.partnerId,
         isBlocking: actionConfig.isBlocking,
         formIdsCount: order.formIds?.length || 0,
+        actionType: order.actionType,
       });
       
       return {
