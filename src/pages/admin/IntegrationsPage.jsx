@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link2, Zap, Code2, ArrowLeft, Key, Copy, Check, AlertTriangle, X, Power, ExternalLink, Puzzle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +31,14 @@ const TABS = [
 const IntegrationsPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('sans-code');
+  const contentRef = useRef(null);
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
 
   // ─── État clé d'intégration ───
   const [activeKey, setActiveKey] = useState(null);       // { key_prefix, created_at } ou null
@@ -350,7 +358,7 @@ const IntegrationsPage = () => {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabClick(tab.id)}
               className={`relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all cursor-pointer text-center ${
                 isActive
                   ? `${tab.color} shadow-md ring-2 ring-offset-2 ring-current`
@@ -368,6 +376,7 @@ const IntegrationsPage = () => {
       </motion.div>
 
       {/* Content */}
+      <div ref={contentRef} />
       {activeTab === 'sans-code' && (
         <motion.div variants={itemVariants} className="space-y-6">
           {/* Message d'intro */}
