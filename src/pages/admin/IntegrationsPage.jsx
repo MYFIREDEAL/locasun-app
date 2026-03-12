@@ -41,6 +41,7 @@ const IntegrationsPage = () => {
   const [keyCopied, setKeyCopied] = useState(false);
   const [makeMethod, setMakeMethod] = useState('app'); // 'app' ou 'http'
   const [showHttpSteps, setShowHttpSteps] = useState(false);
+  const [selectedPlugin, setSelectedPlugin] = useState(null); // null = catalogue, 'hangar-3d' = détail
 
   // ─── État plugin Hangar 3D ───
   const [hangarEnabled, setHangarEnabled] = useState(false);
@@ -1275,96 +1276,152 @@ Content-Type: application/json`}
             </p>
           </div>
 
-          {/* Card Hangar 3D */}
-          <div className="bg-white rounded-2xl shadow-card border-2 border-gray-100 p-6 space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-100">
-                🏗️
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Hangar 3D</h3>
+          {/* ═══ Vue catalogue (aucun plugin sélectionné) ═══ */}
+          {!selectedPlugin && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card Hangar 3D */}
+              <button
+                type="button"
+                onClick={() => setSelectedPlugin('hangar-3d')}
+                className="bg-white rounded-2xl shadow-card border-2 border-gray-100 p-6 text-left hover:border-orange-300 hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-100 group-hover:scale-110 transition-transform">
+                    🏗️
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Hangar 3D</h3>
+                    <p className="text-xs text-gray-400">Configurateur 3D</p>
+                  </div>
+                </div>
                 <p className="text-sm text-gray-500">Configurateur 3D de bâtiments connecté à EVATIME</p>
+                <div className="mt-4 flex items-center gap-2">
+                  {hangarKeyId ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Connecté
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> Non configuré
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Placeholder futurs plugins */}
+              <div className="rounded-2xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center text-center text-gray-400 min-h-[180px]">
+                <span className="text-3xl mb-2">➕</span>
+                <p className="text-sm font-medium">Bientôt disponible</p>
+                <p className="text-xs mt-1">D'autres plugins arrivent prochainement</p>
               </div>
             </div>
+          )}
 
-            {/* Comment ça fonctionne */}
-            <div className="bg-blue-50 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-blue-800">🔗 Comment la connexion fonctionne :</p>
-              <div className="text-sm text-blue-700 space-y-1">
-                <p>Générez une clé API sur EVATIME et collez-la dans Hangar 3D. La connexion est automatique.</p>
+          {/* ═══ Vue détail : Hangar 3D ═══ */}
+          {selectedPlugin === 'hangar-3d' && (
+            <div className="space-y-5">
+              {/* Bouton retour */}
+              <button
+                type="button"
+                onClick={() => setSelectedPlugin(null)}
+                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Retour aux plugins
+              </button>
+
+              {/* Card Hangar 3D — Détail */}
+              <div className="bg-white rounded-2xl shadow-card border-2 border-gray-100 p-6 space-y-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-100">
+                    🏗️
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Hangar 3D</h3>
+                    <p className="text-sm text-gray-500">Configurateur 3D de bâtiments connecté à EVATIME</p>
+                  </div>
+                </div>
+
+                {/* Comment ça fonctionne */}
+                <div className="bg-blue-50 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-blue-800">🔗 Comment la connexion fonctionne :</p>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <p>Générez une clé API sur EVATIME et collez-la dans Hangar 3D. La connexion est automatique.</p>
+                  </div>
+                </div>
+
+                {/* Flow en 4 étapes */}
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-gray-700">📋 Flow complet :</p>
+                  <div className="flex flex-col gap-2 text-sm text-gray-600">
+                    <div className="flex items-start gap-2">
+                      <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                      <span>L'utilisateur <strong>génère une clé API</strong> sur EVATIME (onglet Développeur) et la <strong>colle dans Hangar 3D</strong> à l'inscription</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                      <span>L'utilisateur <strong>crée un prospect</strong> sur EVATIME → Hangar 3D le <strong>lit automatiquement</strong></span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                      <span>L'utilisateur <strong>configure l'offre</strong> sur Hangar 3D et <strong>l'envoie au client</strong></span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
+                      <span>Le client choisit son offre → <strong>le projet se crée automatiquement dans EVATIME</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Avertissement mapping type */}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-amber-800">⚠️ Mapping des projets :</p>
+                  <div className="text-sm text-amber-700 space-y-1">
+                    <p>Pour mapper les projets entre EVATIME et Hangar 3D, utilisez toujours le <strong>type technique</strong> du projet et non le nom affiché. Le nom peut être modifié, mais le type reste la référence stable.</p>
+                  </div>
+                  {projectTemplates && projectTemplates.length > 0 && (
+                    <div className="mt-2 border border-amber-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-amber-100">
+                            <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type (à utiliser)</th>
+                            <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Nom affiché</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {projectTemplates.map(t => (
+                            <tr key={t.type} className="border-t border-amber-200">
+                              <td className="px-3 py-1.5 font-mono font-bold text-amber-900">{t.type}</td>
+                              <td className="px-3 py-1.5 text-amber-700">{t.title}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lien vers la clé */}
+                {!hangarKeyId && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div>
+                      <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Développeur</strong>, puis collez-la dans Hangar 3D.
+                    </div>
+                  </div>
+                )}
+
+                {hangarKeyId && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
+                    <Check className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div>
+                      <strong>Clé API active</strong> — Hangar 3D peut lire vos prospects et ajouter des projets.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Flow en 4 étapes */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-700">📋 Flow complet :</p>
-              <div className="flex flex-col gap-2 text-sm text-gray-600">
-                <div className="flex items-start gap-2">
-                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
-                  <span>L'utilisateur <strong>génère une clé API</strong> sur EVATIME (onglet Développeur) et la <strong>colle dans Hangar 3D</strong> à l'inscription</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-                  <span>L'utilisateur <strong>crée un prospect</strong> sur EVATIME → Hangar 3D le <strong>lit automatiquement</strong></span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
-                  <span>L'utilisateur <strong>configure l'offre</strong> sur Hangar 3D et <strong>l'envoie au client</strong></span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
-                  <span>Le client choisit son offre → <strong>le projet se crée automatiquement dans EVATIME</strong></span>
-                </div>
-              </div>
-            </div>
-
-            {/* Avertissement mapping type */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-amber-800">⚠️ Mapping des projets :</p>
-              <div className="text-sm text-amber-700 space-y-1">
-                <p>Pour mapper les projets entre EVATIME et Hangar 3D, utilisez toujours le <strong>type technique</strong> du projet et non le nom affiché. Le nom peut être modifié, mais le type reste la référence stable.</p>
-              </div>
-              {projectTemplates && projectTemplates.length > 0 && (
-                <div className="mt-2 border border-amber-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-amber-100">
-                        <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type (à utiliser)</th>
-                        <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Nom affiché</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {projectTemplates.map(t => (
-                        <tr key={t.type} className="border-t border-amber-200">
-                          <td className="px-3 py-1.5 font-mono font-bold text-amber-900">{t.type}</td>
-                          <td className="px-3 py-1.5 text-amber-700">{t.title}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Lien vers la clé */}
-            {!hangarKeyId && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                <div>
-                  <strong>Prérequis :</strong> Générez d'abord une clé d'intégration dans l'onglet <strong>Développeur</strong>, puis collez-la dans Hangar 3D.
-                </div>
-              </div>
-            )}
-
-            {hangarKeyId && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start gap-2">
-                <Check className="w-4 h-4 mt-0.5 shrink-0" />
-                <div>
-                  <strong>Clé API active</strong> — Hangar 3D peut lire vos prospects et ajouter des projets.
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </motion.div>
       )}
     </motion.div>
