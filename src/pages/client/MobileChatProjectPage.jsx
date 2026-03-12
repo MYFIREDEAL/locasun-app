@@ -228,9 +228,9 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-white sticky top-0 z-10">
+    <div className="fixed inset-0 z-40 flex flex-col bg-white">
+      {/* Header fixe */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -247,7 +247,7 @@ const MobileChatProjectPage = () => {
       <div
         ref={chatContainerRef}
         onScroll={handleChatScroll}
-        className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
       >
         {loadingMore && (
           <div className="flex items-center justify-center py-2">
@@ -375,8 +375,8 @@ const MobileChatProjectPage = () => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-4 py-3 border-t bg-white">
+      {/* Input fixe en bas */}
+      <div className="px-4 py-3 border-t bg-white flex-shrink-0">
         {attachedFile && (
           <div className="mb-2 text-sm text-gray-600 flex items-center gap-2">
             <Paperclip className="w-4 h-4" />
