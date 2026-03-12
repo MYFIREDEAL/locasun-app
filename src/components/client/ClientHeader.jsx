@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Euro, User, BarChart3, ShoppingBag, Menu, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,15 @@ const ClientHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { companyLogo, clientNotifications, markClientNotificationAsRead, projectsData, brandName, logoUrl } = useAppContext();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handler pour forcer le retour au tableau de bord (reset projet sélectionné)
+  const handleNavClick = (item, e) => {
+    if (item.path === '/dashboard' && location.pathname === '/dashboard') {
+      e.preventDefault();
+      navigate('/dashboard', { state: { resetProject: true }, replace: true });
+    }
+  };
 
   const unreadClientNotifications = clientNotifications.filter(n => !n.read);
 
@@ -104,7 +113,7 @@ const ClientHeader = () => {
                         key={item.name}
                         to={item.path}
                         end={item.end}
-                        onClick={() => setIsMenuOpen(false)}
+                        onClick={(e) => { handleNavClick(item, e); setIsMenuOpen(false); }}
                         className={({ isActive }) =>
                         `flex items-center space-x-3 p-3 rounded-lg text-lg font-medium transition-colors ${
                             isActive
@@ -169,6 +178,7 @@ const ClientHeader = () => {
                   key={item.name}
                   to={item.path}
                   end={item.end}
+                  onClick={(e) => handleNavClick(item, e)}
                   className={({ isActive }) =>
                     `flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                       isActive

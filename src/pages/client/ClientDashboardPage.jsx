@@ -81,6 +81,13 @@ function ClientDashboardPage() {
 
   // Ouvrir automatiquement un projet depuis une notification ou query param
   useEffect(() => {
+    // 🔥 RESET: Clic sur "Tableau de bord" dans la navbar → retour à la vue d'ensemble
+    if (location.state?.resetProject) {
+      setSelectedProject(null);
+      navigate('/dashboard', { replace: true, state: {} });
+      return;
+    }
+
     // 🔥 PRIORITÉ 1: location.state (depuis offres/notifications)
     if (location.state?.openProjectType && projectsData[location.state.openProjectType]) {
       const project = projectsData[location.state.openProjectType];
