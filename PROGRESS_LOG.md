@@ -5,6 +5,49 @@
 
 ---
 
+## 📅 12 mars 2026
+
+### ✅ Features
+- **Partenaire + MESSAGE** : nouveau flow où le partenaire reçoit mission sans formulaire (juste instructions + boutons Valider/Impossible)
+- **Real-time missions partenaire** : postgres_changes listeners sur PartnerMissionsPage + PartnerMissionDetailPage
+- **Chat pagination** : chargement 25 messages à la fois, infinite scroll vers le haut, bouton "Charger plus"
+- **Tableau de bord nav reset** : clic sur "Tableau de bord" dans la navbar client ramène à la vue d'ensemble (reset projet sélectionné)
+- **Formulaires toujours visibles** : panneau "Formulaires à compléter" affiché côté client même sans formulaire (état vide avec icône 📋)
+- **ProjectCard étape correcte** : affiche `in_progress` au lieu de `pending` comme étape courante
+
+### 🐛 Bugs fixés
+- **Multi-missions même partenaire** : ajout colonne `action_id` sur missions + guard V2
+- **Double-clic duplicates** : guard dedup sur panels MESSAGE
+- **Reject MESSAGE mission** : action_id fallback dans handleReject + statut 'rejected' filtré côté partenaire
+- **Client notification V2 MESSAGE** : `sender: 'pro'` → `sender: 'admin'` + trigger DB colonnes corrigées (`count`/`read`/`created_at`)
+- **Crash messagesLoading** : `loading` → `messagesLoading` dans le JSX destructuré
+
+### 🎨 UI/UX
+- Réduit espacement header ↔ grid sur page prospect admin (`-mt-4` + `space-y-2`)
+- Caché l'ID projet côté client (`Projet #UUID` supprimé)
+- Élargi colonne gauche client à 340px (étapes sur une ligne)
+- Colonne formulaires client à 335px
+- Formulaire approuvé compact : supprimé le banner vert redondant, gardé badge + valeurs soumises
+
+### 🗄️ Migrations SQL exécutées
+- `add_action_id_to_missions.sql` — colonne action_id sur missions
+- `fix_client_notification_trigger.sql` — trigger `notify_client_on_admin_message` avec colonnes correctes
+
+### 🔜 Prochains sujets
+- **📱 Redesign Mobile Client** — Plan complet dans `MOBILE_REDESIGN_PLAN.md`
+  - Bottom nav 3 onglets (Home / Chat / Profil)
+  - Liste conversations style WhatsApp
+  - Bouton "Remplir le formulaire" dans le chat (mobile only)
+  - Formulaire plein écran (modal)
+  - Vue Timeline séparée (clic carte projet)
+  - 4 étapes avec points d'arrêt test
+- Mise à jour `PROGRESS_LOG.md` ✅
+
+### 📝 Commits session
+- `04ddb10d` → `b6661bf4` (12+ commits)
+
+---
+
 ## 🏗️ Architecture Workflow V2 — ÉTAT ACTUEL (10 mars 2026)
 
 > **Lis cette section EN PREMIER pour comprendre le système avant toute modification.**
