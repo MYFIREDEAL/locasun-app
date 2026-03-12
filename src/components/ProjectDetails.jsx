@@ -791,8 +791,8 @@ const ProjectDetails = ({ project, onBack }) => {
         {/* Colonne principale (gauche) */}
         <div className="flex-1 space-y-8">
           {/* Timeline et Chat en 2 colonnes sur desktop */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+            <div className="space-y-6">
               <div className="bg-white rounded-2xl shadow-card p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Progression globale</h2>
             <div className="flex justify-between items-center mb-2">
@@ -864,7 +864,7 @@ const ProjectDetails = ({ project, onBack }) => {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-card p-6">
+        <div className="bg-white rounded-2xl shadow-card p-6">
           {currentStep && (
             <motion.div
               key={currentStep.name}
