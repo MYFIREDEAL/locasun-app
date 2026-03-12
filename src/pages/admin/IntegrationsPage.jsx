@@ -1376,57 +1376,51 @@ Content-Type: application/json`}
                 {/* Mapping offres Hangar 3D → Projets EVATIME */}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
                   <p className="text-sm font-semibold text-amber-800">🔗 Mapping offres Hangar 3D → Projets EVATIME</p>
-                  
-                  <div className="text-sm text-amber-700 space-y-2">
-                    <p>Quand un client choisit une offre sur Hangar 3D, un <strong>projet est créé automatiquement</strong> dans EVATIME. Pour que Hangar 3D sache quel projet créer, vous devez configurer le mapping dans <strong>Hangar 3D → onglet EVATIME</strong>.</p>
-                    <p>Pour chaque offre Hangar 3D, indiquez le <strong>type technique</strong> du projet EVATIME correspondant. Retrouvez-le dans le tableau ci-dessous et copiez-le dans le champ de mapping sur Hangar 3D.</p>
+
+                  {/* Boutons Hangar 3D */}
+                  <div className="flex flex-wrap gap-2">
+                    {['Lancer l\'appel d\'offre', 'Investir', 'LLD'].map((btn) => (
+                      <span key={btn} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-800 rounded-lg text-sm font-medium border border-orange-200">
+                        🏗️ {btn}
+                      </span>
+                    ))}
                   </div>
 
-                  {/* Exemple concret */}
-                  <div className="bg-white border border-amber-200 rounded-lg p-3 space-y-2">
-                    <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Exemple concret</p>
-                    <p className="text-sm text-gray-700">
-                      Sur Hangar 3D, l'offre <strong>"Lancer l'appel d'offre (Tiers-Invest)"</strong> doit créer un projet dans EVATIME. 
-                      Votre projet EVATIME s'appelle "Construction Tiers Invest" → copiez son <strong>type technique</strong> <code className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono text-xs font-bold">construction-tiers-invest</code> et collez-le dans le champ de mapping correspondant sur Hangar 3D.
-                    </p>
-                  </div>
+                  <p className="text-sm text-amber-700">
+                    Quand le client clique sur une de ces offres, Hangar 3D <strong>crée le projet correspondant dans EVATIME</strong>. Configurez le mapping dans <strong>Hangar 3D → onglet EVATIME</strong> en copiant le type technique exact ci-dessous.
+                  </p>
 
-                  {/* Tableau des projets avec bouton copier */}
-                  <div>
-                    <p className="text-sm font-medium text-amber-800 mb-2">Vos projets EVATIME — copiez le <strong>type technique</strong> :</p>
-                    {projectTemplates && projectTemplates.length > 0 ? (
-                      <div className="border border-amber-200 rounded-lg overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-amber-100">
-                              <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type technique (à copier dans Hangar 3D)</th>
-                              <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Nom du projet</th>
-                              <th className="w-10"></th>
+                  {/* Tableau simplifié — type technique uniquement */}
+                  {projectTemplates && projectTemplates.length > 0 ? (
+                    <div className="border border-amber-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-amber-100">
+                            <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type technique (à copier dans Hangar 3D)</th>
+                            <th className="w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {projectTemplates.map(t => (
+                            <tr key={t.type} className="border-t border-amber-200 hover:bg-amber-50/50">
+                              <td className="px-3 py-2 font-mono font-bold text-amber-900">{t.type}</td>
+                              <td className="px-2 py-2">
+                                <CopyButton value={t.type} label="✓" />
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {projectTemplates.map(t => (
-                              <tr key={t.type} className="border-t border-amber-200 hover:bg-amber-50/50">
-                                <td className="px-3 py-1.5 font-mono font-bold text-amber-900">{t.type}</td>
-                                <td className="px-3 py-1.5 text-amber-700">{t.title}</td>
-                                <td className="px-2 py-1.5">
-                                  <CopyButton value={t.type} label="✓" />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">Aucun projet trouvé. Créez vos projets dans Configuration IA → onglet Projets.</p>
-                    )}
-                  </div>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Aucun projet trouvé. Créez vos projets dans Configuration IA → onglet Projets.</p>
+                  )}
 
-                  {/* Warning casse exacte */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800 text-xs flex items-start gap-2">
-                    <span className="text-base">⚠️</span>
-                    <span>Le type technique doit être <strong>identique</strong> (minuscules, tirets). Exemple : <code className="bg-red-100 px-1 rounded font-mono font-bold">construction-tiers-invest</code> et non <code className="bg-red-100 px-1 rounded font-mono line-through">Construction Tiers Invest</code>. Utilisez le bouton Copier pour éviter les erreurs.</span>
-                  </div>
+                  {/* Warning court */}
+                  <p className="text-xs text-red-700 flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    Le type doit être <strong>exact</strong> (minuscules, tirets). Utilisez le bouton Copier.
+                  </p>
                 </div>
 
                 {/* Lien vers la clé */}
