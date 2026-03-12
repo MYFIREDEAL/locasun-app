@@ -791,7 +791,7 @@ const ProjectDetails = ({ project, onBack }) => {
         {/* Colonne principale (gauche) */}
         <div className="flex-1 space-y-8">
           {/* Timeline et Chat en 2 colonnes sur desktop */}
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8">
             <div className="space-y-6">
               <div className="bg-white rounded-2xl shadow-card p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Progression globale</h2>
@@ -897,7 +897,7 @@ const ProjectDetails = ({ project, onBack }) => {
 
         {/* Colonne formulaires (droite) - toujours visible sur desktop */}
         {isDesktop && (
-          <div className="w-[320px] flex-shrink-0">
+          <div className="w-[335px] flex-shrink-0">
             <ClientFormPanel isDesktop projectType={project.type} />
           </div>
         )}
