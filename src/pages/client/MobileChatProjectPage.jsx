@@ -230,7 +230,12 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className="fixed inset-0 bottom-16 z-40 flex flex-col bg-white">
+    <motion.div
+      className="fixed inset-0 bottom-16 z-40 flex flex-col bg-white"
+      initial={{ opacity: 0, x: 60 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
@@ -411,7 +416,7 @@ const MobileChatProjectPage = () => {
           onClose={() => setShowFormModal(false)}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 
