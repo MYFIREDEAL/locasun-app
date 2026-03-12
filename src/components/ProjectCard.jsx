@@ -22,7 +22,7 @@ import React, { useMemo } from 'react';
       const totalSteps = steps.length;
       const progress = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
       
-      const currentStep = steps.find(step => step.status === 'current') || steps.find(step => step.status === 'pending') || { name: 'Terminé' };
+      const currentStep = steps.find(step => step.status === 'in_progress') || steps.find(step => step.status === 'current') || steps.find(step => step.status === 'pending') || { name: 'Terminé' };
       
       const buttonText = progress > 0 ? "Continuer le projet 🚀" : "Démarrer le projet 🚀";
 
