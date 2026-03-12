@@ -371,8 +371,19 @@ async function executeStartSignatureAction({ action, prospectId, projectType }) 
  * Crée automatiquement une mission pour le partenaire assigné
  */
 export async function executePartnerTaskAction({ action, prospectId, projectType }) {
+  console.log('🚀 [PARTNER MISSION] ===== DÉBUT executePartnerTaskAction =====');
+  console.log('🚀 [PARTNER MISSION] Params:', { 
+    partnerId: action.partnerId, 
+    prospectId, 
+    projectType,
+    actionId: action.actionId,
+    formIds: action.formIds,
+    hasActionId: !!action.actionId,
+  });
+
   try {
     if (!action.partnerId) {
+      console.error('🚀 [PARTNER MISSION] ❌ STOP: partnerId manquant');
       logger.warn('Action partner_task sans partnerId', { prospectId, projectType });
       toast({
         title: "⚠️ Configuration manquante",
@@ -383,6 +394,7 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
     }
 
     // 1. Récupérer les données du prospect (nom, email, phone, address, organization_id)
+    console.log('🚀 [PARTNER MISSION] Étape 1: Récupération prospect...');
     const { data: prospectData, error: prospectError } = await supabase
       .from('prospects')
       .select('name, email, phone, address, organization_id')
@@ -390,29 +402,53 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
       .single();
 
     if (prospectError || !prospectData) {
+      console.error('🚀 [PARTNER MISSION] ❌ STOP: prospect non trouvé', prospectError?.message);
       logger.error('Erreur récupération prospect pour mission partenaire', { 
         error: prospectError?.message 
       });
       throw new Error('Impossible de récupérer les données du prospect');
     }
+    console.log('🚀 [PARTNER MISSION] ✅ Prospect trouvé:', { name: prospectData.name, org: prospectData.organization_id });
 
     // 2. Vérifier si une mission existe déjà pour ce prospect/partenaire/projet
     // 🔥 V2: Si actionId fourni, vérifier par actionId (permet multi-missions même partenaire)
     // V1/legacy: Sans actionId, garde l'ancien comportement (1 mission par prospect+partenaire+projectType)
+    console.log('🚀 [PARTNER MISSION] Étape 2: Check doublon...');
     let duplicateQuery = supabase
       .from('missions')
-      .select('id')
+      .select('id, action_id, status')
       .eq('prospect_id', prospectId)
       .eq('partner_id', action.partnerId)
       .eq('project_type', projectType);
 
     if (action.actionId) {
+      console.log('🚀 [PARTNER MISSION] Mode V2: filtre action_id =', action.actionId);
       duplicateQuery = duplicateQuery.eq('action_id', action.actionId);
+    } else {
+      console.log('🚀 [PARTNER MISSION] Mode V1: pas de filtre action_id');
     }
 
-    const { data: existingMission } = await duplicateQuery.maybeSingle();
+    const { data: existingMission, error: duplicateError } = await duplicateQuery.maybeSingle();
+
+    console.log('🚀 [PARTNER MISSION] Résultat check doublon:', { 
+      existingMission, 
+      duplicateError: duplicateError?.message || null,
+      code: duplicateError?.code || null,
+    });
+
+    // ⚠️ maybeSingle() retourne une erreur si >1 résultat → ne pas bloquer en V2
+    if (duplicateError) {
+      console.warn('🚀 [PARTNER MISSION] ⚠️ Erreur maybeSingle (probablement >1 résultat legacy), on continue en V2');
+      // En V2 avec actionId, on sait qu'il n'y a pas de doublon exact → continuer
+      if (!action.actionId) {
+        // En V1, s'il y a plusieurs missions legacy → ne pas en créer une de plus
+        console.log('🚀 [PARTNER MISSION] Mode V1 + erreur → STOP (missions legacy multiples)');
+        return;
+      }
+    }
 
     if (existingMission) {
+      console.log('🚀 [PARTNER MISSION] ⏭️ STOP: Mission doublon trouvée:', existingMission.id);
       logger.debug('Mission partenaire déjà existante, pas de duplication', {
         missionId: existingMission.id,
         actionId: action.actionId || null,
@@ -421,31 +457,41 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
     }
 
     // 3. Créer la mission
+    console.log('🚀 [PARTNER MISSION] Étape 3: INSERT mission...');
+    const insertPayload = {
+      organization_id: prospectData.organization_id,
+      partner_id: action.partnerId,
+      prospect_id: prospectId,
+      project_type: projectType,
+      title: `Mission pour ${prospectData.name || 'Client'}`,
+      description: action.partnerInstructions || null,
+      status: 'pending',
+      is_blocking: action.isBlocking !== false,
+      client_name: prospectData.name || null,
+      email: prospectData.email || null,
+      phone: prospectData.phone || null,
+      address: prospectData.address || null,
+      form_ids: action.formIds || [],
+      action_id: action.actionId || null,
+    };
+    console.log('� [PARTNER MISSION] INSERT payload:', insertPayload);
+
     const { data: mission, error: missionError } = await supabase
       .from('missions')
-      .insert({
-        organization_id: prospectData.organization_id,
-        partner_id: action.partnerId,
-        prospect_id: prospectId,
-        project_type: projectType,
-        title: `Mission pour ${prospectData.name || 'Client'}`,
-        description: action.partnerInstructions || null,
-        status: 'pending',
-        is_blocking: action.isBlocking !== false,
-        client_name: prospectData.name || null,
-        email: prospectData.email || null,
-        phone: prospectData.phone || null,
-        address: prospectData.address || null,
-        form_ids: action.formIds || [], // 🔥 AJOUTER: IDs des formulaires associés
-        action_id: action.actionId || null, // 🔥 AJOUTER: ID action V2 pour multi-missions
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
     if (missionError) {
+      console.error('🚀 [PARTNER MISSION] ❌ INSERT ÉCHOUÉ:', missionError.message, missionError.code, missionError.details);
       logger.error('Erreur création mission partenaire', { error: missionError.message });
       throw missionError;
     }
+
+    console.log('🚀 [PARTNER MISSION] ✅ Mission créée avec succès !', { 
+      missionId: mission.id,
+      actionId: mission.action_id,
+    });
 
     logger.debug('Mission partenaire créée', { 
       missionId: mission.id,
@@ -460,6 +506,7 @@ export async function executePartnerTaskAction({ action, prospectId, projectType
     });
 
   } catch (error) {
+    console.error('🚀 [PARTNER MISSION] ❌ CATCH GLOBAL:', error.message, error);
     logger.error('Erreur création mission partenaire', { error: error.message });
     toast({
       title: "❌ Erreur",

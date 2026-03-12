@@ -294,31 +294,81 @@ export async function executeActionOrder(order, context = {}) {
         logV2('💬 executeActionOrder PARTENAIRE+MESSAGE - Création panel tracking', {
           prospectId: order.prospectId,
           moduleId: order.moduleId,
+          actionId: order.actionId,
         });
 
-        const panelId = `panel-partner-msg-${order.prospectId}-${order.projectType}-${Date.now()}`;
-        
-        const { error: panelError } = await supabase
-          .from('client_form_panels')
-          .insert({
-            panel_id: panelId,
-            prospect_id: order.prospectId,
-            project_type: order.projectType,
-            form_id: null, // Pas de formulaire pour MESSAGE
-            status: 'pending',
-            action_type: 'message', // Type message (pas form)
-            verification_mode: order.verificationMode || 'human',
-            organization_id: prospectData.organization_id,
-            filled_by_role: 'partner', // Marqué comme mission partenaire
-            step_name: order.moduleName || order.moduleId || null,
-            action_id: order.actionId || null,
-            message_timestamp: Date.now().toString(),
-          });
+        // 🔥 Guard dedup: vérifier si un panel MESSAGE pending/submitted existe déjà pour cette action
+        if (order.actionId) {
+          const { data: existingMsgPanel } = await supabase
+            .from('client_form_panels')
+            .select('id, panel_id, status')
+            .eq('prospect_id', order.prospectId)
+            .eq('action_id', order.actionId)
+            .eq('action_type', 'message')
+            .eq('filled_by_role', 'partner')
+            .in('status', ['pending', 'submitted'])
+            .maybeSingle();
 
-        if (panelError) {
-          logV2('⚠️ Erreur création panel MESSAGE partenaire', { error: panelError.message });
+          if (existingMsgPanel) {
+            logV2('⏭️ Panel MESSAGE partenaire déjà existant, skip création', {
+              existingPanelId: existingMsgPanel.panel_id,
+              status: existingMsgPanel.status,
+              actionId: order.actionId,
+            });
+            // Ne pas recréer — on continue pour retourner succès
+          } else {
+            // Pas de doublon → créer le panel
+            const panelId = `panel-partner-msg-${order.prospectId}-${order.projectType}-${Date.now()}`;
+            
+            const { error: panelError } = await supabase
+              .from('client_form_panels')
+              .insert({
+                panel_id: panelId,
+                prospect_id: order.prospectId,
+                project_type: order.projectType,
+                form_id: null, // Pas de formulaire pour MESSAGE
+                status: 'pending',
+                action_type: 'message', // Type message (pas form)
+                verification_mode: order.verificationMode || 'human',
+                organization_id: prospectData.organization_id,
+                filled_by_role: 'partner', // Marqué comme mission partenaire
+                step_name: order.moduleName || order.moduleId || null,
+                action_id: order.actionId || null,
+                message_timestamp: Date.now().toString(),
+              });
+
+            if (panelError) {
+              logV2('⚠️ Erreur création panel MESSAGE partenaire', { error: panelError.message });
+            } else {
+              logV2('✅ Panel MESSAGE partenaire créé', { panelId });
+            }
+          }
         } else {
-          logV2('✅ Panel MESSAGE partenaire créé', { panelId });
+          // Pas d'actionId (legacy) → créer directement sans guard
+          const panelId = `panel-partner-msg-${order.prospectId}-${order.projectType}-${Date.now()}`;
+          
+          const { error: panelError } = await supabase
+            .from('client_form_panels')
+            .insert({
+              panel_id: panelId,
+              prospect_id: order.prospectId,
+              project_type: order.projectType,
+              form_id: null,
+              status: 'pending',
+              action_type: 'message',
+              verification_mode: order.verificationMode || 'human',
+              organization_id: prospectData.organization_id,
+              filled_by_role: 'partner',
+              step_name: order.moduleName || order.moduleId || null,
+              action_id: null,
+              message_timestamp: Date.now().toString(),
+            });
+
+          if (panelError) {
+            logV2('⚠️ Erreur création panel MESSAGE partenaire (legacy)', { error: panelError.message });
+          } else {
+            logV2('✅ Panel MESSAGE partenaire créé (legacy)', { panelId });
+          }
         }
       }
 

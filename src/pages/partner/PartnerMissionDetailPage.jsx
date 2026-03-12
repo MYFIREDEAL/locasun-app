@@ -164,7 +164,8 @@ const PartnerMissionDetailPage = () => {
           }
         } else {
           // 🔥 Mission sans formulaire (MESSAGE partenaire) → charger le panel MESSAGE
-          const { data: msgPanelData, error: msgPanelError } = await supabase
+          // Utiliser action_id de la mission pour lier précisément au bon panel
+          let msgQuery = supabase
             .from('client_form_panels')
             .select('*')
             .eq('prospect_id', missionData.prospect_id)
@@ -172,7 +173,14 @@ const PartnerMissionDetailPage = () => {
             .eq('filled_by_role', 'partner')
             .eq('action_type', 'message')
             .in('status', ['pending', 'submitted', 'approved'])
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
+
+          // Si la mission a un action_id (V2), lier précisément
+          if (missionData.action_id) {
+            msgQuery = msgQuery.eq('action_id', missionData.action_id);
+          }
+
+          const { data: msgPanelData, error: msgPanelError } = await msgQuery
             .limit(1)
             .maybeSingle();
 
