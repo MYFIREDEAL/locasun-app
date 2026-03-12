@@ -902,12 +902,12 @@ const ProjectDetails = ({ project, onBack }) => {
           </div>
         )}
 
-        {/* Formulaires en bas sur mobile */}
-        {!isDesktop && (
+        {/* Formulaires en bas sur mobile — MASQUÉ (redesign mobile : accès via chat uniquement) */}
+        {/* {!isDesktop && (
           <div className="w-full">
             <ClientFormPanel isDesktop={false} projectType={project.type} />
           </div>
-        )}
+        )} */}
       </div>
       
       {/* Modal des détails de RDV */}

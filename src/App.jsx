@@ -44,6 +44,7 @@ import PartnerProofsPage from '@/pages/partner/PartnerProofsPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
+import ChatPage from '@/pages/client/ChatPage';
 import ActivationPage from '@/pages/client/ActivationPage';
 import ActivateAccountPage from '@/pages/ActivateAccountPage';
 import OrganizationsListPage from '@/pages/platform/OrganizationsListPage';
@@ -1962,12 +1963,14 @@ function App() {
         <Route path="/client/activation" element={<ActivationPage />} />
         <Route path="/client/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />
         </Route>
         <Route path="/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />

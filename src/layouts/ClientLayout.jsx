@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import ClientHeader from '@/components/client/ClientHeader';
+import MobileBottomNav from '@/components/client/MobileBottomNav';
 import useWindowSize from '@/hooks/useWindowSize';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +12,7 @@ import ModuleBoundary from '@/components/ModuleBoundary';
 const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
+  const isMobile = width < 768;
   const { currentUser, setCurrentUser, companyLogo } = useAppContext();
   const navigate = useNavigate();
   const [sessionCheckDone, setSessionCheckDone] = useState(false);
@@ -99,6 +101,7 @@ const ClientLayout = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Header complet sur desktop, mini header (logo seul) sur mobile */}
       <ClientHeader />
       <div className="flex flex-1 max-w-screen-xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-24 md:pb-8">
         <main className="flex-1 min-w-0">
@@ -107,6 +110,8 @@ const ClientLayout = () => {
           </ModuleBoundary>
         </main>
       </div>
+      {/* Bottom nav mobile — 3 onglets Home/Chat/Profil */}
+      {isMobile && <MobileBottomNav />}
     </div>
   );
 };

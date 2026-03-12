@@ -195,7 +195,8 @@ const ClientHeader = () => {
           )}
 
           <div className="flex items-center space-x-2">
-            {/* Notifications Client */}
+            {/* Notifications Client — masquées sur mobile (remplacées par pastille bottom nav Chat) */}
+            {!isMobile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-gray-100">
@@ -241,7 +242,10 @@ const ClientHeader = () => {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
 
+            {/* Bouton profil — masqué sur mobile (remplacé par onglet Profil bottom nav) */}
+            {!isMobile && (
              <Button
                 variant="ghost"
                 size="icon"
@@ -252,16 +256,12 @@ const ClientHeader = () => {
                   <User className="h-4 w-4 text-white" />
                 </div>
               </Button>
-
-            {isMobile && (
-              <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(true)} className="rounded-full hover:bg-gray-100">
-                <Menu className="h-6 w-6" />
-              </Button>
             )}
+
+            {/* Hamburger menu — masqué (remplacé par bottom nav) */}
           </div>
         </div>
       </div>
-      {isMobile && <MobileMenu />}
     </header>
   );
 };
