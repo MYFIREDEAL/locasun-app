@@ -376,7 +376,7 @@ const IntegrationsPage = () => {
       </motion.div>
 
       {/* Content */}
-      <div ref={contentRef} />
+      <div ref={contentRef} className="scroll-mt-24" />
       {activeTab === 'sans-code' && (
         <motion.div variants={itemVariants} className="space-y-6">
           {/* Message d'intro */}
