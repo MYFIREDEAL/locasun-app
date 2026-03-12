@@ -5,6 +5,49 @@
 
 ---
 
+## 📅 12 mars 2026 — Session 2 (soir)
+
+### ✅ Features
+- **📱 Mobile Redesign Phase 1** : Bottom nav 3 onglets (Accueil / Chat / Profil) avec badge notification sur Chat
+- **📱 Mobile Redesign Phase 7** : Nettoyage mobile — masqué cloche/profil/hamburger dans header, masqué ClientFormPanel mobile (formulaires via chat en Phase 5)
+- **Page ChatPage placeholder** : `/dashboard/chat` créée pour Phase 3 (conversations WhatsApp-style)
+
+### 🐛 Bugs fixés
+- **Notifications doublons client** : supprimé la création frontend dans `addChatMessage` (App.jsx) — le trigger DB `on_admin_message_notify_client` suffit
+- **Notifications admin manquantes (messages)** : créé trigger DB `on_client_message_notify_admin` (supprimé par `disable_notification_triggers.sql` et jamais recréé)
+- **Notifications admin manquantes (formulaires)** : créé trigger DB `trigger_notify_admin_on_client_form_submit` sur `client_form_panels.status → 'submitted'`
+- **Trigger client ignorait sender='pro'** : fix `notify_client_on_admin_message` — `sender NOT IN ('admin', 'pro')` au lieu de `sender != 'admin'`
+
+### 🗄️ Migrations SQL exécutées
+- `fix_admin_notification_trigger.sql` — trigger `on_client_message_notify_admin` (message client → notif admin)
+- `fix_client_trigger_accept_pro_sender.sql` — trigger client accepte `sender='pro'`
+- `fix_admin_notif_on_form_submit.sql` — trigger `trigger_notify_admin_on_client_form_submit` (formulaire soumis → notif admin)
+
+### 📐 Architecture notifications (état final)
+| Trigger DB | Table surveillée | Condition | Notifie |
+|------------|-----------------|-----------|---------|
+| `on_admin_message_notify_client` | `chat_messages` | sender IN ('admin','pro'), channel != internal/partner | Client |
+| `on_client_message_notify_admin` | `chat_messages` | sender = 'client', channel != internal/partner | Admin |
+| `trigger_notify_admin_on_client_form_submit` | `client_form_panels` | status → 'submitted', filled_by_role != 'partner' | Admin |
+| `trigger_notify_admin_on_partner_form_submit` | `client_form_panels` | status → 'submitted', partenaire | Admin |
+| `trigger_notify_admin_on_internal_message` | `chat_messages` | channel = 'internal' | Admin |
+| `trigger_notify_admin_on_partner_message` | `chat_messages` | channel = 'partner' | Admin |
+
+> **Principe** : ZÉRO notification créée côté frontend. Tout est géré par les triggers DB (SECURITY DEFINER).
+
+### 📝 Commits session
+- `114651c5` feat: mobile redesign étape 1
+- `0cba3f66` fix: notifications — triggers DB only, no frontend duplicates
+- `50d93a79` fix: notifications — all DB triggers
+
+### 🔜 Prochains sujets
+- **📱 Redesign Mobile Phase 2** — Carte projet cliquable → vue Timeline
+- **📱 Redesign Mobile Phase 3** — Page Chat (liste conversations WhatsApp-style)
+- **📱 Redesign Mobile Phase 5** — Bouton "Remplir le formulaire" dans le chat + modal plein écran
+- **Bug formulaire invisible admin** : `forms[panel.formId]` undefined pour nouveaux formulaires → `return null` (fix : fallback display)
+
+---
+
 ## 📅 12 mars 2026
 
 ### ✅ Features
