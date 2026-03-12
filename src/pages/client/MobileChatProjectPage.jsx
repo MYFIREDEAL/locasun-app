@@ -243,39 +243,6 @@ const MobileChatProjectPage = () => {
         </div>
       </div>
 
-      {/* Bandeau formulaire(s) en attente */}
-      {pendingForms.length > 0 && (
-        <div className="px-4 py-2 bg-orange-50 border-b border-orange-200">
-          {pendingForms.map(panel => {
-            const formDef = forms[panel.formId];
-            const formName = formDef?.name || 'Formulaire';
-            const isRejected = panel.status === 'rejected';
-            return (
-              <button
-                key={panel.panelId}
-                onClick={() => navigate(`/dashboard`, { state: { openProjectType: projectType } })}
-                className="w-full flex items-center gap-3 py-2 text-left"
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isRejected ? 'bg-red-100' : 'bg-orange-100'}`}>
-                  <ClipboardList className={`h-4 w-4 ${isRejected ? 'text-red-600' : 'text-orange-600'}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {isRejected ? '❌ ' : '📋 '}{formName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {isRejected ? 'À modifier et renvoyer' : 'À compléter'}
-                  </p>
-                </div>
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isRejected ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                  {isRejected ? 'Rejeté' : 'En attente'}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Messages */}
       <div
         ref={chatContainerRef}
@@ -371,6 +338,40 @@ const MobileChatProjectPage = () => {
             );
           })
         )}
+        {/* Carte(s) formulaire en attente — dans le flux du chat */}
+        {pendingForms.map(panel => {
+          const formDef = forms[panel.formId];
+          const formName = formDef?.name || 'Formulaire';
+          const isRejected = panel.status === 'rejected';
+          return (
+            <motion.div
+              key={panel.panelId}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start"
+            >
+              <div className={`max-w-[85%] rounded-2xl rounded-bl-none p-4 shadow-sm ${isRejected ? 'bg-red-50 border border-red-200' : 'bg-white border border-orange-200'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardList className={`h-5 w-5 ${isRejected ? 'text-red-500' : 'text-orange-500'}`} />
+                  <span className="font-semibold text-sm text-gray-900">{formName}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isRejected ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {isRejected ? 'Rejeté' : 'En attente'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  {isRejected ? 'Votre formulaire a été refusé. Veuillez le modifier et renvoyer.' : 'Votre conseiller vous a envoyé un formulaire à compléter.'}
+                </p>
+                <button
+                  onClick={() => navigate(`/dashboard`, { state: { openProjectType: projectType } })}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white ${isRejected ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'} active:scale-[0.97] transition-all`}
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  {isRejected ? 'Modifier le formulaire' : 'Remplir le formulaire'}
+                </button>
+              </div>
+            </motion.div>
+          );
+        })}
         <div ref={chatEndRef} />
       </div>
 
