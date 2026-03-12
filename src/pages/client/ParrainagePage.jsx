@@ -73,51 +73,51 @@ const ParrainagePage = () => {
       {/* Hero Section - Accrocheur */}
       <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl shadow-xl overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
-        <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 p-8 lg:p-12 items-center">
+        <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 md:gap-8 p-5 md:p-8 lg:p-12 items-center">
           {/* Texte accrocheur */}
-          <div className="text-white space-y-6">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
-              <Euro className="h-5 w-5" />
+          <div className="text-white space-y-3 md:space-y-6">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium">
+              <Euro className="h-4 w-4 md:h-5 md:w-5" />
               Programme de parrainage
             </div>
-            <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+            <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold leading-tight">
               Gagnez de l'argent en recommandant nos services ! 💰
             </h1>
-            <p className="text-xl text-blue-100 leading-relaxed">
+            <p className="text-sm md:text-xl text-blue-100 leading-relaxed">
               Chaque ami que vous parrainez vous rapporte{' '}
-              <span className="font-bold text-yellow-300 text-2xl">100 €</span> 
+              <span className="font-bold text-yellow-300 text-base md:text-2xl">100 €</span> 
               {' '}et lui offre également{' '}
-              <span className="font-bold text-yellow-300 text-2xl">100 €</span> de réduction.
+              <span className="font-bold text-yellow-300 text-base md:text-2xl">100 €</span> de réduction.
               <br />
-              <span className="text-white font-semibold mt-2 block">
+              <span className="text-white font-semibold mt-1 md:mt-2 block">
                 C'est gagnant-gagnant ! 🤝
               </span>
             </p>
             
             {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex flex-wrap gap-2 md:gap-4 pt-2 md:pt-4">
               <Button
                 onClick={handleInviteClick}
-                size="lg"
-                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold shadow-lg hover:shadow-xl transition-all"
+                size="default"
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold shadow-lg hover:shadow-xl transition-all text-sm md:text-base md:h-11"
               >
-                <UserPlus className="h-5 w-5 mr-2" />
-                Inviter un ami maintenant
+                <UserPlus className="h-4 w-4 mr-1.5 md:mr-2" />
+                Inviter un ami
               </Button>
               <Button
                 onClick={handleCopyLink}
-                size="lg"
+                size="default"
                 variant="outline"
-                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 font-semibold"
+                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 font-semibold text-sm md:text-base md:h-11"
               >
                 {copied ? (
                   <>
-                    <Check className="h-5 w-5 mr-2" />
-                    Lien copié !
+                    <Check className="h-4 w-4 mr-1.5" />
+                    Copié !
                   </>
                 ) : (
                   <>
-                    <Copy className="h-5 w-5 mr-2" />
+                    <Copy className="h-4 w-4 mr-1.5" />
                     Copier mon lien
                   </>
                 )}
@@ -137,72 +137,72 @@ const ParrainagePage = () => {
       </div>
 
       {/* Vos performances */}
-      <div className="bg-white rounded-2xl shadow-card p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-green-600" />
-          Vos performances de parrainage
+      <div className="bg-white rounded-2xl shadow-card p-4 md:p-8">
+        <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
+          Vos performances
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-3 md:gap-6">
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center border-2 border-blue-200 cursor-pointer"
+            className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 md:p-6 text-center border border-blue-200 md:border-2"
           >
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Users className="h-8 w-8 text-white" />
+            <div className="w-10 h-10 md:w-16 md:h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-4 shadow-lg">
+              <Users className="h-5 w-5 md:h-8 md:w-8 text-white" />
             </div>
-            <p className="text-sm font-medium text-blue-700 mb-2 uppercase tracking-wide">Filleuls inscrits</p>
-            <p className="text-5xl font-extrabold text-blue-900 mb-1">{referralStats.filleuls}</p>
-            <p className="text-xs text-blue-600">personnes invitées</p>
+            <p className="text-[10px] md:text-sm font-medium text-blue-700 mb-1 uppercase tracking-wide">Filleuls</p>
+            <p className="text-2xl md:text-5xl font-extrabold text-blue-900">{referralStats.filleuls}</p>
+            <p className="text-[10px] md:text-xs text-blue-600 mt-0.5">inscrits</p>
           </motion.div>
 
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center border-2 border-green-200 cursor-pointer"
+            className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-3 md:p-6 text-center border border-green-200 md:border-2"
           >
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Check className="h-8 w-8 text-white" />
+            <div className="w-10 h-10 md:w-16 md:h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-4 shadow-lg">
+              <Check className="h-5 w-5 md:h-8 md:w-8 text-white" />
             </div>
-            <p className="text-sm font-medium text-green-700 mb-2 uppercase tracking-wide">Parrainages confirmés</p>
-            <p className="text-5xl font-extrabold text-green-900 mb-1">{referralStats.confirmes}</p>
-            <p className="text-xs text-green-600">souscriptions validées</p>
+            <p className="text-[10px] md:text-sm font-medium text-green-700 mb-1 uppercase tracking-wide">Confirmés</p>
+            <p className="text-2xl md:text-5xl font-extrabold text-green-900">{referralStats.confirmes}</p>
+            <p className="text-[10px] md:text-xs text-green-600 mt-0.5">validés</p>
           </motion.div>
 
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 text-center border-2 border-yellow-200 cursor-pointer"
+            className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-3 md:p-6 text-center border border-yellow-200 md:border-2"
           >
-            <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Euro className="h-8 w-8 text-white" />
+            <div className="w-10 h-10 md:w-16 md:h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-4 shadow-lg">
+              <Euro className="h-5 w-5 md:h-8 md:w-8 text-white" />
             </div>
-            <p className="text-sm font-medium text-yellow-700 mb-2 uppercase tracking-wide">Revenus générés</p>
-            <p className="text-5xl font-extrabold text-yellow-900 mb-1">{referralStats.gainsCumules} €</p>
-            <p className="text-xs text-yellow-600">total des gains</p>
+            <p className="text-[10px] md:text-sm font-medium text-yellow-700 mb-1 uppercase tracking-wide">Revenus</p>
+            <p className="text-2xl md:text-5xl font-extrabold text-yellow-900">{referralStats.gainsCumules}€</p>
+            <p className="text-[10px] md:text-xs text-yellow-600 mt-0.5">total gains</p>
           </motion.div>
         </div>
       </div>
 
       {/* Lien de parrainage */}
-      <div className="bg-white rounded-2xl shadow-card p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Votre lien de parrainage unique</h2>
-        <div className="flex items-center space-x-2">
+      <div className="bg-white rounded-2xl shadow-card p-4 md:p-6">
+        <h2 className="text-base md:text-xl font-semibold text-gray-900 mb-3 md:mb-4">Votre lien de parrainage</h2>
+        <div className="flex items-center gap-2">
           <Input
             value={referralLink}
             readOnly
-            className="flex-1 bg-gray-50 border-gray-200"
+            className="flex-1 bg-gray-50 border-gray-200 text-xs md:text-sm h-9 md:h-10"
           />
           <Button
             onClick={handleCopyLink}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 h-9 md:h-10 text-xs md:text-sm px-3 md:px-4"
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-1" />
                 Copié
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4 mr-2" />
-                Copier le lien
+                <Copy className="h-4 w-4 mr-1" />
+                Copier
               </>
             )}
           </Button>
@@ -210,19 +210,40 @@ const ParrainagePage = () => {
       </div>
 
       {/* Suivi des parrainages */}
-      <div className="bg-white rounded-2xl shadow-card p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Suivi de vos parrainages</h2>
+      <div className="bg-white rounded-2xl shadow-card p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className="text-base md:text-xl font-semibold text-gray-900">Suivi</h2>
           <Button
             onClick={handleInviteClick}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm h-8 md:h-10 px-3 md:px-4"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Inviter un ami
+            <UserPlus className="h-4 w-4 mr-1 md:mr-2" />
+            Inviter
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Vue mobile : cartes */}
+        <div className="space-y-3 md:hidden">
+          {parrainages.map((parrainage) => (
+            <div key={parrainage.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">{parrainage.filleul}</p>
+                <p className="text-xs text-gray-500">{parrainage.date}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {parrainage.gain && (
+                  <span className="text-sm font-bold text-green-600">+{parrainage.gain}€</span>
+                )}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${parrainage.badgeColor}`}>
+                  {parrainage.statut}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Vue desktop : tableau */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
