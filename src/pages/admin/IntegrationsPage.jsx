@@ -1373,32 +1373,60 @@ Content-Type: application/json`}
                   </div>
                 </div>
 
-                {/* Avertissement mapping type */}
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-amber-800">⚠️ Mapping des projets :</p>
-                  <div className="text-sm text-amber-700 space-y-1">
-                    <p>Pour mapper les projets entre EVATIME et Hangar 3D, utilisez toujours le <strong>type technique</strong> du projet et non le nom affiché. Le nom peut être modifié, mais le type reste la référence stable.</p>
+                {/* Mapping offres Hangar 3D → Projets EVATIME */}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
+                  <p className="text-sm font-semibold text-amber-800">🔗 Mapping offres Hangar 3D → Projets EVATIME</p>
+                  
+                  <div className="text-sm text-amber-700 space-y-2">
+                    <p>Quand un client choisit une offre sur Hangar 3D, un <strong>projet est créé automatiquement</strong> dans EVATIME. Pour que Hangar 3D sache quel projet créer, vous devez configurer le mapping dans <strong>Hangar 3D → onglet EVATIME</strong>.</p>
+                    <p>Pour chaque offre Hangar 3D, indiquez le <strong>type technique</strong> du projet EVATIME correspondant. Retrouvez-le dans le tableau ci-dessous et copiez-le dans le champ de mapping sur Hangar 3D.</p>
                   </div>
-                  {projectTemplates && projectTemplates.length > 0 && (
-                    <div className="mt-2 border border-amber-200 rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-amber-100">
-                            <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type (à utiliser)</th>
-                            <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Nom affiché</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {projectTemplates.map(t => (
-                            <tr key={t.type} className="border-t border-amber-200">
-                              <td className="px-3 py-1.5 font-mono font-bold text-amber-900">{t.type}</td>
-                              <td className="px-3 py-1.5 text-amber-700">{t.title}</td>
+
+                  {/* Exemple concret */}
+                  <div className="bg-white border border-amber-200 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Exemple concret</p>
+                    <p className="text-sm text-gray-700">
+                      Sur Hangar 3D, l'offre <strong>"Lancer l'appel d'offre (Tiers-Invest)"</strong> doit créer un projet dans EVATIME. 
+                      Votre projet EVATIME s'appelle "Construction Tiers Invest" → copiez son <strong>type technique</strong> <code className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono text-xs font-bold">construction-tiers-invest</code> et collez-le dans le champ de mapping correspondant sur Hangar 3D.
+                    </p>
+                  </div>
+
+                  {/* Tableau des projets avec bouton copier */}
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 mb-2">Vos projets EVATIME — copiez le <strong>type technique</strong> :</p>
+                    {projectTemplates && projectTemplates.length > 0 ? (
+                      <div className="border border-amber-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-amber-100">
+                              <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Type technique (à copier dans Hangar 3D)</th>
+                              <th className="text-left px-3 py-1.5 font-semibold text-amber-800">Nom du projet</th>
+                              <th className="w-10"></th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                          </thead>
+                          <tbody>
+                            {projectTemplates.map(t => (
+                              <tr key={t.type} className="border-t border-amber-200 hover:bg-amber-50/50">
+                                <td className="px-3 py-1.5 font-mono font-bold text-amber-900">{t.type}</td>
+                                <td className="px-3 py-1.5 text-amber-700">{t.title}</td>
+                                <td className="px-2 py-1.5">
+                                  <CopyButton value={t.type} label="✓" />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">Aucun projet trouvé. Créez vos projets dans Configuration IA → onglet Projets.</p>
+                    )}
+                  </div>
+
+                  {/* Warning casse exacte */}
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800 text-xs flex items-start gap-2">
+                    <span className="text-base">⚠️</span>
+                    <span>Le type technique doit être <strong>identique</strong> (minuscules, tirets). Exemple : <code className="bg-red-100 px-1 rounded font-mono font-bold">construction-tiers-invest</code> et non <code className="bg-red-100 px-1 rounded font-mono line-through">Construction Tiers Invest</code>. Utilisez le bouton Copier pour éviter les erreurs.</span>
+                  </div>
                 </div>
 
                 {/* Lien vers la clé */}
