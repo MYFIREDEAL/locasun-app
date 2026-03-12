@@ -1,22 +1,39 @@
-import React from 'react';
+import React, { useMemo } from 'react';
     import { motion } from 'framer-motion';
     import { Plus, CheckCircle, Clock, User } from 'lucide-react';
     import ProjectCard from '@/components/ProjectCard';
     import { Button } from '@/components/ui/button';
     import { useAppContext } from '@/App';
     import { useSupabaseProjectStepsStatus } from '@/hooks/useSupabaseProjectStepsStatus';
+    import useWindowSize from '@/hooks/useWindowSize';
 
     const Dashboard = ({ projects = [], onProjectClick, onAddProject }) => {
-      const { currentUser } = useAppContext();
+      const { currentUser, getProjectSteps } = useAppContext();
+      const { width } = useWindowSize();
+      const isMobile = width < 768;
       const totalProjects = projects.length;
       
       // 🔥 Charger les steps UNE SEULE FOIS au niveau Dashboard (pas dans chaque carte)
       const { projectStepsStatus } = useSupabaseProjectStepsStatus(currentUser?.id);
       
-      // Note: La progression est maintenant calculée dans ProjectCard via Supabase
-      // On affiche juste le nombre total de projets
-      const activeProjects = 0; // TODO: calculer depuis les vraies progressions Supabase
-      const inProgressProjects = totalProjects;
+      // Calculer les compteurs terminé / en cours depuis les vraies données Supabase
+      const { completedProjects, inProgressProjects } = useMemo(() => {
+        let completed = 0;
+        let inProgress = 0;
+        projects.forEach(project => {
+          const steps = (projectStepsStatus && projectStepsStatus[project.type])
+            ? projectStepsStatus[project.type]
+            : (currentUser ? getProjectSteps(currentUser.id, project.type) : project.steps);
+          const total = steps.length;
+          const done = steps.filter(s => s.status === 'completed').length;
+          if (total > 0 && done === total) {
+            completed++;
+          } else {
+            inProgress++;
+          }
+        });
+        return { completedProjects: completed, inProgressProjects: inProgress };
+      }, [projects, projectStepsStatus, currentUser, getProjectSteps]);
 
       return (
         <motion.div
@@ -35,6 +52,24 @@ import React from 'react';
             )}
           </div>
 
+          {/* Mobile: header compact "Mes projets" avec compteurs */}
+          {isMobile ? (
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Mes projets</h2>
+              <div className="flex items-center gap-3 text-xs font-semibold">
+                {completedProjects > 0 && (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    {completedProjects} terminé{completedProjects > 1 ? 's' : ''}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-blue-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  {inProgressProjects} en cours
+                </span>
+              </div>
+            </div>
+          ) : (
           <motion.div
             className="bg-white rounded-2xl shadow-card p-4 sm:p-6"
             initial={{ opacity: 0, y: -20 }}
@@ -47,7 +82,7 @@ import React from 'react';
                 <div className="hidden sm:flex items-center space-x-4 text-sm font-medium">
                   <span className="flex items-center text-green-600">
                     <CheckCircle className="h-4 w-4 mr-1.5" />
-                    <span>{activeProjects} actif{activeProjects > 1 ? 's' : ''}</span>
+                    <span>{completedProjects} terminé{completedProjects > 1 ? 's' : ''}</span>
                   </span>
                   <span className="flex items-center text-blue-600">
                     <Clock className="h-4 w-4 mr-1.5" />
@@ -64,6 +99,7 @@ import React from 'react';
               </div>
             </div>
           </motion.div>
+          )}
 
           {projects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
