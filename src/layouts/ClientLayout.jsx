@@ -104,7 +104,7 @@ const ClientLayout = () => {
   }, [currentUser?.id, setCurrentUser]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className={`min-h-screen flex flex-col ${isChatProjectPage ? 'bg-white' : 'bg-background'}`}>
       {/* Header complet sur desktop, mini header (logo seul) sur mobile — masqué dans le chat projet */}
       {!isChatProjectPage && <ClientHeader />}
       {isChatProjectPage ? (
