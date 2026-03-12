@@ -624,17 +624,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
 
               {isApproved ? (
                 <div className="space-y-3">
-                  <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">✅</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-700">Formulaire approuvé</p>
-                        <p className="text-xs text-green-600 mt-1">
-                          Votre conseiller a validé les informations
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                   {/* Afficher les valeurs soumises */}
                   <div className="space-y-2 text-sm">
                     {formDefinition.fields?.map(field => {
