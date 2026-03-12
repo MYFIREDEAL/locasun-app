@@ -783,7 +783,6 @@ const ProjectDetails = ({ project, onBack }) => {
           </div>
           <div className="overflow-hidden">
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">{project.clientTitle || project.title}</h1>
-            <p className="text-sm text-gray-500">Projet #{project.id}</p>
           </div>
         </div>
       </div>
