@@ -2731,8 +2731,10 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                         formData = projectFormData[panel.formId] || {};
                     }
                     
-                    // Skip si pas de formDefinition ET pas un message partenaire
-                    if (!formDefinition && !isPartnerMessage) return null;
+                    // 🔥 FIX: Ne PAS skip silencieusement — afficher avec un nom fallback
+                    // Cas: nouveau formulaire pas encore dans le cache forms{}, ou formulaire supprimé
+                    const formName = formDefinition?.name 
+                        || (isPartnerMessage ? '📋 Mission partenaire' : `Formulaire`);
 
                     // 🔥 FIX: Fallback pour step_name - déduire depuis supabaseSteps si absent
                     const displayStepName = panel.stepName 
@@ -2744,7 +2746,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                             <div className="flex items-start justify-between">
                                 <div>
                                     <h3 className="font-semibold text-gray-900">
-                                        {isPartnerMessage ? '📋 Mission partenaire' : formDefinition.name}
+                                        {formName}
                                     </h3>
                                     {displayStepName && (
                                         <p className="text-xs text-gray-500 mt-1">
@@ -2831,6 +2833,45 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                 </div>
                             ) : (
                             <div className="space-y-3 pt-2">
+                                {/* 🔥 FIX: Si pas de formDefinition, afficher les données brutes du formulaire */}
+                                {!formDefinition && Object.keys(formData).length > 0 && (
+                                    <div className="space-y-2">
+                                        {Object.entries(formData).map(([key, value]) => {
+                                            if (key.startsWith('_')) return null; // Skip métadonnées internes
+                                            const isFile = typeof value === 'object' && value?.storagePath;
+                                            return (
+                                                <div key={key} className="space-y-1">
+                                                    <Label className="text-sm font-medium text-gray-600">{key}</Label>
+                                                    <p className="text-sm text-gray-900 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center">
+                                                        {isFile ? (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const { data, error } = await supabase.storage
+                                                                            .from('project-files')
+                                                                            .createSignedUrl(value.storagePath, 3600);
+                                                                        if (error) throw error;
+                                                                        window.open(data.signedUrl, '_blank');
+                                                                    } catch (err) {
+                                                                        toast({ title: '❌ Erreur', description: 'Impossible de télécharger le fichier.', variant: 'destructive' });
+                                                                    }
+                                                                }}
+                                                                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline"
+                                                            >
+                                                                <FileText className="h-4 w-4" />
+                                                                <span>{value.name}</span>
+                                                                <Download className="h-3 w-3" />
+                                                            </button>
+                                                        ) : typeof value === 'object' && value !== null
+                                                            ? JSON.stringify(value)
+                                                            : (value || <span className="text-gray-400 italic">Non renseigné</span>)
+                                                        }
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {(formDefinition?.fields || []).map(field => {
                                     // 🔥 Vérifier les conditions multiples d'affichage
                                     if (field.show_if_conditions && field.show_if_conditions.length > 0) {
@@ -2943,7 +2984,7 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                                             {field.is_repeater && field.repeats_fields && field.repeats_fields.length > 0 && fieldValue && (
                                                 <div className="mt-4 space-y-3">
                                                     {Array.from({ length: parseInt(fieldValue) || 0 }, (_, repeatIndex) => {
-                                                        const fieldsToRepeat = (formDefinition.fields || []).filter(f => 
+                                                        const fieldsToRepeat = (formDefinition?.fields || []).filter(f => 
                                                             field.repeats_fields.includes(f.id)
                                                         );
                                                         

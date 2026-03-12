@@ -1314,47 +1314,13 @@ function App() {
         });
       }
 
-      // 🔥 Notification admin quand un client envoie un message (Supabase)
-      if (message.sender === 'client') {
-        // Charger le prospect depuis Supabase (car prospects[] est vide côté client)
-        const { data: prospectData, error: prospectError } = await supabaseClient
-          .from('prospects')
-          .select('name, owner_id')
-          .eq('id', prospectId)
-          .single();
+      // ✅ Notification admin quand un client envoie un message
+      // Gérée par le trigger DB on_client_message_notify_admin (pas de doublon frontend)
+      // Le trigger crée/incrémente automatiquement dans notifications avec owner_id du prospect
 
-        if (prospectError) {
-          logger.error('Error loading prospect for notification', { error: prospectError });
-          toast({
-            title: "Erreur",
-            description: "Impossible de charger les informations du prospect.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        if (prospectData) {
-          await createOrUpdateNotification({
-            prospectId,
-            ownerId: prospectData.owner_id, // 🔥 CRITICAL pour le filter real-time
-            projectType,
-            prospectName: prospectData.name,
-            projectName: projectsData[projectType]?.title || projectType
-          });
-        } else {
-          logger.warn('No prospect data found for notification', { prospectId });
-        }
-      }
-
-      // 🔥 Notification client quand l'admin/pro répond (Supabase)
-      if (message.sender === 'admin' || message.sender === 'pro') {
-        await createOrUpdateClientNotification({
-          prospectId,
-          projectType,
-          projectName: projectsData[projectType]?.title || projectType,
-          message: message.text?.substring(0, 50) || 'Nouveau message'
-        });
-      }
+      // ✅ Notification client quand l'admin/pro répond
+      // Gérée par le trigger DB on_admin_message_notify_client (pas de doublon frontend)
+      // Le trigger crée/incrémente automatiquement dans client_notifications
     } catch (err) {
       logger.error('Erreur envoi message', { error: err.message });
       toast({
