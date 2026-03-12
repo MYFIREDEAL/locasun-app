@@ -2608,21 +2608,36 @@ const ProspectForms = ({ prospect, projectType, supabaseSteps, v2Templates, onUp
                 });
             } else {
                 // 🔥 PARTENAIRE: Remettre la mission en 'pending' → retourne dans onglet Missions
+                let targetMission = null;
+
                 if (panel.formId) {
+                    // Cas FORM: chercher la mission via form_ids
                     const { data: linkedMissions } = await supabase
                         .from('missions')
                         .select('id, form_ids')
                         .eq('prospect_id', prospect.id)
                         .eq('status', 'submitted');
                     
-                    const targetMission = linkedMissions?.find(m => m.form_ids?.includes(panel.formId));
-                    if (targetMission) {
-                        await supabase
-                            .from('missions')
-                            .update({ status: 'pending' })
-                            .eq('id', targetMission.id);
-                        logger.info('✅ Mission remise en pending (admin a refusé)', { missionId: targetMission.id });
-                    }
+                    targetMission = linkedMissions?.find(m => m.form_ids?.includes(panel.formId));
+                } else if (panel.actionId) {
+                    // Cas MESSAGE: chercher la mission via action_id
+                    const { data: linkedMission } = await supabase
+                        .from('missions')
+                        .select('id')
+                        .eq('prospect_id', prospect.id)
+                        .eq('action_id', panel.actionId)
+                        .in('status', ['submitted', 'completed'])
+                        .maybeSingle();
+                    
+                    targetMission = linkedMission;
+                }
+
+                if (targetMission) {
+                    await supabase
+                        .from('missions')
+                        .update({ status: 'pending' })
+                        .eq('id', targetMission.id);
+                    logger.info('✅ Mission remise en pending (admin a refusé)', { missionId: targetMission.id });
                 }
 
                 toast({

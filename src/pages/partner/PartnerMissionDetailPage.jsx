@@ -172,7 +172,7 @@ const PartnerMissionDetailPage = () => {
             .eq('project_type', missionData.project_type)
             .eq('filled_by_role', 'partner')
             .eq('action_type', 'message')
-            .in('status', ['pending', 'submitted', 'approved'])
+            .in('status', ['pending', 'submitted', 'approved', 'rejected'])
             .order('created_at', { ascending: false });
 
           // Si la mission a un action_id (V2), lier précisément
@@ -192,6 +192,7 @@ const PartnerMissionDetailPage = () => {
               panelId: msgPanelData.panel_id,
               status: msgPanelData.status,
               actionType: msgPanelData.action_type,
+              rejectionReason: msgPanelData.rejection_reason || null,
             });
             logger.debug('Panel MESSAGE partenaire chargé', { panelId: msgPanelData.panel_id, status: msgPanelData.status });
           }
@@ -666,6 +667,21 @@ const PartnerMissionDetailPage = () => {
           <div className="mt-2 font-medium text-gray-900">Instruction</div>
           <p className="text-sm text-gray-600 mt-2">{mission.description || '—'}</p>
         </section>
+
+        {/* 🔥 Bandeau rejet mission MESSAGE (si admin a rejeté) */}
+        {partnerMessagePanel?.status === 'rejected' && (
+          <section className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-red-600 font-semibold">❌ Mission rejetée par l'admin</span>
+            </div>
+            {partnerMessagePanel.rejectionReason && (
+              <p className="text-sm text-red-700">
+                <strong>Raison :</strong> {partnerMessagePanel.rejectionReason}
+              </p>
+            )}
+            <p className="text-xs text-red-500 mt-2">Vous pouvez corriger et re-valider la mission.</p>
+          </section>
+        )}
 
         {/* 🔥 AJOUT: Formulaires à remplir par le partenaire */}
         {partnerForms.length > 0 && (
