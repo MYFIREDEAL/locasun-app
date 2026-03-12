@@ -787,7 +787,7 @@ const ProjectDetails = ({ project, onBack }) => {
         </div>
       </div>
       
-      <div className={`flex flex-col ${isDesktop && hasProjectForms ? 'lg:flex-row' : ''} gap-8`}>
+      <div className={`flex flex-col ${isDesktop ? 'lg:flex-row' : ''} gap-8`}>
         {/* Colonne principale (gauche) */}
         <div className="flex-1 space-y-8">
           {/* Timeline et Chat en 2 colonnes sur desktop */}
@@ -895,15 +895,15 @@ const ProjectDetails = ({ project, onBack }) => {
           </div>
         </div>
 
-        {/* Colonne formulaires (droite) - uniquement sur desktop si formulaires */}
-        {isDesktop && hasProjectForms && (
+        {/* Colonne formulaires (droite) - toujours visible sur desktop */}
+        {isDesktop && (
           <div className="w-[320px] flex-shrink-0">
             <ClientFormPanel isDesktop projectType={project.type} />
           </div>
         )}
 
         {/* Formulaires en bas sur mobile */}
-        {!isDesktop && hasProjectForms && (
+        {!isDesktop && (
           <div className="w-full">
             <ClientFormPanel isDesktop={false} projectType={project.type} />
           </div>
