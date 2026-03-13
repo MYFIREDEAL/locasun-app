@@ -26,6 +26,13 @@ const ClientLayout = () => {
   // 📱 PWA : Manifest dynamique avec branding de l'org
   usePWAManifest({ brandName, logoUrl, primaryColor });
 
+  // 🔴 PWA : Effacer le badge app (pastille rouge sur l'icône) quand le client ouvre l'app
+  useEffect(() => {
+    if (navigator && navigator.clearAppBadge) {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }, [location.pathname]); // Se déclenche à chaque navigation
+
   // 📱 PWA SANS SESSION → Rediriger vers /client-access (flow OTP)
   useEffect(() => {
     if (authLoading) return; // Attendre que l'auth soit résolue

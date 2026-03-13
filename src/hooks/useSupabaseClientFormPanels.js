@@ -170,12 +170,40 @@ export function useSupabaseClientFormPanels(prospectId = null) {
       if (updates.formData !== undefined) dbUpdates.form_data = updates.formData; // 🔥 AJOUT: Mapping camelCase → snake_case
       if (updates.rejectionReason !== undefined) dbUpdates.rejection_reason = updates.rejectionReason; // 🔥 AJOUT: Raison du refus
 
+      // 🔥 OPTIMISTIC UPDATE: Mettre à jour le state local IMMÉDIATEMENT
+      // (ne pas attendre le real-time qui peut être lent ou ne pas arriver)
+      setFormPanels((prev) => {
+        const currentPanels = Array.isArray(prev) ? prev : [];
+        return currentPanels.map((p) => {
+          if (p.panelId !== panelId) return p;
+          return {
+            ...p,
+            ...updates,
+            updatedAt: Date.now(),
+          };
+        });
+      });
+
       const { error } = await supabase
         .from('client_form_panels')
         .update(dbUpdates)
         .eq('panel_id', panelId);
 
-      if (error) throw error;
+      if (error) {
+        // 🔥 ROLLBACK: Si erreur DB, recharger depuis Supabase
+        logger.error('❌ Erreur mise à jour form panel, rollback:', error);
+        // Re-fetch pour remettre l'état correct
+        const { data } = await supabase
+          .from('client_form_panels')
+          .select('*')
+          .eq('panel_id', panelId)
+          .single();
+        if (data) {
+          const rollbackPanel = transformFromDB(data);
+          setFormPanels((prev) => prev.map((p) => p.panelId === panelId ? rollbackPanel : p));
+        }
+        throw error;
+      }
 
       return { success: true };
     } catch (err) {
