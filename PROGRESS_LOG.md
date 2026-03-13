@@ -5,6 +5,110 @@
 
 ---
 
+## 📅 13 mars 2026 — Session 4 (journée)
+
+### 🎯 Résumé : App client mobile → UX finale (nav bar, chat, clavier iOS)
+
+### 🐛 Problèmes rencontrés et résolutions
+
+#### 1. Nav bar trop petite sur mobile
+- **Problème** : La bottom nav `h-16` était minuscule, icônes et textes trop petits
+- **Solution** : Agrandie progressivement → `h-[88px]`, icônes `h-[26px]`, texte `text-[13px]`, `gap-1.5`
+- **Impact** : Mis à jour TOUS les fichiers dépendants (`bottom-[88px]`, `pb-28`, `bottom-[92px]`)
+
+#### 2. Input chat mangé par la nav bar
+- **Problème** : L'input de chat était caché sous la nav bar (ancien `bottom-16` pas aligné avec `h-[88px]`)
+- **Solution** : Container chat `bottom-[88px]`, input agrandi `h-12 text-base`, boutons `h-11 w-11`
+
+#### 3. framer-motion cassait le positionnement fixe
+- **Problème** : Les `motion.div` avec `x/y` transforms dans Dashboard et ProjectDetails créaient un nouveau contexte de positionnement → les éléments `fixed` à l'intérieur ne fonctionnaient plus correctement
+- **Solution** : Gardé uniquement `opacity` dans les animations, supprimé `x` et `y`
+
+#### 4. PWA ne se mettait pas à jour sur iPhone
+- **Problème** : `registerSW.js` avait `// Pas de reload automatique` → le nouveau Service Worker s'installait mais ne prenait jamais le contrôle
+- **Solution** : Ajouté `window.location.reload()` à l'activation du SW + `registration.update()` toutes les 2 minutes
+
+#### 5. `visualViewport` ne fonctionne PAS en PWA iOS standalone
+- **Problème** : On a tenté de détecter l'ouverture du clavier via `window.visualViewport.resize` pour cacher la nav bar. **Cette API ne fire PAS dans les PWA standalone sur iOS.**
+- **Tentative échouée** : Vérifiée dans le code, aucun event ne se déclenche
+- **Solution** : Remplacé par `onFocus/onBlur` sur l'input (voir point 6)
+
+#### 6. Nav bar restait visible quand le clavier s'ouvrait
+- **Problème** : Sur iOS, quand le clavier s'ouvre, la nav bar restait en bas → écrasait l'espace disponible pour le chat
+- **Première tentative** : `onFocus/onBlur` avec `bottom-0` → l'input DISPARAISSAIT car le chat (z-40) passait sous la nav bar (z-50)
+- **Deuxième tentative** : Cacher la nav bar via `!isChatProjectPage` dans ClientLayout → l'utilisateur ne voulait PAS ça (nav bar visible quand clavier fermé)
+- **Solution finale** : Custom event `keyboard-toggle` :
+  - `MobileChatProjectPage` : `onFocus` → dispatch `{ open: true }`, `onBlur` → dispatch `{ open: false }`
+  - `MobileBottomNav` : écoute l'event → `return null` quand `open=true`
+  - Container chat : `bottom-0 z-[60]` quand clavier ouvert, `bottom-[88px] z-40` sinon
+  - Cleanup `useEffect` au unmount de la page chat → nav bar revient toujours
+
+#### 7. Bouton Envoyer fermait le clavier sans envoyer
+- **Problème** : Appuyer sur le bouton Envoyer déclenchait le `onBlur` de l'input AVANT le `onClick` du bouton → le clavier se fermait, le layout changeait, le click était perdu
+- **Solution** : `onMouseDown={(e) => e.preventDefault()}` sur les boutons Envoyer et Pièce jointe → empêche le blur → clavier reste ouvert → message envoyé en 1 tap
+- **⚠️ Piège iOS** : `onTouchStart preventDefault()` bloque le `click` (flow `touchstart → touchend → click`). Utiliser `onMouseDown` uniquement.
+
+### ✅ État final — App client mobile
+
+| Composant | État | Détail |
+|-----------|------|--------|
+| **Bottom nav** | ✅ 88px | Home/Chat/Menu, icônes 26px, texte 13px, `env(safe-area-inset-bottom)` |
+| **Chat input** | ✅ | h-12 text-base, `enterKeyHint="send"`, anti-autocorrect |
+| **Clavier iOS** | ✅ | Nav bar disparaît au focus, revient au blur, boutons gardent le clavier ouvert |
+| **PWA update** | ✅ | Auto-reload sur activation SW + check toutes les 2 min |
+| **Présence** | ✅ | Heartbeat 25s + trigger DB 45s → supprime push si app active |
+| **MESSAGE buttons** | ✅ | Valider approuve TOUS les panels MESSAGE pending du projet |
+
+### 📝 Fichiers modifiés cette session
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/client/MobileBottomNav.jsx` | h-[88px], icônes 26px, texte 13px, **écoute event keyboard-toggle → se cache** |
+| `src/pages/client/MobileChatProjectPage.jsx` | bottom-[88px], input h-12, **focus/blur + custom event + onMouseDown preventDefault** |
+| `src/layouts/ClientLayout.jsx` | pb-28, nav bar toujours affichée (sauf quand keyboard event la cache) |
+| `src/components/Dashboard.jsx` | pb-28, animation opacity-only |
+| `src/components/ProjectDetails.jsx` | pb-28, animation opacity-only |
+| `src/components/client/MobileFormModal.jsx` | bottom-[88px] |
+| `src/components/client/InstallPWAPrompt.jsx` | bottom-[92px] |
+| `src/components/client/NotificationOptIn.jsx` | bottom-[92px] |
+| `src/lib/registerSW.js` | Auto-reload on SW activation + check every 2 min |
+
+### 💡 Leçons iOS PWA apprises
+1. **`window.visualViewport`** : NE FONCTIONNE PAS en PWA standalone sur iOS
+2. **`onTouchStart preventDefault()`** : BLOQUE le `click` qui suit sur iOS (utiliser `onMouseDown` à la place)
+3. **framer-motion `x/y` transforms** : créent un nouveau stacking context → cassent les `position: fixed` enfants
+4. **Service Worker PWA** : il faut forcer le reload à l'activation, sinon l'utilisateur reste sur l'ancien cache indéfiniment
+5. **Focus/blur pour détecter le clavier** : seule méthode fiable en PWA iOS standalone
+
+### 🔜 Prochain gros chantier : APP MOBILE ADMIN
+
+L'app client mobile est **terminée**. Le prochain sujet est de créer l'**app mobile admin** (commerciaux sur le terrain).
+
+**Ce qui existe déjà côté admin (desktop only)** :
+- Pipeline prospects (`FinalPipeline.jsx`) — drag & drop colonnes
+- Agenda (`Agenda.jsx`) — calendrier rdv/appels/tâches
+- Contacts/Prospects (`ContactsPage.jsx`) — liste + détails
+- Chat interne/partenaire (`ProspectDetailsAdmin.jsx`)
+- Workflow V2 (`WorkflowV2ConfigPage.jsx`)
+- Charly AI (`CharlyPage.jsx`)
+- Profil/Config (`ProfilePage.jsx`)
+
+**À faire pour mobile admin** :
+1. **`AdminLayout` mobile** : détection mobile, bottom nav admin (Pipeline / Agenda / Plus)
+2. **Pipeline mobile** : liste cards (pas de drag & drop) ou kanban simplifié swipeable
+3. **Prospect detail mobile** : version compacte de `ProspectDetailsAdmin` (chat + timeline + actions robot)
+4. **Agenda mobile** : vue jour/semaine compacte, ajouter rdv en 2 taps
+5. **Notifications push admin** : réutiliser le système presence + push déjà en place côté client
+6. **PWA admin** : même manifest dynamique, même auto-update SW
+
+**Patterns à réutiliser** (prouvés cette session) :
+- Bottom nav fixe 88px + `env(safe-area-inset-bottom)`
+- Custom event `keyboard-toggle` pour cacher la nav au clavier
+- `onMouseDown preventDefault` sur les boutons d'action
+- Animation opacity-only (pas de `x/y` transforms)
+- PWA auto-reload via `registerSW.js`
+
+---
+
 ## 📅 12-13 mars 2026 — Session 3 (nuit)
 
 ### ✅ Features — Mobile Redesign Complet
