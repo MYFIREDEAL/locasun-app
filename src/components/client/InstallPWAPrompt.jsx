@@ -98,56 +98,55 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
 
   return (
     <>
-      {/* Bannière principale */}
+      {/* Bannière principale — plus haute et plus visible */}
       <div className="fixed bottom-16 left-0 right-0 z-50 px-3 pb-2 animate-in slide-in-from-bottom duration-300">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 max-w-md mx-auto">
-          <div className="flex items-start gap-3">
-            {/* Logo org ou fallback */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 max-w-md mx-auto">
+          {/* Bouton fermer */}
+          <button
+            onClick={handleDismiss}
+            className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full"
+            aria-label="Fermer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* Logo + titre centré */}
+          <div className="flex flex-col items-center text-center gap-3 pt-1 pb-2">
             <div className="flex-shrink-0">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt={brandName}
-                  className="w-12 h-12 rounded-xl object-contain bg-gray-50 p-1.5"
+                  className="w-14 h-14 rounded-2xl object-contain bg-gray-50 p-1.5"
                 />
               ) : (
-                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl font-bold">
+                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center">
+                  <span className="text-white text-2xl font-bold">
                     {brandName.charAt(0)}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Texte */}
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 text-sm">
+            <div>
+              <p className="font-bold text-gray-900 text-base">
                 📲 Ajoutez {brandName} sur votre téléphone
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
                 Retrouvez votre espace client comme une vraie application, directement sur votre écran d'accueil
               </p>
             </div>
-
-            {/* Bouton fermer */}
-            <button
-              onClick={handleDismiss}
-              className="flex-shrink-0 p-1 -mr-1 -mt-1 text-gray-400 hover:text-gray-600"
-              aria-label="Fermer"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
 
           {/* Boutons d'action */}
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleInstallClick}
-              className="flex-1 bg-blue-600 text-white font-medium text-sm py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors"
+              className="flex-1 bg-blue-600 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors"
             >
               {isIOS() ? (
                 <>
-                  <Share className="w-4 h-4" />
+                  <Smartphone className="w-4 h-4" />
                   Voir comment faire
                 </>
               ) : (
@@ -159,7 +158,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
             </button>
             <button
               onClick={handleDismiss}
-              className="px-4 py-2.5 text-sm text-gray-500 font-medium hover:text-gray-700 transition-colors"
+              className="px-4 py-3 text-sm text-gray-500 font-medium hover:text-gray-700 transition-colors"
             >
               Plus tard
             </button>
@@ -193,10 +192,10 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">
-                    Appuyez sur le bouton <span className="inline-flex items-center">Partager <Share className="w-4 h-4 mx-1 text-blue-600" /></span>
+                    Appuyez sur <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-sm font-semibold">⋯</span> en bas à droite de Safari
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    En bas de l'écran dans Safari (la barre avec les icônes)
+                    Les 3 petits points dans la barre de navigation
                   </p>
                 </div>
               </div>
@@ -208,7 +207,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">
-                    Faites défiler et appuyez sur <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-sm"><Plus className="w-3.5 h-3.5" /> Sur l'écran d'accueil</span>
+                    Appuyez sur <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-sm"><Share className="w-3.5 h-3.5" /> Partager...</span> en haut du menu
                   </p>
                 </div>
               </div>
@@ -220,10 +219,22 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">
+                    Faites défiler et appuyez sur <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-sm"><Plus className="w-3.5 h-3.5" /> Sur l'écran d'accueil</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Étape 4 */}
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                  4
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
                     Appuyez sur <span className="font-bold text-blue-600">Ajouter</span>
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    L'app apparaîtra sur votre écran d'accueil comme une vraie application !
+                    L'app {brandName} apparaîtra sur votre écran d'accueil !
                   </p>
                 </div>
               </div>
