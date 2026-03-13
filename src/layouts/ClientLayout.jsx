@@ -33,39 +33,45 @@ const ClientLayout = () => {
     }
   }, [location.pathname]); // Se déclenche à chaque navigation
 
-  // 🔇 PWA : Heartbeat → dire au SW que l'app est active (pas de push si visible)
+  // 🔇 PRESENCE: Dire au serveur si l'app est active (pour décider côté serveur d'envoyer le push)
   useEffect(() => {
-    const sw = navigator?.serviceWorker?.controller;
-    if (!sw) return;
+    if (!currentUser?.id) return;
 
-    // Envoyer heartbeat toutes les 3s quand l'app est visible
-    const sendHeartbeat = () => {
-      if (document.visibilityState === 'visible') {
-        sw.postMessage({ type: 'APP_ACTIVE' });
+    const updatePresence = async (active) => {
+      try {
+        await supabase.from('user_presence').upsert({
+          prospect_id: currentUser.id,
+          is_active: active,
+          last_seen: new Date().toISOString(),
+        }, { onConflict: 'prospect_id' });
+      } catch (err) {
+        // Non bloquant — si ça échoue, le push sera envoyé (fallback safe)
       }
     };
 
-    // Heartbeat immédiat + interval
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 3000);
+    // Marquer actif immédiatement
+    updatePresence(true);
 
-    // Quand l'app passe en arrière-plan → dire au SW
-    const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        sw.postMessage({ type: 'APP_INACTIVE' });
-      } else {
-        sendHeartbeat();
+    // Heartbeat toutes les 20s quand visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        updatePresence(true);
       }
+    }, 20000);
+
+    // Quand l'app passe en arrière-plan → marquer inactif
+    const handleVisibility = () => {
+      updatePresence(document.visibilityState === 'visible');
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
-      // Dire au SW qu'on part
-      sw.postMessage({ type: 'APP_INACTIVE' });
+      // Marquer inactif en quittant
+      updatePresence(false);
     };
-  }, []);
+  }, [currentUser?.id]);
 
   // 📱 PWA SANS SESSION → Rediriger vers /client-access (flow OTP)
   useEffect(() => {

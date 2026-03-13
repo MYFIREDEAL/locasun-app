@@ -13,25 +13,8 @@ precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
 // =====================================================
-// 🔔 PUSH NOTIFICATIONS (Phase 3 — prêt mais pas encore actif)
+// 🔔 PUSH NOTIFICATIONS
 // =====================================================
-
-// 🔇 Track si l'app est au premier plan (message du frontend)
-let appIsActive = false;
-let appActiveTimeout = null;
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'APP_ACTIVE') {
-    appIsActive = true;
-    // Reset après 5s sans nouveau heartbeat → considérer comme inactive
-    clearTimeout(appActiveTimeout);
-    appActiveTimeout = setTimeout(() => { appIsActive = false; }, 5000);
-  }
-  if (event.data && event.data.type === 'APP_INACTIVE') {
-    appIsActive = false;
-    clearTimeout(appActiveTimeout);
-  }
-});
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
@@ -47,6 +30,8 @@ self.addEventListener('push', (event) => {
       tag: data.tag || 'default',
       // ⚡ Garder la notification visible jusqu'au clic (ne pas disparaître)
       requireInteraction: true,
+      // 🔇 Pas de son/vibration — le frontend décidera s'il faut fermer la notif
+      silent: false,
       // Données pour le clic (quelle page ouvrir)
       data: {
         url: data.url || '/dashboard',
@@ -58,12 +43,6 @@ self.addEventListener('push', (event) => {
       // Actions rapides
       actions: data.actions || [],
     };
-
-    // 🔇 Si l'app est active (heartbeat récent), ne pas afficher la notif
-    if (appIsActive) {
-      console.log('[SW] App active (heartbeat), skip push notification');
-      return;
-    }
 
     event.waitUntil(
       self.registration.showNotification(title, options).then(() => {
