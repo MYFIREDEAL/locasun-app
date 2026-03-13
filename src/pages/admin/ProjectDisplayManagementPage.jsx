@@ -531,7 +531,7 @@ const MobileBlockRenderer = ({ block, project, isFirst }) => {
   switch (block.type) {
     case 'hero-image':
       return (
-        <div className={`relative ${c.height === 'small' ? 'h-24' : c.height === 'large' ? 'h-52' : 'h-36'} bg-gradient-to-br from-gray-200 to-gray-300`}>
+        <div className={`relative ${c.height === 'small' ? 'h-24' : c.height === 'large' ? 'h-52' : 'h-36'} ${c.fit === 'contain' ? 'bg-white' : 'bg-gradient-to-br from-gray-200 to-gray-300'}`}>
           {c.url ? (
             <img src={c.url} alt="" className={`w-full h-full ${c.fit === 'contain' ? 'object-contain' : 'object-cover'}`} onError={(e) => { e.target.style.display='none'; }} />
           ) : (

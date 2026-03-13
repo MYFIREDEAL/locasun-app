@@ -75,8 +75,9 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
       // Hauteur basée sur c.height (Petit/Moyen/Grand dans l'éditeur)
       const heroH = c.height === 'small' ? 'h-36' : c.height === 'large' ? 'h-72' : 'h-52';
       const fitCls = c.fit === 'contain' ? 'object-contain' : 'object-cover';
+      const bgCls = c.fit === 'contain' ? 'bg-white' : 'bg-gradient-to-br from-gray-200 to-gray-300';
       return (
-        <div className={`relative ${heroH} bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden`}>
+        <div className={`relative ${heroH} ${bgCls} overflow-hidden`}>
           {c.url ? (
             <img src={c.url} alt="" className={`w-full h-full ${fitCls}`} />
           ) : (
