@@ -23,6 +23,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   // Détecter iOS + pas Safari (Chrome, Firefox, etc.)
@@ -69,6 +70,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
     } catch { /* ignore */ }
     setShowPrompt(false);
     setShowIOSGuide(false);
+    setShowAndroidGuide(false);
   }, []);
 
   // Android : intercepter beforeinstallprompt
@@ -97,12 +99,26 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
       };
     }
 
+    // Android non-Chrome : si beforeinstallprompt ne se déclenche pas après 4s, afficher quand même
+    if (isAndroid()) {
+      const timeout = setTimeout(() => {
+        if (!isPWAInstalled() && !isDismissed() && !deferredPrompt) {
+          setShowPrompt(true);
+        }
+      }, 4000);
+      return () => {
+        clearTimeout(timeout);
+        window.removeEventListener('beforeinstallprompt', handler);
+      };
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, [isMobile, isDismissed]);
 
-  // Android : déclencher l'installation
+  // Déclencher l'installation ou afficher le guide
   const handleInstallClick = async () => {
     if (deferredPrompt) {
+      // Android Chrome : popup native
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
@@ -110,8 +126,10 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
       }
       setDeferredPrompt(null);
     } else if (isIOS()) {
-      // Afficher le guide iOS
       setShowIOSGuide(true);
+    } else if (isAndroid()) {
+      // Android non-Chrome : guide manuel
+      setShowAndroidGuide(true);
     }
   };
 
@@ -198,15 +216,15 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                   onClick={handleInstallClick}
                   className="flex-1 bg-blue-600 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors"
                 >
-                  {isIOS() ? (
-                    <>
-                      <Smartphone className="w-4 h-4" />
-                      Voir comment faire
-                    </>
-                  ) : (
+                  {deferredPrompt ? (
                     <>
                       <Download className="w-4 h-4" />
                       Installer l'application
+                    </>
+                  ) : (
+                    <>
+                      <Smartphone className="w-4 h-4" />
+                      Voir comment faire
                     </>
                   )}
                 </button>
@@ -307,6 +325,76 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                 <div>
                   <p className="font-semibold text-gray-900">{brandName}</p>
                   <p className="text-xs text-gray-500">Votre espace client</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pb-8">
+              <button
+                onClick={handleDismiss}
+                className="w-full bg-blue-600 text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                J'ai compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guide Android non-Chrome (modal overlay) */}
+      {showAndroidGuide && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl w-full max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-3xl">
+              <h3 className="font-bold text-lg text-gray-900">
+                📲 Ajouter {brandName} sur votre téléphone
+              </h3>
+              <button
+                onClick={() => setShowAndroidGuide(false)}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Étapes */}
+            <div className="px-5 py-6 space-y-6">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                  1
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
+                    Appuyez sur le menu <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-sm font-semibold">⋮</span> en haut à droite
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">Les 3 petits points verticaux</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                  2
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
+                    Appuyez sur <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-sm"><Plus className="w-3.5 h-3.5" /> Ajouter à l'écran d'accueil</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                  3
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
+                    Appuyez sur <span className="font-bold text-blue-600">Ajouter</span>
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    L'app {brandName} apparaîtra sur votre écran d'accueil !
+                  </p>
                 </div>
               </div>
             </div>
