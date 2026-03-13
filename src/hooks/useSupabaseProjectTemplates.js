@@ -79,7 +79,8 @@ export function useSupabaseProjectTemplates({ organizationId = null, enabled = t
             isPublic: t.is_public,
             coverImage: t.image_url,
             clientDescription: t.client_description,
-            ctaText: t.cta_text
+            ctaText: t.cta_text,
+            contentBlocks: t.content_blocks || []
           });
 
           if (payload.eventType === 'INSERT') {
@@ -133,7 +134,8 @@ export function useSupabaseProjectTemplates({ organizationId = null, enabled = t
         isPublic: template.is_public,
         coverImage: template.image_url,
         clientDescription: template.client_description,
-        ctaText: template.cta_text
+        ctaText: template.cta_text,
+        contentBlocks: template.content_blocks || []
       }));
 
       // Conserver l'ancien comportement: ordre par type
@@ -180,7 +182,8 @@ export function useSupabaseProjectTemplates({ organizationId = null, enabled = t
         isPublic: data.is_public,
         coverImage: data.image_url,
         clientDescription: data.client_description,
-        ctaText: data.cta_text
+        ctaText: data.cta_text,
+        contentBlocks: data.content_blocks
       };
       
       setProjectTemplates(prev => [...prev, transformedData]);
@@ -215,7 +218,8 @@ export function useSupabaseProjectTemplates({ organizationId = null, enabled = t
         isPublic: data.is_public,
         coverImage: data.image_url,
         clientDescription: data.client_description,
-        ctaText: data.cta_text
+        ctaText: data.cta_text,
+        contentBlocks: data.content_blocks
       };
       
       setProjectTemplates(prev =>

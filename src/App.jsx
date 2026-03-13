@@ -44,6 +44,7 @@ import PartnerProofsPage from '@/pages/partner/PartnerProofsPage';
 import ParrainagePage from '@/pages/client/ParrainagePage';
 import SettingsPage from '@/pages/client/SettingsPage';
 import OffersPage from '@/pages/client/OffersPage';
+import OfferDetailPage from '@/pages/client/OfferDetailPage';
 import ChatPage from '@/pages/client/ChatPage';
 import MobileChatProjectPage from '@/pages/client/MobileChatProjectPage';
 import MenuPage from '@/pages/client/MenuPage';
@@ -1065,7 +1066,8 @@ function App() {
           is_public: templateData.isPublic !== undefined ? templateData.isPublic : templateData.is_public,
           image_url: templateData.coverImage || templateData.image_url,
           client_description: templateData.clientDescription || templateData.client_description,
-          cta_text: templateData.ctaText || templateData.cta_text
+          cta_text: templateData.ctaText || templateData.cta_text,
+          content_blocks: templateData.contentBlocks || templateData.content_blocks || []
         };
         
         if (existingTemplate) {
@@ -1079,7 +1081,8 @@ function App() {
             existingTemplate.is_public !== supabaseData.is_public ||
             existingTemplate.image_url !== supabaseData.image_url ||
             existingTemplate.client_description !== supabaseData.client_description ||
-            existingTemplate.cta_text !== supabaseData.cta_text;
+            existingTemplate.cta_text !== supabaseData.cta_text ||
+            JSON.stringify(existingTemplate.content_blocks) !== JSON.stringify(supabaseData.content_blocks);
           
           if (hasChanged) {
             // Mise à jour du template existant (ajouté à la liste de promesses)
@@ -1938,6 +1941,7 @@ function App() {
           <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />
+          <Route path="offres/:projectType" element={<OfferDetailPage />} />
         </Route>
         <Route path="/dashboard" element={<ClientLayout />}>
           <Route index element={<ClientDashboardPage />} />
@@ -1947,6 +1951,7 @@ function App() {
           <Route path="parrainage" element={<ParrainagePage />} />
           <Route path="profil" element={<SettingsPage />} />
           <Route path="offres" element={<OffersPage />} />
+          <Route path="offres/:projectType" element={<OfferDetailPage />} />
         </Route>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<FinalPipeline />} />
