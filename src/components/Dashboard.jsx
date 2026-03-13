@@ -37,9 +37,9 @@ import React, { useMemo } from 'react';
 
       return (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           className="space-y-6"
         >
           <div className="text-center">
