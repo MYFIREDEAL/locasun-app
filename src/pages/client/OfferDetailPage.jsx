@@ -41,10 +41,10 @@ const parseDescriptionToBlocks = (description) => {
 
 // Taille du bloc → largeur max sur desktop
 const SIZE_TO_WIDTH = {
-  small: 'max-w-sm',
-  medium: 'max-w-lg',
-  large: 'max-w-xl',
-  full: 'max-w-2xl',
+  small: 'max-w-lg',       // 512px
+  medium: 'max-w-2xl',     // 672px
+  large: 'max-w-4xl',      // 896px
+  full: 'max-w-6xl',       // 1152px
 };
 
 // Taille du bloc → hauteur hero image
@@ -76,7 +76,7 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
       const heroH = c.height === 'small' ? 'h-36' : c.height === 'large' ? 'h-72' : 'h-52';
       const fitCls = c.fit === 'contain' ? 'object-contain' : 'object-cover';
       const bgCls = c.fit === 'contain' ? 'bg-white' : 'bg-gradient-to-br from-gray-200 to-gray-300';
-      const heroWidth = size === 'full' ? '' : `${widthCls} mx-auto`;
+      const heroWidth = size === 'full' ? 'max-w-6xl mx-auto' : `${widthCls} mx-auto`;
       return (
         <div className={`relative ${heroH} ${bgCls} overflow-hidden ${heroWidth}`}>
           {c.url ? (
