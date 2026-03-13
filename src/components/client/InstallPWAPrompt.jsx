@@ -133,7 +133,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                 📲 Ajoutez {brandName} sur votre téléphone
               </p>
               <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                Retrouvez votre espace client comme une vraie application, directement sur votre écran d'accueil
+                Retrouvez votre espace client directement sur votre écran d'accueil et suivez l'avancée de votre projet en temps réel
               </p>
             </div>
           </div>
