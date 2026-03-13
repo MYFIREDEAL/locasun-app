@@ -39,14 +39,42 @@ const parseDescriptionToBlocks = (description) => {
 
 // ═══ Rendu des content blocks (V2 — Page Builder) ═══
 
+// Taille du bloc → largeur max sur desktop
+const SIZE_TO_WIDTH = {
+  small: 'max-w-sm',
+  medium: 'max-w-lg',
+  large: 'max-w-xl',
+  full: 'max-w-2xl',
+};
+
+// Taille du bloc → hauteur hero image
+const SIZE_TO_HERO_H = {
+  small: 'h-36',
+  medium: 'h-52',
+  large: 'h-64',
+  full: 'h-72',
+};
+
+// Taille du bloc → taille texte
+const SIZE_TO_TEXT = {
+  small: 'text-xs',
+  medium: 'text-sm',
+  large: 'text-base',
+  full: 'text-base',
+};
+
 const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
   const c = block.content || {};
   const delay = 0.05 + index * 0.06;
+  const size = block.size || 'full';
+  const widthCls = SIZE_TO_WIDTH[size] || 'max-w-2xl';
+  const textCls = SIZE_TO_TEXT[size] || 'text-sm';
 
   switch (block.type) {
-    case 'hero-image':
+    case 'hero-image': {
+      const heroH = SIZE_TO_HERO_H[size] || 'h-52';
       return (
-        <div className={`relative ${c.height === 'small' ? 'h-36' : c.height === 'large' ? 'h-72' : 'h-52'} bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden`}>
+        <div className={`relative ${heroH} bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden`}>
           {c.url ? (
             <img src={c.url} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -57,6 +85,7 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
         </div>
       );
+    }
 
     case 'title':
       return (
@@ -64,7 +93,7 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay }}
-          className="px-5 md:px-8 -mt-6 relative z-10"
+          className={`px-5 md:px-8 -mt-6 relative z-10 ${widthCls} mx-auto`}
         >
           <div className="bg-white rounded-2xl shadow-md px-5 py-4 border border-gray-100">
             <div className="flex items-center gap-3">
@@ -81,9 +110,9 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay }}
-          className="px-5 md:px-8 pb-3"
+          className={`px-5 md:px-8 pb-3 ${widthCls} mx-auto`}
         >
-          <p className="text-sm text-gray-600 leading-relaxed">{c.text}</p>
+          <p className={`${textCls} text-gray-600 leading-relaxed`}>{c.text}</p>
         </motion.div>
       );
 
@@ -93,13 +122,13 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay }}
-          className="px-5 md:px-8 py-1"
+          className={`px-5 md:px-8 py-1 ${widthCls} mx-auto`}
         >
           <div className="flex gap-3 p-4 rounded-2xl bg-white shadow-sm border border-gray-100">
             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center text-xl">
               {c.emoji || '⚡'}
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed flex-1 pt-1.5">{c.text}</p>
+            <p className={`${textCls} text-gray-700 leading-relaxed flex-1 pt-1.5`}>{c.text}</p>
           </div>
         </motion.div>
       );
@@ -110,32 +139,34 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay }}
-          className="px-5 md:px-8 py-2"
+          className={`px-5 md:px-8 py-2 ${widthCls} mx-auto`}
         >
-          <p className="text-sm text-gray-600 leading-relaxed">{c.text}</p>
+          <p className={`${textCls} text-gray-600 leading-relaxed`}>{c.text}</p>
         </motion.div>
       );
 
-    case 'image':
+    case 'image': {
+      const imgH = SIZE_TO_HERO_H[size] || 'h-40';
       return (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay }}
-          className="px-5 md:px-8 py-2"
+          className={`px-5 md:px-8 py-2 ${widthCls} mx-auto`}
         >
           {c.url ? (
             <div>
-              <img src={c.url} alt="" className={`w-full ${c.height === 'small' ? 'h-28' : c.height === 'large' ? 'h-56' : 'h-40'} object-cover rounded-2xl`} />
+              <img src={c.url} alt="" className={`w-full ${imgH} object-cover rounded-2xl`} />
               {c.caption && <p className="text-xs text-gray-400 mt-1.5 text-center">{c.caption}</p>}
             </div>
           ) : (
-            <div className={`w-full ${c.height === 'small' ? 'h-28' : c.height === 'large' ? 'h-56' : 'h-40'} rounded-2xl bg-gray-200 flex items-center justify-center`}>
+            <div className={`w-full ${imgH} rounded-2xl bg-gray-200 flex items-center justify-center`}>
               <ImageIcon className="h-8 w-8 text-gray-400" />
             </div>
           )}
         </motion.div>
       );
+    }
 
     case 'divider':
       if (c.style === 'dots') return <div className="text-center py-3 text-gray-300 text-sm tracking-[0.4em]">• • •</div>;
