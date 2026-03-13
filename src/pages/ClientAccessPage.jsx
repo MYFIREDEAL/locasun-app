@@ -153,7 +153,7 @@ const ClientAccessPage = () => {
         setOtpStep('code');
         toast({
           title: "📧 Code envoyé !",
-          description: "Vérifiez votre boîte mail et entrez le code à 6 chiffres.",
+          description: "Vérifiez votre boîte mail et entrez le code reçu.",
           className: "bg-green-500 text-white",
         });
         setLoading(false);
@@ -201,7 +201,7 @@ const ClientAccessPage = () => {
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
 
-    if (!otpCode.trim() || otpCode.trim().length < 6) {
+    if (!otpCode.trim() || otpCode.trim().length < 8) {
       toast({
         title: "Code invalide",
         description: "Veuillez entrer le code reçu par email.",
@@ -358,7 +358,7 @@ const ClientAccessPage = () => {
             <Button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-semibold"
-              disabled={loading || otpCode.length < 6}
+              disabled={loading || otpCode.length < 8}
             >
               {loading ? (
                 <>
