@@ -49,6 +49,7 @@ const MobileChatProjectPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const isInitialLoadRef = useRef(true);
@@ -76,6 +77,19 @@ const MobileChatProjectPage = () => {
       .filter(n => !n.read && n.projectType === projectType)
       .forEach(n => markClientNotificationAsRead(n.id));
   }, [clientNotifications, markClientNotificationAsRead, projectType]);
+
+  // Détecter clavier iOS/Android ouvert via visualViewport
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const threshold = 150; // clavier > 150px
+    const onResize = () => {
+      const diff = window.innerHeight - vv.height;
+      setKeyboardOpen(diff > threshold);
+    };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, []);
 
   // Panel statuses pour boutons d'action MESSAGE
   useEffect(() => {
@@ -250,7 +264,7 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className="fixed inset-0 bottom-20 z-40 flex flex-col bg-white">
+    <div className={`fixed inset-0 ${keyboardOpen ? 'bottom-0' : 'bottom-20'} z-40 flex flex-col bg-white`}>
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
@@ -414,6 +428,8 @@ const MobileChatProjectPage = () => {
           <Input
             placeholder="Écrire à votre conseiller..."
             className="flex-1 h-12 text-base"
+            enterKeyHint="send"
+            autoComplete="off"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
