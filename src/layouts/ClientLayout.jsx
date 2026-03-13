@@ -8,15 +8,20 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 import ModuleBoundary from '@/components/ModuleBoundary';
+import { usePWAManifest } from '@/hooks/usePWAManifest';
+import InstallPWAPrompt from '@/components/client/InstallPWAPrompt';
 
 const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const isMobile = width < 768;
-  const { currentUser, setCurrentUser, companyLogo } = useAppContext();
+  const { currentUser, setCurrentUser, companyLogo, brandName, logoUrl, primaryColor } = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [sessionCheckDone, setSessionCheckDone] = useState(false);
+
+  // 📱 PWA : Manifest dynamique avec branding de l'org
+  usePWAManifest({ brandName, logoUrl, primaryColor });
 
   // Cacher header + bottom nav quand on est dans le chat d'un projet (MobileChatProjectPage gère tout)
   const isChatProjectPage = /\/chat\/[^/]+/.test(location.pathname);
@@ -119,6 +124,10 @@ const ClientLayout = () => {
             </ModuleBoundary>
           </main>
         </div>
+      )}
+      {/* 📱 Bannière installation PWA — uniquement mobile, pas dans le chat */}
+      {isMobile && !isChatProjectPage && !isOfferDetailPage && (
+        <InstallPWAPrompt brandName={brandName} logoUrl={logoUrl} isMobile={isMobile} />
       )}
       {/* Bottom nav mobile — masqué dans le chat projet et la page offre détail */}
       {isMobile && !isOfferDetailPage && <MobileBottomNav />}

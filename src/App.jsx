@@ -56,6 +56,7 @@ import PlatformLoginPage from '@/pages/platform/PlatformLoginPage';
 import PlatformHomePage from '@/pages/platform/PlatformHomePage';
 import HomePage from '@/pages/HomePage';
 import ClientAccessPage from '@/pages/ClientAccessPage';
+import OpenInAppPage from '@/pages/OpenInAppPage';
 import ProLoginPage from '@/pages/ProLoginPage';
 import RegistrationPage from '@/pages/RegistrationPage';
 import SignupPage from '@/pages/SignupPage';
@@ -1920,6 +1921,8 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/signature/:signatureProcedureId" element={<SignaturePage />} />
         <Route path="/sign/cosigner" element={<CosignerSignaturePage />} />
+        {/* 📱 PWA: Page interstitielle magic link → PWA */}
+        <Route path="/open-app" element={<OpenInAppPage />} />
         {/* 🤝 PARTNER ROUTES */}
         <Route path="/partner/login" element={<PartnerLoginPage />} />
         <Route path="/partner" element={<PartnerLayout />}>

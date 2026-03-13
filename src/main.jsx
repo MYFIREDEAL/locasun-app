@@ -7,6 +7,10 @@ import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { UsersProvider } from "./contexts/UsersContext";
 import { PublicOrganizationProvider } from "./contexts/PublicOrganizationContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { registerServiceWorker } from "./lib/registerSW";
+
+// 📱 Enregistrer le Service Worker PWA (une seule fois au boot)
+registerServiceWorker();
 
 /**
  * 🔥 ISOLATION LANDING PUBLIQUE
