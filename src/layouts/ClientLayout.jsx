@@ -33,6 +33,40 @@ const ClientLayout = () => {
     }
   }, [location.pathname]); // Se déclenche à chaque navigation
 
+  // 🔇 PWA : Heartbeat → dire au SW que l'app est active (pas de push si visible)
+  useEffect(() => {
+    const sw = navigator?.serviceWorker?.controller;
+    if (!sw) return;
+
+    // Envoyer heartbeat toutes les 3s quand l'app est visible
+    const sendHeartbeat = () => {
+      if (document.visibilityState === 'visible') {
+        sw.postMessage({ type: 'APP_ACTIVE' });
+      }
+    };
+
+    // Heartbeat immédiat + interval
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 3000);
+
+    // Quand l'app passe en arrière-plan → dire au SW
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        sw.postMessage({ type: 'APP_INACTIVE' });
+      } else {
+        sendHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      // Dire au SW qu'on part
+      sw.postMessage({ type: 'APP_INACTIVE' });
+    };
+  }, []);
+
   // 📱 PWA SANS SESSION → Rediriger vers /client-access (flow OTP)
   useEffect(() => {
     if (authLoading) return; // Attendre que l'auth soit résolue
