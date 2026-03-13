@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 import ModuleBoundary from '@/components/ModuleBoundary';
-import { usePWAManifest } from '@/hooks/usePWAManifest';
+import { usePWAManifest, isPWAInstalled } from '@/hooks/usePWAManifest';
 import InstallPWAPrompt from '@/components/client/InstallPWAPrompt';
 import NotificationOptIn from '@/components/client/NotificationOptIn';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -17,7 +17,7 @@ const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const isMobile = width < 768;
-  const { currentUser, setCurrentUser, companyLogo, brandName, logoUrl, primaryColor } = useAppContext();
+  const { currentUser, setCurrentUser, companyLogo, brandName, logoUrl, primaryColor, authLoading } = useAppContext();
   const { organizationId } = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +25,23 @@ const ClientLayout = () => {
 
   // 📱 PWA : Manifest dynamique avec branding de l'org
   usePWAManifest({ brandName, logoUrl, primaryColor });
+
+  // 📱 PWA SANS SESSION → Rediriger vers /client-access (flow OTP)
+  useEffect(() => {
+    if (authLoading) return; // Attendre que l'auth soit résolue
+    if (currentUser) return; // Déjà connecté → OK
+
+    // Pas de session : vérifier Supabase directement
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session && isPWAInstalled()) {
+        logger.info('[ClientLayout] PWA sans session → redirect /client-access (OTP)');
+        navigate('/client-access', { replace: true });
+      } else if (!session) {
+        logger.info('[ClientLayout] Browser sans session → redirect /client-access');
+        navigate('/client-access', { replace: true });
+      }
+    });
+  }, [authLoading, currentUser]);
 
   // Cacher header + bottom nav quand on est dans le chat d'un projet (MobileChatProjectPage gère tout)
   const isChatProjectPage = /\/chat\/[^/]+/.test(location.pathname);

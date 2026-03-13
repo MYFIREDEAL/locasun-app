@@ -8,8 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { useAppContext } from '@/App';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { Mail, User, CheckCircle2, Loader2 } from 'lucide-react';
+import { Mail, User, CheckCircle2, Loader2, KeyRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { isPWAInstalled } from '@/hooks/usePWAManifest';
+import { logger } from '@/lib/logger';
 
 const ClientAccessPage = () => {
   const navigate = useNavigate();
@@ -22,6 +24,11 @@ const ClientAccessPage = () => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [suspendedMessage, setSuspendedMessage] = useState(null);
+
+  // 📱 PWA: Détection mode standalone → flow OTP au lieu de magic link
+  const isPWA = isPWAInstalled();
+  const [otpStep, setOtpStep] = useState('email'); // 'email' | 'code'
+  const [otpCode, setOtpCode] = useState('');
 
   // 🔥 PR-5: Afficher message si organisation suspendue
   useEffect(() => {
@@ -128,14 +135,35 @@ const ClientAccessPage = () => {
         return;
       }
 
-      // 2) Envoyer le Magic Link (exactement comme RegistrationPage)
-      // 🔥 Utiliser le hostname actuel pour rediriger vers la bonne org
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      // 📱 PWA MODE: Envoyer un code OTP (pas un magic link)
+      // Le code est tapé directement dans l'app → pas besoin de redirection Safari
+      if (isPWA) {
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email: email.trim(),
+          options: {
+            shouldCreateUser: true,
+          }
+        });
+
+        if (otpError) throw otpError;
+
+        setOtpStep('code');
+        toast({
+          title: "📧 Code envoyé !",
+          description: "Vérifiez votre boîte mail et entrez le code à 6 chiffres.",
+          className: "bg-green-500 text-white",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 🖥️ DESKTOP/BROWSER MODE: Magic link classique
+      const redirectUrl = `${window.location.origin}/open-app?redirect=/dashboard`;
       
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          shouldCreateUser: true, // ✅ Créer le user Auth (copié depuis RegistrationPage)
+          shouldCreateUser: true,
           emailRedirectTo: redirectUrl,
         }
       });
@@ -156,6 +184,51 @@ const ClientAccessPage = () => {
       toast({
         title: "Erreur",
         description: error.message || "Impossible d'envoyer le lien. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 📱 PWA: Vérifier le code OTP
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+
+    if (!otpCode.trim() || otpCode.trim().length < 6) {
+      toast({
+        title: "Code invalide",
+        description: "Veuillez entrer le code à 6 chiffres reçu par email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otpCode.trim(),
+        type: 'email',
+      });
+
+      if (error) throw error;
+
+      if (data?.session) {
+        toast({
+          title: "✅ Connexion réussie !",
+          description: "Bienvenue dans votre espace client.",
+          className: "bg-green-500 text-white",
+        });
+        navigate('/dashboard', { replace: true });
+      }
+
+    } catch (error) {
+      logger.error('OTP verification error:', error);
+      toast({
+        title: "Code incorrect",
+        description: "Le code est invalide ou a expiré. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -233,6 +306,103 @@ const ClientAccessPage = () => {
     );
   }
 
+  // 📱 PWA: Écran de saisie du code OTP
+  if (isPWA && otpStep === 'code') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full"
+        >
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <KeyRound className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Entrez votre code</h2>
+            <p className="text-gray-600">
+              Un code à 6 chiffres a été envoyé à<br />
+              <strong>{email}</strong>
+            </p>
+          </div>
+
+          <form onSubmit={handleVerifyOTP} className="space-y-6">
+            <div>
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-3xl font-mono tracking-[0.5em] py-6 h-16"
+                autoFocus
+                disabled={loading}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-semibold"
+              disabled={loading || otpCode.length < 6}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Vérification...
+                </>
+              ) : (
+                'Valider'
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center space-y-2">
+            <button
+              onClick={() => {
+                setOtpStep('email');
+                setOtpCode('');
+              }}
+              className="text-sm text-gray-500 hover:underline"
+            >
+              ← Modifier l'email
+            </button>
+            <br />
+            <button
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  await supabase.auth.signInWithOtp({
+                    email: email.trim(),
+                    options: { shouldCreateUser: true }
+                  });
+                  toast({
+                    title: "📧 Nouveau code envoyé !",
+                    description: "Vérifiez votre boîte mail.",
+                    className: "bg-blue-500 text-white",
+                  });
+                } catch (err) {
+                  toast({
+                    title: "Erreur",
+                    description: "Impossible de renvoyer le code.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="text-sm text-blue-600 hover:underline"
+              disabled={loading}
+            >
+              Renvoyer le code
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <motion.div
@@ -244,7 +414,10 @@ const ClientAccessPage = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Connexion Client</h1>
           <p className="text-gray-600">
-            Recevez un lien sécurisé pour accéder à votre espace
+            {isPWA 
+              ? 'Entrez votre email pour recevoir un code de connexion'
+              : 'Recevez un lien sécurisé pour accéder à votre espace'
+            }
           </p>
         </div>
 
@@ -309,7 +482,7 @@ const ClientAccessPage = () => {
             </p>
           </div>
 
-          {/* Bouton Magic Link */}
+          {/* Bouton Magic Link / OTP */}
           <Button
             type="submit"
             className="w-full gradient-blue text-white py-6 text-lg font-semibold"
@@ -320,13 +493,18 @@ const ClientAccessPage = () => {
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 Envoi en cours...
               </>
+            ) : isPWA ? (
+              'Recevoir mon code'
             ) : (
               'Recevoir mon lien sécurisé'
             )}
           </Button>
 
           <p className="text-xs text-center text-gray-500">
-            Un lien unique vous sera envoyé par email pour accéder à votre espace en toute sécurité.
+            {isPWA
+              ? 'Un code à 6 chiffres vous sera envoyé par email pour vous connecter.'
+              : 'Un lien unique vous sera envoyé par email pour accéder à votre espace en toute sécurité.'
+            }
           </p>
         </form>
 
