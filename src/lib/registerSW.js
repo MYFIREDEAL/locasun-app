@@ -22,18 +22,23 @@ export const registerServiceWorker = async () => {
 
     logger.info('[PWA] Service Worker enregistré', { scope: registration.scope });
 
-    // Auto-update : quand une nouvelle version est dispo
+    // Auto-update : quand une nouvelle version est dispo → reload
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
       if (!newWorker) return;
 
       newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated') {
-          logger.info('[PWA] Nouvelle version du SW activée');
-          // Pas de reload automatique — on laisse l'utilisateur finir ce qu'il fait
+        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+          logger.info('[PWA] Nouvelle version détectée → reload');
+          window.location.reload();
         }
       });
     });
+
+    // Vérifier les mises à jour toutes les 2 minutes
+    setInterval(() => {
+      registration.update().catch(() => {});
+    }, 2 * 60 * 1000);
 
     return registration;
   } catch (error) {
