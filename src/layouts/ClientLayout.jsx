@@ -10,12 +10,15 @@ import { logger } from '@/lib/logger';
 import ModuleBoundary from '@/components/ModuleBoundary';
 import { usePWAManifest } from '@/hooks/usePWAManifest';
 import InstallPWAPrompt from '@/components/client/InstallPWAPrompt';
+import NotificationOptIn from '@/components/client/NotificationOptIn';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const isMobile = width < 768;
   const { currentUser, setCurrentUser, companyLogo, brandName, logoUrl, primaryColor } = useAppContext();
+  const { organizationId } = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const [sessionCheckDone, setSessionCheckDone] = useState(false);
@@ -128,6 +131,15 @@ const ClientLayout = () => {
       {/* 📱 Bannière installation PWA — uniquement mobile, pas dans le chat */}
       {isMobile && !isChatProjectPage && !isOfferDetailPage && (
         <InstallPWAPrompt brandName={brandName} logoUrl={logoUrl} isMobile={isMobile} />
+      )}
+      {/* 🔔 Soft prompt push notifications — uniquement mobile, après X visites, pas si PWA install prompt visible */}
+      {isMobile && !isChatProjectPage && !isOfferDetailPage && currentUser?.id && (
+        <NotificationOptIn 
+          prospectId={currentUser.id} 
+          organizationId={organizationId} 
+          brandName={brandName} 
+          isMobile={isMobile} 
+        />
       )}
       {/* Bottom nav mobile — masqué dans le chat projet et la page offre détail */}
       {isMobile && !isOfferDetailPage && <MobileBottomNav />}
