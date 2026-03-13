@@ -114,7 +114,6 @@ const ClientAccessPage = () => {
       setLoading(true);
 
       // 1) Vérifier si un prospect existe avec cet email DANS CETTE ORGANISATION
-      // 🔥 Multi-tenant : utiliser la RPC avec organization_id
       const { data: prospectExists, error: checkError } = await supabase
         .rpc('check_prospect_exists_in_org', { 
           p_email: email.trim(),
@@ -135,13 +134,17 @@ const ClientAccessPage = () => {
         return;
       }
 
-      // 📱 PWA MODE: Envoyer un code OTP (pas un magic link)
-      // Le code est tapé directement dans l'app → pas besoin de redirection Safari
+      // ──────────────────────────────────────────────────
+      // 📱 PWA MODE → Code OTP à 6 chiffres
+      // Le code est tapé directement dans l'app, pas de redirection
+      // Le template email Supabase inclut {{ .Token }}
+      // ──────────────────────────────────────────────────
       if (isPWA) {
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: email.trim(),
           options: {
             shouldCreateUser: true,
+            // PAS de emailRedirectTo → force l'envoi du token
           }
         });
 
@@ -157,7 +160,10 @@ const ClientAccessPage = () => {
         return;
       }
 
-      // 🖥️ DESKTOP/BROWSER MODE: Magic link classique
+      // ──────────────────────────────────────────────────
+      // 🖥️ DESKTOP/BROWSER MODE → Magic link classique
+      // Un clic dans l'email → connecté direct ✅
+      // ──────────────────────────────────────────────────
       const redirectUrl = `${window.location.origin}/open-app?redirect=/dashboard`;
       
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
@@ -236,7 +242,11 @@ const ClientAccessPage = () => {
     }
   };
 
-  // Afficher un loader si les projets ne sont pas encore chargés
+  // ════════════════════════════════════════════════════
+  // RENDERS CONDITIONNELS
+  // ════════════════════════════════════════════════════
+
+  // Loader initial
   if (authLoading || !projectsData || Object.keys(projectsData).length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -248,7 +258,7 @@ const ClientAccessPage = () => {
     );
   }
 
-  // 🔥 PR-5: Affichage si organisation suspendue
+  // 🔥 PR-5: Organisation suspendue
   if (suspendedMessage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100 p-4">
@@ -276,7 +286,8 @@ const ClientAccessPage = () => {
     );
   }
 
-  if (emailSent) {
+  // 🖥️ Desktop: Email envoyé → confirmation magic link
+  if (!isPWA && emailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <motion.div
@@ -295,18 +306,20 @@ const ClientAccessPage = () => {
             Cliquez sur le lien dans l'email pour accéder à votre espace client.
           </p>
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              setEmailSent(false);
+            }}
             variant="outline"
             className="w-full"
           >
-            Retour à l'accueil
+            ← Renvoyer un email
           </Button>
         </motion.div>
       </div>
     );
   }
 
-  // 📱 PWA: Écran de saisie du code OTP
+  // 📱 PWA: Écran de saisie du code OTP à 6 chiffres
   if (isPWA && otpStep === 'code') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -403,6 +416,9 @@ const ClientAccessPage = () => {
     );
   }
 
+  // ════════════════════════════════════════════════════
+  // FORMULAIRE PRINCIPAL (saisie email)
+  // ════════════════════════════════════════════════════
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <motion.div
@@ -422,7 +438,7 @@ const ClientAccessPage = () => {
         </div>
 
         <form onSubmit={handleSendMagicLink} className="space-y-6">
-          {/* Email uniquement */}
+          {/* Email */}
           <div>
             <Label htmlFor="email">Votre adresse email</Label>
             <div className="relative mt-2">
@@ -482,7 +498,7 @@ const ClientAccessPage = () => {
             </p>
           </div>
 
-          {/* Bouton Magic Link / OTP */}
+          {/* Bouton principal */}
           <Button
             type="submit"
             className="w-full gradient-blue text-white py-6 text-lg font-semibold"
