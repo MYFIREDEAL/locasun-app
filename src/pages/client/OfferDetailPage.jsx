@@ -76,8 +76,9 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
       const heroH = c.height === 'small' ? 'h-36' : c.height === 'large' ? 'h-72' : 'h-52';
       const fitCls = c.fit === 'contain' ? 'object-contain' : 'object-cover';
       const bgCls = c.fit === 'contain' ? 'bg-white' : 'bg-gradient-to-br from-gray-200 to-gray-300';
+      const heroWidth = size === 'full' ? '' : `${widthCls} mx-auto`;
       return (
-        <div className={`relative ${heroH} ${bgCls} overflow-hidden`}>
+        <div className={`relative ${heroH} ${bgCls} overflow-hidden ${heroWidth}`}>
           {c.url ? (
             <img src={c.url} alt="" className={`w-full h-full ${fitCls}`} />
           ) : (
@@ -85,7 +86,7 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
               <ShoppingBag className="h-16 w-16 text-gray-400" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+          {size === 'full' && <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />}
         </div>
       );
     }
