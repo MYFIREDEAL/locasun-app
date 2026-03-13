@@ -428,7 +428,7 @@ const MobileChatProjectPage = () => {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex-shrink-0 h-11 w-11">
+          <Button variant="ghost" size="icon" onMouseDown={(e) => e.preventDefault()} onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex-shrink-0 h-11 w-11">
             <Paperclip className={`h-5 w-5 ${uploading ? 'text-gray-300' : 'text-gray-500'}`} />
           </Button>
           <input type="file" ref={fileInputRef} onChange={(e) => e.target.files?.[0] && setAttachedFile(e.target.files[0])} className="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
@@ -446,7 +446,7 @@ const MobileChatProjectPage = () => {
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
           />
-          <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0 h-11 w-11" disabled={uploading}>
+          <Button onMouseDown={(e) => e.preventDefault()} onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0 h-11 w-11" disabled={uploading}>
             {uploading ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         </div>
