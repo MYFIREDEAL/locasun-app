@@ -1,19 +1,19 @@
 -- ============================================
--- 🔇 PRESENCE SYSTEM + SMART PUSH
+-- PRESENCE SYSTEM + SMART PUSH
 -- Date: 13 mars 2026
 -- ============================================
 -- Pas de push si le client est actif (app visible)
--- Décision CÔTÉ SERVEUR (trigger DB) — seule solution fiable iOS + Android
+-- Decision COTE SERVEUR (trigger DB) - seule solution fiable iOS + Android
 -- ============================================
 
--- 1️⃣ Table user_presence
+-- Table user_presence
 CREATE TABLE IF NOT EXISTS user_presence (
   prospect_id UUID PRIMARY KEY REFERENCES prospects(id) ON DELETE CASCADE,
   is_active BOOLEAN DEFAULT false,
   last_seen TIMESTAMPTZ DEFAULT now()
 );
 
--- 2️⃣ RLS: Le client peut lire/écrire SA propre présence
+-- RLS: Le client peut lire/ecrire SA propre presence
 ALTER TABLE user_presence ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "client_manage_own_presence" ON user_presence;
@@ -44,7 +44,7 @@ USING (
   )
 );
 
--- 3️⃣ Modifier le trigger push pour vérifier la présence
+-- Modifier le trigger push pour verifier la presence
 CREATE OR REPLACE FUNCTION fn_send_push_on_client_notification()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -63,7 +63,7 @@ BEGIN
     END IF;
   END IF;
 
-  -- 🔇 Vérifier si le client est ACTIF (app visible) — skip push si oui
+  -- Verifier si le client est ACTIF (app visible) - skip push si oui
   SELECT is_active, last_seen
   INTO v_is_active, v_last_seen
   FROM user_presence
@@ -106,5 +106,5 @@ BEGIN
 END;
 $$;
 
--- ===== VÉRIFICATION =====
+-- VERIFICATION
 SELECT 'user_presence table' as check, count(*) as rows FROM user_presence;

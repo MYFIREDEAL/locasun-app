@@ -52,12 +52,12 @@ const ClientLayout = () => {
     // Marquer actif immédiatement
     updatePresence(true);
 
-    // Heartbeat toutes les 20s quand visible (fenêtre 30s côté trigger)
+    // Heartbeat toutes les 7s quand visible (fenetre 30s cote trigger)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         updatePresence(true);
       }
-    }, 20000);
+    }, 7000);
 
     // Quand l'app passe en arrière-plan → marquer inactif
     const handleVisibility = () => {
