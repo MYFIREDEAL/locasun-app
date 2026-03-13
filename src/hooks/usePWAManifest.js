@@ -161,6 +161,18 @@ export const isIOS = () => {
 };
 
 /**
+ * 📱 Utilitaire : détecter si on est sur iOS + Safari (seul navigateur qui supporte PWA sur iOS)
+ * Chrome, Firefox, Brave sur iOS ne supportent PAS l'ajout à l'écran d'accueil
+ */
+export const isIOSSafari = () => {
+  if (!isIOS()) return false;
+  const ua = navigator.userAgent;
+  // Chrome iOS contient "CriOS", Firefox iOS "FxiOS", Edge iOS "EdgiOS", Opera "OPiOS"
+  const isNotSafari = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  return !isNotSafari;
+};
+
+/**
  * 📱 Utilitaire : détecter si on est sur Android
  */
 export const isAndroid = () => {

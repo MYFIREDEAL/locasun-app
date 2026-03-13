@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Download, Share, Plus, Smartphone } from 'lucide-react';
-import { isPWAInstalled, isIOS, isAndroid } from '@/hooks/usePWAManifest';
+import { X, Download, Share, Plus, Smartphone, Copy, ExternalLink } from 'lucide-react';
+import { isPWAInstalled, isIOS, isIOSSafari, isAndroid } from '@/hooks/usePWAManifest';
 
 const DISMISS_KEY = 'pwa-install-dismissed';
 const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 jours
@@ -23,6 +23,29 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Détecter iOS + pas Safari (Chrome, Firefox, etc.)
+  const isIOSNotSafari = isIOS() && !isIOSSafari();
+
+  // Copier le lien pour ouvrir dans Safari
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.origin + '/dashboard');
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 3000);
+    } catch {
+      // Fallback pour les navigateurs qui ne supportent pas clipboard
+      const input = document.createElement('input');
+      input.value = window.location.origin + '/dashboard';
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 3000);
+    }
+  };
 
   // Vérifier si la bannière a été dismiss récemment
   const isDismissed = useCallback(() => {
@@ -61,9 +84,8 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // iOS : pas de beforeinstallprompt, on affiche manuellement après un délai
+    // iOS (Safari ou autre navigateur) : afficher manuellement après un délai
     if (isIOS()) {
-      // Afficher après 3 secondes (laisser le temps de voir l'app d'abord)
       const timeout = setTimeout(() => {
         if (!isPWAInstalled() && !isDismissed()) {
           setShowPrompt(true);
@@ -132,36 +154,70 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
               <p className="font-bold text-gray-900 text-base">
                 📲 Ajoutez {brandName} sur votre téléphone
               </p>
-              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                Retrouvez votre espace client directement sur votre écran d'accueil et suivez l'avancée de votre projet en temps réel
-              </p>
+              {isIOSNotSafari ? (
+                <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  Pour installer l'application, ouvrez cette page dans <span className="font-semibold text-gray-700">Safari</span>. Copiez le lien ci-dessous et collez-le dans Safari.
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  Retrouvez votre espace client directement sur votre écran d'accueil et suivez l'avancée de votre projet en temps réel
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Boutons d'action */}
+          {/* Boutons d'action — adaptés selon le navigateur */}
           <div className="flex gap-2 mt-3">
-            <button
-              onClick={handleInstallClick}
-              className="flex-1 bg-blue-600 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors"
-            >
-              {isIOS() ? (
-                <>
-                  <Smartphone className="w-4 h-4" />
-                  Voir comment faire
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Installer l'application
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleDismiss}
-              className="px-4 py-3 text-sm text-gray-500 font-medium hover:text-gray-700 transition-colors"
-            >
-              Plus tard
-            </button>
+            {isIOSNotSafari ? (
+              /* iOS + Chrome/Firefox → inviter à ouvrir dans Safari */
+              <>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex-1 bg-blue-600 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                >
+                  {linkCopied ? (
+                    <>✅ Lien copié !</>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copier le lien
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleDismiss}
+                  className="px-4 py-3 text-sm text-gray-500 font-medium hover:text-gray-700 transition-colors"
+                >
+                  Plus tard
+                </button>
+              </>
+            ) : (
+              /* iOS Safari ou Android → flow normal */
+              <>
+                <button
+                  onClick={handleInstallClick}
+                  className="flex-1 bg-blue-600 text-white font-semibold text-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                >
+                  {isIOS() ? (
+                    <>
+                      <Smartphone className="w-4 h-4" />
+                      Voir comment faire
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Installer l'application
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleDismiss}
+                  className="px-4 py-3 text-sm text-gray-500 font-medium hover:text-gray-700 transition-colors"
+                >
+                  Plus tard
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
