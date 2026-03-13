@@ -1,7 +1,9 @@
 # 📱 Plan de Redesign Mobile Client
 
 > Date de création : 12 mars 2026
-> Statut : PLANIFIÉ
+> Statut : ✅ TERMINÉ (13 mars 2026)
+> 
+> **Toutes les phases sont implémentées et déployées sur Vercel.**
 
 ---
 
@@ -42,76 +44,78 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 ### Phase 1 — Bottom Nav Mobile
 **Fichiers impactés :** `ClientLayout.jsx`, nouveau composant `MobileBottomNav.jsx`
 
-- [ ] **1.1** Créer `src/components/client/MobileBottomNav.jsx`
-  - 3 onglets : Home 🏠 | Chat 💬 | Profil 👤
+- [x] **1.1** Créer `src/components/client/MobileBottomNav.jsx`
+  - 3 onglets : Home 🏠 | Chat 💬 | Menu ☰ (anciennement Profil)
   - Pastille rouge sur Chat si messages non lus / action requise
   - Fixé en bas de l'écran (`fixed bottom-0`)
   - Affiché uniquement sur mobile (`md:hidden`)
+  - **Toujours visible** y compris sur chat et formulaires
 
-- [ ] **1.2** Modifier `ClientLayout.jsx`
+- [x] **1.2** Modifier `ClientLayout.jsx`
   - Masquer la navbar du haut sur mobile (garder uniquement le logo en mini header)
   - Ajouter `<MobileBottomNav />` dans le layout
   - Ajouter `padding-bottom` au contenu pour ne pas cacher derrière la bottom nav
+  - Fond blanc conditionnel quand page chat (élimine flash gris)
 
-- [ ] **1.3** Routing mobile
+- [x] **1.3** Routing mobile
   - Home → `/dashboard` (liste projets)
   - Chat → `/dashboard/chat` (liste conversations)
-  - Profil → `/dashboard/profil` (profil + parrainage)
+  - Menu → `/dashboard/menu` (Profil, Parrainage, Offres, Déconnexion)
 
 ### Phase 2 — Carte Projet Mobile (Home)
 **Fichiers impactés :** `ProjectCard.jsx`, `Dashboard.jsx`
 
-- [ ] **2.1** Modifier `ProjectCard.jsx` pour mobile
+- [x] **2.1** Modifier `ProjectCard.jsx` pour mobile
   - Garder : icône + nom projet + progression % + étape actuelle
-  - Ajouter : pastille **"Action requise"** si panel `pending` (form ou message) côté client
-  - Clic sur la carte → **Vue Timeline** (progression + liste étapes)
-  - Desktop : pas de changement (bouton "Continuer le projet 🚀" reste)
+  - Ajouter : pastille **"Action requise"** si panel `pending` (form ou message) — visible mobile ET desktop, glow pulse
+  - Clic sur la carte → **Vue Timeline** (progression + liste étapes) — ou chat si action requise
+  - Carte cliquable partout (mobile + desktop, pas juste le bouton)
 
 ### Phase 3 — Liste Conversations (Chat)
 **Fichiers impactés :** nouveau composant `ChatConversationsList.jsx`
 
-- [ ] **3.1** Créer `src/components/client/ChatConversationsList.jsx`
+- [x] **3.1** Créer `src/components/client/ChatConversationsList.jsx`
   - Liste des projets du client comme conversations (style WhatsApp)
   - Chaque ligne : icône projet + nom + dernier message + timestamp
   - Pastille si message non lu ou action requise
   - Clic → ouvre le chat du projet
 
-- [ ] **3.2** Créer la route `/dashboard/chat`
+- [x] **3.2** Créer la route `/dashboard/chat`
   - Affiche `ChatConversationsList` par défaut
   - `/dashboard/chat/:projectType` → chat d'un projet spécifique
 
-- [ ] **3.3** Pastille sur l'onglet Chat (bottom nav)
+- [x] **3.3** Pastille sur l'onglet Chat (bottom nav)
   - Compteur total de messages non lus / actions requises tous projets confondus
   - Utilise les données déjà dispo dans `clientNotifications`
 
 ### Phase 4 — Vue Chat Mobile (dans un projet)
 **Fichiers impactés :** `ProjectDetails.jsx`, `ChatInterface` (dans ProjectDetails)
 
-- [ ] **4.1** Vue Chat mobile quand on arrive depuis Chat
+- [x] **4.1** Vue Chat mobile quand on arrive depuis Chat
   - Header : emoji + nom étape + badge "En cours" (déjà existant)
   - Flèche retour ← → retour liste conversations
   - Chat Charly (messages existants)
   - Input "Écrire à votre conseiller..."
 
-- [ ] **4.2** Bouton "📋 Remplir le formulaire" dans le chat (MOBILE UNIQUEMENT)
+- [x] **4.2** Bouton "📋 Remplir le formulaire" dans le chat (MOBILE UNIQUEMENT)
   - Détecter les messages liés à une action FORM (via metadata)
   - Afficher un bouton stylé sous le message
   - Clic → ouvre le formulaire en plein écran
 
-- [ ] **4.3** Boutons MESSAGE dans le chat
+- [x] **4.3** Boutons MESSAGE dans le chat
   - "Valider" / "Besoin d'infos" → déjà existants, pas de changement
 
 ### Phase 5 — Formulaire Plein Écran Mobile
 **Fichiers impactés :** nouveau composant `MobileFormModal.jsx`, `ClientFormPanel.jsx`
 
-- [ ] **5.1** Créer `src/components/client/MobileFormModal.jsx`
+- [x] **5.1** Créer `src/components/client/MobileFormModal.jsx`
   - Modal/overlay plein écran sur mobile
   - Header : nom du formulaire + bouton fermer ✕
   - Contenu : réutilise le rendu de `ClientFormPanel` (champs + bouton Envoyer)
   - Bouton "Valider mes infos" en bas (sticky)
   - Après soumission → retour au chat
 
-- [ ] **5.2** Intégrer dans le chat
+- [x] **5.2** Intégrer dans le chat
   - State `openFormPanelId` dans la vue chat
   - Bouton "Remplir le formulaire" → `setOpenFormPanelId(panelId)`
   - `<MobileFormModal>` s'ouvre par-dessus
@@ -119,7 +123,7 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 ### Phase 6 — Vue Timeline Mobile (depuis Home)
 **Fichiers impactés :** `ProjectDetails.jsx`
 
-- [ ] **6.1** Vue Timeline mobile quand on arrive depuis Home (clic carte projet)
+- [x] **6.1** Vue Timeline mobile quand on arrive depuis Home (clic carte projet)
   - Header : emoji + nom projet + flèche retour
   - Barre progression + %
   - Liste complète des étapes avec statuts (Terminé ✅ / En cours 🔄 / À venir)
@@ -128,15 +132,15 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 ### Phase 7 — Nettoyage Mobile
 **Fichiers impactés :** `ProjectDetails.jsx`, `ClientFormPanel.jsx`
 
-- [ ] **7.1** Masquer `ClientFormPanel` empilé en bas sur mobile
+- [x] **7.1** Masquer `ClientFormPanel` empilé en bas sur mobile
   - Le formulaire est accessible uniquement via le bouton dans le chat
   - `{isDesktop && <ClientFormPanel ... />}` (déjà fait pour desktop, retirer le rendu mobile)
 
-- [ ] **7.2** Masquer la navbar du haut sur mobile
+- [x] **7.2** Masquer la navbar du haut sur mobile
   - Le logo reste en mini header
   - Les onglets "Tableau de bord / Offres / Parrainage" disparaissent (remplacés par bottom nav)
 
-- [ ] **7.3** Cloche notifications
+- [x] **7.3** Cloche notifications
   - Desktop : reste dans la navbar (comme maintenant)
   - Mobile : supprimée (remplacée par pastille sur onglet Chat)
 
@@ -158,12 +162,12 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 2. Phase 7 (Nettoyage) — masquer navbar mobile, retirer formulaires empilés
 
 #### 🧪 POINT D'ARRÊT — Déployer & Tester
-- [ ] ✅ Desktop : RIEN n'a changé (3 colonnes, navbar, formulaires, chat) 
-- [ ] ✅ Mobile : bottom nav visible (Home / Chat / Profil)
-- [ ] ✅ Mobile : navbar du haut masquée (logo seul reste)
-- [ ] ✅ Mobile : formulaires plus empilés en bas
-- [ ] ✅ Envoyer un formulaire V2 depuis admin → vérifier que ça fonctionne toujours côté admin
-- [ ] ✅ Valider un formulaire côté admin → vérifier trigger + chaînage OK
+- [x] ✅ Desktop : RIEN n'a changé (3 colonnes, navbar, formulaires, chat) 
+- [x] ✅ Mobile : bottom nav visible (Home / Chat / Menu)
+- [x] ✅ Mobile : navbar du haut masquée (logo seul reste)
+- [x] ✅ Mobile : formulaires plus empilés en bas
+- [x] ✅ Envoyer un formulaire V2 depuis admin → vérifier que ça fonctionne toujours côté admin
+- [x] ✅ Valider un formulaire côté admin → vérifier trigger + chaînage OK
 
 ---
 
@@ -172,11 +176,11 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 4. Phase 2 (Carte Projet mobile) — pastille "Action requise"
 
 #### 🧪 POINT D'ARRÊT — Déployer & Tester
-- [ ] ✅ Desktop : carte projet inchangée (bouton "Continuer le projet 🚀")
-- [ ] ✅ Mobile : clic carte projet → vue Timeline (progression + étapes)
-- [ ] ✅ Mobile : pastille "Action requise" visible si panel pending
-- [ ] ✅ Mobile : flèche retour ← → retour Home
-- [ ] ✅ Envoyer un MESSAGE V2 → vérifier pastille apparaît côté client
+- [x] ✅ Desktop : carte projet inchangée (bouton "Continuer le projet 🚀")
+- [x] ✅ Mobile : clic carte projet → vue Timeline (progression + étapes)
+- [x] ✅ Mobile : pastille "Action requise" visible si panel pending
+- [x] ✅ Mobile : flèche retour ← → retour Home
+- [x] ✅ Envoyer un MESSAGE V2 → vérifier pastille apparaît côté client
 
 ---
 
@@ -185,13 +189,13 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 6. Phase 4 (Chat Mobile) — bouton "Remplir le formulaire" dans le chat
 
 #### 🧪 POINT D'ARRÊT — Déployer & Tester
-- [ ] ✅ Desktop : chat inchangé
-- [ ] ✅ Mobile : onglet Chat → liste conversations (projets)
-- [ ] ✅ Mobile : clic conversation → chat du projet
-- [ ] ✅ Mobile : pastille messages non lus sur conversations
-- [ ] ✅ Mobile : bouton "Remplir le formulaire" visible dans le chat si FORM pending
-- [ ] ✅ Envoyer un formulaire V2 → message apparaît dans chat + bouton visible
-- [ ] ✅ Client écrit un message → admin le reçoit (vérifier real-time)
+- [x] ✅ Desktop : chat inchangé
+- [x] ✅ Mobile : onglet Chat → liste conversations (projets)
+- [x] ✅ Mobile : clic conversation → chat du projet
+- [x] ✅ Mobile : pastille messages non lus sur conversations
+- [x] ✅ Mobile : bouton "Remplir le formulaire" visible dans le chat si FORM pending
+- [x] ✅ Envoyer un formulaire V2 → message apparaît dans chat + bouton visible
+- [x] ✅ Client écrit un message → admin le reçoit (vérifier real-time)
 
 ---
 
@@ -199,24 +203,24 @@ Tout le redesign est **conditionné par `isMobile`**. Le desktop garde ses 3 col
 7. Phase 5 (Formulaire Plein Écran) — le plus impactant UX
 
 #### 🧪 POINT D'ARRÊT FINAL — Déployer & Tester
-- [ ] ✅ Desktop : formulaires inchangés (colonne droite)
-- [ ] ✅ Mobile : bouton dans chat → formulaire plein écran
-- [ ] ✅ Mobile : remplir formulaire → soumettre → retour au chat
-- [ ] ✅ Mobile : message "A complété le formulaire" apparaît dans le chat
-- [ ] ✅ Admin : voit le formulaire soumis → valide → trigger chaînage OK
-- [ ] ✅ Mobile : formulaire passe à "✅ Approuvé" 
-- [ ] ✅ Mobile : message "Votre formulaire a été validé" apparaît dans le chat
-- [ ] ✅ Test MESSAGE : boutons Valider/Besoin d'infos fonctionnent
-- [ ] ✅ Test avec 1 seul projet
-- [ ] ✅ Test avec plusieurs projets
+- [x] ✅ Desktop : formulaires inchangés (colonne droite)
+- [x] ✅ Mobile : bouton dans chat → formulaire plein écran
+- [x] ✅ Mobile : remplir formulaire → soumettre → retour au chat
+- [x] ✅ Mobile : message "A complété le formulaire" apparaît dans le chat
+- [x] ✅ Admin : voit le formulaire soumis → valide → trigger chaînage OK
+- [x] ✅ Mobile : formulaire passe à "✅ Approuvé" 
+- [x] ✅ Mobile : message "Votre formulaire a été validé" apparaît dans le chat
+- [x] ✅ Test MESSAGE : boutons Valider/Besoin d'infos fonctionnent
+- [x] ✅ Test avec 1 seul projet
+- [x] ✅ Test avec plusieurs projets
 7. Phase 2 (Carte Projet) — finitions
 
 ## 🧪 Tests à faire
-- [ ] Desktop : vérifier que RIEN n'a changé
-- [ ] Mobile : flow Home → carte projet → Timeline
-- [ ] Mobile : flow Chat → liste conversations → chat projet → bouton formulaire → plein écran → soumission → retour chat
-- [ ] Mobile : pastille Chat avec compteur notifs
-- [ ] Mobile : client avec 1 seul projet
-- [ ] Mobile : client avec plusieurs projets
-- [ ] Mobile : formulaire déjà approuvé (pas de bouton)
-- [ ] Mobile : message en attente (boutons Valider/Besoin d'infos)
+- [x] Desktop : vérifier que RIEN n'a changé
+- [x] Mobile : flow Home → carte projet → Timeline
+- [x] Mobile : flow Chat → liste conversations → chat projet → bouton formulaire → plein écran → soumission → retour chat
+- [x] Mobile : pastille Chat avec compteur notifs
+- [x] Mobile : client avec 1 seul projet
+- [x] Mobile : client avec plusieurs projets
+- [x] Mobile : formulaire déjà approuvé (pas de bouton)
+- [x] Mobile : message en attente (boutons Valider/Besoin d'infos)

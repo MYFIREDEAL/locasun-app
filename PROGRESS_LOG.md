@@ -5,6 +5,92 @@
 
 ---
 
+## 📅 12-13 mars 2026 — Session 3 (nuit)
+
+### ✅ Features — Mobile Redesign Complet
+- **📱 Redesign Mobile Étape 1→4** : Toutes les phases du `MOBILE_REDESIGN_PLAN.md` terminées et déployées
+  - **Bottom nav 3 onglets** : Home / Chat / Menu (anciennement Profil)
+  - **Chat conversations** : `ChatConversationsList.jsx` style WhatsApp avec badges non lus
+  - **Chat projet** : `MobileChatProjectPage.jsx` — messages + boutons action + upload fichiers
+  - **Formulaire plein écran** : `MobileFormModal.jsx` — wraps `ClientFormPanel` dans overlay fullscreen
+  - **Carte projet cliquable** : mobile ET desktop — clic n'importe où sur la carte ouvre le projet
+  - **Pastille "Action requise"** : visible mobile + desktop, rouge vif avec glow pulse (pas de disparition)
+
+### ✅ Features — UX Brief v2 (4 points)
+- **Action requise → ouvre le chat** : clic carte avec action requise → `/dashboard/chat/:projectType` (pas la timeline)
+- **Bottom nav toujours visible** : visible sur chat, formulaires, partout — `MobileChatProjectPage` et `MobileFormModal` utilisent `bottom-16`
+- **Onglet Menu** : remplace Profil — nouvelle page `MenuPage.jsx` avec liens Profil, Parrainage, Offres, Déconnexion
+- **Home simplifiée** : bandeaux Offres/Parrainage retirés (accessibles via Menu)
+
+### ✅ Features — Ajustements UX
+- **"Mes projets"** remplace "Vue d'ensemble" (mobile + desktop)
+- **Compteurs dynamiques** : "N terminé / N en cours" calculés depuis `projectStepsStatus` (Supabase)
+- **Home reset** : clic Home bottom nav → retour vue projets (reset `selectedProject` via `location.state.resetProject`)
+- **Fond blanc chat** : `ClientLayout` met `bg-white` quand on est sur page chat (élimine flash gris entre routes)
+- **Offres page** : responsive mobile (images h-32, compact text), titre "Nos offres exclusives ⚡"
+- **Parrainage page** : responsive mobile (compact stats grid-cols-3, cards au lieu de table)
+
+### 🐛 Bugs fixés (session précédente — rappel)
+- **Notifications doublons client** : supprimé création frontend dans `addChatMessage` → triggers DB only
+- **Notifications admin manquantes** : créé triggers `on_client_message_notify_admin` + `trigger_notify_admin_on_client_form_submit`
+- **Trigger client ignorait sender='pro'** : fix `sender NOT IN ('admin', 'pro')`
+
+### 📝 Fichiers créés cette session
+| Fichier | Rôle |
+|---------|------|
+| `src/components/client/MobileBottomNav.jsx` | Bottom nav 3 onglets (Home/Chat/Menu) + badges |
+| `src/components/client/ChatConversationsList.jsx` | Liste conversations WhatsApp-style |
+| `src/components/client/MobileFormModal.jsx` | Overlay fullscreen formulaire |
+| `src/pages/client/MobileChatProjectPage.jsx` | Chat mobile par projet |
+| `src/pages/client/ChatPage.jsx` | Route `/dashboard/chat` (rend ChatConversationsList) |
+| `src/pages/client/MenuPage.jsx` | Page menu mobile (Profil, Parrainage, Offres, Déconnexion) |
+
+### 📝 Fichiers modifiés cette session
+| Fichier | Modification |
+|---------|-------------|
+| `src/App.jsx` | Routes `chat/:projectType`, `menu` ajoutées + import MenuPage |
+| `src/layouts/ClientLayout.jsx` | Bottom nav toujours visible, fond blanc conditionnel chat |
+| `src/components/Dashboard.jsx` | "Mes projets" + compteurs dynamiques, bandeaux retirés |
+| `src/components/ProjectCard.jsx` | Carte cliquable partout, pastille glow, action requise → chat |
+| `src/components/ProjectDetails.jsx` | `isMobile` masque chat section |
+| `src/pages/client/ParrainagePage.jsx` | Responsive mobile |
+| `src/pages/client/OffersPage.jsx` | Responsive mobile |
+| `src/index.css` | Animation `@keyframes glow` pour pastille |
+
+### 📝 Commits session
+- `114651c5` feat: mobile redesign étape 1
+- `49051b87` feat: mobile redesign étape 2
+- `2fccf347` feat: mobile redesign étape 3
+- `866bae62` fix: form cards dans le flux du chat
+- `b47e73eb` fix: header+input chat fixe
+- `7afa3c11` fix: masque header+bottomnav sur chat projet
+- `6b7d896a` feat: mobile redesign étape 4
+- `c21047d6` feat: bandeaux Offres + Parrainage Home mobile
+- `5e24bc6f` fix: Parrainage UX responsive mobile
+- `213fa4d3` fix: Offres UX responsive mobile
+- `8a14d3b0` fix: titres Offres
+- `bf67ff59` feat: UX mobile v2 — action requise→chat, bottom nav permanente, menu page, home simplifiée
+- `08c6f61d` feat: mobile home — Mes projets N terminé / N en cours
+- `27351270` fix: remet bloc blanc autour Mes projets
+- `0f8a080e` fix: desktop Vue d'ensemble → Mes projets
+- `21262391` feat: pastille Action requise desktop + carte cliquable partout
+- `d02045b8` fix: pastille glow pulse (toujours visible)
+- `b20d5edd` fix: Home bottom nav → retour vue projets
+- `9ea198f3` fix: chat mobile — supprime animation flash
+- `952c5bae` fix: fond blanc ClientLayout sur page chat
+
+### 🚀 Déploiement
+- **Vercel** : `git push origin main` déclenche le déploiement automatique
+- ⚠️ **NE PAS** utiliser `npm run deploy` (push sur gh-pages → erreur Vercel)
+
+### 🔜 Prochains sujets
+- **Test complet mobile** : vérifier tous les flows (Home → projet → timeline, Chat → conversation → formulaire)
+- **Test desktop** : vérifier que RIEN n'a changé
+- **Signature mobile** : vérifier le flow signature dans le chat mobile
+- **Notifications mobile** : pastille Chat reflète bien les notifs en temps réel
+
+---
+
 ## 📅 12 mars 2026 — Session 2 (soir)
 
 ### ✅ Features
