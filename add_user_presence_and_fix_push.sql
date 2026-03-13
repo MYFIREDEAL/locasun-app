@@ -69,8 +69,8 @@ BEGIN
   FROM user_presence
   WHERE prospect_id = NEW.prospect_id;
 
-  -- Actif = is_active=true ET last_seen < 30 secondes
-  IF v_is_active IS TRUE AND v_last_seen > (now() - interval '30 seconds') THEN
+  -- Actif = is_active=true ET last_seen < 45 secondes
+  IF v_is_active IS TRUE AND v_last_seen > (now() - interval '45 seconds') THEN
     RAISE LOG '[push] Client % actif (last_seen: %), skip push', NEW.prospect_id, v_last_seen;
     RETURN NEW;
   END IF;
