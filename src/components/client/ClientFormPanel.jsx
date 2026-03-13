@@ -379,13 +379,25 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
       logger.warn('⚠️ Erreur mise à jour currentUser (non bloquant):', err);
     }
 
-    // ✅ Envoyer le message de complétion (déduplication gérée par Supabase)
-    addChatMessage(prospectId, projectType, {
-      sender: 'client',
-      text: `A complété le formulaire : ${formDefinition?.name || 'Formulaire'}.`,
-      completedFormId: formId,
-      relatedMessageTimestamp: messageTimestamp,
+    // 🔥 CRITICAL: Marquer le panel comme soumis EN PREMIER (avant addChatMessage)
+    // Sinon si addChatMessage échoue, le panel reste "pending" et la pastille reste
+    updateClientFormPanel(panelId, {
+      status: 'submitted',
+      lastSubmittedAt: new Date().toISOString(),
+      userOverride: null,
     });
+
+    // ✅ Envoyer le message de complétion (non bloquant — si ça échoue, le formulaire est quand même soumis)
+    try {
+      await addChatMessage(prospectId, projectType, {
+        sender: 'client',
+        text: `A complété le formulaire : ${formDefinition?.name || 'Formulaire'}.`,
+        completedFormId: formId,
+        relatedMessageTimestamp: messageTimestamp,
+      });
+    } catch (chatErr) {
+      logger.warn('⚠️ Erreur envoi message chat (non bloquant, formulaire déjà soumis):', chatErr);
+    }
 
     // ⚠️ Warning si pas de prompts (normal pour nouvelles orgs, non bloquant)
     if (!prompts || Object.keys(prompts).length === 0) {
@@ -426,12 +438,6 @@ const ClientFormPanel = ({ isDesktop, projectType }) => {
         className: 'bg-green-500 text-white',
       });
     }
-
-    updateClientFormPanel(panelId, {
-      status: 'submitted',
-      lastSubmittedAt: new Date().toISOString(),
-      userOverride: null,
-    });
 
     // ✅ Ajouter événement dans project_history
     try {
