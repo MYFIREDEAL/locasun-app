@@ -36,7 +36,7 @@ const OfferCard = ({ project, projectStatus, index }) => {
       className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-[0.98] transition-all hover:shadow-md"
     >
       {/* Image */}
-      <div className="relative h-36 md:h-44 w-full bg-gradient-to-br from-gray-100 to-gray-200">
+      <div className="relative h-48 md:h-56 w-full bg-gradient-to-br from-gray-100 to-gray-200">
         {project.coverImage ? (
           <img src={project.coverImage} alt={title} className="w-full h-full object-cover" />
         ) : (
