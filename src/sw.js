@@ -28,6 +28,8 @@ self.addEventListener('push', (event) => {
       icon: data.icon || '/pwa-192x192.png',
       badge: '/pwa-192x192.png',
       tag: data.tag || 'default',
+      // ⚡ Garder la notification visible jusqu'au clic (ne pas disparaître)
+      requireInteraction: true,
       // Données pour le clic (quelle page ouvrir)
       data: {
         url: data.url || '/dashboard',
@@ -35,22 +37,32 @@ self.addEventListener('push', (event) => {
         projectType: data.projectType,
       },
       // Vibration sur Android
-      vibrate: [100, 50, 100],
+      vibrate: [200, 100, 200],
       // Actions rapides
       actions: data.actions || [],
     };
 
     event.waitUntil(
-      self.registration.showNotification(title, options)
+      self.registration.showNotification(title, options).then(() => {
+        // 🔴 Pastille rouge sur l'icône PWA
+        if (self.navigator && self.navigator.setAppBadge) {
+          return self.navigator.setAppBadge(1);
+        }
+      })
     );
   } catch (err) {
     console.error('[SW] Erreur push:', err);
   }
 });
 
-// 🔔 Clic sur notification → ouvrir la PWA sur la bonne page
+// 🔔 Clic sur notification → ouvrir la PWA sur la bonne page + enlever pastille
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  // 🔴 Enlever la pastille rouge
+  if (self.navigator && self.navigator.clearAppBadge) {
+    self.navigator.clearAppBadge();
+  }
 
   const url = event.notification.data?.url || '/dashboard';
 
