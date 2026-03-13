@@ -87,7 +87,7 @@ const NotificationOptIn = ({ prospectId, organizationId, brandName = 'votre espa
   }
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-50 px-3 pb-2 animate-in slide-in-from-bottom duration-300">
+    <div className="fixed bottom-[92px] left-0 right-0 z-50 px-3 pb-2 animate-in slide-in-from-bottom duration-300">
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 max-w-md mx-auto relative">
         {/* Bouton fermer */}
         <button

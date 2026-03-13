@@ -780,7 +780,7 @@ const ProjectDetails = ({ project, onBack }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="space-y-6 pb-20 md:pb-0"
+      className="space-y-6 pb-28 md:pb-0"
     >
       <div className="flex items-center space-x-2 md:space-x-4">
         <Button
