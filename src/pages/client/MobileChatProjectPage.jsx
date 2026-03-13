@@ -171,17 +171,37 @@ const MobileChatProjectPage = () => {
     }
   };
 
-  // Bouton Valider (MESSAGE)
+  // Bouton Valider (MESSAGE) — approuve TOUS les panels MESSAGE pending du projet
   const handleActionValidate = async (panelId, proceedLabel) => {
     setButtonLoading(panelId);
     try {
-      await supabase.from('client_form_panels').update({ status: 'approved' }).eq('panel_id', panelId);
+      // Trouver tous les panels MESSAGE pending de ce projet (pour les approuver tous d'un coup)
+      const allMessagePanelIds = messages
+        .filter(msg => msg.metadata?.actionButtons && msg.metadata?.panelId)
+        .map(msg => msg.metadata.panelId);
+
+      // Approuver TOUS les panels MESSAGE pending (pas seulement celui cliqué)
+      if (allMessagePanelIds.length > 0) {
+        await supabase
+          .from('client_form_panels')
+          .update({ status: 'approved' })
+          .in('panel_id', allMessagePanelIds)
+          .eq('status', 'pending');
+      }
+
       addChatMessage(prospectId, projectType, {
         sender: 'client',
         text: `✅ ${proceedLabel || 'Validé'}`,
         metadata: { actionResponse: 'validated', panelId },
       });
-      setPanelStatuses(prev => ({ ...prev, [panelId]: 'approved' }));
+
+      // Mettre à jour tous les statuts locaux
+      setPanelStatuses(prev => {
+        const updated = { ...prev };
+        allMessagePanelIds.forEach(id => { updated[id] = 'approved'; });
+        return updated;
+      });
+
       toast({ title: '✅ Confirmé', description: 'Votre réponse a été enregistrée.' });
     } catch (error) {
       logger.error('❌ Error validating', error);

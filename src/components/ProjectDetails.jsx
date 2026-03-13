@@ -123,26 +123,39 @@ const ChatInterface = ({ prospectId, projectType, currentStepIndex }) => {
     return () => supabase.removeChannel(channel);
   }, [messages]);
 
-  // 💬 MESSAGE: Client clique "Valider"
+  // 💬 MESSAGE: Client clique "Valider" — approuve TOUS les panels MESSAGE pending du projet
   const handleActionValidate = async (panelId, proceedLabel) => {
     setButtonLoading(panelId);
     try {
-      // 1. Update panel status → approved (via panel_id text)
-      const { error: updateError } = await supabase
-        .from('client_form_panels')
-        .update({ status: 'approved' })
-        .eq('panel_id', panelId);
+      // Trouver tous les panels MESSAGE pending de ce projet
+      const allMessagePanelIds = messages
+        .filter(msg => msg.metadata?.actionButtons && msg.metadata?.panelId)
+        .map(msg => msg.metadata.panelId);
+
+      // Approuver TOUS les panels MESSAGE pending (pas seulement celui cliqué)
+      if (allMessagePanelIds.length > 0) {
+        const { error: updateError } = await supabase
+          .from('client_form_panels')
+          .update({ status: 'approved' })
+          .in('panel_id', allMessagePanelIds)
+          .eq('status', 'pending');
+        
+        if (updateError) throw updateError;
+      }
       
-      if (updateError) throw updateError;
-      
-      // 2. Envoyer message chat de confirmation
+      // Envoyer message chat de confirmation
       addChatMessage(prospectId, projectType, {
         sender: 'client',
         text: `✅ ${proceedLabel || 'Validé'}`,
         metadata: { actionResponse: 'validated', panelId },
       });
       
-      setPanelStatuses(prev => ({ ...prev, [panelId]: 'approved' }));
+      // Mettre à jour tous les statuts locaux
+      setPanelStatuses(prev => {
+        const updated = { ...prev };
+        allMessagePanelIds.forEach(id => { updated[id] = 'approved'; });
+        return updated;
+      });
       
       toast({
         title: '✅ Confirmé',
