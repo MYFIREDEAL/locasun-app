@@ -64,11 +64,13 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay }}
-          className={`px-5 md:px-8 ${isFirst ? 'pt-6' : 'pt-3'} pb-1`}
+          className="px-5 md:px-8 -mt-6 relative z-10"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{project?.icon}</span>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{c.text}</h1>
+          <div className="bg-white rounded-2xl shadow-md px-5 py-4 border border-gray-100">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{project?.icon}</span>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">{c.text}</h1>
+            </div>
           </div>
         </motion.div>
       );
@@ -344,7 +346,7 @@ const OfferDetailPage = () => {
           </div>
 
           {/* Autres blocs V2 */}
-          <div className="max-w-2xl mx-auto -mt-4 relative z-10">
+          <div className="max-w-2xl mx-auto relative z-10 pt-2">
             {v2OtherBlocks.map((block, i) => (
               <ContentBlockRenderer key={block.id || i} block={block} project={project} index={i} isFirst={i === 0 && !v2HeroBlock} />
             ))}
