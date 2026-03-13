@@ -52,7 +52,7 @@ const ClientLayout = () => {
     // Marquer actif immédiatement
     updatePresence(true);
 
-    // Heartbeat toutes les 20s quand visible
+    // Heartbeat toutes les 20s quand visible (fenêtre 30s côté trigger)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         updatePresence(true);
