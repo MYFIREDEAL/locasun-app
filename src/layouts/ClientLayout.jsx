@@ -44,8 +44,8 @@ const ClientLayout = () => {
       
       if (!session) {
         // Envoyer un magic link automatiquement
-        // 🔥 Utiliser le hostname actuel pour rediriger vers la bonne org
-        const redirectUrl = `${window.location.origin}/dashboard`;
+        // � PWA: rediriger vers /open-app pour guider vers la PWA installée
+        const redirectUrl = `${window.location.origin}/open-app?redirect=/dashboard`;
         
         const { error } = await supabase.auth.signInWithOtp({
           email: currentUser.email,

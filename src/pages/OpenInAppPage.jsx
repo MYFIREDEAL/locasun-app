@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { isPWAInstalled } from '@/hooks/usePWAManifest';
+import { isPWAInstalled, isIOS, isAndroid } from '@/hooks/usePWAManifest';
 import { logger } from '@/lib/logger';
 
 /**
@@ -10,9 +10,9 @@ import { logger } from '@/lib/logger';
  * le lien s'ouvre dans le navigateur (Safari/Chrome) au lieu de la PWA installée.
  * 
  * Solution : 
- * - Si on est DÉJÀ dans la PWA (standalone) → redirect direct vers /dashboard
- * - Si on est dans le browser → afficher un bouton "Ouvrir dans l'app"
- *   qui utilise un custom URL scheme ou une page qui guide l'utilisateur
+ * - Desktop → redirect DIRECT vers /dashboard (pas de PWA sur ordi)
+ * - PWA standalone → redirect direct vers /dashboard
+ * - Mobile browser → page interstitielle "Ouvrir dans l'app"
  * 
  * Route : /open-app?redirect=/dashboard (ou tout autre path)
  */
@@ -20,24 +20,32 @@ const OpenInAppPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/dashboard';
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [showInterstitial, setShowInterstitial] = useState(false);
 
   useEffect(() => {
-    // Si on est déjà dans la PWA → redirect immédiat
+    const isMobile = isIOS() || isAndroid();
+
+    // Desktop → redirect immédiat, pas de page interstitielle
+    if (!isMobile) {
+      logger.info('[OpenInApp] Desktop détecté, redirect direct vers', redirectPath);
+      navigate(redirectPath, { replace: true });
+      return;
+    }
+
+    // Déjà dans la PWA (standalone) → redirect immédiat
     if (isPWAInstalled()) {
-      setIsStandalone(true);
       logger.info('[OpenInApp] Déjà en mode standalone, redirect vers', redirectPath);
       navigate(redirectPath, { replace: true });
       return;
     }
 
-    // Si on est dans le browser, on attend que le magic link soit traité
-    // (Supabase auth via detectSessionInUrl) puis on propose d'ouvrir la PWA
-    logger.info('[OpenInApp] Mode browser détecté, affichage page interstitielle');
+    // Mobile + browser → afficher la page interstitielle
+    logger.info('[OpenInApp] Mobile browser détecté, affichage page interstitielle');
+    setShowInterstitial(true);
   }, []);
 
-  // Si on est en standalone, on ne montre rien (redirect en cours)
-  if (isStandalone) {
+  // Redirect en cours (desktop ou standalone) → spinner
+  if (!showInterstitial) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />

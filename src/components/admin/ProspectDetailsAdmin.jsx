@@ -4199,7 +4199,8 @@ const ProspectDetailsAdmin = ({
           return;
         }
         try {
-          const redirectUrl = `${window.location.origin}/dashboard`;
+          // 📱 PWA: rediriger vers /open-app pour que la page interstitielle guide vers la PWA
+          const redirectUrl = `${window.location.origin}/open-app?redirect=/dashboard`;
           const orgId = organizationId || activeAdminUser?.organization_id;
           console.log('[handleActionClick] 📧 Sending magic link to:', editableProspect.email, 'org:', orgId);
           
