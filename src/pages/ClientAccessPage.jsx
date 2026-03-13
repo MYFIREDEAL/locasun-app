@@ -204,7 +204,7 @@ const ClientAccessPage = () => {
     if (!otpCode.trim() || otpCode.trim().length < 6) {
       toast({
         title: "Code invalide",
-        description: "Veuillez entrer le code à 6 chiffres reçu par email.",
+        description: "Veuillez entrer le code reçu par email.",
         variant: "destructive",
       });
       return;
@@ -334,7 +334,7 @@ const ClientAccessPage = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Entrez votre code</h2>
             <p className="text-gray-600">
-              Un code à 6 chiffres a été envoyé à<br />
+              Un code a été envoyé à<br />
               <strong>{email}</strong>
             </p>
           </div>
@@ -345,11 +345,11 @@ const ClientAccessPage = () => {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={6}
+                maxLength={8}
                 placeholder="000000"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                className="text-center text-3xl font-mono tracking-[0.5em] py-6 h-16"
+                className="text-center text-3xl font-mono tracking-[0.3em] py-6 h-16"
                 autoFocus
                 disabled={loading}
               />
@@ -518,7 +518,7 @@ const ClientAccessPage = () => {
 
           <p className="text-xs text-center text-gray-500">
             {isPWA
-              ? 'Un code à 6 chiffres vous sera envoyé par email pour vous connecter.'
+              ? 'Un code vous sera envoyé par email pour vous connecter.'
               : 'Un lien unique vous sera envoyé par email pour accéder à votre espace en toute sécurité.'
             }
           </p>
