@@ -78,18 +78,17 @@ const MobileChatProjectPage = () => {
       .forEach(n => markClientNotificationAsRead(n.id));
   }, [clientNotifications, markClientNotificationAsRead, projectType]);
 
-  // Détecter clavier iOS/Android ouvert via visualViewport
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const threshold = 150; // clavier > 150px
-    const onResize = () => {
-      const diff = window.innerHeight - vv.height;
-      setKeyboardOpen(diff > threshold);
-    };
-    vv.addEventListener('resize', onResize);
-    return () => vv.removeEventListener('resize', onResize);
-  }, []);
+  // Détecter clavier iOS via focus/blur (seule méthode fiable en PWA standalone)
+  const handleInputFocus = () => {
+    setKeyboardOpen(true);
+    // Scroll vers le dernier message quand clavier s'ouvre
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  };
+  const handleInputBlur = () => {
+    setKeyboardOpen(false);
+  };
 
   // Panel statuses pour boutons d'action MESSAGE
   useEffect(() => {
@@ -430,8 +429,13 @@ const MobileChatProjectPage = () => {
             className="flex-1 h-12 text-base"
             enterKeyHint="send"
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           />
           <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0 h-11 w-11" disabled={uploading}>
