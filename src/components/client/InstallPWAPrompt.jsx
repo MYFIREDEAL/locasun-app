@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Download, Share, Plus } from 'lucide-react';
+import { X, Download, Share, Plus, Smartphone } from 'lucide-react';
 import { isPWAInstalled, isIOS, isAndroid } from '@/hooks/usePWAManifest';
 
 const DISMISS_KEY = 'pwa-install-dismissed';
@@ -108,7 +108,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
                 <img
                   src={logoUrl}
                   alt={brandName}
-                  className="w-12 h-12 rounded-xl object-contain bg-gray-50 p-1"
+                  className="w-12 h-12 rounded-xl object-contain bg-gray-50 p-1.5"
                 />
               ) : (
                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -122,10 +122,10 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
             {/* Texte */}
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-gray-900 text-sm">
-                Installer {brandName}
+                📲 Ajoutez {brandName} sur votre téléphone
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Accédez plus vite à votre espace depuis l'écran d'accueil
+                Retrouvez votre espace client comme une vraie application, directement sur votre écran d'accueil
               </p>
             </div>
 
@@ -148,12 +148,12 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
               {isIOS() ? (
                 <>
                   <Share className="w-4 h-4" />
-                  Comment installer
+                  Voir comment faire
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  Installer
+                  Installer l'application
                 </>
               )}
             </button>
@@ -174,7 +174,7 @@ const InstallPWAPrompt = ({ brandName = 'EVATIME', logoUrl, isMobile }) => {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-3xl">
               <h3 className="font-bold text-lg text-gray-900">
-                Installer {brandName}
+                📲 Ajouter {brandName} sur votre téléphone
               </h3>
               <button
                 onClick={() => setShowIOSGuide(false)}

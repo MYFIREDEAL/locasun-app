@@ -22,7 +22,14 @@ export const usePWAManifest = ({ brandName, logoUrl, primaryColor } = {}) => {
   const previousManifestRef = useRef(null);
 
   useEffect(() => {
-    const name = brandName || 'EVATIME';
+    // ⚠️ Ne pas injecter le manifest tant que le branding n'est pas chargé
+    // Sinon iOS pourrait lire "EVATIME" comme fallback au moment du "Ajouter à l'écran d'accueil"
+    if (!brandName) {
+      logger.info('[PWA] Branding pas encore chargé, manifest dynamique en attente...');
+      return;
+    }
+
+    const name = brandName;
     const shortName = name.length > 12 ? name.substring(0, 12) : name;
     const themeColor = primaryColor || '#3b82f6';
     const bgColor = '#ffffff';

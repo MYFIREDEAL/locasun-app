@@ -15,10 +15,10 @@ export default defineConfig({
       filename: 'sw.js',
       injectRegister: null, // On enregistre manuellement dans usePWAManifest
       manifest: {
-        // Manifest par défaut EVATIME (fallback)
-        // Sera écrasé dynamiquement par usePWAManifest.js selon l'org
-        name: 'EVATIME',
-        short_name: 'EVATIME',
+        // Manifest par défaut (fallback) — sera écrasé dynamiquement par usePWAManifest.js selon l'org
+        // ⚠️ NE PAS mettre de nom spécifique ici (sinon iOS/Android l'affichent avant le branding)
+        name: 'Votre espace client',
+        short_name: 'Espace client',
         description: 'Votre espace client',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
