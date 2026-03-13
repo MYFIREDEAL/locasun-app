@@ -40,7 +40,7 @@ import React, { useMemo } from 'react';
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="space-y-6"
+          className="space-y-6 pb-20 md:pb-0"
         >
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900">Bonjour {currentUser?.name?.split(' ')[0] || 'Jack'} 👋</h1>

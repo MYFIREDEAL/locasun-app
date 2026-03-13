@@ -250,7 +250,7 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className="fixed inset-0 bottom-16 z-40 flex flex-col bg-white">
+    <div className="fixed inset-0 bottom-20 z-40 flex flex-col bg-white">
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
@@ -398,7 +398,7 @@ const MobileChatProjectPage = () => {
       </div>
 
       {/* Input fixe en bas */}
-      <div className="px-4 py-3 border-t bg-white flex-shrink-0">
+      <div className="px-4 py-3.5 border-t bg-white flex-shrink-0">
         {attachedFile && (
           <div className="mb-2 text-sm text-gray-600 flex items-center gap-2">
             <Paperclip className="w-4 h-4" />
@@ -407,19 +407,19 @@ const MobileChatProjectPage = () => {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex-shrink-0 h-11 w-11">
             <Paperclip className={`h-5 w-5 ${uploading ? 'text-gray-300' : 'text-gray-500'}`} />
           </Button>
           <input type="file" ref={fileInputRef} onChange={(e) => e.target.files?.[0] && setAttachedFile(e.target.files[0])} className="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
           <Input
             placeholder="Écrire à votre conseiller..."
-            className="flex-1 h-10"
+            className="flex-1 h-12 text-base"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           />
-          <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0" disabled={uploading}>
-            {uploading ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="h-4 w-4" />}
+          <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0 h-11 w-11" disabled={uploading}>
+            {uploading ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         </div>
       </div>
