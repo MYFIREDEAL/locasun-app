@@ -43,11 +43,23 @@ self.addEventListener('push', (event) => {
     };
 
     event.waitUntil(
-      self.registration.showNotification(title, options).then(() => {
-        // 🔴 Pastille rouge sur l'icône PWA
-        if (self.navigator && self.navigator.setAppBadge) {
-          return self.navigator.setAppBadge(1);
+      // 🔇 Ne PAS afficher la notif si le client est au premier plan (app visible)
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        const isAppVisible = clientList.some((client) => client.visibilityState === 'visible');
+        
+        if (isAppVisible) {
+          // App ouverte et visible → pas de push (le client voit déjà les messages en real-time)
+          console.log('[SW] App visible, skip push notification');
+          return;
         }
+
+        // App en arrière-plan ou fermée → afficher la notification
+        return self.registration.showNotification(title, options).then(() => {
+          // 🔴 Pastille rouge sur l'icône PWA
+          if (self.navigator && self.navigator.setAppBadge) {
+            return self.navigator.setAppBadge(1);
+          }
+        });
       })
     );
   } catch (err) {
