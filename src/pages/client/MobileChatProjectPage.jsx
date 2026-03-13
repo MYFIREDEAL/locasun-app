@@ -49,7 +49,6 @@ const MobileChatProjectPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const isInitialLoadRef = useRef(true);
@@ -77,18 +76,6 @@ const MobileChatProjectPage = () => {
       .filter(n => !n.read && n.projectType === projectType)
       .forEach(n => markClientNotificationAsRead(n.id));
   }, [clientNotifications, markClientNotificationAsRead, projectType]);
-
-  // Détecter clavier iOS via focus/blur (seule méthode fiable en PWA standalone)
-  const handleInputFocus = () => {
-    setKeyboardOpen(true);
-    // Scroll vers le dernier message quand clavier s'ouvre
-    setTimeout(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 150);
-  };
-  const handleInputBlur = () => {
-    setKeyboardOpen(false);
-  };
 
   // Panel statuses pour boutons d'action MESSAGE
   useEffect(() => {
@@ -263,7 +250,7 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className={`fixed inset-0 ${keyboardOpen ? 'bottom-0' : 'bottom-[88px]'} z-40 flex flex-col bg-white`}>
+    <div className="fixed inset-0 bottom-[88px] z-40 flex flex-col bg-white">
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
@@ -434,8 +421,6 @@ const MobileChatProjectPage = () => {
             spellCheck="false"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           />
           <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0 h-11 w-11" disabled={uploading}>
