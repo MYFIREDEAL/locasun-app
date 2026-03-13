@@ -351,6 +351,25 @@ const BlockEditorPanel = ({ block, onUpdate, onDelete }) => {
               ))}
             </div>
           </div>
+          <div>
+            <Label className="text-xs font-semibold text-gray-600 mb-1.5 block">Affichage</Label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { value: 'cover', label: '🖼️ Remplir' },
+                { value: 'contain', label: '📐 Image entière' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    (c.fit || 'cover') === opt.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  onClick={() => updateContent('fit', opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           {block.type === 'image' && (
             <div>
               <Label className="text-xs font-semibold text-gray-600 mb-1.5 block">Légende</Label>
@@ -514,7 +533,7 @@ const MobileBlockRenderer = ({ block, project, isFirst }) => {
       return (
         <div className={`relative ${c.height === 'small' ? 'h-24' : c.height === 'large' ? 'h-52' : 'h-36'} bg-gradient-to-br from-gray-200 to-gray-300`}>
           {c.url ? (
-            <img src={c.url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display='none'; }} />
+            <img src={c.url} alt="" className={`w-full h-full ${c.fit === 'contain' ? 'object-contain' : 'object-cover'}`} onError={(e) => { e.target.style.display='none'; }} />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <ShoppingBag className="h-10 w-10 text-gray-400" />
@@ -553,7 +572,7 @@ const MobileBlockRenderer = ({ block, project, isFirst }) => {
         <div className="px-4 py-1.5">
           {c.url ? (
             <div>
-              <img src={c.url} alt="" className={`w-full ${c.height === 'small' ? 'h-20' : c.height === 'large' ? 'h-40' : 'h-28'} object-cover rounded-xl`} onError={(e) => { e.target.style.display='none'; }} />
+              <img src={c.url} alt="" className={`w-full ${c.height === 'small' ? 'h-20' : c.height === 'large' ? 'h-40' : 'h-28'} ${c.fit === 'contain' ? 'object-contain' : 'object-cover'} rounded-xl`} onError={(e) => { e.target.style.display='none'; }} />
               {c.caption && <p className="text-[9px] text-gray-400 mt-1 text-center">{c.caption}</p>}
             </div>
           ) : (

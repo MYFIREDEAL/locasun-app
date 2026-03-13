@@ -72,11 +72,13 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
 
   switch (block.type) {
     case 'hero-image': {
-      const heroH = SIZE_TO_HERO_H[size] || 'h-52';
+      // Hauteur basée sur c.height (Petit/Moyen/Grand dans l'éditeur)
+      const heroH = c.height === 'small' ? 'h-36' : c.height === 'large' ? 'h-72' : 'h-52';
+      const fitCls = c.fit === 'contain' ? 'object-contain' : 'object-cover';
       return (
         <div className={`relative ${heroH} bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden`}>
           {c.url ? (
-            <img src={c.url} alt="" className="w-full h-full object-cover" />
+            <img src={c.url} alt="" className={`w-full h-full ${fitCls}`} />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <ShoppingBag className="h-16 w-16 text-gray-400" />
@@ -146,7 +148,8 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
       );
 
     case 'image': {
-      const imgH = SIZE_TO_HERO_H[size] || 'h-40';
+      const imgH = c.height === 'small' ? 'h-28' : c.height === 'large' ? 'h-56' : 'h-40';
+      const imgFit = c.fit === 'contain' ? 'object-contain' : 'object-cover';
       return (
         <motion.div
           initial={{ opacity: 0 }}
@@ -156,7 +159,7 @@ const ContentBlockRenderer = ({ block, project, index, isFirst }) => {
         >
           {c.url ? (
             <div>
-              <img src={c.url} alt="" className={`w-full ${imgH} object-cover rounded-2xl`} />
+              <img src={c.url} alt="" className={`w-full ${imgH} ${imgFit} rounded-2xl`} />
               {c.caption && <p className="text-xs text-gray-400 mt-1.5 text-center">{c.caption}</p>}
             </div>
           ) : (
