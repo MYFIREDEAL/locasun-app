@@ -20,6 +20,8 @@ const ClientLayout = () => {
 
   // Cacher header + bottom nav quand on est dans le chat d'un projet (MobileChatProjectPage gère tout)
   const isChatProjectPage = /\/chat\/[^/]+/.test(location.pathname);
+  // Cacher bottom nav sur la page offre détail (elle a son propre CTA sticky)
+  const isOfferDetailPage = /\/offres\/[^/]+/.test(location.pathname);
   
   // 🔥 NOUVEAU: Vérifier et créer session Supabase si manquante
   useEffect(() => {
@@ -118,8 +120,8 @@ const ClientLayout = () => {
           </main>
         </div>
       )}
-      {/* Bottom nav mobile — toujours visible */}
-      {isMobile && <MobileBottomNav />}
+      {/* Bottom nav mobile — masqué dans le chat projet et la page offre détail */}
+      {isMobile && !isOfferDetailPage && <MobileBottomNav />}
     </div>
   );
 };
