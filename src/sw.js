@@ -43,11 +43,22 @@ self.addEventListener('push', (event) => {
     };
 
     event.waitUntil(
-      self.registration.showNotification(title, options).then(() => {
-        // 🔴 Pastille rouge sur l'icône PWA
-        if (self.navigator && self.navigator.setAppBadge) {
-          return self.navigator.setAppBadge(1);
+      // Vérifier si l'app est au premier plan
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        const isAppFocused = clientList.some(client => client.visibilityState === 'visible');
+        
+        if (isAppFocused) {
+          // App ouverte → pas de notification OS (le client voit déjà le message en temps réel)
+          console.log('[SW] App au premier plan → skip notification');
+          return;
         }
+
+        // App en arrière-plan → afficher la notification + pastille
+        return self.registration.showNotification(title, options).then(() => {
+          if (self.navigator && self.navigator.setAppBadge) {
+            return self.navigator.setAppBadge(1);
+          }
+        });
       })
     );
   } catch (err) {
