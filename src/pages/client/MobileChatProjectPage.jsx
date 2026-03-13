@@ -49,10 +49,24 @@ const MobileChatProjectPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const isInitialLoadRef = useRef(true);
   const fileInputRef = useRef(null);
+
+  // 📱 Clavier iOS : focus/blur sur l'input → cacher la nav bar
+  const handleInputFocus = useCallback(() => {
+    setKeyboardOpen(true);
+    window.dispatchEvent(new CustomEvent('keyboard-toggle', { detail: { open: true } }));
+    // Scroll au dernier message quand le clavier s'ouvre
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
+  }, []);
+
+  const handleInputBlur = useCallback(() => {
+    setKeyboardOpen(false);
+    window.dispatchEvent(new CustomEvent('keyboard-toggle', { detail: { open: false } }));
+  }, []);
 
   // Panel statuses pour boutons MESSAGE
   const [panelStatuses, setPanelStatuses] = useState({});
@@ -76,6 +90,13 @@ const MobileChatProjectPage = () => {
       .filter(n => !n.read && n.projectType === projectType)
       .forEach(n => markClientNotificationAsRead(n.id));
   }, [clientNotifications, markClientNotificationAsRead, projectType]);
+
+  // 📱 Cleanup : s'assurer que la nav bar revient quand on quitte la page
+  useEffect(() => {
+    return () => {
+      window.dispatchEvent(new CustomEvent('keyboard-toggle', { detail: { open: false } }));
+    };
+  }, []);
 
   // Panel statuses pour boutons d'action MESSAGE
   useEffect(() => {
@@ -250,7 +271,7 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className="fixed inset-0 bottom-[88px] z-40 flex flex-col bg-white">
+    <div className={`fixed inset-0 ${keyboardOpen ? 'bottom-0 z-[60]' : 'bottom-[88px] z-40'} flex flex-col bg-white transition-[bottom] duration-200`}>
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
@@ -422,6 +443,8 @@ const MobileChatProjectPage = () => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
           />
           <Button onClick={handleSendMessage} size="icon" className="bg-green-500 hover:bg-green-600 flex-shrink-0 h-11 w-11" disabled={uploading}>
             {uploading ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="h-5 w-5" />}

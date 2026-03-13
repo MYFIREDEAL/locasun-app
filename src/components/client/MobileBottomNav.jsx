@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, MessageCircle, Menu } from 'lucide-react';
 import { useAppContext } from '@/App';
@@ -13,6 +13,17 @@ const MobileBottomNav = () => {
   const { clientNotifications } = useAppContext();
   const location = useLocation();
   const navigate = useNavigate();
+  const [hidden, setHidden] = useState(false);
+
+  // 📱 Écouter l'event "keyboard-toggle" dispatché par le chat quand le clavier s'ouvre/ferme
+  useEffect(() => {
+    const handler = (e) => setHidden(!!e.detail?.open);
+    window.addEventListener('keyboard-toggle', handler);
+    return () => window.removeEventListener('keyboard-toggle', handler);
+  }, []);
+
+  // Ne pas rendre la nav bar si le clavier est ouvert
+  if (hidden) return null;
 
   // Compteur notifs non lues pour la pastille Chat
   const unreadCount = clientNotifications.filter(n => !n.read).reduce((sum, n) => sum + (n.count || 1), 0);
