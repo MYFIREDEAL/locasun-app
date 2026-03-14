@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Gift, Zap, ChevronRight, LogOut } from 'lucide-react';
+import { User, Gift, Zap, Bell, ChevronRight, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '@/App';
 import { supabase } from '@/lib/supabase';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 const menuItems = [
   {
@@ -29,6 +31,35 @@ const menuItems = [
 const MenuPage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAppContext();
+  const { organizationId } = useOrganization();
+  const [toggling, setToggling] = useState(false);
+
+  const { isSupported, permission, isSubscribed, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications({
+    prospectId: currentUser?.id,
+    organizationId,
+  });
+
+  const handleToggleNotifications = async () => {
+    if (toggling || pushLoading) return;
+    setToggling(true);
+    try {
+      if (isSubscribed) {
+        await unsubscribe();
+      } else {
+        await subscribe();
+      }
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  // Statut affiché pour les notifications
+  const notifBlocked = permission === 'denied';
+  const notifLabel = notifBlocked
+    ? 'Bloquées (voir Réglages)'
+    : isSubscribed
+      ? 'Activées'
+      : 'Désactivées';
 
   const handleLogout = () => {
     supabase.auth.signOut();
@@ -71,6 +102,43 @@ const MenuPage = () => {
           </motion.button>
         ))}
       </div>
+
+      {/* 🔔 Notifications toggle */}
+      {isSupported && (
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: menuItems.length * 0.08 }}
+          className="bg-white rounded-2xl p-4 shadow-sm"
+        >
+          <button
+            onClick={notifBlocked ? undefined : handleToggleNotifications}
+            disabled={toggling || pushLoading || notifBlocked}
+            className="w-full flex items-center gap-4 disabled:opacity-60"
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSubscribed ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+              <Bell className="h-5 w-5" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="font-medium text-gray-900">Notifications</span>
+              <p className={`text-xs mt-0.5 ${isSubscribed ? 'text-green-600' : notifBlocked ? 'text-red-500' : 'text-gray-400'}`}>
+                {notifLabel}
+              </p>
+            </div>
+            {/* Toggle switch */}
+            {!notifBlocked && (
+              <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${isSubscribed ? 'bg-green-500' : 'bg-gray-300'}`}>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${isSubscribed ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+            )}
+          </button>
+          {notifBlocked && (
+            <p className="text-xs text-gray-400 mt-2 pl-14">
+              Allez dans Réglages → Notifications pour réautoriser.
+            </p>
+          )}
+        </motion.div>
+      )}
 
       {/* Logout */}
       <motion.button
