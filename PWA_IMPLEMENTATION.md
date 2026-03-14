@@ -266,3 +266,57 @@
 - Données personnelles (adresse, téléphone)
 - Contenu de formulaires
 - ✅ OK : "Nouveau message de votre conseiller", "Un document est disponible", "Formulaire à compléter"
+
+---
+
+## 🚨 Bugs iOS Mobile Résolus (14 mars 2026)
+
+> **Référence pour les futures apps mobiles PWA.** Ces bugs sont spécifiques à iOS Safari / PWA standalone.
+
+### Bug 1 — Chat : messages ne chargent pas (cold start)
+- **Symptôme** : Spinner infini, aucun message affiché à l'ouverture
+- **Cause** : `setLoading(false)` dans le guard `if (!prospectId) return` du hook `useSupabaseChatMessages.js` — se déclenche AVANT que l'auth async fournisse le `prospectId`
+- **Fix** : Retirer `setLoading(false)` du guard
+- **Fichier** : `src/hooks/useSupabaseChatMessages.js`
+
+### Bug 2 — Chat : scroll freeze après formulaire
+- **Symptôme** : Le chat se fige après ouverture/fermeture d'un panel formulaire
+- **3 causes** :
+  1. `isNearBottom` recalculé à chaque render → boucle infinie de `scrollToBottom` → **Fix** : `useRef` au lieu de `useState`
+  2. `panelIds` (array) recalculé à chaque render → re-render infini → **Fix** : `useRef` + comparaison JSON avant setState
+  3. CSS `transition-[bottom]` sur le container → gèle le scroll tactile iOS → **Fix** : supprimé
+- **Fichier** : `src/pages/client/MobileChatProjectPage.jsx`
+
+### Bug 3 — Chat : clavier reste ouvert après envoi
+- **Symptôme** : Le client envoie un message → clavier ne se ferme pas, dernier message caché
+- **Fix** : `inputRef.current?.blur()` après `addChatMessage()` + `handleInputBlur` avec scroll-to-bottom après 300ms
+- **Fichier** : `src/pages/client/MobileChatProjectPage.jsx`
+
+### Bug 4 — PWA : nom "Espace Client" au lieu du nom de l'org
+- **Cause** : Manifest statique dans `vite.config.js` avait `name: "Espace Client"` en fallback → gagnait sur le manifest dynamique
+- **Fix** : Vider les champs `name`, `short_name`, `description` dans le manifest statique
+- **Fichier** : `vite.config.js`
+
+### Bug 5 — Logo org ne s'affichait pas (nouvelles orgs)
+- **Cause** : `updateLogo()` utilisait `.update()` → fail silently si aucune row dans `organization_settings`
+- **Fix** : `.upsert({ ...data }, { onConflict: 'organization_id' })`
+- **Fichier** : `src/hooks/useSupabaseCompanySettings.js`
+
+---
+
+## 📐 Règles d'or iOS Mobile / PWA
+
+> **À respecter pour TOUTE future app mobile PWA sur iOS.**
+
+| # | Règle | Pourquoi |
+|---|---|---|
+| 1 | **Pas de `transition` CSS sur `bottom`/`height`** | Gèle le scroll tactile sur iOS Safari |
+| 2 | **`WebkitOverflowScrolling: 'touch'`** sur tout container scrollable | Scroll fluide obligatoire sur iOS |
+| 3 | **`behavior: 'auto'`** pour `scrollIntoView` (pas `'smooth'`) | `smooth` bloque le touch scroll sur iOS |
+| 4 | **`inputRef.blur()`** après envoi dans un chat | iOS ne ferme pas le clavier automatiquement |
+| 5 | **`useRef`** pour valeurs qui changent souvent (isNearBottom, panelIds) | Évite les re-renders infinis |
+| 6 | **`.upsert()` jamais `.update()`** pour tables de config | `.update()` fail silently si 0 rows |
+| 7 | **Manifest statique vide** si manifest dynamique | Le statique gagne sinon |
+| 8 | **Pas de `setLoading(false)` dans les guards** de hooks async | Le parent croit que c'est fini alors que rien n'a chargé |
+| 9 | **`replace: true`** quand on skip une page intermédiaire | Évite le flash + historique propre |
+| 10 | **Soft prompt AVANT popup native Apple** pour les notifs | Si refus Apple → bloqué définitivement côté code |

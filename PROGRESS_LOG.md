@@ -5,6 +5,61 @@
 
 ---
 
+## 📅 14 mars 2026 — Session 5
+
+### 🎯 Résumé : Bugs chat mobile, branding PWA, logo mobile, notifications
+
+### 🐛 Bugs fixés
+
+#### Chat mobile — Cold start (messages ne chargent pas)
+- `useSupabaseChatMessages.js` : retiré `setLoading(false)` du guard `if (!prospectId)`
+- Le loading restait bloqué car le guard se déclenchait avant que l'auth async fournisse le prospectId
+
+#### Chat mobile — Scroll freeze après formulaire (3 causes)
+- `MobileChatProjectPage.jsx` : `isNearBottom` → `useRef` (boucle infinie scrollToBottom)
+- `MobileChatProjectPage.jsx` : `panelIds` → `useRef` + comparaison JSON (re-render infini)
+- `MobileChatProjectPage.jsx` : supprimé `transition-[bottom]` (gelait le scroll iOS)
+
+#### Chat mobile — Clavier reste ouvert après envoi
+- `MobileChatProjectPage.jsx` : `inputRef.blur()` après `addChatMessage()` + `handleInputBlur` scroll-to-bottom
+
+#### PWA — Nom "Espace Client" au lieu du nom de l'org
+- `vite.config.js` : vidé `name`, `short_name`, `description` dans le manifest statique fallback
+
+#### Logo — Ne s'affiche pas pour les nouvelles orgs (Rosca Finance)
+- `useSupabaseCompanySettings.js` : `.update()` → `.upsert({ onConflict: 'organization_id' })` pour `updateLogo` et `removeLogo`
+
+### ✅ Features ajoutées
+
+#### Logo mobile séparé (admin ProfilePage)
+- Upload d'un logo mobile distinct du logo web dans Profil admin
+- Preview iPhone (mockup icône 60x60 + nom en dessous)
+- `mobileLogoUrl` prioritaire sur `logoUrl` dans le manifest PWA
+- Fichiers : `useBranding.js`, `OrganizationContext.jsx`, `App.jsx`, `usePWAManifest.js`, `useSupabaseCompanySettings.js`, `ProfilePage.jsx`
+
+#### Chat — Skip liste si 1 seul projet
+- `ChatConversationsList.jsx` : auto-redirect vers le chat si le client n'a qu'un projet
+- `MobileChatProjectPage.jsx` : bouton retour → `/dashboard` au lieu de `/dashboard/chat`
+
+#### Notification opt-in — Améliorations UX
+- Texte plus convaincant (explique pourquoi c'est important)
+- Affiché dès la 1ère visite (au lieu de la 3e)
+- Escalade progressive si "Plus tard" : **3j → 7j → 30j → stop définitif**
+- **Toggle ON/OFF dans le Menu** client (MenuPage.jsx) avec statut visible
+
+### 🗄️ Migrations SQL exécutées
+- `ALTER TABLE organization_settings ADD COLUMN IF NOT EXISTS mobile_logo_url TEXT DEFAULT NULL;`
+
+### 📚 Documentation mise à jour
+- `PWA_IMPLEMENTATION.md` : ajouté section "Bugs iOS Mobile Résolus" + "Règles d'or iOS Mobile / PWA" (10 règles)
+
+### 🔜 Prochains sujets
+- Tester le toggle notifications sur un vrai iPhone en PWA
+- Tester le mobile logo upload depuis un admin Rosca Finance
+- Workflow V2 / IA
+
+---
+
 ## 📅 13 mars 2026 — Session 4 (journée)
 
 ### 🎯 Résumé : App client mobile → UX finale (nav bar, chat, clavier iOS)
