@@ -3,17 +3,24 @@ import { Bell, BellOff, X } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const OPT_IN_KEY = 'push-optin-dismissed';
-const OPT_IN_DISMISS_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
+const OPT_IN_DISMISS_COUNT_KEY = 'push-optin-dismiss-count';
 const VISIT_COUNT_KEY = 'push-optin-visits';
 const MIN_VISITS_BEFORE_PROMPT = 1; // Afficher dès la 1ère visite
+
+// Escalade progressive : 3 jours → 7 jours → 30 jours → stop définitif
+const DISMISS_DURATIONS = [
+  3 * 24 * 60 * 60 * 1000,   // 1er "Plus tard" → reproposer après 3 jours
+  7 * 24 * 60 * 60 * 1000,   // 2e "Plus tard" → reproposer après 7 jours
+  30 * 24 * 60 * 60 * 1000,  // 3e "Plus tard" → reproposer après 30 jours
+];
+const MAX_DISMISSALS = 3; // Après 3 dismiss → on arrête définitivement
 
 /**
  * 🔔 NotificationOptIn — Soft prompt pour les push notifications
  * 
  * Règles RGPD et UX :
- * - Ne s'affiche PAS au premier chargement
- * - Attend que le client ait visité l'espace au moins 3 fois
- * - Dismiss persisté 30 jours
+ * - Affiché dès la 1ère visite (avec 5s de délai)
+ * - Escalade progressive si "Plus tard" : 3j → 7j → 30j → stop
  * - Pas affiché si déjà abonné ou si permission refusée
  * - Pas affiché si push non supporté
  * - Pas affiché sur desktop
@@ -31,13 +38,24 @@ const NotificationOptIn = ({ prospectId, organizationId, brandName = 'votre espa
     organizationId 
   });
 
-  // Vérifier si le soft prompt a été dismiss récemment
+  // Vérifier si le soft prompt a été dismiss (escalade progressive)
   const isDismissed = useCallback(() => {
     try {
-      const dismissed = localStorage.getItem(OPT_IN_KEY);
-      if (!dismissed) return false;
-      const dismissedAt = parseInt(dismissed, 10);
-      if (Date.now() - dismissedAt < OPT_IN_DISMISS_DURATION) return true;
+      const dismissCount = parseInt(localStorage.getItem(OPT_IN_DISMISS_COUNT_KEY) || '0', 10);
+      
+      // 3 dismiss → stop définitif
+      if (dismissCount >= MAX_DISMISSALS) return true;
+      
+      const dismissedAt = localStorage.getItem(OPT_IN_KEY);
+      if (!dismissedAt) return false;
+      
+      const elapsed = Date.now() - parseInt(dismissedAt, 10);
+      const duration = DISMISS_DURATIONS[Math.min(dismissCount - 1, DISMISS_DURATIONS.length - 1)];
+      
+      // Pas encore expiré → toujours dismiss
+      if (elapsed < duration) return true;
+      
+      // Expiré → on peut reproposer
       localStorage.removeItem(OPT_IN_KEY);
       return false;
     } catch {
@@ -61,9 +79,11 @@ const NotificationOptIn = ({ prospectId, organizationId, brandName = 'votre espa
     } catch { /* ignore localStorage errors */ }
   }, [isMobile, isSupported, isSubscribed, permission, isDismissed]);
 
-  // Dismiss le prompt
+  // Dismiss le prompt (escalade : incrémente le compteur)
   const handleDismiss = useCallback(() => {
     try {
+      const count = parseInt(localStorage.getItem(OPT_IN_DISMISS_COUNT_KEY) || '0', 10) + 1;
+      localStorage.setItem(OPT_IN_DISMISS_COUNT_KEY, count.toString());
       localStorage.setItem(OPT_IN_KEY, Date.now().toString());
     } catch { /* ignore */ }
     setShowPrompt(false);
