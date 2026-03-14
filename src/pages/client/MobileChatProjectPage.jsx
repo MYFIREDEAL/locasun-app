@@ -35,6 +35,13 @@ const MobileChatProjectPage = () => {
   const project = projectsData[projectType];
   const prospectId = currentUser?.id;
 
+  // 📱 Si un seul projet, le bouton retour ramène au dashboard (pas à la liste chat)
+  const clientProjects = useMemo(() => {
+    if (!currentUser?.tags || !projectsData) return [];
+    return currentUser.tags.filter(tag => projectsData[tag]);
+  }, [currentUser?.tags, projectsData]);
+  const isSingleProject = clientProjects.length === 1;
+
   // Hook chat
   const { messages, loading: messagesLoading, loadMore, hasMore, loadingMore } = useSupabaseChatMessages(prospectId, projectType, 'client');
 
@@ -299,7 +306,7 @@ const MobileChatProjectPage = () => {
     <div className={`fixed inset-0 ${keyboardOpen ? 'bottom-0 z-[60]' : 'bottom-[88px] z-40'} flex flex-col bg-white`}>
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => navigate(isSingleProject ? '/dashboard' : '/dashboard/chat')} className="rounded-full flex-shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className={`w-10 h-10 ${project.color} rounded-full flex items-center justify-center flex-shrink-0`}>

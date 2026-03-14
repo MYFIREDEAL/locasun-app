@@ -121,6 +121,13 @@ const ChatConversationsList = () => {
     });
   }, [clientProjects, unreadByProject, lastMessages]);
 
+  // 📱 Si un seul projet → aller directement sur le chat (pas besoin de liste)
+  useEffect(() => {
+    if (clientProjects.length === 1) {
+      navigate(`/dashboard/chat/${clientProjects[0].type}`, { replace: true });
+    }
+  }, [clientProjects, navigate]);
+
   if (clientProjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
