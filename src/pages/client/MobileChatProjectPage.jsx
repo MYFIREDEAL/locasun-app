@@ -54,6 +54,8 @@ const MobileChatProjectPage = () => {
   const chatContainerRef = useRef(null);
   const isInitialLoadRef = useRef(true);
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null); // 📱 Ref input pour blur programmatique après envoi
+  const isNearBottomRef = useRef(true); // 📱 Track si l'user est proche du bas (pour auto-scroll intelligent)
 
   // 📱 Clavier iOS : focus/blur sur l'input → cacher la nav bar
   const handleInputFocus = useCallback(() => {
@@ -66,6 +68,9 @@ const MobileChatProjectPage = () => {
   const handleInputBlur = useCallback(() => {
     setKeyboardOpen(false);
     window.dispatchEvent(new CustomEvent('keyboard-toggle', { detail: { open: false } }));
+    // 📱 Quand le clavier se ferme, la nav bar revient (bottom passe de 0 à 88px)
+    // → le container rétrécit → scroller au bas pour que le dernier message reste visible
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 150);
   }, []);
 
   // Panel statuses pour boutons MESSAGE
@@ -99,18 +104,29 @@ const MobileChatProjectPage = () => {
   }, []);
 
   // Panel statuses pour boutons d'action MESSAGE
+  // 📱 FIX: Extraire les panelIds dans un ref stable pour éviter de re-subscribe le channel
+  // à chaque nouveau message (messages change à chaque INSERT real-time)
+  const panelIdsRef = useRef([]);
+
   useEffect(() => {
-    const panelIds = messages
+    const newPanelIds = messages
       .filter(msg => msg.metadata?.actionButtons && msg.metadata?.panelId)
       .map(msg => msg.metadata.panelId);
 
-    if (panelIds.length === 0) return;
+    // Ne re-subscribe que si les panelIds ont VRAIMENT changé (nouveau bouton MESSAGE)
+    const changed = newPanelIds.length !== panelIdsRef.current.length ||
+      newPanelIds.some((id, i) => id !== panelIdsRef.current[i]);
+
+    if (!changed) return;
+    panelIdsRef.current = newPanelIds;
+
+    if (newPanelIds.length === 0) return;
 
     const fetchStatuses = async () => {
       const { data, error } = await supabase
         .from('client_form_panels')
         .select('panel_id, status')
-        .in('panel_id', panelIds);
+        .in('panel_id', newPanelIds);
 
       if (!error && data) {
         const statuses = {};
@@ -122,13 +138,13 @@ const MobileChatProjectPage = () => {
     fetchStatuses();
 
     const channel = supabase
-      .channel(`mobile-chat-panels-${projectType}`)
+      .channel(`mobile-chat-panels-${projectType}-${newPanelIds.length}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'client_form_panels',
       }, (payload) => {
-        if (panelIds.includes(payload.new.panel_id)) {
+        if (newPanelIds.includes(payload.new.panel_id)) {
           setPanelStatuses(prev => ({ ...prev, [payload.new.panel_id]: payload.new.status }));
         }
       })
@@ -137,21 +153,28 @@ const MobileChatProjectPage = () => {
     return () => supabase.removeChannel(channel);
   }, [messages, projectType]);
 
-  // Scroll
+  // Scroll — auto-scroll uniquement si l'user est déjà en bas (évite de bloquer le scroll tactile iOS)
   useEffect(() => {
     if (!messages.length) return;
     requestAnimationFrame(() => {
       if (isInitialLoadRef.current) {
         chatEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
         isInitialLoadRef.current = false;
-      } else {
+      } else if (isNearBottomRef.current) {
+        // Seulement si l'user est proche du bas → on scroll au nouveau message
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
+      // Si l'user a scrollé vers le haut pour lire → on ne le dérange PAS
     });
   }, [messages]);
 
   const handleChatScroll = useCallback(async (e) => {
     const container = e.target;
+
+    // 📱 Tracker si l'user est proche du bas (seuil 150px)
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    isNearBottomRef.current = distanceFromBottom < 150;
+
     if (container.scrollTop < 80 && hasMore && !loadingMore) {
       const prevScrollHeight = container.scrollHeight;
       await loadMore();
@@ -185,7 +208,9 @@ const MobileChatProjectPage = () => {
       addChatMessage(prospectId, projectType, { sender: 'client', text: newMessage, file: fileData });
       setNewMessage('');
       setAttachedFile(null);
-      requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
+      // 📱 Fermer le clavier après envoi (blur l'input programmatiquement)
+      inputRef.current?.blur();
+      // Le scroll au bas sera géré par handleInputBlur (qui se déclenche via le blur)
     } catch (error) {
       logger.error('❌ Error sending message', error);
       toast({ title: '❌ Erreur', description: "Impossible d'envoyer le message.", variant: 'destructive' });
@@ -271,7 +296,7 @@ const MobileChatProjectPage = () => {
   }
 
   return (
-    <div className={`fixed inset-0 ${keyboardOpen ? 'bottom-0 z-[60]' : 'bottom-[88px] z-40'} flex flex-col bg-white transition-[bottom] duration-200`}>
+    <div className={`fixed inset-0 ${keyboardOpen ? 'bottom-0 z-[60]' : 'bottom-[88px] z-40'} flex flex-col bg-white`}>
       {/* Header fixe */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-white flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/chat')} className="rounded-full flex-shrink-0">
@@ -291,6 +316,7 @@ const MobileChatProjectPage = () => {
         ref={chatContainerRef}
         onScroll={handleChatScroll}
         className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50"
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
       >
         {loadingMore && (
           <div className="flex items-center justify-center py-2">
@@ -433,6 +459,7 @@ const MobileChatProjectPage = () => {
           </Button>
           <input type="file" ref={fileInputRef} onChange={(e) => e.target.files?.[0] && setAttachedFile(e.target.files[0])} className="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
           <Input
+            ref={inputRef}
             placeholder="Écrire à votre conseiller..."
             className="flex-1 h-12 text-base"
             enterKeyHint="send"

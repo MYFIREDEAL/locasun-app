@@ -70,7 +70,9 @@ export function useSupabaseChatMessages(prospectId = null, projectType = null, c
   // Charger les messages (25 derniers)
   useEffect(() => {
     if (!prospectId || !projectType) {
-      setLoading(false);
+      // ⚠️ Ne PAS mettre loading=false ici — prospectId peut être undefined
+      // au cold start PWA (currentUser pas encore chargé).
+      // Garder loading=true évite le flash "Aucun message" avant que le fetch ne se lance.
       return;
     }
 
