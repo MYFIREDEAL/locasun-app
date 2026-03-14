@@ -119,72 +119,152 @@
 
 ---
 
-## 🟠 PHASE 3 — Push Notifications
+## ✅ PHASE 3 — Push Notifications (implémenté 13 mars 2026)
 
 ### 3.1 — VAPID Keys
-- [ ] Générer une paire VAPID (public + private)
-- [ ] Stocker `VITE_VAPID_PUBLIC_KEY` dans `.env`
-- [ ] Stocker `VAPID_PRIVATE_KEY` dans Supabase secrets
+- [x] Généré paire VAPID via `web-push generate-vapid-keys`
+- [x] `VITE_VAPID_PUBLIC_KEY` dans `.env` (frontend)
+- [x] `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` dans Supabase secrets (Edge Function)
+
+> ⚠️ **PIÈGE VAPID** : `web-push npm` génère les clés en **base64url raw** (65 bytes public, 32 bytes private).
+> Mais `@negrel/webpush` (Deno) attend du **JWK**. Il faut convertir manuellement :
+> - Public 65 bytes → `0x04 + x[32] + y[32]` → extraire x et y en base64url
+> - Private 32 bytes → c'est le scalaire `d`
+> - Voir `rawVapidToJwk()` dans `send-push-notification/index.ts`
 
 ### 3.2 — Table push_subscriptions
-- [ ] Créer migration SQL :
-  ```sql
-  CREATE TABLE push_subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    prospect_id UUID REFERENCES prospects(id) ON DELETE CASCADE,
-    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-    subscription JSONB NOT NULL,  -- { endpoint, keys: { p256dh, auth } }
-    user_agent TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(prospect_id, subscription->>'endpoint')
-  );
-  ```
-- [ ] RLS policies (client peut INSERT/DELETE ses propres subscriptions)
+- [x] Créé `create_push_subscriptions_table.sql`
+- [x] RLS : client peut INSERT/DELETE ses propres subscriptions
+- [x] Colonnes : `prospect_id`, `organization_id`, `subscription` (JSONB), `user_agent`
+- [x] RPC `delete_push_subscription` pour désabonnement (SECURITY DEFINER)
 
-### 3.3 — Service Worker push handler
-- [ ] Ajouter dans le custom SW :
-  ```js
-  self.addEventListener('push', (event) => { ... })
-  self.addEventListener('notificationclick', (event) => { ... })
-  ```
-- [ ] Afficher notification native avec titre + body + icône org
-- [ ] Clic sur notification → ouvre la PWA sur la bonne page
+### 3.3 — Service Worker push handler (`src/sw.js`)
+- [x] `self.addEventListener('push', ...)` — affiche notification native
+- [x] `self.addEventListener('notificationclick', ...)` — ouvre la PWA sur `/dashboard`
+- [x] Payload JSON : `{ title, body, url, tag, icon }`
 
-### 3.4 — Hook usePushNotifications
-- [ ] Créer `src/hooks/usePushNotifications.js`
-  - Demander permission `Notification.requestPermission()`
-  - `registration.pushManager.subscribe()` avec VAPID public key
-  - Sauvegarder subscription dans `push_subscriptions`
-  - Gérer unsubscribe
+> ⚠️ **PIÈGE iOS** : Sur iOS, les push ne fonctionnent **QUE si la PWA est installée sur l'écran d'accueil**.
+> Dans Safari classique, `PushManager` existe mais `subscribe()` échoue silencieusement.
+> Il faut vérifier `isPWAInstalled()` (standalone mode) avant de proposer les notifications.
 
-### 3.5 — Composant NotificationPermission
-- [ ] Créer `src/components/client/NotificationPermission.jsx`
-  - Bannière : "Activer les notifications pour ne rien manquer"
-  - Bouton "Activer" → demande permission → subscribe
-  - Affiché après installation PWA (pas avant)
-  - Dismiss persisté
+> ⚠️ **PIÈGE Service Worker** : Le `push` event DOIT appeler `self.registration.showNotification()` dans un `event.waitUntil()`.
+> Sinon iOS/Chrome tuent le SW avant l'affichage de la notification.
+
+### 3.4 — Hook usePushNotifications (`src/hooks/usePushNotifications.js`)
+- [x] Vérifie support (`serviceWorker` + `PushManager` + `Notification` + VAPID key)
+- [x] `subscribe()` : `Notification.requestPermission()` → `pushManager.subscribe()` → sauvegarde en DB
+- [x] `unsubscribe()` : supprime subscription navigateur + DB via RPC
+- [x] État : `isSupported`, `permission`, `isSubscribed`, `loading`
+
+> ⚠️ **PIÈGE permission** : `Notification.requestPermission()` ne peut être appelé que suite à un **user gesture** (click/tap).
+> Si appelé au chargement de page → Chrome/Safari le bloque silencieusement.
+> C'est pour ça qu'on a le soft prompt (NotificationOptIn) qui attend le clic de l'utilisateur.
+
+> ⚠️ **PIÈGE unsubscribe** : Quand on `unsubscribe()` côté navigateur, la `subscription` object change.
+> Il faut aussi supprimer l'ancienne subscription en DB (via endpoint), sinon le trigger DB essaie d'envoyer
+> à un endpoint mort → 410 Gone.
+
+### 3.5 — Composant NotificationOptIn (`src/components/client/NotificationOptIn.jsx`)
+- [x] Soft prompt AVANT la popup native Apple/Chrome
+- [x] Escalade progressive si "Plus tard" : 3j → 7j → 30j → stop
+- [x] Affiché dès la 1ère visite (avec 5s de délai)
+- [x] Pas affiché si : déjà abonné, permission denied, pas mobile, pas supporté
+- [x] Toggle ON/OFF dans le Menu client (`MenuPage.jsx`)
+
+> ⚠️ **PIÈGE UX CRITIQUE** : Si le client clique "Activer" et que la popup native Apple apparaît,
+> et qu'il clique **"Refuser"** → `permission = 'denied'` → **on ne peut PLUS jamais re-déclencher la popup depuis le code**.
+> Le client doit aller dans Réglages iPhone → Notifications pour réautoriser.
+> → C'est pour ça que le soft prompt est essentiel : il prépare le client à cliquer "Autoriser".
 
 ### 3.6 — Edge Function send-push-notification
-- [ ] Créer `supabase/functions/send-push-notification/index.ts`
-  - Input : `{ prospect_id, title, body, url, organization_id }`
-  - Lit subscription(s) depuis `push_subscriptions`
-  - Envoie via Web Push protocol (avec VAPID private key)
-  - Gère les subscriptions expirées (410 → delete)
+- [x] `supabase/functions/send-push-notification/index.ts`
+- [x] Compatible Deno Edge Runtime (pas de dépendance Node.js)
+- [x] Librairie : `@negrel/webpush` (Web APIs pures, compatible Deno)
+- [x] Gère les subscriptions expirées (410/404 → delete en DB)
+- [x] Supporte `prospect_id` (client) et `user_id` (admin futur)
+- [x] Cache du serveur VAPID entre les requêtes (perf)
 
-### 3.7 — Trigger DB → Push
-- [ ] Créer trigger sur `notifications` INSERT
-  - Si le prospect a une push_subscription → appeler Edge Function
-  - Respecter `client_notification_config` de l'org (types activés)
+> ⚠️ **PIÈGE Deno** : La librairie `web-push` npm **ne fonctionne PAS** dans Supabase Edge Functions (elle utilise des APIs Node.js).
+> Il faut utiliser `@negrel/webpush` (JSR) qui utilise uniquement les Web Crypto APIs.
+> Mais cette librairie attend du JWK, pas du base64url raw → conversion manuelle obligatoire (voir 3.1).
 
-### ⏸️ PAUSE VÉRIF PHASE 3
-- [ ] Permission demandée correctement
-- [ ] Subscription sauvegardée en DB
-- [ ] Admin envoie message → client reçoit push notification (app fermée)
-- [ ] Clic sur notification → ouvre la PWA sur le bon chat
-- [ ] Fonctionne sur Android Chrome
-- [ ] Fonctionne sur iOS Safari (iOS 16.4+)
-- [ ] Subscriptions expirées nettoyées automatiquement
+> ⚠️ **PIÈGE pg_net** : Le trigger DB appelle l'Edge Function via `net.http_post()` (extension pg_net).
+> Si pg_net n'est pas activé → le trigger s'exécute sans erreur mais la push n'est jamais envoyée.
+> Vérifier : `SELECT * FROM pg_extension WHERE extname = 'pg_net';`
+
+### 3.7 — Trigger DB → Push (Smart Push avec Présence)
+- [x] Table `user_presence` : heartbeat 25s côté client (`ClientLayout.jsx`)
+- [x] Trigger `fn_send_push_on_client_notification` sur table `client_notifications`
+- [x] **Smart push** : vérifie si le client est ACTIF (is_active + last_seen < 45s) → skip push si oui
+- [x] Vérifie qu'il existe au moins 1 subscription push avant d'appeler l'Edge Function
+- [x] Appelle via `net.http_post()` avec anon key
+
+> ⚠️ **PIÈGE Présence** : Le heartbeat client doit être **plus fréquent** que le seuil côté trigger.
+> Heartbeat = 25s, seuil trigger = 45s → marge de 20s.
+> Si heartbeat trop lent (ex: 60s) et seuil 45s → le client reçoit des push alors qu'il est sur l'app.
+
+> ⚠️ **PIÈGE iOS background** : Quand la PWA iOS est en background, le heartbeat s'arrête.
+> C'est le comportement voulu : client plus actif → push envoyé → notification native.
+
+### ✅ État final Phase 3
+- [x] Permission demandée via soft prompt + popup native
+- [x] Subscription sauvegardée en DB (`push_subscriptions`)
+- [x] Admin envoie message → trigger → Edge Function → push notification
+- [x] Clic notification → ouvre la PWA sur `/dashboard`
+- [x] Présence client → skip push si app active
+- [x] Subscriptions expirées nettoyées (410 Gone)
+- [x] Fonctionne sur iOS Safari PWA installée ✅
+- [x] Fonctionne sur Android Chrome ✅
+- [x] Toggle ON/OFF dans Menu client ✅
+
+### 🚨 Résumé des pièges Push Notifications (pour la prochaine app)
+
+| # | Piège | Impact | Solution |
+|---|---|---|---|
+| 1 | **VAPID format** : web-push npm = base64url raw, Deno webpush = JWK | Edge Function crash | Conversion manuelle `rawVapidToJwk()` |
+| 2 | **web-push npm incompatible Deno** | Edge Function ne compile pas | Utiliser `@negrel/webpush` (JSR) |
+| 3 | **Permission refusée = définitif** | Plus jamais de popup | Soft prompt AVANT popup native |
+| 4 | **iOS : push uniquement en PWA installée** | Push ignorés dans Safari | Vérifier `isPWAInstalled()` |
+| 5 | **`event.waitUntil()` obligatoire** dans push handler | Notification pas affichée | Wrapper `showNotification` dans `waitUntil` |
+| 6 | **`requestPermission()` sans user gesture** | Bloqué silencieusement | Toujours suite à un click |
+| 7 | **pg_net pas activé** | Trigger silencieux, pas de push | Vérifier extension pg_net |
+| 8 | **Heartbeat vs seuil présence** | Push envoyé alors que client actif | Heartbeat < seuil (25s < 45s) |
+| 9 | **Subscription morte en DB** | 410 Gone à chaque envoi | Cleanup auto dans Edge Function |
+| 10 | **unsubscribe() change l'objet subscription** | Ancienne sub reste en DB | Supprimer par endpoint |
+
+### 🔥 Chronologie des galères Push (pour ne pas refaire les mêmes erreurs)
+
+#### Galère 1 — Edge Function : web-push npm ne marche pas dans Deno
+- **Tentative 1** : `import webpush from 'web-push'` via esm.sh → crash (utilise `crypto` Node.js)
+- **Tentative 2** : `web-push` via esm.sh avec polyfills → crash différent (buffer Node.js)
+- **Solution finale** : `@negrel/webpush` (librairie JSR pure Web APIs) + conversion manuelle VAPID raw→JWK
+- **Fichier** : `supabase/functions/send-push-notification/index.ts` — la fonction `rawVapidToJwk()`
+
+#### Galère 2 — Push affichée même quand l'app est ouverte
+Le client est SUR l'app, il voit les messages en temps réel, mais il reçoit quand même une notification push.
+- **Tentative 1** (`38b0caf9`) : Vérifier `visibilityState` dans le Service Worker → `clients.matchAll({ type: 'window', includeUncontrolled: true })` → si une fenêtre est `visible` → skip. **Problème** : sur iOS PWA, `visibilityState` n'est pas toujours fiable.
+- **Tentative 2** (`a04ff667`) : Heartbeat SW — le frontend envoie `postMessage('APP_ACTIVE')` au SW toutes les 3 secondes. Le SW garde un timestamp, et si < 5s → skip la push. **Problème** : sur iOS, quand le client change d'app, le dernier heartbeat peut être récent (< 5s) → push skippée alors que le client n'est plus sur l'app.
+- **Tentative 3** (`4037ba5b`) : **Présence côté serveur** (solution finale). Le frontend upsert `user_presence` toutes les 25s + sur `visibilitychange`. Le TRIGGER DB vérifie `is_active=true AND last_seen < 45s` AVANT d'appeler l'Edge Function. Si client actif → pas d'appel → pas de push. **Fonctionne** car la décision est côté serveur (trigger DB SECURITY DEFINER), pas côté SW.
+- **Ajustement** (`29fce52a`, `05d0eb46`) : Heartbeat ajusté de 3s → 7s → 20s → **25s** final. Seuil trigger ajusté de 30s → **45s**.
+
+#### Galère 3 — Magic link ouvre Safari au lieu de la PWA installée
+Sur iOS, un magic link envoyé par email s'ouvre TOUJOURS dans Safari, même si la PWA est installée.
+- **Tentative 1** : Espérer que iOS redirige vers la PWA si le `scope` match → **non**, iOS n'a pas de deep linking pour les PWA.
+- **Tentative 2** (`16511648`) : Page interstitielle `/open-app` qui dit "Retournez sur votre écran d'accueil et ouvrez l'app". **Problème** : UX horrible, le client ne comprend pas.
+- **Solution finale** (`ac539e7d`) : **OTP code 6 chiffres** au lieu du magic link. L'admin envoie un code, le client le tape dans la PWA. Pas de lien, pas de Safari, tout reste dans la PWA.
+- **Fichiers** : `src/pages/client/ClientAccessPage.jsx`, Edge Function Supabase Auth OTP
+
+#### Galère 4 — Pastille "Action requise" ne disparaît jamais
+Après avoir soumis un formulaire, la pastille rouge restait.
+- **Cause** : `addChatMessage()` pouvait throw (doublon réseau) AVANT que `updateClientFormPanel()` ne soit appelé → le panel restait `pending` → pastille éternelle.
+- **Fix** (`b32c0040`) : Inverser l'ordre → `updateFormPanel` AVANT `addChatMessage` + `addChatMessage` dans un try/catch séparé (non bloquant).
+- **Leçon** : ⚠️ Toujours mettre l'opération critique (update status) AVANT l'opération secondaire (message chat). Si le chat plante, le status est quand même mis à jour.
+
+#### Galère 5 — Notifications doublons client
+Le client recevait 2 notifications pour chaque message admin.
+- **Cause** : Le frontend (`addChatMessage` dans App.jsx) créait une notification ET le trigger DB `on_admin_message_notify_client` en créait une aussi.
+- **Fix** (`0cba3f66`) : Supprimer TOUTE création de notifications côté frontend. Les triggers DB sont la seule source de vérité.
+- **Leçon** : ⚠️ **Règle absolue** : Les notifications sont UNIQUEMENT créées par les triggers DB (SECURITY DEFINER). Jamais côté frontend.
 
 ---
 
