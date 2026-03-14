@@ -17,9 +17,10 @@ export default defineConfig({
       manifest: {
         // Manifest par défaut (fallback) — sera écrasé dynamiquement par usePWAManifest.js selon l'org
         // ⚠️ NE PAS mettre de nom spécifique ici (sinon iOS/Android l'affichent avant le branding)
-        name: 'Votre espace client',
-        short_name: 'Espace client',
-        description: 'Votre espace client',
+        // 📱 iOS lit ce manifest au moment du "Ajouter à l'écran d'accueil" — garder vide pour forcer le dynamique
+        name: '',
+        short_name: '',
+        description: '',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
         display: 'standalone',
