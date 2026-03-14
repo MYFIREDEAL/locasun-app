@@ -301,6 +301,7 @@ export const OrganizationProvider = ({ children }) => {
   const {
     brandName,
     logoUrl,
+    mobileLogoUrl,
     primaryColor,
     secondaryColor,
     brandingLoading,
@@ -343,6 +344,7 @@ export const OrganizationProvider = ({ children }) => {
         isPlatformOrg, // 🔥 Exposé pour savoir si c'est l'org plateforme
         brandName,
         logoUrl,
+        mobileLogoUrl,
         primaryColor,
         secondaryColor,
         brandingLoading,

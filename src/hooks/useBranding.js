@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 export const useBranding = (organizationId) => {
   const [brandName, setBrandName] = useState(null);
   const [logoUrl, setLogoUrl] = useState(null);
+  const [mobileLogoUrl, setMobileLogoUrl] = useState(null);
   const [primaryColor, setPrimaryColor] = useState(null);
   const [secondaryColor, setSecondaryColor] = useState(null);
   const [brandingLoading, setBrandingLoading] = useState(true);
@@ -21,6 +22,7 @@ export const useBranding = (organizationId) => {
       // 🔥 FIX MULTI-TENANT: Reset complet quand organizationId devient null
       setBrandName(null);
       setLogoUrl(null);
+      setMobileLogoUrl(null);
       setPrimaryColor(null);
       setSecondaryColor(null);
       setBrandingLoading(false);
@@ -35,6 +37,7 @@ export const useBranding = (organizationId) => {
         // 🔥 FIX MULTI-TENANT: Reset immédiat avant de charger la nouvelle org
         setBrandName(null);
         setLogoUrl(null);
+        setMobileLogoUrl(null);
         setPrimaryColor(null);
         setSecondaryColor(null);
 
@@ -63,6 +66,7 @@ export const useBranding = (organizationId) => {
 
         setBrandName(settings.display_name);
         setLogoUrl(settings.logo_url);
+        setMobileLogoUrl(settings.mobile_logo_url || null);
         setPrimaryColor(settings.primary_color);
         setSecondaryColor(settings.secondary_color);
         setBrandingLoading(false);
@@ -79,6 +83,7 @@ export const useBranding = (organizationId) => {
   return {
     brandName,
     logoUrl,
+    mobileLogoUrl,
     primaryColor,
     secondaryColor,
     brandingLoading,

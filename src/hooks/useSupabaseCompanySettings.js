@@ -622,12 +622,103 @@ export const useSupabaseCompanySettings = (options = {}) => {
     }
   ];
 
+  /**
+   * 📱 METTRE À JOUR LE LOGO MOBILE (icône PWA)
+   * Stocké uniquement dans organization_settings.mobile_logo_url (pas dans company_settings)
+   * @param {string} logoData - URL ou base64 du logo mobile
+   */
+  const updateMobileLogo = async (logoData) => {
+    if (!organizationId) {
+      logger.error('updateMobileLogo: organizationId requis');
+      toast({
+        title: "Erreur",
+        description: "Organisation non définie. Impossible de sauvegarder.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const { error: orgError } = await supabase
+        .from('organization_settings')
+        .upsert({ 
+          organization_id: organizationId,
+          mobile_logo_url: logoData,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'organization_id' });
+
+      if (orgError) {
+        logger.error('Erreur update mobile logo:', { error: orgError.message });
+        throw orgError;
+      }
+
+      toast({
+        title: "Logo mobile mis à jour !",
+        description: "L'icône de l'app mobile a été modifiée.",
+        className: "bg-green-500 text-white",
+      });
+
+      return true;
+    } catch (err) {
+      logger.error('Erreur update mobile logo:', { error: err.message });
+      toast({
+        title: "Erreur",
+        description: err.message || "Impossible de mettre à jour le logo mobile.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  /**
+   * 📱 SUPPRIMER LE LOGO MOBILE (revient au logo web par défaut)
+   */
+  const removeMobileLogo = async () => {
+    if (!organizationId) {
+      logger.error('removeMobileLogo: organizationId requis');
+      return false;
+    }
+
+    try {
+      const { error: orgError } = await supabase
+        .from('organization_settings')
+        .upsert({ 
+          organization_id: organizationId,
+          mobile_logo_url: null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'organization_id' });
+
+      if (orgError) {
+        logger.error('Erreur suppression mobile logo:', { error: orgError.message });
+        throw orgError;
+      }
+
+      toast({
+        title: "Logo mobile supprimé",
+        description: "L'app mobile utilisera le logo principal.",
+        className: "bg-blue-500 text-white",
+      });
+
+      return true;
+    } catch (err) {
+      logger.error('Erreur suppression mobile logo:', { error: err.message });
+      toast({
+        title: "Erreur",
+        description: err.message || "Impossible de supprimer le logo mobile.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     companySettings,
     loading,
     error,
     updateLogo,
     removeLogo,
+    updateMobileLogo,
+    removeMobileLogo,
     updateSettings,
     updateFormContactConfig,
     getFormContactConfig,

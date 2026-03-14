@@ -14,10 +14,11 @@ import { logger } from '@/lib/logger';
  * 
  * @param {object} options
  * @param {string|null} options.brandName - Nom de l'organisation (display_name)
- * @param {string|null} options.logoUrl - URL du logo de l'org
+ * @param {string|null} options.logoUrl - URL du logo de l'org (fallback si pas de mobileLogoUrl)
+ * @param {string|null} options.mobileLogoUrl - URL du logo mobile spécifique pour l'icône PWA
  * @param {string|null} options.primaryColor - Couleur primaire de l'org (#hex)
  */
-export const usePWAManifest = ({ brandName, logoUrl, primaryColor } = {}) => {
+export const usePWAManifest = ({ brandName, logoUrl, mobileLogoUrl, primaryColor } = {}) => {
   const blobUrlRef = useRef(null);
   const previousManifestRef = useRef(null);
 
@@ -35,22 +36,23 @@ export const usePWAManifest = ({ brandName, logoUrl, primaryColor } = {}) => {
     const bgColor = '#ffffff';
 
     // Éviter les mises à jour inutiles
-    const manifestKey = `${name}-${logoUrl}-${themeColor}`;
+    const manifestKey = `${name}-${logoUrl}-${mobileLogoUrl}-${themeColor}`;
     if (previousManifestRef.current === manifestKey) return;
     previousManifestRef.current = manifestKey;
 
-    logger.info('[PWA] Mise à jour manifest dynamique', { name, themeColor, hasLogo: !!logoUrl });
+    logger.info('[PWA] Mise à jour manifest dynamique', { name, themeColor, hasLogo: !!logoUrl, hasMobileLogo: !!mobileLogoUrl });
 
     // === 1. Construire le manifest JSON ===
     const icons = [];
+    // 📱 Priorité : mobileLogoUrl > logoUrl > fallback EVATIME
+    const pwaIconUrl = mobileLogoUrl || logoUrl;
 
-    if (logoUrl) {
-      // Si l'org a un logo, l'utiliser comme icône PWA
-      // Note : le logo org peut être un SVG, une URL externe, ou du base64
+    if (pwaIconUrl) {
+      // Si l'org a un logo mobile (ou web en fallback), l'utiliser comme icône PWA
       icons.push(
-        { src: logoUrl, sizes: '192x192', type: 'image/png' },
-        { src: logoUrl, sizes: '512x512', type: 'image/png' },
-        { src: logoUrl, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        { src: pwaIconUrl, sizes: '192x192', type: 'image/png' },
+        { src: pwaIconUrl, sizes: '512x512', type: 'image/png' },
+        { src: pwaIconUrl, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
       );
     } else {
       // Fallback : icônes EVATIME par défaut
@@ -103,14 +105,16 @@ export const usePWAManifest = ({ brandName, logoUrl, primaryColor } = {}) => {
     themeColorMeta.content = themeColor;
 
     // === 5. Mettre à jour <link rel="apple-touch-icon"> ===
-    if (logoUrl) {
+    // 📱 Priorité : mobileLogoUrl > logoUrl
+    const appleTouchIconUrl = mobileLogoUrl || logoUrl;
+    if (appleTouchIconUrl) {
       let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]');
       if (!appleTouchIcon) {
         appleTouchIcon = document.createElement('link');
         appleTouchIcon.rel = 'apple-touch-icon';
         document.head.appendChild(appleTouchIcon);
       }
-      appleTouchIcon.href = logoUrl;
+      appleTouchIcon.href = appleTouchIconUrl;
     }
 
     // === 6. Mettre à jour <meta name="apple-mobile-web-app-title"> ===
@@ -138,7 +142,7 @@ export const usePWAManifest = ({ brandName, logoUrl, primaryColor } = {}) => {
         blobUrlRef.current = null;
       }
     };
-  }, [brandName, logoUrl, primaryColor]);
+  }, [brandName, logoUrl, mobileLogoUrl, primaryColor]);
 };
 
 /**

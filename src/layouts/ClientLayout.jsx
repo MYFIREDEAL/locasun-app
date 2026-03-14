@@ -17,14 +17,14 @@ const ClientLayout = () => {
   const { width } = useWindowSize();
   const isDesktop = width >= 1024;
   const isMobile = width < 768;
-  const { currentUser, setCurrentUser, companyLogo, brandName, logoUrl, primaryColor, authLoading } = useAppContext();
+  const { currentUser, setCurrentUser, companyLogo, brandName, logoUrl, mobileLogoUrl, primaryColor, authLoading } = useAppContext();
   const { organizationId } = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const [sessionCheckDone, setSessionCheckDone] = useState(false);
 
-  // 📱 PWA : Manifest dynamique avec branding de l'org
-  usePWAManifest({ brandName, logoUrl, primaryColor });
+  // 📱 PWA : Manifest dynamique avec branding de l'org (mobileLogoUrl prioritaire sur logoUrl)
+  usePWAManifest({ brandName, logoUrl, mobileLogoUrl, primaryColor });
 
   // 🔴 PWA : Effacer le badge app (pastille rouge sur l'icône) quand le client ouvre l'app
   useEffect(() => {

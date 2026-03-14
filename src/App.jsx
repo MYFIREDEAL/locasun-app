@@ -270,6 +270,7 @@ function App() {
     organizationReady, // 🔥 FIX BOUCLE #310: Flag pour gater les hooks Supabase
     brandName,
     logoUrl,
+    mobileLogoUrl,
     primaryColor,
     secondaryColor,
     brandingLoading,
@@ -432,6 +433,8 @@ function App() {
     companySettings, 
     updateLogo, 
     removeLogo,
+    updateMobileLogo,
+    removeMobileLogo,
     updateFormContactConfig,
     getFormContactConfig 
   } = useSupabaseCompanySettings({ organizationId, enabled: organizationReady });
@@ -1756,9 +1759,11 @@ function App() {
     BOOT_STATUS, // Exposer les constantes pour comparaison
     clientFormPanels, registerClientForm, updateClientFormPanel, clearClientFormsFor,
     companyLogo, setCompanyLogo, removeLogo,
+    updateMobileLogo, removeMobileLogo,
     // 🔥 WHITE-LABEL: Branding dynamique depuis organization_settings
     brandName,
     logoUrl,
+    mobileLogoUrl,
     primaryColor,
     secondaryColor,
   };
