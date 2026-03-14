@@ -138,14 +138,15 @@ export const useSupabaseCompanySettings = (options = {}) => {
       }
 
       // 🔥 SYNC vers organization_settings pour la Landing Page
+      // ⚠️ UPSERT car la ligne peut ne pas exister (orgs créées avant le système de settings)
       if (organizationId) {
         const { error: orgError } = await supabase
           .from('organization_settings')
-          .update({ 
+          .upsert({ 
+            organization_id: organizationId,
             logo_url: logoData,
             updated_at: new Date().toISOString()
-          })
-          .eq('organization_id', organizationId);
+          }, { onConflict: 'organization_id' });
 
         if (orgError) {
           logger.warn('Sync logo vers organization_settings échoué:', { error: orgError.message });
@@ -205,14 +206,15 @@ export const useSupabaseCompanySettings = (options = {}) => {
       }
 
       // 🔥 SYNC vers organization_settings pour la Landing Page
+      // ⚠️ UPSERT car la ligne peut ne pas exister (orgs créées avant le système de settings)
       if (organizationId) {
         const { error: orgError } = await supabase
           .from('organization_settings')
-          .update({ 
+          .upsert({ 
+            organization_id: organizationId,
             logo_url: null,
             updated_at: new Date().toISOString()
-          })
-          .eq('organization_id', organizationId);
+          }, { onConflict: 'organization_id' });
 
         if (orgError) {
           logger.warn('Sync suppression logo vers organization_settings échoué:', { error: orgError.message });
