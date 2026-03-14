@@ -5,7 +5,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 const OPT_IN_KEY = 'push-optin-dismissed';
 const OPT_IN_DISMISS_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
 const VISIT_COUNT_KEY = 'push-optin-visits';
-const MIN_VISITS_BEFORE_PROMPT = 3; // Afficher après 3 visites
+const MIN_VISITS_BEFORE_PROMPT = 1; // Afficher dès la 1ère visite
 
 /**
  * 🔔 NotificationOptIn — Soft prompt pour les push notifications
