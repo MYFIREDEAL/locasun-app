@@ -106,10 +106,10 @@ const NotificationOptIn = ({ prospectId, organizationId, brandName = 'votre espa
 
           <div>
             <p className="font-bold text-gray-900 text-base">
-              🔔 Restez informé en temps réel
+              Restez informé en temps réel
             </p>
             <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-              Recevez une notification dès qu'il y a du nouveau sur votre projet {brandName} : messages, documents, étapes franchies
+              Sans les notifications, vous ne serez pas averti quand votre conseiller vous envoie un message ou un document à signer. Activez-les pour suivre votre dossier en temps réel.
             </p>
           </div>
         </div>
